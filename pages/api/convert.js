@@ -13,7 +13,12 @@
  */
 
 import pdfParse    from "pdf-parse/lib/pdf-parse.js";
-import { kv }      from "@vercel/kv";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 import { requireAuth } from "../../lib/requireAuth.js";
 import {
   isValidPDF,
@@ -34,8 +39,8 @@ async function convertHandler(req, res) {
 
   // ── Rate limiting ──────────────────────────────────────────────────────────
   const rlKey = `rl:convert:${ip}:${Math.floor(Date.now() / 60000)}`;
-  const count = ((await kv.get(rlKey)) ?? 0) + 1;
-  await kv.set(rlKey, count, { ex: 60 });
+  const count = ((await redis.get(rlKey)) ?? 0) + 1;
+  await redis.set(rlKey, count, { ex: 60 });
 
   if (count > RATE_LIMIT_RPM) {
     auditLog("rate_limited", { ip, count });
