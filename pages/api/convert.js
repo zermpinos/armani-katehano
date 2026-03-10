@@ -76,6 +76,7 @@ Rules:
 - For the "league" field: look at the competition name printed at the top of the score sheet.
   * If it contains words like "ROOKIE", "ΝΕΩΝ", "ΝΕΑΝΙΚΟ" → set league to "rookie"
   * If it contains "BC6", "Β' ΚΑΤΗΓΟΡΙΑ", "B ΚΑΤΗΓΟΡΙΑ", "B6" → set league to "bc6"
+  * If it contains "WINTER CUP", "ΧΕΙΜΕΡΙΝΟ", "WINTER" → set league to "wintercup"
   * If unclear → set league to ""`;
 
 async function convertHandler(req, res) {
@@ -145,7 +146,7 @@ async function convertHandler(req, res) {
 
     // Normalise the league field — only allow "rookie", "bc6", or ""
     const rawLeague = (gameData.match_info.league || "").toLowerCase().trim();
-    gameData.match_info.league = rawLeague === "rookie" || rawLeague === "bc6" ? rawLeague : "";
+    gameData.match_info.league = ["rookie", "bc6", "wintercup"].includes(rawLeague) ? rawLeague : "";
 
   } catch (err) {
     auditLog("vision_error", { ip, filename: safeFilename, error: err.message });
