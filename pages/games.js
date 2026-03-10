@@ -4,6 +4,17 @@ import { SectionHeading } from "../components/ui";
 import { C } from "../lib/theme";
 import { getAllPublicData } from "../lib/data";
 
+
+// "Last Name F." format
+const fmt = name => {
+  if (!name) return "";
+  const parts = name.trim().split(" ").filter(Boolean);
+  if (parts.length === 1) return parts[0];
+  const last  = parts[0];
+  const first = parts[parts.length - 1];
+  return last + " " + first[0].toUpperCase() + ".";
+};
+
 const BOX_COLS = [
   {key:"min",label:"MIN"},{key:"pts",label:"PTS"},{key:"reb",label:"REB"},
   {key:"ast",label:"AST"},{key:"stl",label:"STL"},{key:"blk",label:"BLK"},{key:"tov",label:"TOV"},
@@ -41,7 +52,7 @@ function BoxScore({ game, players, onClose }) {
                 <tr key={r.pid} style={{ background: i%2===0 ? C.surface : C.surface2, borderBottom:`1px solid ${C.border}` }}>
                   <td style={{ padding:"8px 12px", fontWeight:700, color:C.textDim }}>{r.player.number}</td>
                   <td style={{ padding:"8px 12px" }}>
-                    <div style={{ fontWeight:700, color:C.text, fontSize:13 }}>{r.player.name}</div>
+                    <div style={{ fontWeight:700, color:C.text, fontSize:13 }}>{fmt(r.player.name)}</div>
                     <div style={{ fontSize:10, color:C.textDim, letterSpacing:"0.1em" }}>{r.player.position}</div>
                   </td>
                   {BOX_COLS.map(c => (
