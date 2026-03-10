@@ -6,6 +6,9 @@
  * Brute-force protection: 5 failed attempts → 15-minute IP lockout (Upstash Redis).
  */
 
+console.log("KV_REST_API_URL:", process.env.KV_REST_API_URL);
+console.log("KV_REST_API_TOKEN:", process.env.KV_REST_API_TOKEN);
+
 import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
