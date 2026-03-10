@@ -36,7 +36,12 @@ Use this exact shape:
     "home_score": 0,
     "away_score": 0,
     "competition": "league name from top of sheet",
-    "matchday": 0
+    "matchday": 0,
+    "league": "rookie or bc6 — see rules below",
+    "result": "W or L",
+    "opponent": "<other team name>",
+    "armani_katehano_score": 0,
+    "opponent_score": 0
   },
   "armani_katehano": {
     "players": [
@@ -67,8 +72,11 @@ Use this exact shape:
 Rules:
 - Include every player in the ARMANI KATEHANO section, even those who did not play (set did_not_play=true, all stats 0)
 - minutes_played.total_seconds = minutes*60 + seconds (e.g. "26:34" → 1594)
-- Derive result from scores: if AK home_score > away_score then W, else L
-- Add "result": "W" or "L" and "opponent": "<other team name>" and "armani_katehano_score": N and "opponent_score": N inside match_info`;
+- Derive result from scores: if AK score > opponent score then "W", else "L"
+- For the "league" field: look at the competition name printed at the top of the score sheet.
+  * If it contains words like "ROOKIE", "ΝΕΩΝ", "ΝΕΑΝΙΚΟ" → set league to "rookie"
+  * If it contains "BC6", "Β' ΚΑΤΗΓΟΡΙΑ", "B ΚΑΤΗΓΟΡΙΑ", "B6" → set league to "bc6"
+  * If unclear → set league to ""`;
 
 async function convertHandler(req, res) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
@@ -135,6 +143,10 @@ async function convertHandler(req, res) {
     gameData = JSON.parse(raw);
     gameData.match_info.source_file = safeFilename;
 
+    // Normalise the league field — only allow "rookie", "bc6", or ""
+    const rawLeague = (gameData.match_info.league || "").toLowerCase().trim();
+    gameData.match_info.league = rawLeague === "rookie" || rawLeague === "bc6" ? rawLeague : "";
+
   } catch (err) {
     auditLog("vision_error", { ip, filename: safeFilename, error: err.message });
     return res.status(422).json({ error: `Failed to extract stats: ${err.message}` });
@@ -145,6 +157,7 @@ async function convertHandler(req, res) {
     filename:      safeFilename,
     date:          gameData.match_info?.date,
     result:        gameData.match_info?.result,
+    league:        gameData.match_info?.league,
     players_found: gameData.armani_katehano?.players?.filter(p => !p.did_not_play).length ?? 0,
   });
 
