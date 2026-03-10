@@ -3,14 +3,14 @@
  * POST /api/auth        -> login
  * DELETE /api/auth      -> logout
  *
- * Brute-force protection: 5 failed attempts -> 15-minute IP lockout (Vercel KV).
+ * Brute-force protection: 5 failed attempts -> 15-minute IP lockout (Upstash Redis).
  */
 
 import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
 });
 
 import {
@@ -55,7 +55,6 @@ export default async function handler(req, res) {
   if (locked) {
     const ttl = await redis.ttl(lockKey);
     auditLog("login_blocked_lockout", { ip });
-    // Return identical message to not leak lockout status (OWASP A07)
     return res.status(429).json({
       error: "Too many attempts. Try again later.",
       retryAfter: ttl,
@@ -64,17 +63,14 @@ export default async function handler(req, res) {
 
   const { password, slug } = req.body ?? {};
 
-  // Validate both password AND slug are present (fail fast without timing leaks)
   if (typeof password !== "string" || typeof slug !== "string") {
     return res.status(400).json({ error: "Invalid request" });
   }
 
-  // Both checks must pass -- evaluate both to avoid short-circuit timing leaks
   const passwordOk = safePasswordCompare(password, process.env.ADMIN_PASSWORD);
   const slugOk     = safePasswordCompare(slug,     process.env.ADMIN_SLUG);
 
   if (!passwordOk || !slugOk) {
-    // Increment attempt counter
     const attempts = (await redis.get(attKey) ?? 0) + 1;
 
     if (attempts >= MAX_LOGIN_ATTEMPTS) {
@@ -86,7 +82,6 @@ export default async function handler(req, res) {
       auditLog("login_failed", { ip, attempts });
     }
 
-    // Uniform error message regardless of which factor failed (OWASP A07)
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
