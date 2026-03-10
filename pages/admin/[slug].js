@@ -77,9 +77,10 @@ const Section = ({ title, icon, children }) => (
 
 // ── League options ────────────────────────────────────────────────────────────
 const LEAGUE_OPTIONS = [
-  { value: "",       label: "— Unassigned —"  },
-  { value: "rookie", label: "Rookie League"   },
-  { value: "bc6",    label: "BC6"             },
+  { value: "",          label: "— Unassigned —"  },
+  { value: "rookie",    label: "Rookie League"   },
+  { value: "bc6",       label: "BC6"             },
+  { value: "wintercup", label: "Winter Cup"      },
 ];
 
 // ── Box score columns ─────────────────────────────────────────────────────────
@@ -240,7 +241,7 @@ function AdminGames({ players, games, onSave, showToast }) {
                   <span style={{ width:30, height:30, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, background:g.result==="W"?`${C.green}25`:`${C.red}25`, color:g.result==="W"?C.green:C.redText }}>{g.result}</span>
                   <div>
                     <div style={{ fontWeight:900, fontSize:13, color:C.text }}>{g.home?"vs":"@"} {g.opponent}</div>
-                    <div style={{ fontSize:11, color:C.textDim }}>{g.date} · {g.score}{g.league ? ` · ${g.league==="rookie"?"Rookie":g.league==="bc6"?"BC6":""}` : ""}{g.topScorer?` · ${g.topScorer}`:""}</div>
+                    <div style={{ fontSize:11, color:C.textDim }}>{g.date} · {g.score}{g.league ? ` · ${g.league==="rookie"?"Rookie":g.league==="bc6"?"BC6":g.league==="wintercup"?"Winter Cup":""}` : ""}{g.topScorer?` · ${g.topScorer}`:""}</div>
                   </div>
                 </div>
                 <div style={{ display:"flex", gap:6 }}>
