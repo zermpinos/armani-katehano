@@ -1,92 +1,151 @@
 /**
  * pages/api/convert.js
- * POST /api/convert  →  { pdf: "<base64>" }  →  { data: {...} }
+ * POST /api/convert  →  { image: "<base64 jpg>", filename: "..." }  →  { data: {...} }
  *
- * Extracts stats from a Basket City PDF using spatial text extraction
- * (pdfjs-dist). No external API. No cost. Works 100% server-side.
+ * Sends the Basket City score sheet image to Claude vision API and returns
+ * structured game JSON in the same shape as the old PDF parser output,
+ * so the existing buildDraft / confirm flow needs no changes.
  *
  * Protected by:
  *  - Session cookie auth (requireAuth)
- *  - PDF magic byte validation
- *  - 5 MB file size cap
- *  - Per-IP rate limiting (10 req/min via Vercel KV)
+ *  - 8 MB image size cap
+ *  - Per-IP rate limiting (10 req/min via Upstash KV)
  */
 
-import kv          from "../../lib/redis.js";
+import { Redis }       from "@upstash/redis";
 import { requireAuth } from "../../lib/requireAuth.js";
-import {
-  isValidPDF,
-  securityHeaders,
-  auditLog,
-  MAX_PDF_BYTES,
-  RATE_LIMIT_RPM,
-} from "../../lib/security.js";
-import { parseBasketCityPDF } from "../../lib/parser.js";
+import { securityHeaders, auditLog } from "../../lib/security.js";
+
+const redis = new Redis({
+  url:   process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
+});
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+const RATE_LIMIT_RPM  = 10;
+
+const PROMPT = `Extract ARMANI KATEHANO player stats from this Basket City basketball score sheet image.
+Return ONLY valid JSON with no markdown, no code fences, no explanation.
+
+Use this exact shape:
+{
+  "match_info": {
+    "date": "DD/MM/YYYY",
+    "home_team": "TEAM NAME",
+    "away_team": "TEAM NAME",
+    "home_score": 0,
+    "away_score": 0,
+    "competition": "league name from top of sheet",
+    "matchday": 0
+  },
+  "armani_katehano": {
+    "players": [
+      {
+        "jersey_number": 0,
+        "name_greek": "SURNAME NAME",
+        "points": 0,
+        "free_throws":     { "made": 0, "attempted": 0 },
+        "two_point_fg":    { "made": 0, "attempted": 0 },
+        "three_point_fg":  { "made": 0, "attempted": 0 },
+        "fouls_made": 0,
+        "fouls_earned": 0,
+        "offensive_rebounds": 0,
+        "defensive_rebounds": 0,
+        "total_rebounds": 0,
+        "assists": 0,
+        "steals": 0,
+        "blocks": 0,
+        "turnovers": 0,
+        "efficiency": 0,
+        "minutes_played": { "display": "MM:SS", "total_seconds": 0 },
+        "did_not_play": false
+      }
+    ]
+  }
+}
+
+Rules:
+- Include every player in the ARMANI KATEHANO section, even those who did not play (set did_not_play=true, all stats 0)
+- minutes_played.total_seconds = minutes*60 + seconds (e.g. "26:34" → 1594)
+- Derive result from scores: if AK home_score > away_score then W, else L
+- Add "result": "W" or "L" and "opponent": "<other team name>" and "armani_katehano_score": N and "opponent_score": N inside match_info`;
 
 async function convertHandler(req, res) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
   const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
 
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  // ── Rate limiting ─────────────────────────────────────────────────────────
+  // ── Rate limiting ──────────────────────────────────────────────────────────
   const rlKey = `rl:convert:${ip}:${Math.floor(Date.now() / 60000)}`;
-  const count = (await kv.get(rlKey) ?? 0) + 1;
-  await kv.set(rlKey, count, { ex: 60 });
-
+  const count = ((await redis.get(rlKey)) ?? 0) + 1;
+  await redis.set(rlKey, count, { ex: 60 });
   if (count > RATE_LIMIT_RPM) {
     auditLog("rate_limited", { ip, count });
     res.setHeader("Retry-After", "60");
     return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
   }
 
-  // ── Input validation ──────────────────────────────────────────────────────
-  const { pdf: base64, filename = "game.pdf" } = req.body ?? {};
+  // ── Input validation ───────────────────────────────────────────────────────
+  const { image: base64, filename = "score_sheet.jpg" } = req.body ?? {};
+  if (typeof base64 !== "string" || base64.length === 0)
+    return res.status(400).json({ error: "Missing image field" });
 
-  if (typeof base64 !== "string" || base64.length === 0) {
-    return res.status(400).json({ error: "Missing pdf field" });
-  }
+  let imgBuffer;
+  try { imgBuffer = Buffer.from(base64, "base64"); }
+  catch { return res.status(400).json({ error: "Invalid base64 data" }); }
 
-  let pdfBuffer;
-  try {
-    pdfBuffer = Buffer.from(base64, "base64");
-  } catch {
-    return res.status(400).json({ error: "Invalid base64 data" });
-  }
-
-  if (pdfBuffer.length > MAX_PDF_BYTES) {
-    auditLog("pdf_too_large", { ip, bytes: pdfBuffer.length });
-    return res.status(413).json({ error: `PDF exceeds maximum size of ${MAX_PDF_BYTES / 1024 / 1024} MB` });
-  }
-
-  if (!isValidPDF(pdfBuffer)) {
-    auditLog("invalid_pdf_magic", { ip, filename });
-    return res.status(415).json({ error: "File does not appear to be a valid PDF" });
-  }
+  if (imgBuffer.length > MAX_IMAGE_BYTES)
+    return res.status(413).json({ error: "Image exceeds 8 MB limit" });
 
   const safeFilename = filename.replace(/[^a-zA-Z0-9._\-]/g, "_").slice(0, 128);
 
-  // ── Parse PDF (pure local — no API call) ──────────────────────────────────
+  // ── Call Claude vision API ─────────────────────────────────────────────────
   let gameData;
   try {
-    gameData = await parseBasketCityPDF(new Uint8Array(pdfBuffer));
-    gameData.match_info.source_file = safeFilename;
-  } catch (err) {
-    auditLog("parse_error", { ip, filename: safeFilename, error: err.message });
-    return res.status(422).json({
-      error: "Could not parse game data from PDF. Make sure this is a Basket City stat sheet.",
+    const apiRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model:      "claude-sonnet-4-20250514",
+        max_tokens: 2000,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64 } },
+            { type: "text",  text: PROMPT },
+          ],
+        }],
+      }),
     });
+
+    if (!apiRes.ok) {
+      const err = await apiRes.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `Claude API error ${apiRes.status}`);
+    }
+
+    const apiData = await apiRes.json();
+    const raw = apiData.content
+      .filter(b => b.type === "text")
+      .map(b => b.text)
+      .join("")
+      .replace(/```json|```/g, "")
+      .trim();
+
+    gameData = JSON.parse(raw);
+    gameData.match_info.source_file = safeFilename;
+
+  } catch (err) {
+    auditLog("vision_error", { ip, filename: safeFilename, error: err.message });
+    return res.status(422).json({ error: `Failed to extract stats: ${err.message}` });
   }
 
   auditLog("convert_success", {
     ip,
-    filename:  safeFilename,
-    date:      gameData.match_info.date,
-    matchday:  gameData.match_info.matchday,
-    result:    gameData.match_info.result,
-    players:   gameData.armani_katehano.players.length,
+    filename:      safeFilename,
+    date:          gameData.match_info?.date,
+    result:        gameData.match_info?.result,
+    players_found: gameData.armani_katehano?.players?.filter(p => !p.did_not_play).length ?? 0,
   });
 
   return res.status(200).json({ data: gameData });
