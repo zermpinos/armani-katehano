@@ -6,7 +6,13 @@
  * Brute-force protection: 5 failed attempts -> 15-minute IP lockout (Vercel KV).
  */
 
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+
 import {
   safePasswordCompare,
   buildSessionCookie,
@@ -45,9 +51,9 @@ export default async function handler(req, res) {
   const attKey  = `attempts:${ip}`;
 
   // Check lockout
-  const locked = await kv.get(lockKey);
+  const locked = await redis.get(lockKey);
   if (locked) {
-    const ttl = await kv.ttl(lockKey);
+    const ttl = await redis.ttl(lockKey);
     auditLog("login_blocked_lockout", { ip });
     // Return identical message to not leak lockout status (OWASP A07)
     return res.status(429).json({
@@ -69,14 +75,14 @@ export default async function handler(req, res) {
 
   if (!passwordOk || !slugOk) {
     // Increment attempt counter
-    const attempts = (await kv.get(attKey) ?? 0) + 1;
+    const attempts = (await redis.get(attKey) ?? 0) + 1;
 
     if (attempts >= MAX_LOGIN_ATTEMPTS) {
-      await kv.set(lockKey, 1, { ex: LOCKOUT_TTL_S });
-      await kv.del(attKey);
+      await redis.set(lockKey, 1, { ex: LOCKOUT_TTL_S });
+      await redis.del(attKey);
       auditLog("login_lockout_triggered", { ip, attempts });
     } else {
-      await kv.set(attKey, attempts, { ex: LOCKOUT_TTL_S });
+      await redis.set(attKey, attempts, { ex: LOCKOUT_TTL_S });
       auditLog("login_failed", { ip, attempts });
     }
 
@@ -85,7 +91,7 @@ export default async function handler(req, res) {
   }
 
   // Success -- clear attempt counter, issue session cookie
-  await kv.del(attKey);
+  await redis.del(attKey);
   res.setHeader("Set-Cookie", buildSessionCookie(process.env.SESSION_SECRET));
   auditLog("login_success", { ip });
   return res.status(200).json({ ok: true });
