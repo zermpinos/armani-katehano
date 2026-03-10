@@ -27,10 +27,18 @@ export default function TeamPage({ record, players, games }) {
   const awayW  = games.filter(g => !g.home && g.result==="W").length;
   const awayL  = games.filter(g => !g.home && g.result==="L").length;
 
+  // "First Last" → "Last F." for chart labels
+  const fmtName = name => {
+    if (!name) return "";
+    const parts = name.trim().split(" ").filter(Boolean);
+    if (parts.length === 1) return parts[0];
+    return parts[parts.length - 1] + " " + parts[0][0].toUpperCase() + ".";
+  };
+
   // Per-player minutes distribution
   const minutesDist = players
     .map(p => ({
-      name: p.name.split(" ").slice(-1)[0],
+      name: fmtName(p.name),
       mpg: p.stats.mpg,
     }))
     .filter(p => p.mpg > 0)
