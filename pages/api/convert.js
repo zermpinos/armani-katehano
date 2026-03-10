@@ -1,9 +1,9 @@
 /**
- * api/convert.js
- * POST /api/convert  →  { pdf: "<base64>", filename: "..." }  →  { data: {...} }
+ * pages/api/convert.js
+ * POST /api/convert  →  { pdf: "<base64>" }  →  { data: {...} }
  *
- * Extracts text directly from the PDF buffer using pdf-parse (no external API).
- * Then runs the Basket City regex parser to produce structured game JSON.
+ * Extracts stats from a Basket City PDF using spatial text extraction
+ * (pdfjs-dist). No external API. No cost. Works 100% server-side.
  *
  * Protected by:
  *  - Session cookie auth (requireAuth)
@@ -12,13 +12,7 @@
  *  - Per-IP rate limiting (10 req/min via Vercel KV)
  */
 
-import pdfParse    from "pdf-parse/lib/pdf-parse.js";
-import { Redis } from "@upstash/redis";
-
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+import kv          from "../../lib/redis.js";
 import { requireAuth } from "../../lib/requireAuth.js";
 import {
   isValidPDF,
@@ -27,7 +21,7 @@ import {
   MAX_PDF_BYTES,
   RATE_LIMIT_RPM,
 } from "../../lib/security.js";
-import { parseGameText } from "../../lib/parser.js";
+import { parseBasketCityPDF } from "../../lib/parser.js";
 
 async function convertHandler(req, res) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
@@ -37,10 +31,10 @@ async function convertHandler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // ── Rate limiting ──────────────────────────────────────────────────────────
+  // ── Rate limiting ─────────────────────────────────────────────────────────
   const rlKey = `rl:convert:${ip}:${Math.floor(Date.now() / 60000)}`;
-  const count = ((await redis.get(rlKey)) ?? 0) + 1;
-  await redis.set(rlKey, count, { ex: 60 });
+  const count = (await kv.get(rlKey) ?? 0) + 1;
+  await kv.set(rlKey, count, { ex: 60 });
 
   if (count > RATE_LIMIT_RPM) {
     auditLog("rate_limited", { ip, count });
@@ -48,7 +42,7 @@ async function convertHandler(req, res) {
     return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
   }
 
-  // ── Input validation ───────────────────────────────────────────────────────
+  // ── Input validation ──────────────────────────────────────────────────────
   const { pdf: base64, filename = "game.pdf" } = req.body ?? {};
 
   if (typeof base64 !== "string" || base64.length === 0) {
@@ -64,7 +58,7 @@ async function convertHandler(req, res) {
 
   if (pdfBuffer.length > MAX_PDF_BYTES) {
     auditLog("pdf_too_large", { ip, bytes: pdfBuffer.length });
-    return res.status(413).json({ error: `PDF exceeds ${MAX_PDF_BYTES / 1024 / 1024} MB limit` });
+    return res.status(413).json({ error: `PDF exceeds maximum size of ${MAX_PDF_BYTES / 1024 / 1024} MB` });
   }
 
   if (!isValidPDF(pdfBuffer)) {
@@ -74,44 +68,25 @@ async function convertHandler(req, res) {
 
   const safeFilename = filename.replace(/[^a-zA-Z0-9._\-]/g, "_").slice(0, 128);
 
-  // ── Extract text directly from PDF buffer (no external API) ───────────────
-  let extractedText;
-  try {
-    const parsed = await pdfParse(pdfBuffer);
-    extractedText = parsed.text;
-
-    if (!extractedText || extractedText.trim().length < 50) {
-      throw new Error("PDF appears to be empty or image-only (no extractable text)");
-    }
-  } catch (err) {
-    auditLog("pdf_extract_error", { ip, filename: safeFilename, error: err.message });
-    return res.status(422).json({
-      error: err.message.includes("image-only")
-        ? "This PDF contains no machine-readable text. Make sure you're uploading the original Basket City PDF, not a scan."
-        : "Failed to read PDF. Please make sure it is a valid Basket City game report.",
-    });
-  }
-
-  // ── Parse extracted text with Basket City regex parser ────────────────────
+  // ── Parse PDF (pure local — no API call) ──────────────────────────────────
   let gameData;
   try {
-    gameData = parseGameText(extractedText);
+    gameData = await parseBasketCityPDF(new Uint8Array(pdfBuffer));
     gameData.match_info.source_file = safeFilename;
   } catch (err) {
     auditLog("parse_error", { ip, filename: safeFilename, error: err.message });
     return res.status(422).json({
-      error: "Could not parse game data from this PDF. Is this a Basket City stat sheet?",
-      debug_hint: err.message,
+      error: "Could not parse game data from PDF. Make sure this is a Basket City stat sheet.",
     });
   }
 
   auditLog("convert_success", {
     ip,
-    filename:      safeFilename,
-    date:          gameData.match_info.date,
-    matchday:      gameData.match_info.matchday,
-    result:        gameData.match_info.result,
-    players_found: gameData.armani_katehano?.players?.filter(p => !p.did_not_play).length ?? 0,
+    filename:  safeFilename,
+    date:      gameData.match_info.date,
+    matchday:  gameData.match_info.matchday,
+    result:    gameData.match_info.result,
+    players:   gameData.armani_katehano.players.length,
   });
 
   return res.status(200).json({ data: gameData });
