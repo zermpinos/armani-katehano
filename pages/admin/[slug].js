@@ -75,6 +75,13 @@ const Section = ({ title, icon, children }) => (
   </div>
 );
 
+// ── League options ────────────────────────────────────────────────────────────
+const LEAGUE_OPTIONS = [
+  { value: "",       label: "— Unassigned —"  },
+  { value: "rookie", label: "Rookie League"   },
+  { value: "bc6",    label: "BC6"             },
+];
+
 // ── Box score columns ─────────────────────────────────────────────────────────
 const BOX_COLS = [
   {key:"min",label:"MIN"},{key:"pts",label:"PTS"},{key:"reb",label:"REB"},{key:"ast",label:"AST"},
@@ -85,27 +92,6 @@ const BOX_COLS = [
 
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
 const byJersey = (a, b) => Number(a.number) - Number(b.number);
-
-// ── AdminRecord ───────────────────────────────────────────────────────────────
-function AdminRecord({ record, onSave, showToast }) {
-  const [d, setD] = useState({ ...record, streak: { ...record.streak } });
-  const up = (k,v) => setD(x => ({ ...x, [k]: parseFloat(v)||0 }));
-  const upS = (k,v) => setD(x => ({ ...x, streak: { ...x.streak, [k]: k==="count" ? parseInt(v)||0 : v } }));
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(120px,1fr))", gap:10 }}>
-        {[["WINS","wins"],["LOSSES","losses"],["HOME W","homeWins"],["HOME L","homeLosses"],["AWAY W","awayWins"],["AWAY L","awayLosses"],["PPG","pointsPerGame"],["OPP PPG","pointsAllowedPerGame"]].map(([l,k])=>(
-          <F key={k} label={l} value={d[k]} onChange={v=>up(k,v)} type="number" />
-        ))}
-      </div>
-      <div style={{ display:"flex", gap:10, alignItems:"flex-end", flexWrap:"wrap" }}>
-        <div style={{ width:100 }}><F label="STREAK COUNT" value={d.streak.count} onChange={v=>upS("count",v)} type="number" /></div>
-        <div style={{ width:140 }}><Sel label="STREAK TYPE" value={d.streak.type} onChange={v=>upS("type",v)} options={[{value:"W",label:"Win streak"},{value:"L",label:"Loss streak"}]} /></div>
-        <Btn onClick={async()=>{ await onSave(d); showToast("Record saved!"); }}>SAVE RECORD</Btn>
-      </div>
-    </div>
-  );
-}
 
 // ── AdminPlayers ──────────────────────────────────────────────────────────────
 function AdminPlayers({ players, onSave, showToast }) {
@@ -199,8 +185,8 @@ function AdminGames({ players, games, onSave, showToast }) {
   const emptyRow  = pid => ({ pid, min:0, pts:0, reb:0, ast:0, stl:0, blk:0, tov:0, fgm:0, fga:0, fg3m:0, fg3a:0, ftm:0, fta:0 });
   const buildBoxScore = existing => [...players].sort(byJersey).map(p => existing?.find(r=>r.pid===p.id) || emptyRow(p.id));
 
-  const startNew  = () => { setDraft({ id:uid(), date:"", opponent:"", home:true, result:"W", score:"", boxScore: buildBoxScore([]) }); setEditId("new"); };
-  const startEdit = g  => { setDraft({ ...g, boxScore: buildBoxScore(g.boxScore) }); setEditId(g.id); };
+  const startNew  = () => { setDraft({ id:uid(), date:"", opponent:"", home:true, result:"W", score:"", league:"", boxScore: buildBoxScore([]) }); setEditId("new"); };
+  const startEdit = g  => { setDraft({ ...g, league: g.league||"", boxScore: buildBoxScore(g.boxScore) }); setEditId(g.id); };
   const cancel    = () => { setEditId(null); setDraft({}); };
 
   const updGame = (k,v) => setDraft(d=>({ ...d, [k]:v }));
@@ -228,6 +214,7 @@ function AdminGames({ players, games, onSave, showToast }) {
         <Sel label="HOME/AWAY" value={draft.home?"home":"away"} onChange={v=>updGame("home",v==="home")} options={[{value:"home",label:"Home"},{value:"away",label:"Away"}]} />
         <Sel label="RESULT" value={draft.result} onChange={v=>updGame("result",v)} options={[{value:"W",label:"Win"},{value:"L",label:"Loss"}]} />
         <F label="SCORE" value={draft.score} onChange={v=>updGame("score",v)} placeholder="e.g. 88–74" />
+        <Sel label="LEAGUE" value={draft.league||""} onChange={v=>updGame("league",v)} options={LEAGUE_OPTIONS} />
       </div>
       <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:8, paddingTop:8, borderTop:`1px solid ${C.border}`, textTransform:"uppercase" }}>Box Score</div>
       <BoxScoreTable players={players} rows={draft.boxScore||[]} onUpdate={updBox} />
@@ -253,7 +240,7 @@ function AdminGames({ players, games, onSave, showToast }) {
                   <span style={{ width:30, height:30, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, background:g.result==="W"?`${C.green}25`:`${C.red}25`, color:g.result==="W"?C.green:C.redText }}>{g.result}</span>
                   <div>
                     <div style={{ fontWeight:900, fontSize:13, color:C.text }}>{g.home?"vs":"@"} {g.opponent}</div>
-                    <div style={{ fontSize:11, color:C.textDim }}>{g.date} · {g.score}{g.topScorer?` · ${g.topScorer}`:""}</div>
+                    <div style={{ fontSize:11, color:C.textDim }}>{g.date} · {g.score}{g.league ? ` · ${g.league==="rookie"?"Rookie":g.league==="bc6"?"BC6":""}` : ""}{g.topScorer?` · ${g.topScorer}`:""}</div>
                   </div>
                 </div>
                 <div style={{ display:"flex", gap:6 }}>
@@ -372,6 +359,7 @@ function AdminImport({ players, games, onSaveGame, showToast }) {
         score:    mi.armani_katehano_score != null
           ? `${mi.armani_katehano_score}–${mi.opponent_score}`
           : "",
+        league:   mi.league || "",
         boxScore,
       },
       highlights,
@@ -495,6 +483,7 @@ function AdminImport({ players, games, onSaveGame, showToast }) {
             <Sel label="HOME/AWAY" value={draft.home?"home":"away"} onChange={v=>updDraft("home",v==="home")} options={[{value:"home",label:"Home"},{value:"away",label:"Away"}]} />
             <Sel label="RESULT"  value={draft.result}   onChange={v=>updDraft("result",v)}  options={[{value:"W",label:"Win"},{value:"L",label:"Loss"}]} />
             <F label="SCORE"     value={draft.score}    onChange={v=>updDraft("score",v)}   placeholder="88–74" />
+            <Sel label="LEAGUE"  value={draft.league||""} onChange={v=>updDraft("league",v)} options={LEAGUE_OPTIONS} />
           </div>
 
           <div style={{ display:"flex", gap:16, marginBottom:10, flexWrap:"wrap", fontSize:11, color:C.textDim }}>
@@ -789,18 +778,20 @@ export default function AdminPage({ validSlug }) {
 
       <div style={{ maxWidth:960, margin:"0 auto", padding:"24px 16px" }}>
         {/* Summary */}
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))", gap:10, marginBottom:24 }}>
-          {[["RECORD",`${record.wins}–${record.losses}`],["PLAYERS",players?.length],["GAMES",games?.length],["UPCOMING",schedule?.length]].map(([l,v])=>(
-            <div key={l} style={{ borderRadius:10, padding:"12px", textAlign:"center", border:`1px solid ${C.border}`, background:C.surface }}>
-              <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:4 }}>{l}</div>
-              <div style={{ fontSize:24, fontWeight:900, color:C.text }}>{v}</div>
+        {(() => {
+          const wins   = games?.filter(g => g.result === "W").length ?? 0;
+          const losses = games?.filter(g => g.result === "L").length ?? 0;
+          return (
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))", gap:10, marginBottom:24 }}>
+              {[["RECORD",`${wins}–${losses}`],["PLAYERS",players?.length],["GAMES",games?.length],["UPCOMING",schedule?.length]].map(([l,v])=>(
+                <div key={l} style={{ borderRadius:10, padding:"12px", textAlign:"center", border:`1px solid ${C.border}`, background:C.surface }}>
+                  <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:4 }}>{l}</div>
+                  <div style={{ fontSize:24, fontWeight:900, color:C.text }}>{v}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-
-        <Section title="Season Record" icon="📊">
-          <AdminRecord record={record} onSave={async v=>{ await save("record",v); setRecord(v); }} showToast={showToast} />
-        </Section>
+          );
+        })()}
 
         <Section title="Roster" icon="👤">
           <AdminPlayers players={players} onSave={async v=>{ await save("players",v); setPlayers(v); }} showToast={showToast} />
