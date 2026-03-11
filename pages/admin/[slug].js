@@ -116,7 +116,7 @@ function AdminPlayers({ players, onSave, showToast }) {
 
   const startEdit = p => { setDraft({ ...p, stats: { ...p.stats } }); setEditId(p.id); };
   const startNew  = () => {
-    setDraft({ id:uid(), name:"", number:"", position:"PG", height:"", weight:"", age:"",
+    setDraft({ id:uid(), name:"", number:"", position:"PG", height:"", weight:"", age:"", photoUrl:"",
       stats:{ ppg:0,rpg:0,apg:0,spg:0,bpg:0,tpg:0,fgPct:0,fg3Pct:0,ftPct:0,mpg:0,eff:0 }, gameLog:[] });
     setEditId("new");
   };
@@ -143,6 +143,7 @@ function AdminPlayers({ players, onSave, showToast }) {
         <F label="AGE"        value={draft.age}       onChange={v=>upd("age",v)}      type="number" />
         <F label="HEIGHT"     value={draft.height}    onChange={v=>upd("height",v)}   placeholder='e.g. 6&apos;4"' />
         <F label="WEIGHT"     value={draft.weight}    onChange={v=>upd("weight",v)}   placeholder="e.g. 90 kg" />
+        <F label="PHOTO URL"  value={draft.photoUrl}  onChange={v=>upd("photoUrl",v)} placeholder="https://..." />
       </div>
       <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:8, paddingTop:8, borderTop:`1px solid ${C.border}`, textTransform:"uppercase" }}>Season Averages</div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(80px,1fr))", gap:8, marginBottom:12 }}>

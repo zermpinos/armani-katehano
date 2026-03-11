@@ -4,6 +4,17 @@ import { SectionHeading } from "../components/ui";
 import { C } from "../lib/theme";
 import { getAllPublicData } from "../lib/data";
 
+
+// "Last Name F" format
+const fmt = name => {
+  if (!name) return "";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  const last  = parts[0];
+  const first = parts[parts.length - 1];
+  return `${last} ${first[0].toUpperCase()}.`;
+};
+
 const MEDALS = [
   { color:C.gold,   label:"🥇", bg:`${C.gold}18`,   border:`${C.gold}45`   },
   { color:C.silver, label:"🥈", bg:`${C.silver}15`, border:`${C.silver}40` },
@@ -84,7 +95,7 @@ export default function LeaderboardPage({ players }) {
                           color: medal ? medal.color : C.textSub,
                           border: medal ? `1px solid ${medal.color}55` : "none",
                         }}>{p.number}</div>
-                        <span style={{ fontWeight:900, color: medal ? medal.color : C.text }}>{p.name}</span>
+                        <span style={{ fontWeight:900, color: medal ? medal.color : C.text }}>{fmt(p.name)}</span>
                       </div>
                     </td>
                     <td style={{ padding:"10px 8px", textAlign:"center", fontSize:11, fontWeight:700, color:C.textDim }}>{p.position.split("/")[0]}</td>
