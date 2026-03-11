@@ -8,6 +8,17 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 
+
+// "Last Name F." format
+const fmt = name => {
+  if (!name) return "";
+  const parts = name.trim().split(" ").filter(Boolean);
+  if (parts.length === 1) return parts[0];
+  const last  = parts[0];
+  const first = parts[parts.length - 1];
+  return last + " " + first[0].toUpperCase() + ".";
+};
+
 function StatCell({ label, value, highlight }) {
   return (
     <div style={{
@@ -37,7 +48,9 @@ function PlayerDetail({ player, onClose }) {
 
         {/* Header */}
         <div style={{ padding:24, display:"flex", gap:20, alignItems:"center", background:C.base, borderBottom:`1px solid ${C.border}` }}>
-          <div style={{ width:72, height:72, borderRadius:14, display:"flex", alignItems:"center", justifyContent:"center", background:C.surface, border:`1px solid ${C.border2}`, fontSize:32, flexShrink:0 }}>🏀</div>
+          <div style={{ width:72, height:72, borderRadius:14, overflow:"hidden", flexShrink:0, background:C.surface, border:`1px solid ${C.border2}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:32 }}>
+            {player.photoUrl ? <img src={player.photoUrl} alt={player.name} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"top" }} /> : "🏀"}
+          </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontSize:22, fontWeight:900, color:C.text }}>{player.name}</div>
             <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginTop:8 }}>
@@ -130,11 +143,14 @@ function PlayerCard({ player, onClick }) {
       transition:"all 0.2s", fontFamily:"inherit",
     }}>
       <div style={{ height:100, display:"flex", alignItems:"flex-end", justifyContent:"center", background:C.base, position:"relative" }}>
-        <span style={{ fontSize:48, lineHeight:1, paddingBottom:8 }}>🏀</span>
-        <div style={{ position:"absolute", top:10, right:10, width:26, height:26, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, background:C.red, color:C.text }}>{player.number}</div>
+        {player.photoUrl
+          ? <img src={player.photoUrl} alt={player.name} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", objectPosition:"top", borderRadius:0 }} />
+          : <span style={{ fontSize:48, lineHeight:1, paddingBottom:8 }}>🏀</span>
+        }
+        <div style={{ position:"absolute", top:10, right:10, width:26, height:26, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, background:C.red, color:C.text, zIndex:1 }}>{player.number}</div>
       </div>
       <div style={{ padding:14 }}>
-        <div style={{ fontSize:13, fontWeight:900, color: hov ? C.redText : C.text, transition:"color 0.2s" }}>{player.name}</div>
+        <div style={{ fontSize:13, fontWeight:900, color: hov ? C.redText : C.text, transition:"color 0.2s" }}>{fmt(player.name)}</div>
         <div style={{ fontSize:11, fontWeight:700, letterSpacing:"0.1em", color:C.textDim, marginTop:2 }}>{player.position}</div>
         <div style={{ display:"flex", gap:0, marginTop:12, paddingTop:12, borderTop:`1px solid ${C.border}` }}>
           {[["PPG",s.ppg],["RPG",s.rpg],["APG",s.apg]].map(([l,v]) => (
