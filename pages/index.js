@@ -1,14 +1,25 @@
 import Layout from "../components/Layout";
 import { StatTile, SectionHeading } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
-import { getAllPublicData } from "../lib/data";
+import { getAllPublicData, computeRecord } from "../lib/data";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 
-export default function HomePage({ record, players, games }) {
-  const winPct  = record.wins + record.losses > 0
+// "First Last" → "Last F."
+const fmt = name => {
+  if (!name) return "";
+  const parts = name.trim().split(" ").filter(Boolean);
+  if (parts.length === 1) return parts[0];
+  return parts[parts.length - 1] + " " + parts[0][0].toUpperCase() + ".";
+};
+
+export default function HomePage({ players, games }) {
+  // Compute record live from games (never trust stale Redis record)
+  const record = computeRecord(games);
+
+  const winPct = record.wins + record.losses > 0
     ? (record.wins / (record.wins + record.losses) * 100).toFixed(1)
     : "0.0";
 
@@ -19,7 +30,7 @@ export default function HomePage({ record, players, games }) {
   const topScorers = [...players]
     .sort((a, b) => b.stats.ppg - a.stats.ppg)
     .slice(0, 5)
-    .map(p => ({ name: p.name.split(" ").slice(-1)[0], ppg: p.stats.ppg }));
+    .map(p => ({ name: fmt(p.name), ppg: p.stats.ppg }));
 
   // Last 9 games for scoring trend
   const trend = [...games]
@@ -29,9 +40,9 @@ export default function HomePage({ record, players, games }) {
     .map((g, i) => {
       const parts = (g.score || "0–0").split(/[–-]/);
       return {
-        game:  `G${i + 1}`,
-        pts:   parseInt(parts[0]) || 0,
-        opp:   parseInt(parts[1]) || 0,
+        game:   `G${i + 1}`,
+        pts:    parseInt(parts[0]) || 0,
+        opp:    parseInt(parts[1]) || 0,
         result: g.result,
       };
     });
@@ -62,9 +73,9 @@ export default function HomePage({ record, players, games }) {
       {/* Record tiles */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:12, marginBottom:24 }}>
         <StatTile label="Record"  value={`${record.wins}–${record.losses}`} sub={`${winPct}% win rate`} />
-        <StatTile label="Streak"  value={`${record.streak.count}${record.streak.type}`} sub="current streak" highlight={record.streak.type === "W" && record.streak.count > 0} />
-        <StatTile label="PPG"     value={record.pointsPerGame || "—"} sub="points per game" />
-        <StatTile label="OPP PPG" value={record.pointsAllowedPerGame || "—"} sub="allowed per game" />
+        <StatTile label="Streak"  value={record.streak.count > 0 ? `${record.streak.count}${record.streak.type}` : "—"} sub="current streak" highlight={record.streak.type === "W" && record.streak.count > 0} />
+        <StatTile label="PPG"     value={record.ppg || "—"} sub="points per game" />
+        <StatTile label="OPP PPG" value={record.oppPpg || "—"} sub="allowed per game" />
       </div>
 
       <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:20 }}>
@@ -116,7 +127,7 @@ export default function HomePage({ record, players, games }) {
                   <span style={{ fontSize:22 }}>🏀</span>
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:15, fontWeight:900, color:C.text }}>{mvp.name}</div>
+                  <div style={{ fontSize:15, fontWeight:900, color:C.text }}>{fmt(mvp.name)}</div>
                   <div style={{ fontSize:11, fontWeight:700, letterSpacing:"0.1em", color:C.textDim, marginTop:2 }}>#{mvp.number} · {mvp.position}</div>
                   <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginTop:12 }}>
                     {[["PPG",mvp.stats.ppg],["RPG",mvp.stats.rpg],["APG",mvp.stats.apg],["FG%",`${mvp.stats.fgPct}%`],["EFF",mvp.stats.eff],["MPG",mvp.stats.mpg]].map(([l,v]) => (
@@ -152,7 +163,6 @@ export default function HomePage({ record, players, games }) {
                     </div>
                     <div style={{ textAlign:"right" }}>
                       <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{g.score}</div>
-                      {g.topScorer && <div style={{ fontSize:11, color:C.textDim }}>{g.topScorer}</div>}
                     </div>
                   </div>
                 ))}
@@ -175,6 +185,6 @@ export default function HomePage({ record, players, games }) {
 }
 
 export async function getServerSideProps() {
-  const { record, players, games } = await getAllPublicData();
-  return { props: { record, players, games } };
+  const { players, games } = await getAllPublicData();
+  return { props: { players, games } };
 }
