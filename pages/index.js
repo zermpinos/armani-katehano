@@ -88,7 +88,7 @@ export default function HomePage({ players, games }) {
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={trend} margin={{ top:4, right:8, left:-20, bottom:0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                  <XAxis dataKey="game" tick={{ fill: C.textDim, fontSize: 10 }} angle={-35} textAnchor="end" height={55} interval={0}/>
+                  <XAxis dataKey="game" tick={false} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
                   <Tooltip {...chartTooltipStyle} />
                   <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={2.5} dot={{ fill:C.redBright, r:3 }} name="AK" />
