@@ -6,12 +6,13 @@ import { getAllPublicData } from "../lib/data";
 
 
 // "Last Name F" format
+// Names stored as "First Last" -> display as "Last F."
 const fmt = name => {
   if (!name) return "";
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0];
-  const last  = parts[0];
-  const first = parts[parts.length - 1];
+  const first = parts[0];
+  const last  = parts[parts.length - 1];
   return `${last} ${first[0].toUpperCase()}.`;
 };
 

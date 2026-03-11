@@ -53,7 +53,11 @@ export default function TrendsPage({ players, games }) {
     })
     .map(p => {
       const statMap = { pts:"ppg", reb:"rpg", ast:"apg", stl:"spg", blk:"bpg", eff:"eff" };
-      return { name: p.name.split(" ").slice(-1)[0], value: p.stats[statMap[statKey]] };
+      const nameParts = p.name.trim().split(" ").filter(Boolean);
+      const label = nameParts.length > 1
+        ? nameParts[nameParts.length - 1] + " " + nameParts[0][0].toUpperCase() + "."
+        : nameParts[0] || p.name;
+      return { name: label, value: p.stats[statMap[statKey]] };
     });
 
   if (games.length === 0) {
