@@ -14,12 +14,13 @@ const fmt = name => {
 };
 
 const LEAGUE_TABS = [
-  { key: "all",    label: "All Games"     },
-  { key: "rookie", label: "Rookie League" },
-  { key: "bc6",    label: "BC6"           },
+  { key: "all",       label: "All Games"     },
+  { key: "rookie",    label: "Rookie League" },
+  { key: "bc6",       label: "BC6"           },
+  { key: "wintercup", label: "Winter Cup"    },
 ];
 
-const LEAGUE_LABELS = { all: "All Games", rookie: "Rookie League", bc6: "BC6" };
+const LEAGUE_LABELS = { all: "All Games", rookie: "Rookie League", bc6: "BC6", wintercup: "Winter Cup" };
 
 export default function TeamPage({ players, games }) {
   const [league, setLeague] = useState("all");
