@@ -32,20 +32,26 @@ export default function HomePage({ players, games }) {
     .slice(0, 5)
     .map(p => ({ name: fmt(p.name), ppg: p.stats.ppg }));
 
-  // Last 9 games for scoring trend
+  // Last 10 games for scoring trend
   const trend = [...games]
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 9)
-    .reverse()
-    .map((g, i) => {
-      const parts = (g.score || "0–0").split(/[–-]/);
-      return {
-        game:   `G${i + 1}`,
-        pts:    parseInt(parts[0]) || 0,
-        opp:    parseInt(parts[1]) || 0,
-        result: g.result,
-      };
-    });
+  .sort((a, b) => new Date(b.date) - new Date(a.date))
+  .slice(0, 10)
+  .reverse()
+  .map((g, i) => {
+    const parts = (g.score || "0–0").split(/[–-]/);
+    // Shorten opponent name: "Red Hawks" → "Red Hawks", but cap long names
+    const oppShort = (g.opponent || `G${i + 1}`)
+      .split(" ")
+      .map(w => w.length > 8 ? w.slice(0, 7) + "." : w)
+      .join(" ")
+      .slice(0, 14);
+    return {
+      game:   g.home ? `vs ${oppShort}` : `@ ${oppShort}`,
+      pts:    parseInt(parts[0]) || 0,
+      opp:    parseInt(parts[1]) || 0,
+      result: g.result,
+    };
+  });
 
   const recentGames = [...games]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -88,7 +94,7 @@ export default function HomePage({ players, games }) {
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={trend} margin={{ top:4, right:8, left:-20, bottom:0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                  <XAxis dataKey="game" tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="game" tick={{ fill: C.textDim, fontSize: 10 }} angle={-35} textAnchor="end" height={55} interval={0}/>
                   <YAxis tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
                   <Tooltip {...chartTooltipStyle} />
                   <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={2.5} dot={{ fill:C.redBright, r:3 }} name="AK" />
