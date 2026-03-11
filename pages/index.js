@@ -39,14 +39,8 @@ export default function HomePage({ players, games }) {
   .reverse()
   .map((g, i) => {
     const parts = (g.score || "0–0").split(/[–-]/);
-    // Shorten opponent name: "Red Hawks" → "Red Hawks", but cap long names
-    const oppShort = (g.opponent || `G${i + 1}`)
-      .split(" ")
-      .map(w => w.length > 8 ? w.slice(0, 7) + "." : w)
-      .join(" ")
-      .slice(0, 14);
     return {
-      game:   g.home ? `vs ${oppShort}` : `@ ${oppShort}`,
+      game:   g.home ? `vs ${g.opponent || `G${i + 1}`}` : `@ ${g.opponent || `G${i + 1}`}`,
       pts:    parseInt(parts[0]) || 0,
       opp:    parseInt(parts[1]) || 0,
       result: g.result,
