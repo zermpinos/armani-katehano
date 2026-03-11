@@ -312,17 +312,20 @@ function BoxScoreTable({ players, rows, onUpdate, readOnly=false, highlights={} 
   );
 }
 
-// ── AdminPDF — server-side Anthropic extraction + confirmation flow ────────────
-function AdminPDF({ players, games, onSaveGame, showToast }) {
-  const [phase,     setPhase]     = useState("upload"); // upload | loading | confirm
-  const [result,    setResult]    = useState(null);    // raw API response
-  const [draft,     setDraft]     = useState(null);    // editable game draft
-  const [convError, setConvError] = useState("");
+// ── AdminImport — score sheet image → Claude vision → confirm & save ──────────
+function AdminImport({ players, games, onSaveGame, showToast }) {
+  const [tab,       setTab]       = useState("extract"); // extract | import
+  const [phase,     setPhase]     = useState("idle");    // idle | loading | confirm
+  const [result,    setResult]    = useState(null);
+  const [draft,     setDraft]     = useState(null);
+  const [error,     setError]     = useState("");
   const [fileName,  setFileName]  = useState("");
   const [dragging,  setDragging]  = useState(false);
+  const [jsonText,  setJsonText]  = useState("");
+  const [copied,    setCopied]    = useState(false);
   const fileRef = useRef();
 
-  // Build editable boxScore from parsed players
+  // ── Shared: build editable boxScore + highlights from API data ─────────────
   const buildDraft = (data) => {
     const mi  = data.match_info;
     const ak  = data.armani_katehano;
@@ -335,36 +338,35 @@ function AdminPDF({ players, games, onSaveGame, showToast }) {
       }
       return {
         pid:  p.id,
-        min:  parsed.minutes_played.total_seconds ? Math.round(parsed.minutes_played.total_seconds / 60) : 0,
+        min:  parsed.minutes_played?.total_seconds ? Math.round(parsed.minutes_played.total_seconds / 60) : 0,
         pts:  parsed.points,
         reb:  parsed.total_rebounds,
         ast:  parsed.assists,
         stl:  parsed.steals,
         blk:  parsed.blocks,
         tov:  parsed.turnovers,
-        fgm:  parsed.two_point_fg.made + parsed.three_point_fg.made,
-        fga:  parsed.two_point_fg.attempted + parsed.three_point_fg.attempted,
-        fg3m: parsed.three_point_fg.made,
-        fg3a: parsed.three_point_fg.attempted,
-        ftm:  parsed.free_throws.made,
-        fta:  parsed.free_throws.attempted,
-        eff:  parsed.efficiency,
+        fgm:  (parsed.two_point_fg?.made ?? 0) + (parsed.three_point_fg?.made ?? 0),
+        fga:  (parsed.two_point_fg?.attempted ?? 0) + (parsed.three_point_fg?.attempted ?? 0),
+        fg3m: parsed.three_point_fg?.made ?? 0,
+        fg3a: parsed.three_point_fg?.attempted ?? 0,
+        ftm:  parsed.free_throws?.made ?? 0,
+        fta:  parsed.free_throws?.attempted ?? 0,
+        eff:  parsed.efficiency ?? 0,
       };
     });
 
-    // Which pids actually have data
     const highlights = {};
     ak.players.filter(p => !p.did_not_play).forEach(p => {
-      const player = players.find(pl => pl.number === p.jersey_number);
+      const player = players.find(pl => Number(pl.number) === p.jersey_number);
       if (player) highlights[player.id] = true;
     });
 
     return {
       draft: {
-        id: uid(),
+        id:       uid(),
         date:     mi.date || "",
         opponent: mi.opponent || "",
-        home:     mi.home_team === "ARMANI KATEHANO",
+        home:     mi.home_team?.includes("ARMANI") || mi.home_team?.includes("KATEHANO"),
         result:   mi.result || "W",
         score:    mi.armani_katehano_score != null
           ? `${mi.armani_katehano_score}–${mi.opponent_score}`
@@ -376,13 +378,16 @@ function AdminPDF({ players, games, onSaveGame, showToast }) {
     };
   };
 
-  const processFile = useCallback(async (file) => {
-    if (!file?.name.toLowerCase().endsWith(".pdf")) {
-      setConvError("Please upload a PDF file."); return;
+  // ── TAB 1: Upload image → call /api/convert → show preview + copy JSON ─────
+  const processImage = useCallback(async (file) => {
+    if (!file) return;
+    const ext = file.name.split(".").pop().toLowerCase();
+    if (!["jpg","jpeg","png"].includes(ext)) {
+      setError("Please upload a JPG or PNG score sheet image."); return;
     }
     setFileName(file.name);
     setPhase("loading");
-    setConvError("");
+    setError("");
     try {
       const base64 = await new Promise((res, rej) => {
         const r = new FileReader();
@@ -393,81 +398,82 @@ function AdminPDF({ players, games, onSaveGame, showToast }) {
 
       const res = await fetch("/api/convert", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pdf: base64, filename: file.name }),
+        body: JSON.stringify({ image: base64, filename: file.name }),
       });
 
       if (res.status === 401) { window.location.reload(); return; }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Conversion failed");
+      if (!res.ok) throw new Error(data.error || "Extraction failed");
 
       const { draft, highlights, activePlayers } = buildDraft(data.data);
       setResult({ ...data.data, highlights, activePlayers });
       setDraft(draft);
+      // Pre-fill the import tab's JSON box so user can copy and re-paste if needed
+      setJsonText(JSON.stringify(data.data, null, 2));
       setPhase("confirm");
     } catch (err) {
-      setConvError(err.message);
-      setPhase("upload");
+      setError(err.message);
+      setPhase("idle");
     }
   }, [players]);
 
-  const updDraft   = (k,v)     => setDraft(d=>({ ...d, [k]:v }));
-  const updBox     = (pid,k,v) => setDraft(d=>({ ...d, boxScore: d.boxScore.map(r=>r.pid===pid?{...r,[k]:parseFloat(v)||0}:r) }));
+  // ── TAB 2: Paste JSON → parse → go straight to confirm ────────────────────
+  const importJson = () => {
+    setError("");
+    try {
+      const data = JSON.parse(jsonText.trim());
+      if (!data.match_info || !data.armani_katehano?.players)
+        throw new Error("JSON is missing match_info or armani_katehano.players");
+      const { draft, highlights, activePlayers } = buildDraft(data);
+      setResult({ ...data, highlights, activePlayers });
+      setDraft(draft);
+      setPhase("confirm");
+    } catch (err) {
+      setError(`Invalid JSON: ${err.message}`);
+    }
+  };
+
+  const copyJson = () => {
+    navigator.clipboard.writeText(jsonText).then(() => {
+      setCopied(true); setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  // ── Shared: confirm screen handlers ───────────────────────────────────────
+  const updDraft = (k,v)     => setDraft(d=>({ ...d, [k]:v }));
+  const updBox   = (pid,k,v) => setDraft(d=>({ ...d, boxScore: d.boxScore.map(r=>r.pid===pid?{...r,[k]:parseFloat(v)||0}:r) }));
 
   const confirmSave = async () => {
     const best = draft.boxScore.reduce((b,r)=>r.pts>b.pts?r:b, draft.boxScore[0]);
     const bpl  = players.find(p=>p.id===best?.pid);
     const topScorer = bpl&&best.pts>0 ? `${bpl.name.split(" ").slice(-1)[0]} ${best.pts}pts` : "";
     await onSaveGame([...games, { ...draft, topScorer }]);
-    showToast("Game saved from PDF!");
-    setPhase("upload"); setDraft(null); setResult(null);
+    showToast("Game saved!");
+    setPhase("idle"); setDraft(null); setResult(null); setJsonText("");
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  const reset = () => { setPhase("idle"); setDraft(null); setResult(null); setError(""); };
+
   const mi = result?.match_info;
+
+  // Tab styles
+  const tabStyle = (active) => ({
+    flex:1, padding:"8px 0", fontSize:11, fontWeight:900, letterSpacing:"0.12em",
+    textTransform:"uppercase", textAlign:"center", cursor:"pointer", borderRadius:8,
+    background: active ? C.red : "transparent",
+    color: active ? C.text : C.textDim,
+    border: "none", fontFamily:"inherit",
+  });
 
   return (
     <div>
-      {/* Upload */}
-      {phase === "upload" && (
-        <div>
-          <div
-            onDrop={e=>{ e.preventDefault(); setDragging(false); processFile(e.dataTransfer.files[0]); }}
-            onDragOver={e=>{ e.preventDefault(); setDragging(true); }}
-            onDragLeave={()=>setDragging(false)}
-            onClick={()=>fileRef.current?.click()}
-            style={{ border:`2px dashed ${dragging?C.redBright:C.border2}`, borderRadius:12, padding:"40px 24px", textAlign:"center", cursor:"pointer", background:dragging?`${C.red}08`:C.base, transition:"all 0.2s" }}>
-            <div style={{ fontSize:36, marginBottom:10 }}>📄</div>
-            <div style={{ fontSize:12, fontWeight:900, letterSpacing:"0.12em", color:C.textSub }}>DRAG & DROP OR CLICK TO UPLOAD</div>
-            <div style={{ fontSize:10, color:C.textDim, marginTop:6 }}>Basket City PDF · Max 5 MB</div>
-            <input ref={fileRef} type="file" accept=".pdf" style={{ display:"none" }} onChange={e=>processFile(e.target.files[0])} />
-          </div>
-          {convError && <div style={{ marginTop:10, fontSize:12, color:C.redText }}>⚠ {convError}</div>}
-          <div style={{ marginTop:12, padding:12, borderRadius:10, border:`1px solid ${C.border}`, background:C.base, fontSize:11, color:C.textSub, lineHeight:1.8 }}>
-            <div style={{ fontWeight:900, color:C.textDim, marginBottom:4, letterSpacing:"0.1em", textTransform:"uppercase" }}>How it works</div>
-            1. Upload a Basket City game PDF<br />
-            2. Claude reads the PDF server-side and extracts all stats<br />
-            3. You review every stat, edit if needed, then confirm<br />
-            4. On save, player season averages auto-recalculate
-          </div>
-        </div>
-      )}
-
-      {/* Loading */}
-      {phase === "loading" && (
-        <div style={{ textAlign:"center", padding:"32px 0" }}>
-          <div style={{ width:36, height:36, borderRadius:"50%", border:`2px solid ${C.border2}`, borderTopColor:C.redBright, animation:"spin 0.7s linear infinite", margin:"0 auto 16px" }} />
-          <div style={{ fontSize:13, fontWeight:900, letterSpacing:"0.15em", color:C.text, textTransform:"uppercase" }}>Extracting PDF…</div>
-          <div style={{ fontSize:11, color:C.textDim, marginTop:6 }}>{fileName}</div>
-        </div>
-      )}
-
-      {/* Confirmation screen */}
+      {/* ── Confirm screen (shared by both tabs) ────────────────────────────── */}
       {phase === "confirm" && draft && (
         <div>
-          {/* Match summary from PDF */}
           <div style={{ borderRadius:10, padding:16, background:C.base, border:`1px solid ${C.border}`, marginBottom:16 }}>
             <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.15em", color:C.green, marginBottom:8, textTransform:"uppercase" }}>
-              ✓ PDF EXTRACTED — {result?.activePlayers} players detected — REVIEW ALL STATS BELOW
+              ✓ EXTRACTED — {result?.activePlayers} players detected — REVIEW ALL STATS BELOW
             </div>
             <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:"wrap" }}>
               <span style={{ fontSize:22, fontWeight:900, color:C.text }}>
@@ -475,36 +481,115 @@ function AdminPDF({ players, games, onSaveGame, showToast }) {
                 <span style={{ color:C.textDim }}> – </span>
                 <span style={{ color: draft.result==="L"?C.green:C.redText }}>{draft.score?.split("–")[1]}</span>
               </span>
-              <span style={{ fontSize:13, fontWeight:700, padding:"3px 10px", borderRadius:6, background: draft.result==="W"?`${C.green}20`:`${C.red}20`, color:draft.result==="W"?C.green:C.redText }}>{draft.result==="W"?"WIN":"LOSS"}</span>
+              <span style={{ fontSize:13, fontWeight:700, padding:"3px 10px", borderRadius:6, background: draft.result==="W"?`${C.green}20`:`${C.red}20`, color:draft.result==="W"?C.green:C.redText }}>
+                {draft.result==="W"?"WIN":"LOSS"}
+              </span>
               {mi?.competition && <span style={{ fontSize:11, color:C.textDim }}>{mi.competition} · MD {mi?.matchday}</span>}
             </div>
           </div>
 
-          {/* Editable game info */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))", gap:10, marginBottom:16 }}>
-            <F label="DATE"       value={draft.date}     onChange={v=>updDraft("date",v)}     placeholder="08/03/2026" />
-            <F label="OPPONENT"   value={draft.opponent} onChange={v=>updDraft("opponent",v)} />
+            <F label="DATE"      value={draft.date}     onChange={v=>updDraft("date",v)}    placeholder="08/03/2026" />
+            <F label="OPPONENT"  value={draft.opponent} onChange={v=>updDraft("opponent",v)} />
             <Sel label="HOME/AWAY" value={draft.home?"home":"away"} onChange={v=>updDraft("home",v==="home")} options={[{value:"home",label:"Home"},{value:"away",label:"Away"}]} />
-            <Sel label="RESULT"   value={draft.result}   onChange={v=>updDraft("result",v)}   options={[{value:"W",label:"Win"},{value:"L",label:"Loss"}]} />
-            <F label="SCORE"      value={draft.score}    onChange={v=>updDraft("score",v)}     placeholder="88–74" />
+            <Sel label="RESULT"  value={draft.result}   onChange={v=>updDraft("result",v)}  options={[{value:"W",label:"Win"},{value:"L",label:"Loss"}]} />
+            <F label="SCORE"     value={draft.score}    onChange={v=>updDraft("score",v)}   placeholder="88–74" />
           </div>
 
-          {/* Legend */}
           <div style={{ display:"flex", gap:16, marginBottom:10, flexWrap:"wrap", fontSize:11, color:C.textDim }}>
-            <span style={{ display:"flex", alignItems:"center", gap:6 }}><span style={{ width:10, height:10, borderRadius:2, background:`${C.green}60`, display:"inline-block" }} /> Extracted from PDF</span>
-            <span style={{ display:"flex", alignItems:"center", gap:6 }}><span style={{ width:10, height:10, borderRadius:2, background:C.border2, display:"inline-block" }} /> Did not play — leave as 0</span>
+            <span style={{ display:"flex", alignItems:"center", gap:6 }}><span style={{ width:10, height:10, borderRadius:2, background:`${C.green}60`, display:"inline-block" }} /> Auto-filled</span>
+            <span style={{ display:"flex", alignItems:"center", gap:6 }}><span style={{ width:10, height:10, borderRadius:2, background:C.border2, display:"inline-block" }} /> Did not play</span>
             <span style={{ color:C.redText }}>⚠ Review carefully before saving</span>
           </div>
 
           <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:8, textTransform:"uppercase" }}>
-            Box Score — jersey order · green = auto-filled from PDF
+            Box Score — jersey order · green = auto-filled
           </div>
           <BoxScoreTable players={players} rows={draft.boxScore} onUpdate={updBox} highlights={result?.highlights||{}} />
 
           <div style={{ display:"flex", gap:10, marginTop:16 }}>
             <Btn variant="green" onClick={confirmSave}>✓ CONFIRM & SAVE</Btn>
-            <Btn variant="ghost" onClick={()=>{ setPhase("upload"); setDraft(null); setResult(null); }}>← BACK</Btn>
+            <Btn variant="ghost" onClick={reset}>← BACK</Btn>
           </div>
+        </div>
+      )}
+
+      {/* ── Loading spinner ──────────────────────────────────────────────────── */}
+      {phase === "loading" && (
+        <div style={{ textAlign:"center", padding:"32px 0" }}>
+          <div style={{ width:36, height:36, borderRadius:"50%", border:`2px solid ${C.border2}`, borderTopColor:C.redBright, animation:"spin 0.7s linear infinite", margin:"0 auto 16px" }} />
+          <div style={{ fontSize:13, fontWeight:900, letterSpacing:"0.15em", color:C.text, textTransform:"uppercase" }}>Reading score sheet…</div>
+          <div style={{ fontSize:11, color:C.textDim, marginTop:6 }}>{fileName}</div>
+        </div>
+      )}
+
+      {/* ── Idle: two tabs ───────────────────────────────────────────────────── */}
+      {phase === "idle" && (
+        <div>
+          {/* Tab switcher */}
+          <div style={{ display:"flex", gap:4, padding:4, borderRadius:10, background:C.base, border:`1px solid ${C.border}`, marginBottom:16 }}>
+            <button style={tabStyle(tab==="extract")} onClick={()=>{ setTab("extract"); setError(""); }}>🖼 Extract from Image</button>
+            <button style={tabStyle(tab==="import")}  onClick={()=>{ setTab("import");  setError(""); }}>📋 Paste JSON</button>
+          </div>
+
+          {/* Extract tab */}
+          {tab === "extract" && (
+            <div>
+              <div
+                onDrop={e=>{ e.preventDefault(); setDragging(false); processImage(e.dataTransfer.files[0]); }}
+                onDragOver={e=>{ e.preventDefault(); setDragging(true); }}
+                onDragLeave={()=>setDragging(false)}
+                onClick={()=>fileRef.current?.click()}
+                style={{ border:`2px dashed ${dragging?C.redBright:C.border2}`, borderRadius:12, padding:"40px 24px", textAlign:"center", cursor:"pointer", background:dragging?`${C.red}08`:C.base, transition:"all 0.2s" }}>
+                <div style={{ fontSize:36, marginBottom:10 }}>🖼</div>
+                <div style={{ fontSize:12, fontWeight:900, letterSpacing:"0.12em", color:C.textSub }}>DRAG & DROP OR CLICK TO UPLOAD</div>
+                <div style={{ fontSize:10, color:C.textDim, marginTop:6 }}>Basket City score sheet image (JPG / PNG)</div>
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" style={{ display:"none" }} onChange={e=>processImage(e.target.files[0])} />
+              </div>
+              <div style={{ marginTop:12, padding:12, borderRadius:10, border:`1px solid ${C.border}`, background:C.base, fontSize:11, color:C.textSub, lineHeight:1.8 }}>
+                <div style={{ fontWeight:900, color:C.textDim, marginBottom:4, letterSpacing:"0.1em", textTransform:"uppercase" }}>How it works</div>
+                1. Upload the Basket City score sheet JPG<br />
+                2. Claude reads the image and extracts all stats automatically<br />
+                3. Review every stat, edit if needed, then confirm<br />
+                4. Player season averages auto-recalculate on save
+              </div>
+            </div>
+          )}
+
+          {/* Import tab */}
+          {tab === "import" && (
+            <div>
+              <div style={{ fontSize:11, color:C.textSub, marginBottom:8, lineHeight:1.7 }}>
+                Paste the JSON output from the extractor tool, then click Import.
+              </div>
+              <textarea
+                value={jsonText}
+                onChange={e=>setJsonText(e.target.value)}
+                placeholder={'{\n  "match_info": { ... },\n  "armani_katehano": { "players": [ ... ] }\n}'}
+                spellCheck={false}
+                style={{ width:"100%", minHeight:180, padding:12, fontSize:11, fontFamily:"monospace", borderRadius:10, border:`1px solid ${C.border2}`, background:C.base, color:C.text, resize:"vertical", outline:"none", boxSizing:"border-box" }}
+              />
+              <div style={{ display:"flex", gap:10, marginTop:10 }}>
+                <Btn onClick={importJson} disabled={!jsonText.trim()}>IMPORT</Btn>
+                <Btn variant="ghost" onClick={()=>setJsonText("")}>CLEAR</Btn>
+              </div>
+            </div>
+          )}
+
+          {error && <div style={{ marginTop:10, fontSize:12, color:C.redText }}>⚠ {error}</div>}
+        </div>
+      )}
+
+      {/* JSON copy panel — shown after successful extraction, above confirm */}
+      {phase === "confirm" && jsonText && (
+        <div style={{ marginTop:16, padding:12, borderRadius:10, border:`1px solid ${C.border}`, background:C.base }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+            <span style={{ fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim, textTransform:"uppercase" }}>Extracted JSON (copy for Import tab)</span>
+            <button onClick={copyJson} style={{ fontSize:11, padding:"3px 10px", borderRadius:6, border:`1px solid ${C.border2}`, background: copied?`${C.green}20`:"transparent", color: copied?C.green:C.textSub, cursor:"pointer", fontFamily:"inherit", fontWeight:700 }}>
+              {copied?"✓ Copied":"Copy"}
+            </button>
+          </div>
+          <textarea readOnly value={jsonText} style={{ width:"100%", height:80, padding:8, fontSize:10, fontFamily:"monospace", borderRadius:8, border:`1px solid ${C.border}`, background:C.surface2, color:C.textSub, resize:"none", outline:"none", boxSizing:"border-box" }} />
         </div>
       )}
     </div>
@@ -720,8 +805,8 @@ export default function AdminPage({ validSlug }) {
           <AdminPlayers players={players} onSave={async v=>{ await save("players",v); setPlayers(v); }} showToast={showToast} />
         </Section>
 
-        <Section title="Import PDF" icon="📄">
-          <AdminPDF players={players} games={games}
+        <Section title="Import Game" icon="🖼">
+          <AdminImport players={players} games={games}
             onSaveGame={async v=>{ await save("games",v); }}
             showToast={showToast} />
         </Section>
