@@ -101,7 +101,10 @@ export default function TeamPage({ players, games }) {
   if (games.length === 0) {
     return (
       <Layout title="Team Stats">
-        <SectionHeading label="2025–26 Season" title="Team Stats" />
+        <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:4 }}>
+          <img src="/logo.png" alt="Armani Katehano" style={{ width:64, height:64, objectFit:"contain", flexShrink:0 }} />
+          <SectionHeading label="2025–26 Season" title="Team Stats" />
+        </div>
         <div style={{ textAlign:"center", padding:48, color:C.textDim }}>
           <div style={{ fontSize:36, marginBottom:12 }}>📊</div>
           <div style={{ fontSize:15, fontWeight:700 }}>No data yet</div>
@@ -112,7 +115,10 @@ export default function TeamPage({ players, games }) {
 
   return (
     <Layout title="Team Stats">
-      <SectionHeading label="2025–26 Season" title="Team Stats" right={`${gp} games played`} />
+      <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:4 }}>
+        <img src="/logo.png" alt="Armani Katehano" style={{ width:64, height:64, objectFit:"contain", flexShrink:0 }} />
+        <SectionHeading label="2025–26 Season" title="Team Stats" right={`${gp} games played`} />
+      </div>
 
       {/* League tabs */}
       <div style={{ display:"flex", gap:8, marginBottom:24, flexWrap:"wrap" }}>
