@@ -84,12 +84,7 @@ const LEAGUE_OPTIONS = [
 ];
 
 // ── Box score columns ─────────────────────────────────────────────────────────
-const BOX_COLS = [
-  {key:"min",label:"MIN"},{key:"pts",label:"PTS"},{key:"reb",label:"REB"},{key:"ast",label:"AST"},
-  {key:"stl",label:"STL"},{key:"blk",label:"BLK"},{key:"tov",label:"TOV"},
-  {key:"fgm",label:"FGM"},{key:"fga",label:"FGA"},{key:"fg3m",label:"3PM"},{key:"fg3a",label:"3PA"},
-  {key:"ftm",label:"FTM"},{key:"fta",label:"FTA"},
-];
+const BOX_COLS = [{key:"pts",label:"PTS"}, {key:"ftm",label:"FTM"}, {key:"fta",label:"FTA"}, {key:"fgm",label:"FGM"},{key:"fga",label:"FGA"},{key:"fg3m",label:"3PM"},{key:"fg3a",label:"3PA"}, {key:"reb",label:"REB"}, {key:"orb",label:"ORB"}, {key:"drb",label:"DRB"}, {key:"ast",label:"AST"}, {key:"stl",label:"STL"},{key:"blk",label:"BLK"},{key:"tov",label:"TOV"},{key:"pf",label:"PF"}, {key:"min",label:"MIN"}];
 
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
 const byJersey = (a, b) => Number(a.number) - Number(b.number);
@@ -183,7 +178,7 @@ function AdminGames({ players, games, onSave, showToast }) {
   const [draft,   setDraft]   = useState({});
   const [confirm, setConfirm] = useState(null);
 
-  const emptyRow  = pid => ({ pid, min:0, pts:0, reb:0, ast:0, stl:0, blk:0, tov:0, fgm:0, fga:0, fg3m:0, fg3a:0, ftm:0, fta:0 });
+  const emptyRow  = pid => ({ pid, min:0, pts:0, reb:0, orb:0, drb:0, ast:0, stl:0, blk:0, tov:0, pf:0, fgm:0, fga:0, fg3m:0, fg3a:0, ftm:0, fta:0 });
   const buildBoxScore = existing => [...players].sort(byJersey).map(p => existing?.find(r=>r.pid===p.id) || emptyRow(p.id));
 
   const startNew  = () => { setDraft({ id:uid(), date:"", opponent:"", home:true, result:"W", score:"", league:"", boxScore: buildBoxScore([]) }); setEditId("new"); };
@@ -323,17 +318,20 @@ function AdminImport({ players, games, onSaveGame, showToast }) {
     const boxScore = sortedPlayers.map(p => {
       const parsed = ak.players.find(pp => pp.jersey_number === Number(p.number));
       if (!parsed || parsed.did_not_play) {
-        return { pid:p.id, min:0, pts:0, reb:0, ast:0, stl:0, blk:0, tov:0, fgm:0, fga:0, fg3m:0, fg3a:0, ftm:0, fta:0 };
+        return { pid:p.id, min:0, pts:0, reb:0, orb:0, drb:0, ast:0, stl:0, blk:0, tov:0, pf:0, fgm:0, fga:0, fg3m:0, fg3a:0, ftm:0, fta:0 };
       }
       return {
         pid:  p.id,
         min:  parsed.minutes_played?.total_seconds ? Math.round(parsed.minutes_played.total_seconds / 60) : 0,
         pts:  parsed.points,
         reb:  parsed.total_rebounds,
+        orb:  parsed.offensive_rebounds ?? 0,
+        drb:  parsed.defensive_rebounds ?? 0,
         ast:  parsed.assists,
         stl:  parsed.steals,
         blk:  parsed.blocks,
         tov:  parsed.turnovers,
+        pf:   parsed.fouls_committed ?? 0,
         fgm:  (parsed.two_point_fg?.made ?? 0) + (parsed.three_point_fg?.made ?? 0),
         fga:  (parsed.two_point_fg?.attempted ?? 0) + (parsed.three_point_fg?.attempted ?? 0),
         fg3m: parsed.three_point_fg?.made ?? 0,
