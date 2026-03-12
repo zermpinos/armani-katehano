@@ -5,13 +5,12 @@ import Head from "next/head";
 import { C } from "../lib/theme";
 
 const NAV_LINKS = [
-  { href: "/",           label: "Home"      },
-  { href: "/players",    label: "Players"   },
+  { href: "/",           label: "Home"       },
+  { href: "/players",    label: "Players"    },
   { href: "/leaderboard",label: "Leaderboard"},
-  { href: "/games",      label: "Games"     },
-  { href: "/trends",     label: "Trends"    },
-  { href: "/team",       label: "Team Stats"},
-  { href: "/schedule",   label: "Schedule"  },
+  { href: "/games",      label: "Games"      },
+  { href: "/team",       label: "Team Stats" },
+  { href: "/schedule",   label: "Schedule"   },
 ];
 
 export default function Layout({ children, title = "Armani Katehano" }) {
