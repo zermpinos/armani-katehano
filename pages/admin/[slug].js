@@ -279,7 +279,7 @@ function AdminGames({ players, games, onSave, showToast }) {
 function BoxScoreTable({ players, rows, onUpdate, readOnly=false, highlights={} }) {
   return (
     <div style={{ overflowX:"auto", borderRadius:10, border:`1px solid ${C.border}` }}>
-      <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11, minWidth:700 }}>
+      <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11, minWidth:1100 }}>
         <thead>
           <tr style={{ background:C.surface2, borderBottom:`1px solid ${C.border2}` }}>
             <th style={{ padding:"7px 10px", textAlign:"left", fontSize:9, fontWeight:900, color:C.textDim, minWidth:36, letterSpacing:"0.12em" }}>#</th>
@@ -790,7 +790,7 @@ export default function AdminPage({ validSlug }) {
       {/* Header */}
       <div style={{ background:C.surface, borderBottom:`1px solid ${C.border}` }}>
         <div style={{ height:3, background:`linear-gradient(90deg,${C.red},${C.redBright},${C.red})` }} />
-        <div style={{ maxWidth:960, margin:"0 auto", padding:"0 16px", display:"flex", justifyContent:"space-between", alignItems:"center", height:56 }}>
+        <div style={{ margin:"0 auto", padding:"0 32px", display:"flex", justifyContent:"space-between", alignItems:"center", height:56 }}>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:32, height:32, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:900, fontSize:12, background:C.red, color:C.text }}>AK</div>
             <div>
@@ -802,7 +802,7 @@ export default function AdminPage({ validSlug }) {
         </div>
       </div>
 
-      <div style={{ maxWidth:960, margin:"0 auto", padding:"24px 16px" }}>
+      <div style={{ margin:"0 auto", padding:"24px 32px" }}>
         {/* Summary */}
         {(() => {
           const wins   = games?.filter(g => g.result === "W").length ?? 0;
