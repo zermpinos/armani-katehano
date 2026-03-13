@@ -22,17 +22,20 @@ const MEDALS = [
   { color:C.bronze, label:"🥉", bg:`${C.bronze}15`, border:`${C.bronze}40` },
 ];
 const COLS = [
-  { key:"mpg",   label:"MPG", title:"Minutes Per Game",    dec:1 },
-  { key:"ppg",   label:"PPG", title:"Points Per Game",     dec:1 },
-  { key:"ftPct", label:"FT%", title:"Free Throw %",        dec:1, pct:true },
-  { key:"fgPct", label:"FG%", title:"Field Goal %",        dec:1, pct:true },
-  { key:"fg3Pct",label:"3P%", title:"3-Point %",           dec:1, pct:true },
-  { key:"apg",   label:"APG", title:"Assists Per Game",    dec:1 },
-  { key:"rpg",   label:"RPG", title:"Rebounds Per Game",   dec:1 },
-  { key:"spg",   label:"SPG", title:"Steals Per Game",     dec:1 },
-  { key:"bpg",   label:"BPG", title:"Blocks Per Game",     dec:1 },
-  { key:"fpg",   label:"FPG", title:"Fouls Per Game",      dec:1 },
-  { key:"eff",   label:"EFF", title:"Efficiency Rating",   dec:1 },
+  { key:"mpg",   label:"MPG", title:"Minutes Per Game",        dec:1 },
+  { key:"ppg",   label:"PPG", title:"Points Per Game",         dec:1 },
+  { key:"ftPct", label:"FT%", title:"Free Throw %",            dec:1, pct:true },
+  { key:"fgPct", label:"FG%", title:"Field Goal %",            dec:1, pct:true },
+  { key:"fg2Pct",label:"2P%", title:"2-Point %",               dec:1, pct:true },
+  { key:"fg3Pct",label:"3P%", title:"3-Point %",               dec:1, pct:true },
+  { key:"apg",   label:"APG", title:"Assists Per Game",        dec:1 },
+  { key:"rpg",   label:"RPG", title:"Rebounds Per Game",       dec:1 },
+  { key:"orpg",  label:"ORB", title:"Off. Rebounds Per Game",  dec:1 },
+  { key:"drpg",  label:"DRB", title:"Def. Rebounds Per Game",  dec:1 },
+  { key:"spg",   label:"SPG", title:"Steals Per Game",         dec:1 },
+  { key:"bpg",   label:"BPG", title:"Blocks Per Game",         dec:1 },
+  { key:"fpg",   label:"FPG", title:"Fouls Per Game",          dec:1 },
+  { key:"eff",   label:"EFF", title:"Efficiency Rating",       dec:1 },
 ];
 
 export default function LeaderboardPage({ players }) {

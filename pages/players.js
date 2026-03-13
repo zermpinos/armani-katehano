@@ -72,11 +72,15 @@ function PlayerDetail({ player, onClose }) {
               <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:24 }}>
                 <StatCell label="PPG" value={s.ppg} highlight />
                 <StatCell label="RPG" value={s.rpg} />
+                <StatCell label="ORB" value={s.orpg ?? 0} />
+                <StatCell label="DRB" value={s.drpg ?? 0} />
                 <StatCell label="APG" value={s.apg} />
                 <StatCell label="SPG" value={s.spg} />
                 <StatCell label="BPG" value={s.bpg} />
                 <StatCell label="TPG" value={s.tpg} />
+                <StatCell label="FPG" value={s.fpg ?? 0} />
                 <StatCell label="FG%"  value={`${s.fgPct}%`} />
+                <StatCell label="2P%"  value={s.fg2Pct > 0 ? `${s.fg2Pct}%` : "--"} />
                 <StatCell label="3P%"  value={s.fg3Pct > 0 ? `${s.fg3Pct}%` : "--"} />
                 <StatCell label="FT%"  value={`${s.ftPct}%`} />
                 <StatCell label="MPG"  value={s.mpg} />
