@@ -3,15 +3,8 @@ import Layout from "../components/Layout";
 import { SectionHeading, StatTile } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
 import { getAllPublicData, computeRecord } from "../lib/data";
+import { fmt } from "../lib/utils";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-
-// "First Last" → "Last F."
-const fmt = name => {
-  if (!name) return "";
-  const parts = name.trim().split(" ").filter(Boolean);
-  if (parts.length === 1) return parts[0];
-  return parts[parts.length - 1] + " " + parts[0][0].toUpperCase() + ".";
-};
 
 const LEAGUE_TABS = [
   { key: "all",       label: "All Games"     },
