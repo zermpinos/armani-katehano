@@ -35,6 +35,31 @@ function StatCell({ label, value, highlight }) {
 
 function PlayerDetail({ player, onClose }) {
   const s = player.stats;
+  const gameLog = player.gameLog || [];
+
+  // Derive available seasons and leagues from gameLog
+  const seasons = ["All", ...Array.from(new Set(gameLog.map(g => g.season).filter(Boolean))).sort().reverse()];
+  const leagues = ["All", ...Array.from(new Set(gameLog.map(g => g.league).filter(Boolean))).sort()];
+
+  const [selSeason, setSelSeason] = useState("All");
+  const [selLeague, setSelLeague] = useState("All");
+  const [selStat,   setSelStat]   = useState("pts");
+
+  const STAT_OPTIONS = [
+    { key:"pts", label:"PTS", color:C.redBright },
+    { key:"reb", label:"REB", color:C.textSub },
+    { key:"ast", label:"AST", color:"#5ba4cf" },
+    { key:"stl", label:"STL", color:C.green },
+    { key:"blk", label:"BLK", color:"#a29bfe" },
+    { key:"eff", label:"EFF", color:"#fdcb6e" },
+  ];
+
+  const filtered = gameLog
+    .filter(g => (selSeason === "All" || g.season === selSeason) && (selLeague === "All" || g.league === selLeague))
+    .map((g, i) => ({ ...g, label: `G${i + 1}` }));
+
+  const activeStat = STAT_OPTIONS.find(o => o.key === selStat);
+
   const radarData = [
     { stat:"Scoring",    value: Math.min(100, Math.round((s.ppg / 18) * 100)) },
     { stat:"Rebounds",   value: Math.min(100, Math.round((s.rpg / 11) * 100)) },
@@ -43,6 +68,23 @@ function PlayerDetail({ player, onClose }) {
     { stat:"Shooting",   value: Math.min(100, Math.round(s.fgPct)) },
     { stat:"Efficiency", value: Math.min(100, Math.round((s.eff / 22) * 100)) },
   ];
+
+  const filterBtnStyle = (active) => ({
+    padding:"3px 10px", fontSize:10, fontWeight:900, letterSpacing:"0.1em",
+    borderRadius:6, border:`1px solid ${active ? `${C.redBright}60` : C.border}`,
+    background: active ? `${C.red}25` : "transparent",
+    color: active ? C.redText : C.textDim,
+    cursor:"pointer", fontFamily:"inherit",
+  });
+
+  const statBtnStyle = (key, color) => ({
+    padding:"3px 10px", fontSize:10, fontWeight:900, letterSpacing:"0.1em",
+    borderRadius:6, border:`1px solid ${selStat === key ? `${color}80` : C.border}`,
+    background: selStat === key ? `${color}20` : "transparent",
+    color: selStat === key ? color : C.textDim,
+    cursor:"pointer", fontFamily:"inherit",
+  });
+
   return (
     <div style={{ position:"fixed", inset:0, zIndex:100, overflowY:"auto", padding:"80px 16px 32px", background:"rgba(10,10,10,0.88)", backdropFilter:"blur(6px)" }} onClick={onClose}>
       <div style={{ maxWidth:680, margin:"0 auto", borderRadius:16, overflow:"hidden", border:`1px solid ${C.border2}`, background:C.surface }} onClick={e => e.stopPropagation()}>
@@ -104,22 +146,71 @@ function PlayerDetail({ player, onClose }) {
                   </ResponsiveContainer>
                 </div>
               </div>
-              {player.gameLog?.length > 0 && (
+
+              {gameLog.length > 0 && (
                 <div>
-                  <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:8, textTransform:"uppercase" }}>Last {player.gameLog.length} Games</div>
+                  {/* Chart header + stat selector */}
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6, flexWrap:"wrap", gap:6 }}>
+                    <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>
+                      Game Log {filtered.length > 0 ? `(${filtered.length})` : ""}
+                    </div>
+                  </div>
+
+                  {/* Season filter */}
+                  {seasons.length > 2 && (
+                    <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:6 }}>
+                      {seasons.map(s => (
+                        <button key={s} style={filterBtnStyle(selSeason === s)} onClick={() => setSelSeason(s)}>{s}</button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* League filter */}
+                  {leagues.length > 2 && (
+                    <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:6 }}>
+                      {leagues.map(l => (
+                        <button key={l} style={filterBtnStyle(selLeague === l)} onClick={() => setSelLeague(l)}>
+                          {l === "rookie" ? "Rookie" : l === "bc6" ? "BC6" : l === "wintercup" ? "Winter Cup" : l}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Stat selector */}
+                  <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:6 }}>
+                    {STAT_OPTIONS.map(o => (
+                      <button key={o.key} style={statBtnStyle(o.key, o.color)} onClick={() => setSelStat(o.key)}>{o.label}</button>
+                    ))}
+                  </div>
+
                   <div style={{ borderRadius:12, border:`1px solid ${C.border}`, padding:8, background:C.base }}>
-                    <ResponsiveContainer width="100%" height={200}>
-                      <LineChart data={player.gameLog} margin={{ top:8, right:4, left:-24, bottom:0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                        <XAxis dataKey="game" tick={{ fill:C.textDim, fontSize:10 }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill:C.textDim, fontSize:10 }} axisLine={false} tickLine={false} />
-                        <Tooltip {...chartTooltipStyle} />
-                        <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={2} dot={{ fill:C.redBright, r:3 }} name="PTS" />
-                        <Line type="monotone" dataKey="reb" stroke={C.textSub}   strokeWidth={1.5} dot={{ fill:C.textSub, r:2 }} name="REB" strokeDasharray="3 2" />
-                        <Line type="monotone" dataKey="ast" stroke={C.textDim}   strokeWidth={1.5} dot={{ fill:C.textDim, r:2 }} name="AST" strokeDasharray="3 2" />
-                        <Legend wrapperStyle={{ fontSize:10, color:C.textSub }} />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    {filtered.length === 0 ? (
+                      <div style={{ height:200, display:"flex", alignItems:"center", justifyContent:"center", color:C.textDim, fontSize:12 }}>No games match this filter</div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={200}>
+                        <LineChart data={filtered} margin={{ top:8, right:4, left:-24, bottom:0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                          <XAxis dataKey="label" tick={{ fill:C.textDim, fontSize:10 }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fill:C.textDim, fontSize:10 }} axisLine={false} tickLine={false} />
+                          <Tooltip
+                            {...chartTooltipStyle}
+                            formatter={(val) => [val, activeStat?.label]}
+                            labelFormatter={(label, payload) => {
+                              const g = payload?.[0]?.payload;
+                              return g ? `${label} vs ${g.opponent}` : label;
+                            }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey={selStat}
+                            stroke={activeStat?.color || C.redBright}
+                            strokeWidth={2}
+                            dot={{ fill: activeStat?.color || C.redBright, r:3 }}
+                            name={activeStat?.label}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    )}
                   </div>
                 </div>
               )}
