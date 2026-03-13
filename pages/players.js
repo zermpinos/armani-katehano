@@ -3,6 +3,7 @@ import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
 import { getAllPublicData } from "../lib/data";
+import { fmt } from "../lib/utils";
 import {
   LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -26,17 +27,6 @@ const PLAYER_IMAGES = {
   p13: "/players/p13.jpg",
 };
 const playerImg = (id) => PLAYER_IMAGES[id] || null;
-
-// "Last Name F." format
-// Names stored as "First Last" → display as "Last F."
-const fmt = name => {
-  if (!name) return "";
-  const parts = name.trim().split(" ").filter(Boolean);
-  if (parts.length === 1) return parts[0];
-  const first = parts[0];
-  const last  = parts[parts.length - 1];
-  return last + " " + first[0].toUpperCase() + ".";
-};
 
 function StatCell({ label, value, highlight }) {
   return (
