@@ -84,16 +84,32 @@ const LEAGUE_OPTIONS = [
 ];
 
 // ── Box score columns ─────────────────────────────────────────────────────────
-const BOX_COLS = [{key:"pts",label:"PTS"}, {key:"ftm",label:"FTM"}, {key:"fta",label:"FTA"}, {key:"fgm",label:"FGM"},{key:"fga",label:"FGA"},{key:"fg2m",label:"2PM"},{key:"fg2a",label:"2PA"},{key:"fg3m",label:"3PM"},{key:"fg3a",label:"3PA"}, {key:"reb",label:"REB"}, {key:"orb",label:"ORB"}, {key:"drb",label:"DRB"}, {key:"ast",label:"AST"}, {key:"stl",label:"STL"},{key:"blk",label:"BLK"},{key:"tov",label:"TOV"},{key:"pf",label:"PF"}, {key:"min",label:"MIN"}];
+// ── Box score columns — order matches the Basket City score sheet exactly ────
+// Sheet: ΠΟ · ΒΟΛ(made/att) · ΔΙΠ(made/att) · ΤΡΙΠ(made/att) · ΦΑ · ΚΦ · Ρ.Α.(def) · Ρ.Ε.(off) · ΡΙΜ · ΠΑΣ · ΚΛ. · ΚΟ. · ΛΑ. · RAN · ΧΡ.
+const BOX_COLS = [
+  {key:"pts",  label:"PTS",  sub:"ΠΟ"},
+  {key:"ftm",  label:"FTM",  sub:"ΒΟΛ"},
+  {key:"fta",  label:"FTA",  sub:""},
+  {key:"fg2m", label:"2PM",  sub:"ΔΙΠ"},
+  {key:"fg2a", label:"2PA",  sub:""},
+  {key:"fg3m", label:"3PM",  sub:"ΤΡΙΠ"},
+  {key:"fg3a", label:"3PA",  sub:""},
+  {key:"fgm",  label:"FGM",  sub:""},
+  {key:"fga",  label:"FGA",  sub:""},
+  {key:"pf",   label:"PF",   sub:"ΦΑ"},
+  {key:"drb",  label:"DRB",  sub:"Ρ.Α."},
+  {key:"orb",  label:"ORB",  sub:"Ρ.Ε."},
+  {key:"reb",  label:"REB",  sub:"ΡΙΜ"},
+  {key:"ast",  label:"AST",  sub:"ΠΑΣ"},
+  {key:"stl",  label:"STL",  sub:"ΚΛ."},
+  {key:"blk",  label:"BLK",  sub:"ΚΟ."},
+  {key:"tov",  label:"TOV",  sub:"ΛΑ."},
+  {key:"eff",  label:"EFF",  sub:"RAN"},
+  {key:"min",  label:"MIN",  sub:"ΧΡ."},
+];
 
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
 const byJersey = (a, b) => Number(a.number) - Number(b.number);
-const fmt = name => {
-  if (!name) return "";
-  const parts = name.trim().split(" ").filter(Boolean);
-  if (parts.length === 1) return parts[0];
-  return parts[parts.length - 1] + " " + parts[0][0].toUpperCase() + ".";
-};
 
 // ── AdminPlayers ──────────────────────────────────────────────────────────────
 function AdminPlayers({ players, onSave, showToast }) {
@@ -179,7 +195,7 @@ function AdminPlayers({ players, onSave, showToast }) {
 }
 
 // ── AdminGames ────────────────────────────────────────────────────────────────
-function AdminGames({ players, games, onSave, showToast, currentSeason }) {
+function AdminGames({ players, games, onSave, showToast }) {
   const [editId,  setEditId]  = useState(null);
   const [draft,   setDraft]   = useState({});
   const [confirm, setConfirm] = useState(null);
@@ -187,8 +203,8 @@ function AdminGames({ players, games, onSave, showToast, currentSeason }) {
   const emptyRow  = pid => ({ pid, min:0, pts:0, reb:0, orb:0, drb:0, ast:0, stl:0, blk:0, tov:0, pf:0, fgm:0, fga:0, fg2m:0, fg2a:0, fg3m:0, fg3a:0, ftm:0, fta:0 });
   const buildBoxScore = existing => [...players].sort(byJersey).map(p => existing?.find(r=>r.pid===p.id) || emptyRow(p.id));
 
-  const startNew  = () => { setDraft({ id:uid(), date:"", opponent:"", home:true, result:"W", score:"", league:"", season: currentSeason||"", boxScore: buildBoxScore([]) }); setEditId("new"); };
-  const startEdit = g  => { setDraft({ ...g, league: g.league||"", season: g.season||currentSeason||"", boxScore: buildBoxScore(g.boxScore) }); setEditId(g.id); };
+  const startNew  = () => { setDraft({ id:uid(), date:"", opponent:"", home:true, result:"W", score:"", league:"", boxScore: buildBoxScore([]) }); setEditId("new"); };
+  const startEdit = g  => { setDraft({ ...g, league: g.league||"", boxScore: buildBoxScore(g.boxScore) }); setEditId(g.id); };
   const cancel    = () => { setEditId(null); setDraft({}); };
 
   const updGame = (k,v) => setDraft(d=>({ ...d, [k]:v }));
@@ -197,7 +213,7 @@ function AdminGames({ players, games, onSave, showToast, currentSeason }) {
   const save = async () => {
     const best = draft.boxScore.reduce((b,r)=>r.pts>b.pts?r:b, draft.boxScore[0]);
     const bpl  = players.find(p=>p.id===best?.pid);
-    const topScorer = bpl&&best.pts>0 ? `${fmt(bpl.name)} ${best.pts}pts` : "";
+    const topScorer = bpl&&best.pts>0 ? `${bpl.name.split(" ").slice(-1)[0]} ${best.pts}pts` : "";
     const finalDraft = { ...draft, topScorer };
     const updated = editId==="new" ? [...games, finalDraft] : games.map(g=>g.id===editId?finalDraft:g);
     await onSave(updated);
@@ -217,7 +233,6 @@ function AdminGames({ players, games, onSave, showToast, currentSeason }) {
         <Sel label="RESULT" value={draft.result} onChange={v=>updGame("result",v)} options={[{value:"W",label:"Win"},{value:"L",label:"Loss"}]} />
         <F label="SCORE" value={draft.score} onChange={v=>updGame("score",v)} placeholder="e.g. 88–74" />
         <Sel label="LEAGUE" value={draft.league||""} onChange={v=>updGame("league",v)} options={LEAGUE_OPTIONS} />
-        <F label="SEASON" value={draft.season||""} onChange={v=>updGame("season",v)} placeholder="e.g. 2025–26" />
       </div>
       <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:8, paddingTop:8, borderTop:`1px solid ${C.border}`, textTransform:"uppercase" }}>Box Score</div>
       <BoxScoreTable players={players} rows={draft.boxScore||[]} onUpdate={updBox} />
@@ -269,7 +284,10 @@ function BoxScoreTable({ players, rows, onUpdate, readOnly=false, highlights={} 
           <tr style={{ background:C.surface2, borderBottom:`1px solid ${C.border2}` }}>
             <th style={{ padding:"7px 10px", textAlign:"left", fontSize:9, fontWeight:900, color:C.textDim, minWidth:36, letterSpacing:"0.12em" }}>#</th>
             <th style={{ padding:"7px 10px", textAlign:"left", fontSize:9, fontWeight:900, color:C.textDim, minWidth:150, letterSpacing:"0.12em" }}>PLAYER</th>
-            {BOX_COLS.map(c=><th key={c.key} style={{ padding:"7px 6px", fontSize:9, fontWeight:900, color:C.textDim, minWidth:44, textAlign:"center", letterSpacing:"0.1em" }}>{c.label}</th>)}
+            {BOX_COLS.map(c=><th key={c.key} style={{ padding:"7px 6px", fontSize:9, fontWeight:900, color:C.textDim, minWidth:44, textAlign:"center", letterSpacing:"0.1em" }}>
+              <div>{c.label}</div>
+              {c.sub && <div style={{ fontSize:8, color:C.textDim, opacity:0.6, fontWeight:700, letterSpacing:0 }}>{c.sub}</div>}
+            </th>)}
           </tr>
         </thead>
         <tbody>
@@ -304,7 +322,7 @@ function BoxScoreTable({ players, rows, onUpdate, readOnly=false, highlights={} 
 }
 
 // ── AdminImport — score sheet image → Claude vision → confirm & save ──────────
-function AdminImport({ players, games, onSaveGame, showToast, currentSeason }) {
+function AdminImport({ players, games, onSaveGame, showToast }) {
   const [tab,       setTab]       = useState("extract"); // extract | import
   const [phase,     setPhase]     = useState("idle");    // idle | loading | confirm
   const [result,    setResult]    = useState(null);
@@ -362,13 +380,12 @@ function AdminImport({ players, games, onSaveGame, showToast, currentSeason }) {
         id:       uid(),
         date:     mi.date || "",
         opponent: mi.opponent || "",
-        home:     mi.home ?? false,
+        home:     mi.home_team?.includes("ARMANI") || mi.home_team?.includes("KATEHANO"),
         result:   mi.result || "W",
         score:    mi.armani_katehano_score != null
           ? `${mi.armani_katehano_score}–${mi.opponent_score}`
           : "",
         league:   mi.league || "",
-        season:   mi.season || currentSeason || "",
         boxScore,
       },
       highlights,
@@ -444,7 +461,7 @@ function AdminImport({ players, games, onSaveGame, showToast, currentSeason }) {
   const confirmSave = async () => {
     const best = draft.boxScore.reduce((b,r)=>r.pts>b.pts?r:b, draft.boxScore[0]);
     const bpl  = players.find(p=>p.id===best?.pid);
-    const topScorer = bpl&&best.pts>0 ? `${fmt(bpl.name)} ${best.pts}pts` : "";
+    const topScorer = bpl&&best.pts>0 ? `${bpl.name.split(" ").slice(-1)[0]} ${best.pts}pts` : "";
     await onSaveGame([...games, { ...draft, topScorer }]);
     showToast("Game saved!");
     setPhase("idle"); setDraft(null); setResult(null); setJsonText("");
@@ -493,7 +510,6 @@ function AdminImport({ players, games, onSaveGame, showToast, currentSeason }) {
             <Sel label="RESULT"  value={draft.result}   onChange={v=>updDraft("result",v)}  options={[{value:"W",label:"Win"},{value:"L",label:"Loss"}]} />
             <F label="SCORE"     value={draft.score}    onChange={v=>updDraft("score",v)}   placeholder="88–74" />
             <Sel label="LEAGUE"  value={draft.league||""} onChange={v=>updDraft("league",v)} options={LEAGUE_OPTIONS} />
-            <F label="SEASON"   value={draft.season||""} onChange={v=>updDraft("season",v)} placeholder="e.g. 2025–26" />
           </div>
 
           <div style={{ display:"flex", gap:16, marginBottom:10, flexWrap:"wrap", fontSize:11, color:C.textDim }}>
@@ -663,7 +679,6 @@ export default function AdminPage({ validSlug }) {
   const [lockoutSecs,  setLockoutSecs]  = useState(0);
   const [dataLoading,  setDataLoading]  = useState(false);
 
-  const [team,     setTeam]     = useState(null);
   const [record,   setRecord]   = useState(null);
   const [players,  setPlayers]  = useState(null);
   const [games,    setGames]    = useState(null);
@@ -679,7 +694,6 @@ export default function AdminPage({ validSlug }) {
       const res  = await fetch("/api/admin/data");
       if (!res.ok) { setPhase("login"); return; }
       const data = await res.json();
-      setTeam(data.team);
       setRecord(data.record); setPlayers(data.players);
       setGames(data.games);   setSchedule(data.schedule);
       setPhase("dashboard");
@@ -812,15 +826,13 @@ export default function AdminPage({ validSlug }) {
         <Section title="Import Game" icon="🖼">
           <AdminImport players={players} games={games}
             onSaveGame={async v=>{ await save("games",v); }}
-            showToast={showToast}
-            currentSeason={team?.season} />
+            showToast={showToast} />
         </Section>
 
         <Section title="Game Results" icon="🏀">
           <AdminGames players={players} games={games}
             onSave={async v=>{ await save("games",v); }}
-            showToast={showToast}
-            currentSeason={team?.season} />
+            showToast={showToast} />
         </Section>
 
         <Section title="Schedule" icon="📅">
