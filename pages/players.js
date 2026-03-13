@@ -9,6 +9,24 @@ import {
 } from "recharts";
 
 
+// Hardcoded player images -- place files in /public/players/
+const PLAYER_IMAGES = {
+  p1:  "/players/p1.jpg",
+  p2:  "/players/p2.jpg",
+  p3:  "/players/p3.jpg",
+  p4:  "/players/p4.jpg",
+  p5:  "/players/p5.jpg",
+  p6:  "/players/p6.jpg",
+  p7:  "/players/p7.jpg",
+  p8:  "/players/p8.jpg",
+  p9:  "/players/p9.jpg",
+  p10: "/players/p10.jpg",
+  p11: "/players/p11.jpg",
+  p12: "/players/p12.jpg",
+  p13: "/players/p13.jpg",
+};
+const playerImg = (id) => PLAYER_IMAGES[id] || null;
+
 // "Last Name F." format
 // Names stored as "First Last" -> display as "Last F."
 const fmt = name => {
@@ -92,7 +110,7 @@ function PlayerDetail({ player, onClose }) {
         {/* Header */}
         <div style={{ padding:24, display:"flex", gap:20, alignItems:"center", background:C.base, borderBottom:`1px solid ${C.border}` }}>
           <div style={{ width:72, height:72, borderRadius:14, overflow:"hidden", flexShrink:0, background:C.surface, border:`1px solid ${C.border2}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:32 }}>
-            {player.photoUrl ? <img src={player.photoUrl} alt={player.name} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"top" }} /> : "🏀"}
+            {playerImg(player.id) ? <img src={playerImg(player.id)} alt={player.name} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"top" }} /> : "🏀"}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontSize:22, fontWeight:900, color:C.text }}>{player.name}</div>
@@ -239,8 +257,8 @@ function PlayerCard({ player, onClick }) {
       transition:"all 0.2s", fontFamily:"inherit",
     }}>
       <div style={{ height:100, display:"flex", alignItems:"flex-end", justifyContent:"center", background:C.base, position:"relative" }}>
-        {player.photoUrl
-          ? <img src={player.photoUrl} alt={player.name} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", objectPosition:"top", borderRadius:0 }} />
+        {playerImg(player.id)
+          ? <img src={playerImg(player.id)} alt={player.name} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", objectPosition:"top", borderRadius:0 }} />
           : <span style={{ fontSize:48, lineHeight:1, paddingBottom:8 }}>🏀</span>
         }
         <div style={{ position:"absolute", top:10, right:10, width:26, height:26, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, background:C.red, color:C.text, zIndex:1 }}>{player.number}</div>
