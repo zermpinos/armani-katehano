@@ -30,7 +30,7 @@ Return ONLY valid JSON with no markdown, no code fences, no explanation.
 Use this exact shape:
 {
   "match_info": {
-    "date": "DD/MM/YYYY",
+    "date": "YYYY-MM-DD",
     "home_team": "TEAM NAME",
     "away_team": "TEAM NAME",
     "home_score": 0,
@@ -52,7 +52,7 @@ Use this exact shape:
         "free_throws":     { "made": 0, "attempted": 0 },
         "two_point_fg":    { "made": 0, "attempted": 0 },
         "three_point_fg":  { "made": 0, "attempted": 0 },
-        "fouls_made": 0,
+        "fouls_committed": 0,
         "fouls_earned": 0,
         "offensive_rebounds": 0,
         "defensive_rebounds": 0,
@@ -72,6 +72,7 @@ Use this exact shape:
 Rules:
 - Include every player in the ARMANI KATEHANO section, even those who did not play (set did_not_play=true, all stats 0)
 - minutes_played.total_seconds = minutes*60 + seconds (e.g. "26:34" → 1594)
+- date must be in YYYY-MM-DD format (e.g. 27/09/2025 on the sheet → "2025-09-27")
 - Derive result from scores: if AK score > opponent score then "W", else "L"
 - For the "league" field: look at the competition name printed at the top of the score sheet.
   * If it contains words like "ROOKIE", "ΝΕΩΝ", "ΝΕΑΝΙΚΟ" → set league to "rookie"
