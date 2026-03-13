@@ -39,11 +39,11 @@ export default function Layout({ children, title = "Armani Katehano" }) {
 
             {/* Brand */}
             <Link href="/" style={{ display:"flex", alignItems:"center", gap:12 }}>
-              <div style={{
-                width:36, height:36, borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center",
-                fontWeight:900, fontSize:13, background:C.red, color:C.text,
-                boxShadow:`0 4px 16px ${C.red}55`,
-              }}>AK</div>
+              <img
+                src="/logo.png"
+                alt="Armani Katehano"
+                style={{ width:40, height:40, objectFit:"contain", flexShrink:0 }}
+              />
               <div style={{ display:"none" }} className="brand-text">
                 <div style={{ fontWeight:900, fontSize:13, letterSpacing:"0.1em", textTransform:"uppercase", lineHeight:1, color:C.text }}>Armani Katehano</div>
                 <div style={{ fontWeight:700, fontSize:11, letterSpacing:"0.15em", marginTop:1, color:C.redText }}>2025–26</div>
@@ -100,7 +100,10 @@ export default function Layout({ children, title = "Armani Katehano" }) {
       {/* Footer */}
       <footer style={{ borderTop:`1px solid ${C.border}`, padding:"20px 16px" }}>
         <div style={{ maxWidth:1280, margin:"0 auto", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.12em", color:C.textDim, textTransform:"uppercase" }}>© 2026 Armani Katehano · 2025–26</div>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <img src="/logo.png" alt="AK" style={{ width:20, height:20, objectFit:"contain", opacity:0.5 }} />
+            <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.12em", color:C.textDim, textTransform:"uppercase" }}>© 2026 Armani Katehano · 2025–26</div>
+          </div>
           <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.12em", color:C.border2 }}>AK STATS ENGINE</div>
         </div>
       </footer>
