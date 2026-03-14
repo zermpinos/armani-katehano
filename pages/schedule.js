@@ -2,6 +2,7 @@ import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import { C } from "../lib/theme";
 import { getAllPublicData } from "../lib/data";
+import { fmtDate } from "../lib/utils";
 
 export default function SchedulePage({ schedule, games }) {
   const upcoming = [...schedule].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -28,7 +29,7 @@ export default function SchedulePage({ schedule, games }) {
                 }}>{g.home ? "HOME" : "AWAY"}</span>
                 <div>
                   <div style={{ fontSize:14, fontWeight:700, color:C.text }}>vs {g.opponent}</div>
-                  <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{g.date}</div>
+                  <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{fmtDate(g.date)}</div>
                 </div>
               </div>
               <div style={{ fontSize:20 }}>📅</div>
@@ -52,7 +53,7 @@ export default function SchedulePage({ schedule, games }) {
                   }}>{g.result}</span>
                   <div>
                     <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{g.home ? "vs" : "@"} {g.opponent}</div>
-                    <div style={{ fontSize:11, color:C.textDim }}>{g.date}</div>
+                    <div style={{ fontSize:11, color:C.textDim }}>{fmtDate(g.date)}</div>
                   </div>
                 </div>
                 <div style={{ fontSize:15, fontWeight:900, color:C.text }}>{g.score}</div>
