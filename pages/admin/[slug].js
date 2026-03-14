@@ -16,6 +16,14 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import Head from "next/head";
 import { C } from "../../lib/theme";
 
+// ── Name formatter: "First Last" -> "Last F." (handles duplicate last names) ──
+const fmt = name => {
+  if (!name) return "";
+  const parts = name.trim().split(" ").filter(Boolean);
+  if (parts.length === 1) return parts[0];
+  return parts[parts.length - 1] + " " + parts[0][0].toUpperCase() + ".";
+};
+
 // ── Tiny inline UI primitives (no shared import -- admin is self-contained) ───
 const F = ({ label, value, onChange, type="text", placeholder="", sm=false }) => (
   <div>
@@ -213,8 +221,7 @@ function AdminGames({ players, games, onSave, showToast }) {
   const save = async () => {
     const best = draft.boxScore.reduce((b,r)=>r.pts>b.pts?r:b, draft.boxScore[0]);
     const bpl  = players.find(p=>p.id===best?.pid);
-    const topScorer = bpl&&best.pts>0 ? `${bpl.name.split(" ").slice(-1)[0]} ${best.pts}pts` : "";
-    const finalDraft = { ...draft, topScorer };
+    const topScorer = bpl&&best.pts>0 ? `${fmt(bpl.name)} ${best.pts}pts` : "";
     const updated = editId==="new" ? [...games, finalDraft] : games.map(g=>g.id===editId?finalDraft:g);
     await onSave(updated);
     showToast(editId==="new"?"Game added!":"Game saved!");
@@ -227,7 +234,7 @@ function AdminGames({ players, games, onSave, showToast }) {
         {editId==="new"?"NEW GAME":"EDITING GAME"}
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))", gap:10, marginBottom:12 }}>
-        <F label="DATE" value={draft.date} onChange={v=>updGame("date",v)} placeholder="e.g. 08/03/2026" />
+        <F label="DATE" value={draft.date} onChange={v=>updGame("date",v)} placeholder="YYYY-MM-DD" />
         <F label="OPPONENT" value={draft.opponent} onChange={v=>updGame("opponent",v)} />
         <Sel label="HOME/AWAY" value={draft.home?"home":"away"} onChange={v=>updGame("home",v==="home")} options={[{value:"home",label:"Home"},{value:"away",label:"Away"}]} />
         <Sel label="RESULT" value={draft.result} onChange={v=>updGame("result",v)} options={[{value:"W",label:"Win"},{value:"L",label:"Loss"}]} />
@@ -461,7 +468,7 @@ function AdminImport({ players, games, onSaveGame, showToast }) {
   const confirmSave = async () => {
     const best = draft.boxScore.reduce((b,r)=>r.pts>b.pts?r:b, draft.boxScore[0]);
     const bpl  = players.find(p=>p.id===best?.pid);
-    const topScorer = bpl&&best.pts>0 ? `${bpl.name.split(" ").slice(-1)[0]} ${best.pts}pts` : "";
+    const topScorer = bpl&&best.pts>0 ? `${fmt(bpl.name)} ${best.pts}pts` : "";
     await onSaveGame([...games, { ...draft, topScorer }]);
     showToast("Game saved!");
     setPhase("idle"); setDraft(null); setResult(null); setJsonText("");
@@ -504,7 +511,7 @@ function AdminImport({ players, games, onSaveGame, showToast }) {
           </div>
 
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))", gap:10, marginBottom:16 }}>
-            <F label="DATE"      value={draft.date}     onChange={v=>updDraft("date",v)}    placeholder="08/03/2026" />
+            <F label="DATE"      value={draft.date}     onChange={v=>updDraft("date",v)}    placeholder="YYYY-MM-DD" />
             <F label="OPPONENT"  value={draft.opponent} onChange={v=>updDraft("opponent",v)} />
             <Sel label="HOME/AWAY" value={draft.home?"home":"away"} onChange={v=>updDraft("home",v==="home")} options={[{value:"home",label:"Home"},{value:"away",label:"Away"}]} />
             <Sel label="RESULT"  value={draft.result}   onChange={v=>updDraft("result",v)}  options={[{value:"W",label:"Win"},{value:"L",label:"Loss"}]} />
@@ -622,7 +629,7 @@ function AdminSchedule({ schedule, onSave, showToast }) {
   const scheduleForm = (
     <div style={{ borderRadius:12, border:`1px solid ${editId==="new"?`${C.green}40`:`${C.redBright}40`}`, padding:16, background:C.base, marginTop:8 }}>
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))", gap:10, marginBottom:12 }}>
-        <F label="DATE"     value={draft.date}     onChange={v=>up("date",v)}     placeholder="e.g. 15/03/2026" />
+        <F label="DATE"     value={draft.date}     onChange={v=>up("date",v)}     placeholder="YYYY-MM-DD" />
         <F label="OPPONENT" value={draft.opponent} onChange={v=>up("opponent",v)} />
         <Sel label="HOME/AWAY" value={draft.home?"home":"away"} onChange={v=>up("home",v==="home")} options={[{value:"home",label:"Home"},{value:"away",label:"Away"}]} />
       </div>
