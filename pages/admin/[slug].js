@@ -16,14 +16,6 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import Head from "next/head";
 import { C } from "../../lib/theme";
 
-// ── Name formatter: "First Last" -> "Last F." (handles duplicate last names) ──
-const fmt = name => {
-  if (!name) return "";
-  const parts = name.trim().split(" ").filter(Boolean);
-  if (parts.length === 1) return parts[0];
-  return parts[parts.length - 1] + " " + parts[0][0].toUpperCase() + ".";
-};
-
 // ── Tiny inline UI primitives (no shared import -- admin is self-contained) ───
 const F = ({ label, value, onChange, type="text", placeholder="", sm=false }) => (
   <div>
@@ -83,6 +75,14 @@ const Section = ({ title, icon, children }) => (
   </div>
 );
 
+// ── Name formatter ────────────────────────────────────────────────────────────
+const fmt = name => {
+  if (!name) return "";
+  const parts = name.trim().split(" ").filter(Boolean);
+  if (parts.length === 1) return parts[0];
+  return parts[parts.length - 1] + " " + parts[0][0].toUpperCase() + ".";
+};
+
 // ── League options ────────────────────────────────────────────────────────────
 const LEAGUE_OPTIONS = [
   { value: "",          label: "-- Unassigned --"  },
@@ -120,21 +120,19 @@ const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
 const byJersey = (a, b) => Number(a.number) - Number(b.number);
 
 // ── AdminPlayers ──────────────────────────────────────────────────────────────
-function AdminPlayers({ players, onSave, showToast }) {
+function AdminPlayers({ players, stats, onSave, showToast }) {
   const [editId, setEditId] = useState(null);
   const [draft,  setDraft]  = useState({});
   const [confirm,setConfirm]= useState(null);
   const POSITIONS = ["PG","SG","SF","PF","C","PG/SG","PG/SF","SG/SF","SF/PF","PF/C","PG/SG/SF"];
 
-  const startEdit = p => { setDraft({ ...p, stats: { ...p.stats } }); setEditId(p.id); };
+  const startEdit = p => { setDraft({ ...p }); setEditId(p.id); };
   const startNew  = () => {
-    setDraft({ id:uid(), name:"", number:"", position:"PG", height:"", weight:"", age:"", photoUrl:"",
-      stats:{ ppg:0,rpg:0,apg:0,spg:0,bpg:0,tpg:0,fgPct:0,fg3Pct:0,ftPct:0,mpg:0,eff:0 }, gameLog:[] });
+    setDraft({ id:uid(), name:"", number:"", position:"PG", height:"", weight:"", age:"" });
     setEditId("new");
   };
   const cancel  = () => { setEditId(null); setDraft({}); };
   const upd     = (k,v) => setDraft(d=>({ ...d, [k]:v }));
-  const updStat = (k,v) => setDraft(d=>({ ...d, stats:{ ...d.stats, [k]:parseFloat(v)||0 } }));
 
   const save = async () => {
     const updated = editId==="new" ? [...players, draft] : players.map(p=>p.id===editId?draft:p);
@@ -155,13 +153,9 @@ function AdminPlayers({ players, onSave, showToast }) {
         <F label="AGE"        value={draft.age}       onChange={v=>upd("age",v)}      type="number" />
         <F label="HEIGHT"     value={draft.height}    onChange={v=>upd("height",v)}   placeholder='e.g. 6&apos;4"' />
         <F label="WEIGHT"     value={draft.weight}    onChange={v=>upd("weight",v)}   placeholder="e.g. 90 kg" />
-        <F label="PHOTO URL"  value={draft.photoUrl}  onChange={v=>upd("photoUrl",v)} placeholder="https://..." />
       </div>
-      <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:8, paddingTop:8, borderTop:`1px solid ${C.border}`, textTransform:"uppercase" }}>Season Averages</div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(80px,1fr))", gap:8, marginBottom:12 }}>
-        {["ppg","rpg","apg","spg","bpg","tpg","fgPct","fg3Pct","ftPct","mpg","eff"].map(k=>(
-          <F key={k} label={k.toUpperCase()} value={draft.stats?.[k]??0} onChange={v=>updStat(k,v)} type="number" sm />
-        ))}
+      <div style={{ fontSize:10, color:C.textDim, marginBottom:12 }}>
+        Season stats are computed automatically from game box scores -- no manual entry needed.
       </div>
       <div style={{ display:"flex", gap:10 }}>
         <Btn onClick={save}>{editId==="new"?"ADD PLAYER":"SAVE PLAYER"}</Btn>
@@ -185,7 +179,7 @@ function AdminPlayers({ players, onSave, showToast }) {
                   <div style={{ width:30, height:30, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, background:C.red, color:C.text }}>#{p.number}</div>
                   <div>
                     <div style={{ fontWeight:900, fontSize:13, color:C.text }}>{p.name}</div>
-                    <div style={{ fontSize:11, color:C.textDim }}>{p.position} · {p.stats.ppg} PPG · {p.stats.rpg} RPG · {p.stats.apg} APG</div>
+                    <div style={{ fontSize:11, color:C.textDim }}>{p.position} · {stats[p.id]?.ppg ?? 0} PPG · {stats[p.id]?.rpg ?? 0} RPG · {stats[p.id]?.apg ?? 0} APG</div>
                   </div>
                 </div>
                 <div style={{ display:"flex", gap:6 }}>
@@ -222,6 +216,7 @@ function AdminGames({ players, games, onSave, showToast }) {
     const best = draft.boxScore.reduce((b,r)=>r.pts>b.pts?r:b, draft.boxScore[0]);
     const bpl  = players.find(p=>p.id===best?.pid);
     const topScorer = bpl&&best.pts>0 ? `${fmt(bpl.name)} ${best.pts}pts` : "";
+    const finalDraft = { ...draft, topScorer };
     const updated = editId==="new" ? [...games, finalDraft] : games.map(g=>g.id===editId?finalDraft:g);
     await onSave(updated);
     showToast(editId==="new"?"Game added!":"Game saved!");
@@ -686,10 +681,11 @@ export default function AdminPage({ validSlug }) {
   const [lockoutSecs,  setLockoutSecs]  = useState(0);
   const [dataLoading,  setDataLoading]  = useState(false);
 
-  const [record,   setRecord]   = useState(null);
-  const [players,  setPlayers]  = useState(null);
-  const [games,    setGames]    = useState(null);
-  const [schedule, setSchedule] = useState(null);
+  const [currentSeason, setCurrentSeason] = useState(null);
+  const [players,       setPlayers]       = useState(null);
+  const [games,         setGames]         = useState(null);
+  const [stats,         setStats]         = useState({});
+  const [schedule,      setSchedule]      = useState(null);
 
   const [toast, setToast] = useState(null);
   const showToast = (msg, type="success") => setToast({ msg, type });
@@ -701,8 +697,11 @@ export default function AdminPage({ validSlug }) {
       const res  = await fetch("/api/admin/data");
       if (!res.ok) { setPhase("login"); return; }
       const data = await res.json();
-      setRecord(data.record); setPlayers(data.players);
-      setGames(data.games);   setSchedule(data.schedule);
+      setCurrentSeason(data.currentSeason);
+      setPlayers(data.players);
+      setGames(data.games);
+      setStats(data.stats ?? {});
+      setSchedule(data.schedule);
       setPhase("dashboard");
     } catch { showToast("Failed to load data", "error"); }
     finally  { setDataLoading(false); }
@@ -712,14 +711,14 @@ export default function AdminPage({ validSlug }) {
   const save = async (key, value) => {
     const res = await fetch("/api/admin/data", {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ key, value }),
+      body: JSON.stringify({ key, value, season: currentSeason }),
     });
     if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-    // Refresh players after saving games (averages recalculated server-side)
+    // After saving games, refresh both games and stats (server recomputes stats map)
     if (key === "games") {
-      const fresh = await fetch("/api/admin/data").then(r=>r.json());
-      setPlayers(fresh.players);
+      const fresh = await fetch(`/api/admin/data?season=${currentSeason}`).then(r=>r.json());
       setGames(fresh.games);
+      setStats(fresh.stats ?? {});
     }
   };
 
@@ -782,7 +781,7 @@ export default function AdminPage({ validSlug }) {
     </div>
   );
 
-  if (dataLoading || !record) return (
+  if (dataLoading || !games) return (
     <div style={{ ...bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div style={{ width:36, height:36, borderRadius:"50%", border:`2px solid ${C.border2}`, borderTopColor:C.redBright, animation:"spin 0.7s linear infinite" }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
@@ -816,10 +815,16 @@ export default function AdminPage({ validSlug }) {
           const losses = games?.filter(g => g.result === "L").length ?? 0;
           return (
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))", gap:10, marginBottom:24 }}>
-              {[["RECORD",`${wins}-${losses}`],["PLAYERS",players?.length],["GAMES",games?.length],["UPCOMING",schedule?.length]].map(([l,v])=>(
+              {[
+                ["SEASON",  currentSeason ?? "--"],
+                ["RECORD",  `${wins}-${losses}`],
+                ["PLAYERS", players?.length],
+                ["GAMES",   games?.length],
+                ["UPCOMING",schedule?.length],
+              ].map(([l,v])=>(
                 <div key={l} style={{ borderRadius:10, padding:"12px", textAlign:"center", border:`1px solid ${C.border}`, background:C.surface }}>
                   <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:4 }}>{l}</div>
-                  <div style={{ fontSize:24, fontWeight:900, color:C.text }}>{v}</div>
+                  <div style={{ fontSize:l==="SEASON"?14:24, fontWeight:900, color:l==="SEASON"?C.redText:C.text }}>{v}</div>
                 </div>
               ))}
             </div>
@@ -827,7 +832,7 @@ export default function AdminPage({ validSlug }) {
         })()}
 
         <Section title="Roster" icon="👤">
-          <AdminPlayers players={players} onSave={async v=>{ await save("players",v); setPlayers(v); }} showToast={showToast} />
+          <AdminPlayers players={players} stats={stats} onSave={async v=>{ await save("players",v); setPlayers(v); }} showToast={showToast} />
         </Section>
 
         <Section title="Import Game" icon="🖼">
