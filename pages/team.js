@@ -2,8 +2,10 @@ import { useState } from "react";
 import Layout from "../components/Layout";
 import { SectionHeading, StatTile } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
-import { getAllPublicData, computeRecord } from "../lib/data";
+import { getAllPublicData } from "../lib/data";
+import { computeRecord } from "../lib/stats";
 import { fmt } from "../lib/utils";
+import SeasonSelector from "../components/SeasonSelector";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const LEAGUE_TABS = [
@@ -15,8 +17,13 @@ const LEAGUE_TABS = [
 
 const LEAGUE_LABELS = { all: "All Games", rookie: "Rookie League", bc6: "BC6", wintercup: "Winter Cup" };
 
-export default function TeamPage({ players, games }) {
+export default function TeamPage({ players, games, seasons, currentSeason }) {
   const [league, setLeague] = useState("all");
+
+  // Season switching via URL (full page reload to re-fetch correct season data)
+  const handleSeasonChange = sid => {
+    window.location.href = sid === "all-time" ? "/team" : `/team?season=${sid}`;
+  };
 
   // Filter games by selected league tab
   const filteredGames = league === "all"
@@ -112,6 +119,8 @@ export default function TeamPage({ players, games }) {
         <img src="/logo.png" alt="Armani Katehano" style={{ width:64, height:64, objectFit:"contain", flexShrink:0 }} />
         <SectionHeading label="2025–26 Season" title="Team Stats" right={`${gp} games played`} />
       </div>
+
+      <SeasonSelector seasons={seasons} currentSeason={currentSeason} onChange={handleSeasonChange} showAllTime={false} />
 
       {/* League tabs */}
       <div style={{ display:"flex", gap:8, marginBottom:24, flexWrap:"wrap" }}>
@@ -254,7 +263,7 @@ export default function TeamPage({ players, games }) {
   );
 }
 
-export async function getServerSideProps() {
-  const { players, games } = await getAllPublicData();
-  return { props: { players, games } };
+export async function getServerSideProps({ query }) {
+  const { seasons, currentSeason, players, games } = await getAllPublicData(query.season || null);
+  return { props: { players, games, seasons, currentSeason } };
 }
