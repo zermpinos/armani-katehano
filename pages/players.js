@@ -2,8 +2,10 @@ import { useState } from "react";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
-import { getAllPublicData } from "../lib/data";
+import { getAllPublicData, getAllSeasonsStats } from "../lib/data";
+import { buildAllTimeStatsMap } from "../lib/stats";
 import { fmt } from "../lib/utils";
+import SeasonSelector from "../components/SeasonSelector";
 import {
   LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -270,21 +272,40 @@ function PlayerCard({ player, onClick }) {
   );
 }
 
-export default function PlayersPage({ players }) {
+export default function PlayersPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap }) {
   const [selected, setSelected] = useState(null);
-  const sorted = [...players].sort((a, b) => Number(a.number) - Number(b.number));
+  const [activeSeason, setActiveSeason] = useState(currentSeason);
+
+  // Merge bio + stats for the active season (or all-time)
+  const activeStatsMap = activeSeason === "all-time" ? allTimeStatsMap : statsMap;
+  const playersWithStats = players.map(p => ({
+    ...p,
+    stats:   activeStatsMap[p.id] ?? { ppg:0,rpg:0,orpg:0,drpg:0,apg:0,spg:0,bpg:0,tpg:0,fpg:0,fgPct:0,fg2Pct:0,fg3Pct:0,ftPct:0,mpg:0,eff:0,gp:0 },
+    gameLog: activeStatsMap[p.id]?.gameLog ?? [],
+  }));
+
+  const sorted = [...playersWithStats].sort((a, b) => Number(a.number) - Number(b.number));
+
   return (
     <Layout title="Players">
       <SectionHeading label="2025-26 Season" title="Roster" right={`${players.length} Players`} />
+      <SeasonSelector
+        seasons={seasons}
+        currentSeason={activeSeason}
+        onChange={sid => { setActiveSeason(sid); setSelected(null); }}
+        showAllTime={true}
+      />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:14 }}>
         {sorted.map(p => <PlayerCard key={p.id} player={p} onClick={() => setSelected(p)} />)}
       </div>
-      {selected && <PlayerDetail player={selected} onClose={() => setSelected(null)} />}
+      {selected && <PlayerDetail player={selected} onClose={() => setSelected(null)} seasons={seasons} />}
     </Layout>
   );
 }
 
-export async function getServerSideProps() {
-  const { players } = await getAllPublicData();
-  return { props: { players } };
+export async function getServerSideProps({ query }) {
+  const { seasons, currentSeason, players, stats } = await getAllPublicData(query.season || null);
+  const allSeasonsStats = await getAllSeasonsStats(seasons);
+  const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
+  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap } };
 }

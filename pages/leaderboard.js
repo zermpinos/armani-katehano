@@ -2,8 +2,10 @@ import { useState } from "react";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import { C } from "../lib/theme";
-import { getAllPublicData } from "../lib/data";
+import { getAllPublicData, getAllSeasonsStats } from "../lib/data";
+import { buildAllTimeStatsMap } from "../lib/stats";
 import { fmt } from "../lib/utils";
+import SeasonSelector from "../components/SeasonSelector";
 
 const MEDALS = [
   { color:C.gold,   label:"🥇", bg:`${C.gold}18`,   border:`${C.gold}45`   },
@@ -27,16 +29,25 @@ const COLS = [
   { key:"eff",   label:"EFF", title:"Efficiency Rating",       dec:1 },
 ];
 
-export default function LeaderboardPage({ players }) {
+export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap }) {
   const [sortKey, setSortKey] = useState("ppg");
   const [sortDir, setSortDir] = useState("desc");
+  const [activeSeason, setActiveSeason] = useState(currentSeason);
+
+  // Pick stats source based on selected season
+  const activeStats = activeSeason === "all-time" ? allTimeStatsMap : statsMap;
 
   const handleSort = key => {
     if (key === sortKey) setSortDir(d => d === "desc" ? "asc" : "desc");
     else { setSortKey(key); setSortDir("desc"); }
   };
 
-  const sorted = [...players].sort((a, b) => {
+  // Merge bio + stats, filter to players who have played
+  const playersWithStats = players
+    .map(p => ({ ...p, stats: activeStats[p.id] ?? {} }))
+    .filter(p => (p.stats.gp ?? 0) > 0 || activeSeason === "all-time");
+
+  const sorted = [...playersWithStats].sort((a, b) => {
     const av = a.stats[sortKey] ?? 0, bv = b.stats[sortKey] ?? 0;
     return sortDir === "desc" ? bv - av : av - bv;
   });
@@ -44,6 +55,14 @@ export default function LeaderboardPage({ players }) {
   return (
     <Layout title="Leaderboard">
       <SectionHeading label="2025-26 Season" title="Leaderboard" right="Click column to sort" />
+
+      <SeasonSelector
+        seasons={seasons}
+        currentSeason={activeSeason}
+        onChange={setActiveSeason}
+        showAllTime={true}
+      />
+
       <div style={{ fontSize:12, color:C.textDim, marginBottom:16 }}>
         Sorted by: <span style={{ color:C.redText, fontWeight:900 }}>{COLS.find(c=>c.key===sortKey)?.title}</span>
         <span style={{ color:C.textDim }}> {sortDir==="desc"?"↓":"↑"}</span>
@@ -125,7 +144,9 @@ export default function LeaderboardPage({ players }) {
   );
 }
 
-export async function getServerSideProps() {
-  const { players } = await getAllPublicData();
-  return { props: { players } };
+export async function getServerSideProps({ query }) {
+  const { seasons, currentSeason, players, stats } = await getAllPublicData(query.season || null);
+  const allSeasonsStats = await getAllSeasonsStats(seasons);
+  const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
+  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap } };
 }
