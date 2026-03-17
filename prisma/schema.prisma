@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Player {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  number    Int
+  position  String
+  height    String?
+  weight    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rosterEntries      RosterEntry[]
+  gameStats          PlayerGameStat[]
+  seasonAggregates   PlayerSeasonAggregate[]
+}
+
+model Season {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  year      Int
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime @default(now())
+
+  seasonLeagues SeasonLeague[]
+}
+
+model League {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  organizer String?
+  level     String?
+  createdAt DateTime @default(now())
+
+  seasonLeagues SeasonLeague[]
+}
+
+model SeasonLeague {
+  id        String   @id @default(cuid())
+  seasonId  String
+  leagueId  String
+  createdAt DateTime @default(now())
+
+  season  Season  @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  league  League  @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, leagueId])
+
+  games            Game[]
+  rosterEntries    RosterEntry[]
+  seasonAggregates PlayerSeasonAggregate[]
+}
+
+model Game {
+  id             String   @id @default(cuid())
+  seasonLeagueId String
+  opponent       String
+  location       String?
+  teamScore      Int
+  opponentScore  Int
+  result         String
+  playedOn       DateTime
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  seasonLeague SeasonLeague     @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
+  playerStats  PlayerGameStat[]
+}
+
+model RosterEntry {
+  id             String  @id @default(cuid())
+  playerId       String
+  seasonLeagueId String
+  isActive       Boolean @default(true)
+  createdAt      DateTime @default(now())
+
+  player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  seasonLeague SeasonLeague @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, seasonLeagueId])
+}
+
+model PlayerGameStat {
+  id       String @id @default(cuid())
+  playerId String
+  gameId   String
+  minutes  Int    @default(0)
+  pts      Int    @default(0)
+  reb      Int    @default(0)
+  ast      Int    @default(0)
+  stl      Int    @default(0)
+  blk      Int    @default(0)
+  to       Int    @default(0)
+  pf       Int    @default(0)
+  fgm      Int    @default(0)
+  fga      Int    @default(0)
+  tpm      Int    @default(0)
+  tpa      Int    @default(0)
+  ftm      Int    @default(0)
+  fta      Int    @default(0)
+  plusMinus Int   @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, gameId])
+}
+
+model PlayerSeasonAggregate {
+  id             String @id @default(cuid())
+  playerId       String
+  seasonLeagueId String
+  gp             Int    @default(0)
+  ptsAvg         Float  @default(0)
+  rebAvg         Float  @default(0)
+  astAvg         Float  @default(0)
+  stlAvg         Float  @default(0)
+  blkAvg         Float  @default(0)
+  toAvg          Float  @default(0)
+  pfAvg          Float  @default(0)
+  fgPct          Float  @default(0)
+  tpPct          Float  @default(0)
+  ftPct          Float  @default(0)
+  tsPct          Float  @default(0)
+  minutesAvg     Float  @default(0)
+  ptsTotal       Int    @default(0)
+  rebTotal       Int    @default(0)
+  astTotal       Int    @default(0)
+  updatedAt      DateTime @updatedAt
+
+  player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  seasonLeague SeasonLeague @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, seasonLeagueId])
+}
