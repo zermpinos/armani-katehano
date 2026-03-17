@@ -6,7 +6,7 @@ import { getAllPublicData } from "../lib/data";
 import { computeRecord } from "../lib/stats";
 import { fmt } from "../lib/utils";
 import SeasonSelector from "../components/SeasonSelector";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "../components/Charts";
 
 const LEAGUE_TABS = [
   { key: "all",       label: "All Games"     },
@@ -263,7 +263,7 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
   );
 }
 
-export async function getServerSideProps({ query }) {
-  const { seasons, currentSeason, players, games } = await getAllPublicData(query.season || null);
-  return { props: { players, games, seasons, currentSeason } };
+export async function getStaticProps() {
+  const { seasons, currentSeason, players, games } = await getAllPublicData(null);
+  return { props: { players, games, seasons, currentSeason }, revalidate: 3600 };
 }
