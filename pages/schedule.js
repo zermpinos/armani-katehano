@@ -66,7 +66,7 @@ export default function SchedulePage({ schedule, games }) {
   );
 }
 
-export async function getServerSideProps() {
+export async function getStaticProps() {
   const { schedule, games } = await getAllPublicData();
-  return { props: { schedule, games } };
+  return { props: { schedule, games }, revalidate: 3600 };
 }
