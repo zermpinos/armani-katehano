@@ -4,10 +4,7 @@ import { C, chartTooltipStyle } from "../lib/theme";
 import { getAllPublicData } from "../lib/data";
 import { computeRecord } from "../lib/stats";
 import { fmt, fmtDate } from "../lib/utils";
-import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-} from "recharts";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 
 export default function HomePage({ players, games, stats }) {
   // stats is { [pid]: SeasonStats } — merge with bio for display
@@ -197,7 +194,7 @@ export default function HomePage({ players, games, stats }) {
   );
 }
 
-export async function getServerSideProps() {
+export async function getStaticProps() {
   const { players, games, stats } = await getAllPublicData();
-  return { props: { players, games, stats } };
+  return { props: { players, games, stats }, revalidate: 3600 };
 }

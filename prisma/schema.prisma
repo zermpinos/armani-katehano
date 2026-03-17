@@ -60,6 +60,9 @@ model SeasonLeague {
   games            Game[]
   rosterEntries    RosterEntry[]
   seasonAggregates PlayerSeasonAggregate[]
+
+  @@index([seasonId])
+  @@index([leagueId])
 }
 
 model Game {
@@ -90,6 +93,7 @@ model RosterEntry {
   seasonLeague SeasonLeague @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, seasonLeagueId])
+  @@index([seasonLeagueId])
 }
 
 model PlayerGameStat {
@@ -118,6 +122,8 @@ model PlayerGameStat {
   game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, gameId])
+  @@index([gameId])
+  @@index([playerId])
 }
 
 model PlayerSeasonAggregate {
