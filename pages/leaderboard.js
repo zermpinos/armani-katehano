@@ -6,6 +6,7 @@ import { getAllPublicData, getAllSeasonsStats } from "../lib/data";
 import { buildAllTimeStatsMap } from "../lib/stats";
 import { fmt } from "../lib/utils";
 import SeasonSelector from "../components/SeasonSelector";
+import ErrorBoundary from "../components/ErrorBoundary";
 
 const MEDALS = [
   { color:C.gold,   label:"🥇", bg:`${C.gold}18`,   border:`${C.gold}45`   },
@@ -68,6 +69,7 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
         <span style={{ color:C.textDim }}> {sortDir==="desc"?"↓":"↑"}</span>
       </div>
 
+      <ErrorBoundary label="Leaderboard table failed to load">
       <div style={{ borderRadius:12, border:`1px solid ${C.border}`, overflow:"hidden" }}>
         <div style={{ overflowX:"auto" }}>
           <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
@@ -131,6 +133,7 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
         </div>
       </div>
 
+      </ErrorBoundary>
       <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginTop:16 }}>
         {MEDALS.map((m,i) => (
           <div key={i} style={{ display:"flex", alignItems:"center", gap:6 }}>
