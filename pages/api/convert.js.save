@@ -133,14 +133,8 @@ async function convertHandler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   // ── Rate limiting ──────────────────────────────────────────────────────────
-  const rlKey = `rl:convert:${ip}:${Math.floor(Date.now() / 60000)}`;
-  const count = ((await redis.get(rlKey)) ?? 0) + 1;
-  await redis.set(rlKey, count, { ex: 60 });
+  const count = checkRateLimit(ip);
   if (count > RATE_LIMIT_RPM) {
-    auditLog("rate_limited", { ip, count });
-    res.setHeader("Retry-After", "60");
-    return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
-  }
 
   // ── Input validation ───────────────────────────────────────────────────────
   const { image: base64, filename = "score_sheet.jpg" } = req.body ?? {};
