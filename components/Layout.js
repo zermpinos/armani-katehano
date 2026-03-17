@@ -10,7 +10,6 @@ const NAV_LINKS = [
   { href: "/leaderboard",label: "Leaderboard"},
   { href: "/games",      label: "Games"      },
   { href: "/team",       label: "Team Stats" },
-  { href: "/schedule",   label: "Schedule"   },
 ];
 
 export default function Layout({ children, title = "Armani Katehano" }) {
@@ -24,6 +23,13 @@ export default function Layout({ children, title = "Armani Katehano" }) {
         <meta name="description" content="Armani Katehano Basketball — Season Stats 2025–26" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#1c1c1e" />
+        <meta property="og:title" content={title === "Armani Katehano" ? title : `${title} · Armani Katehano`} />
+        <meta property="og:description" content="Armani Katehano Basketball — Season Stats 2025–26" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="/logo.png" />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title === "Armani Katehano" ? title : `${title} · Armani Katehano`} />
+        <meta name="twitter:description" content="Armani Katehano Basketball — Season Stats 2025–26" />
       </Head>
 
       {/* Navbar */}
