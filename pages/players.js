@@ -6,6 +6,7 @@ import { getAllPublicData, getAllSeasonsStats } from "../lib/data";
 import { buildAllTimeStatsMap } from "../lib/stats";
 import { fmt } from "../lib/utils";
 import SeasonSelector from "../components/SeasonSelector";
+import ErrorBoundary from "../components/ErrorBoundary";
 import { LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 
 
