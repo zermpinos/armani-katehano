@@ -97,24 +97,26 @@ model RosterEntry {
 }
 
 model PlayerGameStat {
-  id       String @id @default(cuid())
-  playerId String
-  gameId   String
-  minutes  Int    @default(0)
-  pts      Int    @default(0)
-  reb      Int    @default(0)
-  ast      Int    @default(0)
-  stl      Int    @default(0)
-  blk      Int    @default(0)
-  to       Int    @default(0)
-  pf       Int    @default(0)
-  fgm      Int    @default(0)
-  fga      Int    @default(0)
-  tpm      Int    @default(0)
-  tpa      Int    @default(0)
-  ftm      Int    @default(0)
-  fta      Int    @default(0)
-  plusMinus Int   @default(0)
+  id        String @id @default(cuid())
+  playerId  String
+  gameId    String
+  minutes   Int    @default(0)
+  pts       Int    @default(0)
+  reb       Int    @default(0)
+  orb       Int    @default(0)   // offensive rebounds
+  drb       Int    @default(0)   // defensive rebounds
+  ast       Int    @default(0)
+  stl       Int    @default(0)
+  blk       Int    @default(0)
+  to        Int    @default(0)
+  pf        Int    @default(0)
+  fgm       Int    @default(0)   // total field goals made (2pt + 3pt)
+  fga       Int    @default(0)   // total field goals attempted
+  tpm       Int    @default(0)   // 3-pointers made
+  tpa       Int    @default(0)   // 3-pointers attempted
+  ftm       Int    @default(0)
+  fta       Int    @default(0)
+  plusMinus Int    @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -133,13 +135,16 @@ model PlayerSeasonAggregate {
   gp             Int    @default(0)
   ptsAvg         Float  @default(0)
   rebAvg         Float  @default(0)
+  orbAvg         Float  @default(0)   // offensive rebounds per game
+  drbAvg         Float  @default(0)   // defensive rebounds per game
   astAvg         Float  @default(0)
   stlAvg         Float  @default(0)
   blkAvg         Float  @default(0)
   toAvg          Float  @default(0)
   pfAvg          Float  @default(0)
-  fgPct          Float  @default(0)
-  tpPct          Float  @default(0)
+  fgPct          Float  @default(0)   // overall FG% (2pt + 3pt)
+  fg2Pct         Float  @default(0)   // 2-point FG% only
+  tpPct          Float  @default(0)   // 3-point FG%
   ftPct          Float  @default(0)
   tsPct          Float  @default(0)
   minutesAvg     Float  @default(0)
@@ -152,4 +157,14 @@ model PlayerSeasonAggregate {
   seasonLeague SeasonLeague @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, seasonLeagueId])
+}
+
+// Tracks failed login attempts for brute-force protection.
+// Records are cleaned up on successful login or expire after LOCKOUT_TTL_S seconds.
+model LoginAttempt {
+  id          String   @id @default(cuid())
+  ip          String
+  attemptedAt DateTime @default(now())
+
+  @@index([ip, attemptedAt])
 }

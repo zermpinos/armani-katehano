@@ -7,7 +7,7 @@ import { computeRecord } from "../lib/stats";
 import { fmt } from "../lib/utils";
 import SeasonSelector from "../components/SeasonSelector";
 import ErrorBoundary from "../components/ErrorBoundary";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "../components/Charts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "../components/Charts";
 
 const LEAGUE_TABS = [
   { key: "all",       label: "All Games"     },
@@ -21,22 +21,18 @@ const LEAGUE_LABELS = { all: "All Games", rookie: "Rookie League", bc6: "BC6", w
 export default function TeamPage({ players, games, seasons, currentSeason }) {
   const [league, setLeague] = useState("all");
 
-  // Season switching via URL (full page reload to re-fetch correct season data)
   const handleSeasonChange = sid => {
     window.location.href = sid === "all-time" ? "/team" : `/team?season=${sid}`;
   };
 
-  // Filter games by selected league tab
   const filteredGames = league === "all"
     ? games
     : games.filter(g => (g.league || "") === league);
 
   const gp = filteredGames.length;
 
-  // Auto-computed record from filtered games
   const rec = computeRecord(games, league === "all" ? null : league);
 
-  // Aggregate box score stats from filtered games only
   const allRows = filteredGames.flatMap(g => g.boxScore || []).filter(r => r.min > 0);
   const sum    = key => allRows.reduce((a, r) => a + (r[key] || 0), 0);
   const avg    = (key, n = gp) => n > 0 ? +(sum(key) / n).toFixed(1) : 0;
@@ -48,7 +44,6 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
     fgPct:  pct("fgm","fga"), fg3Pct: pct("fg3m","fg3a"), ftPct: pct("ftm","fta"),
   };
 
-  // Per-player PPG leaders from filtered games
   const playerPpg = players.map(p => {
     const rows = filteredGames
       .flatMap(g => (g.boxScore || []).filter(r => r.pid === p.id && r.min > 0));
@@ -58,7 +53,6 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
     return { id: p.id, name: p.name, ppg, gp: n };
   }).filter(Boolean).sort((a, b) => b.ppg - a.ppg).slice(0, 5);
 
-  // Per-player EFF leaders from filtered games
   const playerEff = players.map(p => {
     const rows = filteredGames
       .flatMap(g => (g.boxScore || []).filter(r => r.pid === p.id && r.min > 0));
@@ -68,22 +62,27 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
     return { id: p.id, name: p.name, eff, gp: n };
   }).filter(Boolean).sort((a, b) => b.eff - a.eff).slice(0, 5);
 
-  // Minutes distribution per player (filtered games)
+  // Minutes distribution — horizontal bar chart, sorted desc by mpg
+  // Use last name only for compactness; full name in tooltip
   const minutesDist = players
     .map(p => {
       const rows = filteredGames
         .flatMap(g => (g.boxScore || []).filter(r => r.pid === p.id && r.min > 0));
       const n = rows.length;
       if (n === 0) return null;
+      const lastName = p.name.split(" ")[0];
       return {
-        name: fmt(p.name),
-        mpg:  +(rows.reduce((a, r) => a + (r.min || 0), 0) / n).toFixed(1),
+        name:     lastName,
+        fullName: fmt(p.name),
+        mpg:      +(rows.reduce((a, r) => a + (r.min || 0), 0) / n).toFixed(1),
       };
     })
     .filter(Boolean)
     .sort((a, b) => b.mpg - a.mpg);
 
-  // Tab pill style
+  // Dynamic height: 36px per player row + padding
+  const chartHeight = Math.max(200, minutesDist.length * 36 + 20);
+
   const tabStyle = (key) => ({
     padding: "6px 16px",
     fontSize: 11,
@@ -169,7 +168,6 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
                   </div>
                 </div>
               ))}
-              {/* Streak */}
               <div style={{ marginTop:16, paddingTop:12, borderTop:`1px solid ${C.border}` }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                   <span style={{ fontSize:13, fontWeight:700, color:C.textSub }}>Current Streak</span>
@@ -206,7 +204,6 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
 
           {/* Top Scorers + Efficiency Leaders */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:20, marginBottom:20 }}>
-            {/* PPG Leaders */}
             <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
               <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Top Scorers — PPG</div>
               {playerPpg.length === 0
@@ -224,7 +221,6 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
               }
             </div>
 
-            {/* EFF Leaders */}
             <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
               <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Efficiency Leaders</div>
               {playerEff.length === 0
@@ -243,17 +239,42 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
             </div>
           </div>
 
-          {/* Minutes distribution */}
+          {/* Minutes distribution — HORIZONTAL bar chart, mobile-friendly */}
           {minutesDist.length > 0 && (
             <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
               <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Minutes Distribution (MPG)</div>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={minutesDist} margin={{ top:4, right:8, left:-20, bottom:0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
-                  <XAxis dataKey="name" tick={{ fill:C.textSub, fontSize:11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={[0,40]} />
-                  <Tooltip {...chartTooltipStyle} formatter={v => [`${v} min`]} />
-                  <Bar dataKey="mpg" fill={C.red} radius={[4,4,0,0]} maxBarSize={48} />
+              <ResponsiveContainer width="100%" height={chartHeight}>
+                <BarChart
+                  data={minutesDist}
+                  layout="vertical"
+                  margin={{ top:0, right:40, left:0, bottom:0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fill:C.textDim, fontSize:11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    domain={[0, 40]}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fill:C.textSub, fontSize:12, fontWeight:700 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={80}
+                  />
+                  <Tooltip
+                    {...chartTooltipStyle}
+                    formatter={v => [`${v} min`]}
+                    labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ""}
+                  />
+                  <Bar dataKey="mpg" fill={C.red} radius={[0,4,4,0]} maxBarSize={22} label={{ position:"right", fill:C.textDim, fontSize:11, fontWeight:700 }}>
+                    {minutesDist.map((_, i) => (
+                      <Cell key={i} fill={i === 0 ? C.redBright : C.red} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
