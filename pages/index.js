@@ -4,6 +4,7 @@ import { C, chartTooltipStyle } from "../lib/theme";
 import { getAllPublicData } from "../lib/data";
 import { computeRecord } from "../lib/stats";
 import { fmt, fmtDate } from "../lib/utils";
+import ErrorBoundary from "../components/ErrorBoundary";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 
 export default function HomePage({ players, games, stats }) {
@@ -79,6 +80,7 @@ export default function HomePage({ players, games, stats }) {
         <StatTile label="OPP PPG" value={record.oppPpg || "—"} sub="allowed per game" />
       </div>
 
+      <ErrorBoundary label="Stats failed to load">
       {hasData && (
         <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:20 }}>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))", gap:20 }}>
@@ -182,6 +184,7 @@ export default function HomePage({ players, games, stats }) {
         </div>
       )}
 
+      </ErrorBoundary>
       {/* Empty state */}
       {!hasData && (
         <div style={{ textAlign:"center", padding:"48px 0", color:C.textDim }}>

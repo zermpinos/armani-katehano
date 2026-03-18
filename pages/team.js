@@ -6,6 +6,7 @@ import { getAllPublicData } from "../lib/data";
 import { computeRecord } from "../lib/stats";
 import { fmt } from "../lib/utils";
 import SeasonSelector from "../components/SeasonSelector";
+import ErrorBoundary from "../components/ErrorBoundary";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "../components/Charts";
 
 const LEAGUE_TABS = [
