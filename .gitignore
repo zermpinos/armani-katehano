@@ -9,3 +9,6 @@ npm-debug.log*
 .env
 
 /lib/generated
+
+# Sentry Config File
+.env.sentry-build-plugin
