@@ -19,6 +19,7 @@ const PlayerWriteSchema = z.object({
   position: z.enum(["PG", "SG", "SF", "PF", "C"]),
   height:   z.string().max(10).optional().nullable(),
   weight:   z.string().max(10).optional().nullable(),
+  photoUrl: z.string().max(255).optional().nullable(),
 });
 
 const PlayerUpdateSchema = PlayerWriteSchema.extend({
@@ -36,11 +37,11 @@ async function handler(req, res) {
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
     }
-    const { name, number, position, height, weight } = parsed.data;
+    const { name, number, position, height, weight, photoUrl } = parsed.data;
 
     try {
       const player = await prisma.player.create({
-        data: { slug: slugify(name), name, number, position, height: height ?? null, weight: weight ?? null, isActive: true },
+        data: { slug: slugify(name), name, number, position, height: height ?? null, weight: weight ?? null, photoUrl: photoUrl ?? null, isActive: true },
       });
       auditLog("player_created", { ip, playerId: player.id, name });
       return res.status(201).json({ ok: true, player });
@@ -56,12 +57,12 @@ async function handler(req, res) {
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
     }
-    const { playerId, name, number, position, height, weight, isActive } = parsed.data;
+    const { playerId, name, number, position, height, weight, isActive, photoUrl } = parsed.data;
 
     try {
       const player = await prisma.player.update({
         where: { id: playerId },
-        data: { name, slug: slugify(name), number, position, height: height ?? null, weight: weight ?? null, isActive: isActive ?? true },
+        data: { name, slug: slugify(name), number, position, height: height ?? null, weight: weight ?? null, photoUrl: photoUrl ?? null, isActive: isActive ?? true },
       });
       auditLog("player_updated", { ip, playerId, name });
       return res.status(200).json({ ok: true, player });
