@@ -6,10 +6,7 @@ import { getAllPublicData, getAllSeasonsStats } from "../lib/data";
 import { buildAllTimeStatsMap } from "../lib/stats";
 import { fmt } from "../lib/utils";
 import SeasonSelector from "../components/SeasonSelector";
-import {
-  LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-} from "recharts";
+import { LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 
 
 // Hardcoded player images -- place files in /public/players/
@@ -303,9 +300,9 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
   );
 }
 
-export async function getServerSideProps({ query }) {
-  const { seasons, currentSeason, players, stats } = await getAllPublicData(query.season || null);
+export async function getStaticProps() {
+  const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
   const allSeasonsStats = await getAllSeasonsStats(seasons);
   const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
-  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap } };
+  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap }, revalidate: 3600 };
 }
