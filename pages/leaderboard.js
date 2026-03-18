@@ -144,9 +144,9 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
   );
 }
 
-export async function getServerSideProps({ query }) {
-  const { seasons, currentSeason, players, stats } = await getAllPublicData(query.season || null);
+export async function getStaticProps() {
+  const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
   const allSeasonsStats = await getAllSeasonsStats(seasons);
   const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
-  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap } };
+  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap }, revalidate: 3600 };
 }
