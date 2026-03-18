@@ -3,6 +3,7 @@ import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import { C } from "../lib/theme";
 import { getAllPublicData } from "../lib/data";
+import ErrorBoundary from "../components/ErrorBoundary";
 import { fmt } from "../lib/utils";
 
 const BOX_COLS = [
