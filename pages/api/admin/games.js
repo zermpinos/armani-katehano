@@ -1,65 +1,84 @@
 /**
  * pages/api/admin/games.js
- * POST   /api/admin/games         -> create game + box score + recalc aggregates
- * PUT    /api/admin/games         -> edit game + box score + recalc aggregates
- * DELETE /api/admin/games         -> delete game + recalc aggregates
+ * POST   /api/admin/games -> create game + box score + recalc aggregates
+ * PUT    /api/admin/games -> edit game + box score + recalc aggregates
+ * DELETE /api/admin/games -> delete game + recalc aggregates
  */
 
-import { requireAuth }           from "../../../lib/requireAuth.js";
+import { z }                         from "zod";
+import { requireAuth }               from "../../../lib/requireAuth.js";
 import { securityHeaders, auditLog } from "../../../lib/security.js";
-import prisma                    from "../../../lib/prisma.js";
-import { recalcAggregates }      from "../../../lib/stats.prisma.js";
+import prisma                        from "../../../lib/prisma.js";
+import { recalcAggregates }          from "../../../lib/stats.prisma.js";
+
+const BoxScoreRowSchema = z.object({
+  playerId: z.string().cuid(),
+  minutes:  z.coerce.number().int().min(0).max(60),
+  pts:      z.coerce.number().int().min(0).max(200),
+  reb:      z.coerce.number().int().min(0).max(100),
+  ast:      z.coerce.number().int().min(0).max(100),
+  stl:      z.coerce.number().int().min(0).max(50),
+  blk:      z.coerce.number().int().min(0).max(50),
+  tov:      z.coerce.number().int().min(0).max(50),
+  pf:       z.coerce.number().int().min(0).max(6),
+  fgm:      z.coerce.number().int().min(0).max(100),
+  fga:      z.coerce.number().int().min(0).max(100),
+  fg3m:     z.coerce.number().int().min(0).max(50),
+  fg3a:     z.coerce.number().int().min(0).max(50),
+  ftm:      z.coerce.number().int().min(0).max(50),
+  fta:      z.coerce.number().int().min(0).max(50),
+}).refine(r => r.fgm <= r.fga, { message: "fgm cannot exceed fga" })
+  .refine(r => r.fg3m <= r.fg3a, { message: "fg3m cannot exceed fg3a" })
+  .refine(r => r.ftm <= r.fta,   { message: "ftm cannot exceed fta" })
+  .refine(r => r.fg3m <= r.fgm,  { message: "fg3m cannot exceed fgm" });
+
+const GameWriteSchema = z.object({
+  seasonLeagueId: z.string().cuid(),
+  opponent:       z.string().min(1).max(100),
+  location:       z.enum(["home", "away"]).default("away"),
+  teamScore:      z.coerce.number().int().min(0).max(300),
+  opponentScore:  z.coerce.number().int().min(0).max(300),
+  result:         z.enum(["W", "L"]),
+  playedOn:       z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  notes:          z.string().max(1000).optional().nullable(),
+  boxScore:       z.array(BoxScoreRowSchema).max(20).optional(),
+});
+
+const GameUpdateSchema = GameWriteSchema.extend({
+  gameId: z.string().cuid(),
+});
+
+const GameDeleteSchema = z.object({
+  gameId:         z.string().cuid(),
+  seasonLeagueId: z.string().cuid(),
+});
 
 async function handler(req, res) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
   const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
 
-  // ── CREATE ────────────────────────────────────────────────────────────────
+  // ── CREATE ─────────────────────────────────────────────────────────────────
   if (req.method === "POST") {
-    const { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, boxScore } = req.body ?? {};
-
-    if (!seasonLeagueId || !opponent || !result || !playedOn) {
-      return res.status(400).json({ error: "Missing required fields" });
+    const parsed = GameWriteSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
     }
+    const { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, boxScore } = parsed.data;
 
     try {
       const game = await prisma.game.create({
-        data: {
-          seasonLeagueId,
-          opponent,
-          location:      location ?? "away",
-          teamScore:     Number(teamScore) || 0,
-          opponentScore: Number(opponentScore) || 0,
-          result,
-          playedOn:      new Date(playedOn),
-          notes:         notes ?? null,
-        },
+        data: { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null },
       });
 
-      // Save box score rows
       if (boxScore?.length) {
         await prisma.playerGameStat.createMany({
-          data: boxScore
-            .filter(r => r.playerId)
-            .map(r => ({
-              playerId:  r.playerId,
-              gameId:    game.id,
-              minutes:   Number(r.minutes)   || 0,
-              pts:       Number(r.pts)       || 0,
-              reb:       Number(r.reb)       || 0,
-              ast:       Number(r.ast)       || 0,
-              stl:       Number(r.stl)       || 0,
-              blk:       Number(r.blk)       || 0,
-              to:        Number(r.tov)       || 0,
-              pf:        Number(r.pf)        || 0,
-              fgm:       Number(r.fgm)       || 0,
-              fga:       Number(r.fga)       || 0,
-              tpm:       Number(r.fg3m)      || 0,
-              tpa:       Number(r.fg3a)      || 0,
-              ftm:       Number(r.ftm)       || 0,
-              fta:       Number(r.fta)       || 0,
-              plusMinus: 0,
-            })),
+          data: boxScore.map(r => ({
+            playerId: r.playerId, gameId: game.id,
+            minutes: r.minutes, pts: r.pts, reb: r.reb, ast: r.ast,
+            stl: r.stl, blk: r.blk, to: r.tov, pf: r.pf,
+            fgm: r.fgm, fga: r.fga, tpm: r.fg3m, tpa: r.fg3a,
+            ftm: r.ftm, fta: r.fta, plusMinus: 0,
+          })),
         });
       }
 
@@ -72,52 +91,31 @@ async function handler(req, res) {
     }
   }
 
-  // ── UPDATE ────────────────────────────────────────────────────────────────
+  // ── UPDATE ─────────────────────────────────────────────────────────────────
   if (req.method === "PUT") {
-    const { gameId, seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, boxScore } = req.body ?? {};
-
-    if (!gameId) return res.status(400).json({ error: "Missing gameId" });
+    const parsed = GameUpdateSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
+    }
+    const { gameId, seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, boxScore } = parsed.data;
 
     try {
       await prisma.game.update({
         where: { id: gameId },
-        data: {
-          opponent,
-          location:      location ?? "away",
-          teamScore:     Number(teamScore) || 0,
-          opponentScore: Number(opponentScore) || 0,
-          result,
-          playedOn:      new Date(playedOn),
-          notes:         notes ?? null,
-        },
+        data: { opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null },
       });
 
-      // Replace all box score rows
       await prisma.playerGameStat.deleteMany({ where: { gameId } });
 
       if (boxScore?.length) {
         await prisma.playerGameStat.createMany({
-          data: boxScore
-            .filter(r => r.playerId)
-            .map(r => ({
-              playerId:  r.playerId,
-              gameId,
-              minutes:   Number(r.minutes)   || 0,
-              pts:       Number(r.pts)       || 0,
-              reb:       Number(r.reb)       || 0,
-              ast:       Number(r.ast)       || 0,
-              stl:       Number(r.stl)       || 0,
-              blk:       Number(r.blk)       || 0,
-              to:        Number(r.tov)       || 0,
-              pf:        Number(r.pf)        || 0,
-              fgm:       Number(r.fgm)       || 0,
-              fga:       Number(r.fga)       || 0,
-              tpm:       Number(r.fg3m)      || 0,
-              tpa:       Number(r.fg3a)      || 0,
-              ftm:       Number(r.ftm)       || 0,
-              fta:       Number(r.fta)       || 0,
-              plusMinus: 0,
-            })),
+          data: boxScore.map(r => ({
+            playerId: r.playerId, gameId,
+            minutes: r.minutes, pts: r.pts, reb: r.reb, ast: r.ast,
+            stl: r.stl, blk: r.blk, to: r.tov, pf: r.pf,
+            fgm: r.fgm, fga: r.fga, tpm: r.fg3m, tpa: r.fg3a,
+            ftm: r.ftm, fta: r.fta, plusMinus: 0,
+          })),
         });
       }
 
@@ -130,16 +128,15 @@ async function handler(req, res) {
     }
   }
 
-  // ── DELETE ────────────────────────────────────────────────────────────────
+  // ── DELETE ─────────────────────────────────────────────────────────────────
   if (req.method === "DELETE") {
-    const { gameId, seasonLeagueId } = req.body ?? {};
-
-    if (!gameId || !seasonLeagueId) {
-      return res.status(400).json({ error: "Missing gameId or seasonLeagueId" });
+    const parsed = GameDeleteSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
     }
+    const { gameId, seasonLeagueId } = parsed.data;
 
     try {
-      // playerGameStats deleted automatically via cascade
       await prisma.game.delete({ where: { id: gameId } });
       await recalcAggregates(seasonLeagueId);
       auditLog("game_deleted", { ip, gameId });
