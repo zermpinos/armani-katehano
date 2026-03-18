@@ -10,23 +10,9 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import { LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 
 
-// Hardcoded player images -- place files in /public/players/
-const PLAYER_IMAGES = {
-  "alexandros-kougianos":      "/players/p1.jpg",
-  "stathis-christofilopoulos": "/players/p2.jpg",
-  "panagiotis-zermpinos":      "/players/p3.jpg",
-  "nikos-tsiardakas":          "/players/p4.jpg",
-  "spiros-papaspirou":         "/players/p5.jpg",
-  "dimitris-alevizos":         "/players/p6.jpg",
-  "loukas-margaritis":         "/players/p7.jpg",
-  "giorgos-antonakos":         "/players/p8.jpg",
-  "giorgos-tsioulkas":         "/players/p9.jpg",
-  "panagiotis-antonakos":      "/players/p10.jpg",
-  "konstantinos-psillas":      "/players/p11.jpg",
-  "tolis-michalopoulos":       "/players/p12.jpg",
-  "andreas-papadimitriou":     "/players/p13.jpg",
-};
-const playerImg = (slug) => PLAYER_IMAGES[slug] || null;
+// Player photos come from the photoUrl field in the database.
+// Falls back to null (shows 🏀 emoji) if not set.
+const playerImg = (player) => player.photoUrl || null;
 
 function StatCell({ label, value, highlight }) {
   return (
@@ -100,7 +86,7 @@ function PlayerDetail({ player, onClose }) {
         {/* Header */}
         <div style={{ padding:24, display:"flex", gap:20, alignItems:"center", background:C.base, borderBottom:`1px solid ${C.border}` }}>
           <div style={{ width:72, height:72, borderRadius:14, overflow:"hidden", flexShrink:0, background:C.surface, border:`1px solid ${C.border2}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:32 }}>
-            {playerImg(player.slug) ? <img src={playerImg(player.slug)} alt={player.name} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"top" }} /> : "🏀"}
+            {playerImg(player) ? <img src={playerImg(player)} alt={player.name} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"top" }} /> : "🏀"}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontSize:22, fontWeight:900, color:C.text }}>{player.name}</div>
@@ -247,8 +233,8 @@ function PlayerCard({ player, onClick }) {
       transition:"all 0.2s", fontFamily:"inherit",
     }}>
       <div style={{ height:100, display:"flex", alignItems:"flex-end", justifyContent:"center", background:C.base, position:"relative" }}>
-        {playerImg(player.slug)
-          ? <img src={playerImg(player.slug)} alt={player.name} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", objectPosition:"top", borderRadius:0 }} />
+        {playerImg(player)
+          ? <img src={playerImg(player)} alt={player.name} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", objectPosition:"top", borderRadius:0 }} />
           : <span style={{ fontSize:48, lineHeight:1, paddingBottom:8 }}>🏀</span>
         }
         <div style={{ position:"absolute", top:10, right:10, width:26, height:26, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, background:C.red, color:C.text, zIndex:1 }}>{player.number}</div>
