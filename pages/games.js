@@ -117,7 +117,7 @@ export default function GamesPage({ games, players }) {
   );
 }
 
-export async function getServerSideProps() {
+export async function getStaticProps() {
   const { games, players } = await getAllPublicData();
-  return { props: { games, players } };
+  return { props: { games, players }, revalidate: 3600 };
 }
