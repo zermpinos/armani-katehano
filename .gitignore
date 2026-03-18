@@ -6,3 +6,6 @@ out/
 npm-debug.log*
 .DS_Store
 *.pem
+.env
+
+/lib/generated
