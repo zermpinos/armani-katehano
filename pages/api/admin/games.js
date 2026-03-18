@@ -66,23 +66,24 @@ async function handler(req, res) {
     const { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, boxScore } = parsed.data;
 
     try {
-      const game = await prisma.game.create({
-        data: { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null },
-      });
-
-      if (boxScore?.length) {
-        await prisma.playerGameStat.createMany({
-          data: boxScore.map(r => ({
-            playerId: r.playerId, gameId: game.id,
-            minutes: r.minutes, pts: r.pts, reb: r.reb, ast: r.ast,
-            stl: r.stl, blk: r.blk, to: r.tov, pf: r.pf,
-            fgm: r.fgm, fga: r.fga, tpm: r.fg3m, tpa: r.fg3a,
-            ftm: r.ftm, fta: r.fta, plusMinus: 0,
-          })),
+      const game = await prisma.$transaction(async (tx) => {
+        const g = await tx.game.create({
+          data: { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null },
         });
-      }
-
-      await recalcAggregates(seasonLeagueId);
+        if (boxScore?.length) {
+          await tx.playerGameStat.createMany({
+            data: boxScore.map(r => ({
+              playerId: r.playerId, gameId: g.id,
+              minutes: r.minutes, pts: r.pts, reb: r.reb, ast: r.ast,
+              stl: r.stl, blk: r.blk, to: r.tov, pf: r.pf,
+              fgm: r.fgm, fga: r.fga, tpm: r.fg3m, tpa: r.fg3a,
+              ftm: r.ftm, fta: r.fta, plusMinus: 0,
+            })),
+          });
+        }
+        await recalcAggregates(seasonLeagueId, tx);
+        return g;
+      });
       auditLog("game_created", { ip, gameId: game.id, opponent });
       return res.status(201).json({ ok: true, gameId: game.id });
     } catch (err) {
@@ -100,26 +101,25 @@ async function handler(req, res) {
     const { gameId, seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, boxScore } = parsed.data;
 
     try {
-      await prisma.game.update({
-        where: { id: gameId },
-        data: { opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null },
-      });
-
-      await prisma.playerGameStat.deleteMany({ where: { gameId } });
-
-      if (boxScore?.length) {
-        await prisma.playerGameStat.createMany({
-          data: boxScore.map(r => ({
-            playerId: r.playerId, gameId,
-            minutes: r.minutes, pts: r.pts, reb: r.reb, ast: r.ast,
-            stl: r.stl, blk: r.blk, to: r.tov, pf: r.pf,
-            fgm: r.fgm, fga: r.fga, tpm: r.fg3m, tpa: r.fg3a,
-            ftm: r.ftm, fta: r.fta, plusMinus: 0,
-          })),
+      await prisma.$transaction(async (tx) => {
+        await tx.game.update({
+          where: { id: gameId },
+          data: { opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null },
         });
-      }
-
-      await recalcAggregates(seasonLeagueId);
+        await tx.playerGameStat.deleteMany({ where: { gameId } });
+        if (boxScore?.length) {
+          await tx.playerGameStat.createMany({
+            data: boxScore.map(r => ({
+              playerId: r.playerId, gameId,
+              minutes: r.minutes, pts: r.pts, reb: r.reb, ast: r.ast,
+              stl: r.stl, blk: r.blk, to: r.tov, pf: r.pf,
+              fgm: r.fgm, fga: r.fga, tpm: r.fg3m, tpa: r.fg3a,
+              ftm: r.ftm, fta: r.fta, plusMinus: 0,
+            })),
+          });
+        }
+        await recalcAggregates(seasonLeagueId, tx);
+      });
       auditLog("game_updated", { ip, gameId, opponent });
       return res.status(200).json({ ok: true });
     } catch (err) {
@@ -137,8 +137,10 @@ async function handler(req, res) {
     const { gameId, seasonLeagueId } = parsed.data;
 
     try {
-      await prisma.game.delete({ where: { id: gameId } });
-      await recalcAggregates(seasonLeagueId);
+      await prisma.$transaction(async (tx) => {
+        await tx.game.delete({ where: { id: gameId } });
+        await recalcAggregates(seasonLeagueId, tx);
+      });
       auditLog("game_deleted", { ip, gameId });
       return res.status(200).json({ ok: true });
     } catch (err) {
