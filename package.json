@@ -15,7 +15,6 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
-    "@upstash/redis": "^1.34.0",
     "next": "16.1.7",
     "pdf-parse": "^1.1.1",
     "pg": "^8.20.0",
