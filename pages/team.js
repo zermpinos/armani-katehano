@@ -18,6 +18,19 @@ const LEAGUE_TABS = [
 
 const LEAGUE_LABELS = { all: "All Games", rookie: "Rookie League", bc6: "BC6", wintercup: "Winter Cup" };
 
+/**
+ * Normalise a league slug for comparison so minor DB variations
+ * (e.g. "Rookie", "rookie-league", "ROOKIE") still match the tab key.
+ */
+function normaliseSlug(slug) {
+  if (!slug) return "";
+  const s = slug.toLowerCase().replace(/[\s_-]+/g, "");
+  if (s.includes("rookie") || s.includes("neon") || s.includes("νεαν") || s.includes("νεων")) return "rookie";
+  if (s.includes("bc6") || s.includes("b6") || s.includes("βκατ")) return "bc6";
+  if (s.includes("winter") || s.includes("χειμ")) return "wintercup";
+  return slug.toLowerCase();
+}
+
 export default function TeamPage({ players, games, seasons, currentSeason }) {
   const [league, setLeague] = useState("all");
 
@@ -25,9 +38,12 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
     window.location.href = sid === "all-time" ? "/team" : `/team?season=${sid}`;
   };
 
+  // Normalise game league slugs so tab filtering is robust to DB slug variations
+  const normalisedGames = games.map(g => ({ ...g, _normLeague: normaliseSlug(g.league) }));
+
   const filteredGames = league === "all"
-    ? games
-    : games.filter(g => (g.league || "") === league);
+    ? normalisedGames
+    : normalisedGames.filter(g => g._normLeague === league);
 
   const gp = filteredGames.length;
 
@@ -62,25 +78,23 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
     return { id: p.id, name: p.name, eff, gp: n };
   }).filter(Boolean).sort((a, b) => b.eff - a.eff).slice(0, 5);
 
-  // Minutes distribution — horizontal bar chart, sorted desc by mpg
-  // Use last name only for compactness; full name in tooltip
+  // Minutes distribution — horizontal bar chart, fmt() gives "Lastname F."
   const minutesDist = players
     .map(p => {
       const rows = filteredGames
         .flatMap(g => (g.boxScore || []).filter(r => r.pid === p.id && r.min > 0));
       const n = rows.length;
       if (n === 0) return null;
-      const lastName = p.name.split(" ")[0];
       return {
-        name:     lastName,
-        fullName: fmt(p.name),
+        name:     fmt(p.name),   // "Antonakos G." — correct format
+        fullName: p.name,
         mpg:      +(rows.reduce((a, r) => a + (r.min || 0), 0) / n).toFixed(1),
       };
     })
     .filter(Boolean)
     .sort((a, b) => b.mpg - a.mpg);
 
-  // Dynamic height: 36px per player row + padding
+  // Dynamic height: 36px per player row
   const chartHeight = Math.max(200, minutesDist.length * 36 + 20);
 
   const tabStyle = (key) => ({
@@ -239,7 +253,7 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
             </div>
           </div>
 
-          {/* Minutes distribution — HORIZONTAL bar chart, mobile-friendly */}
+          {/* Minutes distribution — horizontal bar chart, mobile-friendly */}
           {minutesDist.length > 0 && (
             <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
               <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Minutes Distribution (MPG)</div>
@@ -263,7 +277,7 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
                     tick={{ fill:C.textSub, fontSize:12, fontWeight:700 }}
                     axisLine={false}
                     tickLine={false}
-                    width={80}
+                    width={100}
                   />
                   <Tooltip
                     {...chartTooltipStyle}
