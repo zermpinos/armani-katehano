@@ -1,124 +1,171 @@
-import { useState } from "react";
-import Layout from "../components/Layout";
-import { SectionHeading } from "../components/ui";
-import { C } from "../lib/theme";
-import { getAllPublicData } from "../lib/data";
-import ErrorBoundary from "../components/ErrorBoundary";
-import { fmt } from "../lib/utils";
+/**
+ * pages/api/admin/games.js
+ * POST   /api/admin/games -> create game + box score + recalc aggregates
+ * PUT    /api/admin/games -> edit game + box score + recalc aggregates
+ * DELETE /api/admin/games -> delete game + recalc aggregates
+ */
 
-const BOX_COLS = [
-  {key:"min",label:"MIN"},{key:"pts",label:"PTS"},{key:"reb",label:"REB"},
-  {key:"ast",label:"AST"},{key:"stl",label:"STL"},{key:"blk",label:"BLK"},{key:"tov",label:"TOV"},
-  {key:"fgm",label:"FGM"},{key:"fga",label:"FGA"},{key:"fg3m",label:"3PM"},{key:"fg3a",label:"3PA"},
-  {key:"ftm",label:"FTM"},{key:"fta",label:"FTA"},{key:"eff",label:"EFF"},
-];
+import { z }                         from "zod";
+import { requireAuth }               from "../../../lib/requireAuth.js";
+import { securityHeaders, auditLog } from "../../../lib/security.js";
+import prisma                        from "../../../lib/prisma.js";
+import { recalcAggregates }          from "../../../lib/stats.prisma.js";
 
-function BoxScore({ game, players, onClose }) {
-  const rows = (game.boxScore || [])
-    .map(r => ({ ...r, player: players.find(p => p.id === r.pid) }))
-    .filter(r => r.player && r.min > 0)
-    .sort((a, b) => Number(a.player.number) - Number(b.player.number));
+const BoxScoreRowSchema = z.object({
+  playerId: z.string().cuid(),
+  minutes:  z.coerce.number().int().min(0).max(60),
+  pts:      z.coerce.number().int().min(0).max(200),
+  reb:      z.coerce.number().int().min(0).max(100),
+  orb:      z.coerce.number().int().min(0).max(50).default(0),
+  drb:      z.coerce.number().int().min(0).max(50).default(0),
+  ast:      z.coerce.number().int().min(0).max(100),
+  stl:      z.coerce.number().int().min(0).max(50),
+  blk:      z.coerce.number().int().min(0).max(50),
+  tov:      z.coerce.number().int().min(0).max(50),
+  pf:       z.coerce.number().int().min(0).max(6),
+  fgm:      z.coerce.number().int().min(0).max(100),
+  fga:      z.coerce.number().int().min(0).max(100),
+  fg3m:     z.coerce.number().int().min(0).max(50),
+  fg3a:     z.coerce.number().int().min(0).max(50),
+  ftm:      z.coerce.number().int().min(0).max(50),
+  fta:      z.coerce.number().int().min(0).max(50),
+}).refine(r => r.fgm <= r.fga,  { message: "fgm cannot exceed fga" })
+  .refine(r => r.fg3m <= r.fg3a, { message: "fg3m cannot exceed fg3a" })
+  .refine(r => r.ftm <= r.fta,   { message: "ftm cannot exceed fta" })
+  .refine(r => r.fg3m <= r.fgm,  { message: "fg3m cannot exceed fgm" })
+  .refine(r => r.orb + r.drb <= r.reb + 1, { message: "orb+drb cannot exceed reb" });
 
-  return (
-    <div style={{ position:"fixed", inset:0, zIndex:100, overflowY:"auto", padding:"80px 16px 32px", background:"rgba(0,0,0,0.82)" }} onClick={onClose}>
-      <div style={{ maxWidth:900, margin:"0 auto", borderRadius:16, border:`1px solid ${C.border2}`, background:C.surface, overflow:"hidden" }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding:"18px 24px", display:"flex", justifyContent:"space-between", alignItems:"center", background:C.base, borderBottom:`1px solid ${C.border}` }}>
-          <div>
-            <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase", marginBottom:2 }}>{game.date}</div>
-            <div style={{ fontSize:17, fontWeight:900, color:C.text }}>{game.home ? "vs" : "@"} {game.opponent} · <span style={{ color: game.result==="W" ? C.green : C.redText }}>{game.result} {game.score}</span></div>
-          </div>
-          <button onClick={onClose} style={{ fontSize:28, fontWeight:900, color:C.textDim, background:"none", border:"none", cursor:"pointer" }}>×</button>
-        </div>
-        <div style={{ overflowX:"auto", padding:"0 0 4px" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, minWidth:700 }}>
-            <thead>
-              <tr style={{ background:C.base, borderBottom:`1px solid ${C.border2}` }}>
-                <th style={{ padding:"8px 12px", textAlign:"left", fontSize:10, fontWeight:900, color:C.textDim, letterSpacing:"0.12em", minWidth:48 }}>#</th>
-                <th style={{ padding:"8px 12px", textAlign:"left", fontSize:10, fontWeight:900, color:C.textDim, letterSpacing:"0.12em", minWidth:150 }}>PLAYER</th>
-                {BOX_COLS.map(c => <th key={c.key} style={{ padding:"8px 8px", fontSize:10, fontWeight:900, color:c.key==="eff"?C.redText:C.textDim, letterSpacing:"0.1em", minWidth:44, textAlign:"center" }}>{c.label}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={r.pid} style={{ background: i%2===0 ? C.surface : C.surface2, borderBottom:`1px solid ${C.border}` }}>
-                  <td style={{ padding:"8px 12px", fontWeight:700, color:C.textDim }}>{r.player.number}</td>
-                  <td style={{ padding:"8px 12px" }}>
-                    <div style={{ fontWeight:700, color:C.text, fontSize:13 }}>{fmt(r.player.name)}</div>
-                    <div style={{ fontSize:10, color:C.textDim, letterSpacing:"0.1em" }}>{r.player.position}</div>
-                  </td>
-                  {BOX_COLS.map(c => (
-                    <td key={c.key} style={{ padding:"8px 8px", textAlign:"center", color: c.key==="eff" ? (r[c.key] >= 15 ? C.redText : r[c.key] < 0 ? "#ff4444" : C.textSub) : c.key==="pts" && r.pts >= 15 ? C.redText : C.textSub, fontWeight: c.key==="pts"||c.key==="eff" ? 900 : 400 }}>
-                      {r[c.key] ?? 0}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {rows.length === 0 && (
-          <div style={{ padding:32, textAlign:"center", color:C.textDim, fontSize:13 }}>No box score recorded for this game.</div>
-        )}
-      </div>
-    </div>
-  );
+const GameWriteSchema = z.object({
+  seasonLeagueId: z.string().cuid(),
+  opponent:       z.string().min(1).max(100),
+  location:       z.enum(["home", "away"]).default("away"),
+  teamScore:      z.coerce.number().int().min(0).max(300),
+  opponentScore:  z.coerce.number().int().min(0).max(300),
+  result:         z.enum(["W", "L"]),
+  playedOn:       z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  notes:          z.string().max(1000).optional().nullable(),
+  boxScore:       z.array(BoxScoreRowSchema).max(20).optional(),
+});
+
+const GameUpdateSchema = GameWriteSchema.extend({
+  gameId: z.string().cuid(),
+});
+
+const GameDeleteSchema = z.object({
+  gameId:         z.string().cuid(),
+  seasonLeagueId: z.string().cuid(),
+});
+
+/** Maps a validated box score row into the shape Prisma expects. */
+function toDbRow(r, gameId = undefined) {
+  return {
+    ...(gameId ? { gameId } : {}),
+    playerId:  r.playerId,
+    minutes:   r.minutes,
+    pts:       r.pts,
+    reb:       r.reb,
+    orb:       r.orb ?? 0,
+    drb:       r.drb ?? 0,
+    ast:       r.ast,
+    stl:       r.stl,
+    blk:       r.blk,
+    to:        r.tov,
+    pf:        r.pf,
+    fgm:       r.fgm,   // total FG made (2pt + 3pt)
+    fga:       r.fga,   // total FG attempted
+    tpm:       r.fg3m,  // 3-pointers made
+    tpa:       r.fg3a,  // 3-pointers attempted
+    ftm:       r.ftm,
+    fta:       r.fta,
+    plusMinus: 0,
+  };
 }
 
-export default function GamesPage({ games, players }) {
-  const [selected, setSelected] = useState(null);
-  const sorted = [...games].sort((a, b) => new Date(b.date) - new Date(a.date));
+async function handler(req, res) {
+  Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
 
-  return (
-    <Layout title="Game Results">
-      <SectionHeading label="2025-26 Season" title="Game Results" right={`${games.length} Games`} />
+  // ── CREATE ─────────────────────────────────────────────────────────────────
+  if (req.method === "POST") {
+    const parsed = GameWriteSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
+    }
+    const { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, boxScore } = parsed.data;
 
-      {games.length === 0 ? (
-        <div style={{ textAlign:"center", padding:48, color:C.textDim }}>
-          <div style={{ fontSize:36, marginBottom:12 }}>📋</div>
-          <div style={{ fontSize:15, fontWeight:700 }}>No games recorded yet</div>
-        </div>
-      ) : (
-        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-          {sorted.map(g => (
-            <button key={g.id} onClick={() => setSelected(g)} style={{
-              display:"flex", alignItems:"center", justifyContent:"space-between",
-              padding:"14px 18px", borderRadius:12, border:`1px solid ${C.border}`,
-              background:C.surface, cursor:"pointer", textAlign:"left", fontFamily:"inherit",
-              transition:"border-color 0.15s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.borderColor=`${C.redBright}55`}
-            onMouseLeave={e => e.currentTarget.style.borderColor=C.border}
-            >
-              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                <span style={{
-                  width:34, height:34, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
-                  fontSize:12, fontWeight:900, flexShrink:0,
-                  background: g.result==="W" ? `${C.green}20` : `${C.red}30`,
-                  color: g.result==="W" ? C.green : C.redText,
-                  border: `1px solid ${g.result==="W" ? `${C.green}40` : `${C.redText}30`}`,
-                }}>{g.result}</span>
-                <div>
-                  <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{g.home ? "vs" : "@"} {g.opponent}</div>
-                  <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{g.date}</div>
-                </div>
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:24 }}>
-                <div style={{ textAlign:"right" }}>
-                  <div style={{ fontSize:18, fontWeight:900, color:C.text }}>{g.score}</div>
-                  {g.topScorer && <div style={{ fontSize:11, color:C.textDim }}>{g.topScorer}</div>}
-                </div>
-                <div style={{ fontSize:11, color:C.textDim }}>BOX SCORE -></div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-      {selected && <BoxScore game={selected} players={players} onClose={() => setSelected(null)} />}
-    </Layout>
-  );
+    try {
+      const game = await prisma.$transaction(async (tx) => {
+        const g = await tx.game.create({
+          data: { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null },
+        });
+        if (boxScore?.length) {
+          await tx.playerGameStat.createMany({
+            data: boxScore.map(r => toDbRow(r, g.id)),
+          });
+        }
+        await recalcAggregates(seasonLeagueId, tx);
+        return g;
+      });
+      auditLog("game_created", { ip, gameId: game.id, opponent });
+      return res.status(201).json({ ok: true, gameId: game.id });
+    } catch (err) {
+      auditLog("game_create_error", { ip, error: err.message });
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  // ── UPDATE ─────────────────────────────────────────────────────────────────
+  if (req.method === "PUT") {
+    const parsed = GameUpdateSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
+    }
+    const { gameId, seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, boxScore } = parsed.data;
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.game.update({
+          where: { id: gameId },
+          data: { opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null },
+        });
+        await tx.playerGameStat.deleteMany({ where: { gameId } });
+        if (boxScore?.length) {
+          await tx.playerGameStat.createMany({
+            data: boxScore.map(r => toDbRow(r, gameId)),
+          });
+        }
+        await recalcAggregates(seasonLeagueId, tx);
+      });
+      auditLog("game_updated", { ip, gameId, opponent });
+      return res.status(200).json({ ok: true });
+    } catch (err) {
+      auditLog("game_update_error", { ip, error: err.message });
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  // ── DELETE ─────────────────────────────────────────────────────────────────
+  if (req.method === "DELETE") {
+    const parsed = GameDeleteSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.flatten() });
+    }
+    const { gameId, seasonLeagueId } = parsed.data;
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.game.delete({ where: { id: gameId } });
+        await recalcAggregates(seasonLeagueId, tx);
+      });
+      auditLog("game_deleted", { ip, gameId });
+      return res.status(200).json({ ok: true });
+    } catch (err) {
+      auditLog("game_delete_error", { ip, error: err.message });
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  return res.status(405).json({ error: "Method not allowed" });
 }
 
-export async function getStaticProps() {
-  const { games, players } = await getAllPublicData();
-  return { props: { games, players }, revalidate: 3600 };
-}
+export default requireAuth(handler);

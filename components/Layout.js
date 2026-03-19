@@ -50,14 +50,14 @@ export default function Layout({ children, title = "Armani Katehano" }) {
                 alt="Armani Katehano"
                 style={{ width:40, height:40, objectFit:"contain", flexShrink:0 }}
               />
-              <div style={{ display:"none" }} className="brand-text">
+              <div className="brand-text">
                 <div style={{ fontWeight:900, fontSize:13, letterSpacing:"0.1em", textTransform:"uppercase", lineHeight:1, color:C.text }}>Armani Katehano</div>
                 <div style={{ fontWeight:700, fontSize:11, letterSpacing:"0.15em", marginTop:1, color:C.redText }}>2025-26</div>
               </div>
             </Link>
 
-            {/* Desktop nav */}
-            <div style={{ display:"flex", alignItems:"center", gap:2 }}>
+            {/* Desktop nav -- hidden on mobile via CSS */}
+            <div className="desktop-nav" style={{ display:"flex", alignItems:"center", gap:2 }}>
               {NAV_LINKS.map(link => {
                 const active = router.pathname === link.href;
                 return (
@@ -71,28 +71,45 @@ export default function Layout({ children, title = "Armani Katehano" }) {
               })}
             </div>
 
-            {/* Mobile hamburger */}
-            <button onClick={() => setOpen(o => !o)} aria-label="Menu" style={{
-              background:"none", border:"none", cursor:"pointer", padding:4, color:C.textSub,
-            }}>
-              <div style={{ width:20, display:"flex", flexDirection:"column", gap:4 }}>
-                <span style={{ display:"block", height:2, background:"currentColor", borderRadius:1, transition:"all 0.2s", transform: open ? "rotate(45deg) translateY(6px)" : "none" }} />
-                <span style={{ display:"block", height:2, background:"currentColor", borderRadius:1, opacity: open ? 0 : 1 }} />
-                <span style={{ display:"block", height:2, background:"currentColor", borderRadius:1, transition:"all 0.2s", transform: open ? "rotate(-45deg) translateY(-6px)" : "none" }} />
+            {/* Mobile hamburger -- hidden on desktop via CSS */}
+            <button
+              className="hamburger"
+              onClick={() => setOpen(o => !o)}
+              aria-label="Menu"
+              aria-expanded={open}
+              style={{
+                background:"none", border:"none", cursor:"pointer", padding:8,
+                color:C.textSub, borderRadius:6,
+              }}
+            >
+              <div style={{ width:22, display:"flex", flexDirection:"column", gap:5 }}>
+                <span style={{ display:"block", height:2, background:"currentColor", borderRadius:1, transition:"all 0.2s", transform: open ? "rotate(45deg) translateY(7px)" : "none" }} />
+                <span style={{ display:"block", height:2, background:"currentColor", borderRadius:1, transition:"opacity 0.2s", opacity: open ? 0 : 1 }} />
+                <span style={{ display:"block", height:2, background:"currentColor", borderRadius:1, transition:"all 0.2s", transform: open ? "rotate(-45deg) translateY(-7px)" : "none" }} />
               </div>
             </button>
           </div>
 
-          {/* Mobile menu */}
+          {/* Mobile dropdown menu */}
           {open && (
-            <div style={{ borderTop:`1px solid ${C.border}`, paddingBottom:12 }}>
-              {NAV_LINKS.map(link => (
-                <Link key={link.href} href={link.href} onClick={() => setOpen(false)} style={{
-                  display:"block", padding:"10px 16px", fontSize:12,
-                  fontWeight:900, letterSpacing:"0.12em", textTransform:"uppercase",
-                  color: router.pathname === link.href ? C.redText : C.textDim,
-                }}>{link.label}</Link>
-              ))}
+            <div style={{ borderTop:`1px solid ${C.border}`, paddingBottom:8 }} className="mobile-menu">
+              {NAV_LINKS.map(link => {
+                const active = router.pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setOpen(false)}
+                    style={{
+                      display:"block", padding:"12px 16px", fontSize:13,
+                      fontWeight:900, letterSpacing:"0.12em", textTransform:"uppercase",
+                      color: active ? C.redText : C.textDim,
+                      background: active ? `${C.red}15` : "transparent",
+                      borderRadius:6, margin:"2px 0",
+                    }}
+                  >{link.label}</Link>
+                );
+              })}
             </div>
           )}
         </div>
@@ -115,9 +132,20 @@ export default function Layout({ children, title = "Armani Katehano" }) {
       </footer>
 
       <style>{`
-        @media (min-width: 640px) { .brand-text { display: block !important; } }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+        /* Brand text: hidden on mobile, shown on ≥640px */
+        .brand-text { display: none; }
+        @media (min-width: 640px) { .brand-text { display: block; } }
+
+        /* Desktop nav: hidden on mobile, shown on ≥640px */
+        .desktop-nav { display: none !important; }
+        @media (min-width: 640px) {
+          .desktop-nav { display: flex !important; }
+          .hamburger   { display: none !important; }
+          .mobile-menu { display: none !important; }
+        }
+
+        @keyframes spin    { to { transform: rotate(360deg); } }
+        @keyframes fadeIn  { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
         @keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
         * { box-sizing: border-box; }
         a { text-decoration: none; color: inherit; }
