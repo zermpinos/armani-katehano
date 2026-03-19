@@ -238,15 +238,21 @@ function AdminGames({ players, games, seasonLeagues, onRefresh, showToast }) {
 
   const save = async () => {
     const isNew = editId === "new";
-    const boxScore = draft.boxScore.map(r => ({
-      playerId: r.pid || r.playerId,
-      minutes:  r.min  || r.minutes || 0,
-      pts: r.pts||0, reb: r.reb||0, ast: r.ast||0,
-      stl: r.stl||0, blk: r.blk||0, tov: r.tov||0,
-      pf:  r.pf||0,  fgm: r.fgm||0, fga: r.fga||0,
-      fg3m: r.fg3m||0, fg3a: r.fg3a||0,
-      ftm: r.ftm||0, fta: r.fta||0,
-    }));
+    const boxScore = draft.boxScore.map(r => {
+      const fg2m = r.fg2m||0, fg2a = r.fg2a||0;
+      const fg3m = r.fg3m||0, fg3a = r.fg3a||0;
+      // Auto-compute total FG from 2PT + 3PT so the user never has to fill FGM manually
+      const fgm = fg2m + fg3m;
+      const fga = fg2a + fg3a;
+      return {
+        playerId: r.pid || r.playerId,
+        minutes:  r.min  || r.minutes || 0,
+        pts: r.pts||0, reb: r.reb||0, orb: r.orb||0, drb: r.drb||0, ast: r.ast||0,
+        stl: r.stl||0, blk: r.blk||0, tov: r.tov||0,
+        pf: r.pf||0, fgm, fga, fg3m, fg3a,
+        ftm: r.ftm||0, fta: r.fta||0,
+      };
+    });
 
     const payload = {
       gameId:        isNew ? undefined : editId,
@@ -456,15 +462,21 @@ function AdminImport({ players, seasonLeagues, onRefresh, showToast }) {
   const updBox   = (pid,k,v) => setDraft(d=>({ ...d, boxScore: d.boxScore.map(r=>r.pid===pid?{...r,[k]:parseFloat(v)||0}:r) }));
 
   const confirmSave = async () => {
-    const boxScore = draft.boxScore.map(r => ({
-      playerId: r.pid,
-      minutes:  r.min||0,
-      pts: r.pts||0, reb: r.reb||0, ast: r.ast||0,
-      stl: r.stl||0, blk: r.blk||0, tov: r.tov||0,
-      pf:  r.pf||0,  fgm: r.fgm||0, fga: r.fga||0,
-      fg3m: r.fg3m||0, fg3a: r.fg3a||0,
-      ftm: r.ftm||0, fta: r.fta||0,
-    }));
+    const boxScore = draft.boxScore.map(r => {
+      const fg2m = r.fg2m||0, fg2a = r.fg2a||0;
+      const fg3m = r.fg3m||0, fg3a = r.fg3a||0;
+      // Auto-compute total FG from 2PT + 3PT
+      const fgm = fg2m + fg3m;
+      const fga = fg2a + fg3a;
+      return {
+        playerId: r.pid,
+        minutes:  r.min||0,
+        pts: r.pts||0, reb: r.reb||0, orb: r.orb||0, drb: r.drb||0, ast: r.ast||0,
+        stl: r.stl||0, blk: r.blk||0, tov: r.tov||0,
+        pf: r.pf||0, fgm, fga, fg3m, fg3a,
+        ftm: r.ftm||0, fta: r.fta||0,
+      };
+    });
 
     const res = await fetch("/api/admin/games", {
       method:"POST", headers:{"Content-Type":"application/json"},
