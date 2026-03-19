@@ -26,11 +26,16 @@ export default function HomePage({ players, games, stats }) {
     ? activePlayers.reduce((b, p) => p.stats.eff > b.stats.eff ? p : b, activePlayers[0])
     : null;
 
+  // Top scorers -- use last name only to keep bars readable
   const topScorers = [...playersWithStats]
     .filter(p => p.stats.ppg > 0)
     .sort((a, b) => b.stats.ppg - a.stats.ppg)
     .slice(0, 5)
-    .map(p => ({ name: fmt(p.name), ppg: p.stats.ppg }));
+    .map(p => {
+      // Use last name only (first word) for bar labels -- prevents overflow
+      const lastName = p.name.split(" ")[0];
+      return { name: lastName, fullName: fmt(p.name), ppg: p.stats.ppg };
+    });
 
   // Last 10 games for scoring trend
   const trend = [...games]
@@ -103,16 +108,26 @@ export default function HomePage({ players, games, stats }) {
               </div>
             )}
 
-            {/* Top scorers */}
+            {/* Top scorers -- last-name labels, bigger height to avoid cutoff */}
             {topScorers.length > 0 && (
               <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
                 <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Top Scorers -- PPG</div>
-                <ResponsiveContainer width="100%" height={180}>
-                  <BarChart data={topScorers} margin={{ top:4, right:8, left:-20, bottom:0 }}>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={topScorers} margin={{ top:4, right:8, left:-20, bottom:4 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
-                    <XAxis dataKey="name" tick={{ fill:C.textSub, fontSize:10, fontWeight:700, angle:-35, textAnchor:"end" }} axisLine={false} tickLine={false} height={48} interval={0} />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fill:C.textSub, fontSize:11, fontWeight:700 }}
+                      axisLine={false}
+                      tickLine={false}
+                      interval={0}
+                    />
                     <YAxis tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
-                    <Tooltip {...chartTooltipStyle} formatter={v => [`${v} PPG`]} />
+                    <Tooltip
+                      {...chartTooltipStyle}
+                      formatter={v => [`${v} PPG`]}
+                      labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ""}
+                    />
                     <Bar dataKey="ppg" fill={C.red} radius={[4,4,0,0]} maxBarSize={44} />
                   </BarChart>
                 </ResponsiveContainer>

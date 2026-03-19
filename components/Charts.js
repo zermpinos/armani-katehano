@@ -9,6 +9,7 @@ export const BarChart         = dynamic(() => import("recharts").then(m => ({ de
 export const RadarChart       = dynamic(() => import("recharts").then(m => ({ default: m.RadarChart })),       { ssr: false });
 export const Line             = dynamic(() => import("recharts").then(m => ({ default: m.Line })),             { ssr: false });
 export const Bar              = dynamic(() => import("recharts").then(m => ({ default: m.Bar })),              { ssr: false });
+export const Cell             = dynamic(() => import("recharts").then(m => ({ default: m.Cell })),             { ssr: false });
 export const Radar            = dynamic(() => import("recharts").then(m => ({ default: m.Radar })),            { ssr: false });
 export const PolarGrid        = dynamic(() => import("recharts").then(m => ({ default: m.PolarGrid })),        { ssr: false });
 export const PolarAngleAxis   = dynamic(() => import("recharts").then(m => ({ default: m.PolarAngleAxis })),   { ssr: false });
