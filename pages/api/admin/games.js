@@ -16,6 +16,8 @@ const BoxScoreRowSchema = z.object({
   minutes:  z.coerce.number().int().min(0).max(60),
   pts:      z.coerce.number().int().min(0).max(200),
   reb:      z.coerce.number().int().min(0).max(100),
+  orb:      z.coerce.number().int().min(0).max(50).default(0),
+  drb:      z.coerce.number().int().min(0).max(50).default(0),
   ast:      z.coerce.number().int().min(0).max(100),
   stl:      z.coerce.number().int().min(0).max(50),
   blk:      z.coerce.number().int().min(0).max(50),
@@ -27,10 +29,11 @@ const BoxScoreRowSchema = z.object({
   fg3a:     z.coerce.number().int().min(0).max(50),
   ftm:      z.coerce.number().int().min(0).max(50),
   fta:      z.coerce.number().int().min(0).max(50),
-}).refine(r => r.fgm <= r.fga, { message: "fgm cannot exceed fga" })
+}).refine(r => r.fgm <= r.fga,  { message: "fgm cannot exceed fga" })
   .refine(r => r.fg3m <= r.fg3a, { message: "fg3m cannot exceed fg3a" })
   .refine(r => r.ftm <= r.fta,   { message: "ftm cannot exceed fta" })
-  .refine(r => r.fg3m <= r.fgm,  { message: "fg3m cannot exceed fgm" });
+  .refine(r => r.fg3m <= r.fgm,  { message: "fg3m cannot exceed fgm" })
+  .refine(r => r.orb + r.drb <= r.reb + 1, { message: "orb+drb cannot exceed reb" });
 
 const GameWriteSchema = z.object({
   seasonLeagueId: z.string().cuid(),
@@ -53,6 +56,31 @@ const GameDeleteSchema = z.object({
   seasonLeagueId: z.string().cuid(),
 });
 
+/** Maps a validated box score row into the shape Prisma expects. */
+function toDbRow(r, gameId = undefined) {
+  return {
+    ...(gameId ? { gameId } : {}),
+    playerId:  r.playerId,
+    minutes:   r.minutes,
+    pts:       r.pts,
+    reb:       r.reb,
+    orb:       r.orb ?? 0,
+    drb:       r.drb ?? 0,
+    ast:       r.ast,
+    stl:       r.stl,
+    blk:       r.blk,
+    to:        r.tov,
+    pf:        r.pf,
+    fgm:       r.fgm,   // total FG made (2pt + 3pt)
+    fga:       r.fga,   // total FG attempted
+    tpm:       r.fg3m,  // 3-pointers made
+    tpa:       r.fg3a,  // 3-pointers attempted
+    ftm:       r.ftm,
+    fta:       r.fta,
+    plusMinus: 0,
+  };
+}
+
 async function handler(req, res) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
   const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
@@ -72,13 +100,7 @@ async function handler(req, res) {
         });
         if (boxScore?.length) {
           await tx.playerGameStat.createMany({
-            data: boxScore.map(r => ({
-              playerId: r.playerId, gameId: g.id,
-              minutes: r.minutes, pts: r.pts, reb: r.reb, ast: r.ast,
-              stl: r.stl, blk: r.blk, to: r.tov, pf: r.pf,
-              fgm: r.fgm, fga: r.fga, tpm: r.fg3m, tpa: r.fg3a,
-              ftm: r.ftm, fta: r.fta, plusMinus: 0,
-            })),
+            data: boxScore.map(r => toDbRow(r, g.id)),
           });
         }
         await recalcAggregates(seasonLeagueId, tx);
@@ -109,13 +131,7 @@ async function handler(req, res) {
         await tx.playerGameStat.deleteMany({ where: { gameId } });
         if (boxScore?.length) {
           await tx.playerGameStat.createMany({
-            data: boxScore.map(r => ({
-              playerId: r.playerId, gameId,
-              minutes: r.minutes, pts: r.pts, reb: r.reb, ast: r.ast,
-              stl: r.stl, blk: r.blk, to: r.tov, pf: r.pf,
-              fgm: r.fgm, fga: r.fga, tpm: r.fg3m, tpa: r.fg3a,
-              ftm: r.ftm, fta: r.fta, plusMinus: 0,
-            })),
+            data: boxScore.map(r => toDbRow(r, gameId)),
           });
         }
         await recalcAggregates(seasonLeagueId, tx);
