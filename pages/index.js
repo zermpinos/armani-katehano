@@ -8,7 +8,6 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 
 export default function HomePage({ players, games, stats }) {
-  // stats is { [pid]: SeasonStats } — merge with bio for display
   const playersWithStats = players.map(p => ({
     ...p,
     stats: stats[p.id] ?? { ppg:0, rpg:0, apg:0, fgPct:0, eff:0, mpg:0, gp:0 },
@@ -20,24 +19,18 @@ export default function HomePage({ players, games, stats }) {
     ? (record.wins / (record.wins + record.losses) * 100).toFixed(1)
     : "0.0";
 
-  // Efficiency leader — only among players who have actually played
   const activePlayers = playersWithStats.filter(p => (p.stats.gp ?? 0) > 0);
   const mvp = activePlayers.length
     ? activePlayers.reduce((b, p) => p.stats.eff > b.stats.eff ? p : b, activePlayers[0])
     : null;
 
-  // Top scorers — use last name only to keep bars readable
+  // Top scorers — fmt() gives "Antonakos G." format correctly
   const topScorers = [...playersWithStats]
     .filter(p => p.stats.ppg > 0)
     .sort((a, b) => b.stats.ppg - a.stats.ppg)
     .slice(0, 5)
-    .map(p => {
-      // Use last name only (first word) for bar labels — prevents overflow
-      const lastName = p.name.split(" ")[0];
-      return { name: lastName, fullName: fmt(p.name), ppg: p.stats.ppg };
-    });
+    .map(p => ({ name: fmt(p.name), ppg: p.stats.ppg }));
 
-  // Last 10 games for scoring trend
   const trend = [...games]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 10)
@@ -108,26 +101,23 @@ export default function HomePage({ players, games, stats }) {
               </div>
             )}
 
-            {/* Top scorers — last-name labels, bigger height to avoid cutoff */}
+            {/* Top scorers — fmt() produces "Lastname F." which is short enough for angled labels */}
             {topScorers.length > 0 && (
               <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
                 <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Top Scorers — PPG</div>
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={topScorers} margin={{ top:4, right:8, left:-20, bottom:4 }}>
+                  <BarChart data={topScorers} margin={{ top:4, right:8, left:-20, bottom:8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
                     <XAxis
                       dataKey="name"
-                      tick={{ fill:C.textSub, fontSize:11, fontWeight:700 }}
+                      tick={{ fill:C.textSub, fontSize:10, fontWeight:700, angle:-30, textAnchor:"end" }}
                       axisLine={false}
                       tickLine={false}
+                      height={56}
                       interval={0}
                     />
                     <YAxis tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      {...chartTooltipStyle}
-                      formatter={v => [`${v} PPG`]}
-                      labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ""}
-                    />
+                    <Tooltip {...chartTooltipStyle} formatter={v => [`${v} PPG`]} />
                     <Bar dataKey="ppg" fill={C.red} radius={[4,4,0,0]} maxBarSize={44} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -198,9 +188,8 @@ export default function HomePage({ players, games, stats }) {
           </div>
         </div>
       )}
-
       </ErrorBoundary>
-      {/* Empty state */}
+
       {!hasData && (
         <div style={{ textAlign:"center", padding:"48px 0", color:C.textDim }}>
           <div style={{ fontSize:40, marginBottom:12 }}>🏀</div>
