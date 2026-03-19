@@ -110,7 +110,7 @@ export default function HomePage({ players, games, stats }) {
                 <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={topScorers} margin={{ top:4, right:8, left:-20, bottom:0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
-                    <XAxis dataKey="name" tick={{ fill:C.textSub, fontSize:11, fontWeight:700 }} axisLine={false} tickLine={false} />
+                    <XAxis dataKey="name" tick={{ fill:C.textSub, fontSize:10, fontWeight:700, angle:-35, textAnchor:"end" }} axisLine={false} tickLine={false} height={48} interval={0} />
                     <YAxis tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
                     <Tooltip {...chartTooltipStyle} formatter={v => [`${v} PPG`]} />
                     <Bar dataKey="ppg" fill={C.red} radius={[4,4,0,0]} maxBarSize={44} />
