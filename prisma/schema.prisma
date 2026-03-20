@@ -8,65 +8,60 @@ datasource db {
 }
 
 model Player {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String
-  number    Int
-  position  String
-  height    String?
-  weight    String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  rosterEntries      RosterEntry[]
-  gameStats          PlayerGameStat[]
-  seasonAggregates   PlayerSeasonAggregate[]
+  id               String                  @id @default(cuid())
+  slug             String                  @unique
+  name             String
+  number           Int
+  position         String
+  height           String?
+  weight           String?
+  isActive         Boolean                 @default(true)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  photoUrl         String?
+  gameStats        PlayerGameStat[]
+  seasonAggregates PlayerSeasonAggregate[]
+  rosterEntries    RosterEntry[]
 }
 
 model Season {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  year      Int
-  startDate DateTime?
-  endDate   DateTime?
-  createdAt DateTime @default(now())
-
+  id            String         @id @default(cuid())
+  name          String         @unique
+  year          Int
+  startDate     DateTime?
+  endDate       DateTime?
+  createdAt     DateTime       @default(now())
   seasonLeagues SeasonLeague[]
 }
 
 model League {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String
-  organizer String?
-  level     String?
-  createdAt DateTime @default(now())
-
+  id            String         @id @default(cuid())
+  slug          String         @unique
+  name          String
+  organizer     String?
+  level         String?
+  createdAt     DateTime       @default(now())
   seasonLeagues SeasonLeague[]
 }
 
 model SeasonLeague {
-  id        String   @id @default(cuid())
-  seasonId  String
-  leagueId  String
-  createdAt DateTime @default(now())
-
-  season  Season  @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  league  League  @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  id               String                  @id @default(cuid())
+  seasonId         String
+  leagueId         String
+  createdAt        DateTime                @default(now())
+  games            Game[]
+  seasonAggregates PlayerSeasonAggregate[]
+  rosterEntries    RosterEntry[]
+  league           League                  @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  season           Season                  @relation(fields: [seasonId], references: [id], onDelete: Cascade)
 
   @@unique([seasonId, leagueId])
-
-  games            Game[]
-  rosterEntries    RosterEntry[]
-  seasonAggregates PlayerSeasonAggregate[]
-
   @@index([seasonId])
   @@index([leagueId])
 }
 
 model Game {
-  id             String   @id @default(cuid())
+  id             String           @id @default(cuid())
   seasonLeagueId String
   opponent       String
   location       String?
@@ -75,53 +70,49 @@ model Game {
   result         String
   playedOn       DateTime
   notes          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  seasonLeague SeasonLeague     @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
-  playerStats  PlayerGameStat[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  seasonLeague   SeasonLeague     @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
+  playerStats    PlayerGameStat[]
 }
 
 model RosterEntry {
-  id             String  @id @default(cuid())
+  id             String       @id @default(cuid())
   playerId       String
   seasonLeagueId String
-  isActive       Boolean @default(true)
-  createdAt      DateTime @default(now())
-
-  player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  seasonLeague SeasonLeague @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  player         Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  seasonLeague   SeasonLeague @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, seasonLeagueId])
-  @@index([seasonLeagueId])
 }
 
 model PlayerGameStat {
-  id        String @id @default(cuid())
+  id        String   @id @default(cuid())
   playerId  String
   gameId    String
-  minutes   Int    @default(0)
-  pts       Int    @default(0)
-  reb       Int    @default(0)
-  orb       Int    @default(0)   // offensive rebounds
-  drb       Int    @default(0)   // defensive rebounds
-  ast       Int    @default(0)
-  stl       Int    @default(0)
-  blk       Int    @default(0)
-  to        Int    @default(0)
-  pf        Int    @default(0)
-  fgm       Int    @default(0)   // total field goals made (2pt + 3pt)
-  fga       Int    @default(0)   // total field goals attempted
-  tpm       Int    @default(0)   // 3-pointers made
-  tpa       Int    @default(0)   // 3-pointers attempted
-  ftm       Int    @default(0)
-  fta       Int    @default(0)
-  plusMinus Int    @default(0)
+  minutes   Int      @default(0)
+  pts       Int      @default(0)
+  reb       Int      @default(0)
+  ast       Int      @default(0)
+  stl       Int      @default(0)
+  blk       Int      @default(0)
+  to        Int      @default(0)
+  pf        Int      @default(0)
+  fgm       Int      @default(0)
+  fga       Int      @default(0)
+  tpm       Int      @default(0)
+  tpa       Int      @default(0)
+  ftm       Int      @default(0)
+  fta       Int      @default(0)
+  plusMinus Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  orb       Int      @default(0)
+  drb       Int      @default(0)
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, gameId])
   @@index([gameId])
@@ -129,42 +120,40 @@ model PlayerGameStat {
 }
 
 model PlayerSeasonAggregate {
-  id             String @id @default(cuid())
+  id             String       @id @default(cuid())
   playerId       String
   seasonLeagueId String
-  gp             Int    @default(0)
-  ptsAvg         Float  @default(0)
-  rebAvg         Float  @default(0)
-  orbAvg         Float  @default(0)   // offensive rebounds per game
-  drbAvg         Float  @default(0)   // defensive rebounds per game
-  astAvg         Float  @default(0)
-  stlAvg         Float  @default(0)
-  blkAvg         Float  @default(0)
-  toAvg          Float  @default(0)
-  pfAvg          Float  @default(0)
-  fgPct          Float  @default(0)   // overall FG% (2pt + 3pt)
-  fg2Pct         Float  @default(0)   // 2-point FG% only
-  tpPct          Float  @default(0)   // 3-point FG%
-  ftPct          Float  @default(0)
-  tsPct          Float  @default(0)
-  minutesAvg     Float  @default(0)
-  ptsTotal       Int    @default(0)
-  rebTotal       Int    @default(0)
-  astTotal       Int    @default(0)
-  updatedAt      DateTime @updatedAt
-
-  player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  seasonLeague SeasonLeague @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
+  gp             Int          @default(0)
+  ptsAvg         Float        @default(0)
+  rebAvg         Float        @default(0)
+  astAvg         Float        @default(0)
+  stlAvg         Float        @default(0)
+  blkAvg         Float        @default(0)
+  toAvg          Float        @default(0)
+  pfAvg          Float        @default(0)
+  fgPct          Float        @default(0)
+  tpPct          Float        @default(0)
+  ftPct          Float        @default(0)
+  tsPct          Float        @default(0)
+  minutesAvg     Float        @default(0)
+  ptsTotal       Int          @default(0)
+  rebTotal       Int          @default(0)
+  astTotal       Int          @default(0)
+  updatedAt      DateTime     @updatedAt
+  orbAvg         Float        @default(0)
+  drbAvg         Float        @default(0)
+  fg2Pct         Float        @default(0)
+  player         Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  seasonLeague   SeasonLeague @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, seasonLeagueId])
+  @@index([seasonLeagueId])
 }
 
-// Tracks failed login attempts for brute-force protection.
-// Records are cleaned up on successful login or expire after LOCKOUT_TTL_S seconds.
 model LoginAttempt {
   id          String   @id @default(cuid())
-  ip          String
-  attemptedAt DateTime @default(now())
+  ip          String   @db.VarChar(45)
+  attemptedAt DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([ip, attemptedAt])
 }
