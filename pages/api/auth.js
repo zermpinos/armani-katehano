@@ -12,10 +12,13 @@ import {
   clearAttempts,
   getLockoutTTL,
 } from "../../lib/loginAttempts.js";
+
 import {
   safePasswordCompare,
   buildSessionCookie,
   clearSessionCookie,
+  getSessionToken,
+  verifyPayload,
   securityHeaders,
   auditLog,
 } from "../../lib/security.js";
@@ -40,6 +43,13 @@ export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
+
+  // ── Session check ────────────────────────────────────────────────────────────
+  if (req.method === "GET") {
+  const token = getSessionToken(req.headers.cookie ?? "");
+  const valid = token ? verifyPayload(token, process.env.SESSION_SECRET) !== null : false;
+  return res.status(valid ? 200 : 401).json({ ok: valid });
+}
 
   // ── Lockout check ────────────────────────────────────────────────────────────
   if (await isLockedOut(ip)) {
@@ -72,4 +82,3 @@ export default async function handler(req, res) {
   auditLog("login_success", { ip });
   return res.status(200).json({ ok: true });
 }
-
