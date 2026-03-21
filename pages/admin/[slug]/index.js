@@ -5,28 +5,36 @@
 
 import { useState, useEffect } from "react";
 import { C } from "../../../lib/theme";
-import { AdminLayout, useAdminAuth, Btn, Toast } from "../../../lib/adminShared";
+import { AdminLayout, Toast } from "../../../lib/adminShared";
 
 export default function AdminDashboard({ validSlug }) {
-  const { authed, checking } = useAdminAuth(validSlug);
-  const [data,    setData]   = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [toast,   setToast]  = useState(null);
-  const [password, setPassword] = useState("");
-  const [authError, setAuthError] = useState("");
+  const [authed,      setAuthed]      = useState(false);
+  const [checking,    setChecking]    = useState(true);
+  const [data,        setData]        = useState(null);
+  const [loading,     setLoading]     = useState(false);
+  const [toast,       setToast]       = useState(null);
+  const [password,    setPassword]    = useState("");
+  const [authError,   setAuthError]   = useState("");
   const [authLoading, setAuthLoading] = useState(false);
-  const slug = typeof window !== "undefined" ? window.location.pathname.split("/")[2] : "";
 
-  const showToast = (msg, type = "success") => setToast({ msg, type });
+  const slug = typeof window !== "undefined"
+    ? window.location.pathname.split("/")[2]
+    : "";
 
+  // ── On mount: check if already logged in ─────────────────────────────────
   useEffect(() => {
-    if (authed) loadDashboard();
-  }, [authed]);
+    if (!validSlug) { setChecking(false); return; }
+    fetch("/api/auth", { method: "GET" })
+      .then(r => {
+        if (r.ok) { setAuthed(true); loadDashboard(); }
+        setChecking(false);
+      })
+      .catch(() => setChecking(false));
+  }, [validSlug]);
 
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      // Only fetch the lightweight dashboard summary — not full game list
       const res = await fetch("/api/admin/dashboard");
       if (!res.ok) return;
       setData(await res.json());
@@ -35,25 +43,42 @@ export default function AdminDashboard({ validSlug }) {
     }
   };
 
+  // ── Login ─────────────────────────────────────────────────────────────────
   const login = async (e) => {
     e.preventDefault();
-    setAuthLoading(true); setAuthError("");
+    setAuthLoading(true);
+    setAuthError("");
     try {
       const res = await fetch("/api/auth", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, slug }),
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ password, slug }),
       });
-      if (res.ok) { setPassword(""); loadDashboard(); }
-      else {
+      if (res.ok) {
+        setPassword("");
+        setAuthed(true);   // ← this is what was missing
+        loadDashboard();
+      } else {
         const d = await res.json();
-        if (res.status === 429) setAuthError(`Too many attempts. Try again in ${Math.ceil((d.retryAfter || 900) / 60)} min.`);
-        else setAuthError("Invalid credentials.");
+        if (res.status === 429)
+          setAuthError(`Too many attempts. Try again in ${Math.ceil((d.retryAfter || 900) / 60)} min.`);
+        else
+          setAuthError("Invalid credentials.");
       }
-    } catch { setAuthError("Network error."); }
-    finally { setAuthLoading(false); }
+    } catch {
+      setAuthError("Network error.");
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
-  // ── Not a valid slug ──────────────────────────────────────────────────────
+  const logout = async () => {
+    await fetch("/api/auth", { method: "DELETE" });
+    setAuthed(false);
+    setData(null);
+  };
+
+  // ── 404 ───────────────────────────────────────────────────────────────────
   if (!validSlug) return (
     <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ textAlign: "center" }}>
@@ -63,8 +88,12 @@ export default function AdminDashboard({ validSlug }) {
     </div>
   );
 
-  // ── Auth check in progress ────────────────────────────────────────────────
-  if (checking) return <Spinner />;
+  // ── Checking session ──────────────────────────────────────────────────────
+  if (checking) return (
+    <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <Spinner />
+    </div>
+  );
 
   // ── Login screen ──────────────────────────────────────────────────────────
   if (!authed) return (
@@ -78,11 +107,18 @@ export default function AdminDashboard({ validSlug }) {
         <form onSubmit={login} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <label style={{ display: "block", fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", marginBottom: 5, color: C.textDim, textTransform: "uppercase" }}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password"
-              style={{ width: "100%", padding: "9px 12px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none" }} />
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Enter password"
+              style={{ width: "100%", padding: "9px 12px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none" }}
+            />
           </div>
           {authError && <div style={{ fontSize: 12, color: C.redText }}>{authError}</div>}
-          <button type="submit" disabled={authLoading || !password}
+          <button
+            type="submit"
+            disabled={authLoading || !password}
             style={{ padding: "12px", fontWeight: 900, fontSize: 14, letterSpacing: "0.12em", textTransform: "uppercase", borderRadius: 10, border: "none", background: C.red, color: C.text, cursor: "pointer", fontFamily: "inherit", opacity: authLoading || !password ? 0.5 : 1 }}>
             {authLoading ? "VERIFYING…" : "SIGN IN"}
           </button>
@@ -96,16 +132,18 @@ export default function AdminDashboard({ validSlug }) {
   const wins   = data?.record?.wins   ?? 0;
   const losses = data?.record?.losses ?? 0;
 
-  const quickLinks = [
-    { href: `import`,  label: "Import game",   icon: "↓", desc: "Add a new game from sportstats.gr" },
-    { href: `games`,   label: "Game results",  icon: "◉", desc: `${data?.totalGames ?? "—"} games recorded` },
-    { href: `roster`,  label: "Roster",        icon: "◎", desc: `${data?.totalPlayers ?? "—"} players` },
-    { href: `seasons`, label: "Seasons",       icon: "◇", desc: `${data?.totalSeasonLeagues ?? "—"} active leagues` },
+  const navItems = [
+    { href: `import`,  label: "Import game",  icon: "↓", desc: "Add a new game from sportstats.gr" },
+    { href: `games`,   label: "Game results", icon: "◉", desc: `${data?.totalGames ?? "—"} games recorded` },
+    { href: `roster`,  label: "Roster",       icon: "◎", desc: `${data?.totalPlayers ?? "—"} players` },
+    { href: `seasons`, label: "Seasons",      icon: "◇", desc: `${data?.totalSeasonLeagues ?? "—"} active leagues` },
   ];
 
   return (
-    <AdminLayout slug={slug} title="Dashboard" toast={toast} setToast={setToast}>
-      {loading ? <Spinner /> : (
+    <AdminLayout slug={slug} title="Dashboard" toast={toast} setToast={setToast} onLogout={logout}>
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Spinner /></div>
+      ) : (
         <>
           {/* Summary strip */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))", gap: 10, marginBottom: 28 }}>
@@ -124,10 +162,10 @@ export default function AdminDashboard({ validSlug }) {
           </div>
 
           {/* Quick links */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12 }}>
-            {quickLinks.map(link => (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginBottom: 28 }}>
+            {navItems.map(link => (
               <a key={link.href} href={link.href}
-                style={{ display: "block", borderRadius: 12, padding: "18px 20px", border: `1px solid ${C.border}`, background: C.surface, textDecoration: "none", transition: "border-color 0.15s" }}
+                style={{ display: "block", borderRadius: 12, padding: "18px 20px", border: `1px solid ${C.border}`, background: C.surface, textDecoration: "none" }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = C.red}
                 onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
                 <div style={{ fontSize: 20, marginBottom: 8 }}>{link.icon}</div>
@@ -137,9 +175,9 @@ export default function AdminDashboard({ validSlug }) {
             ))}
           </div>
 
-          {/* Recent games — last 5 only */}
+          {/* Recent games */}
           {data?.recentGames?.length > 0 && (
-            <div style={{ marginTop: 28 }}>
+            <div>
               <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 10, textTransform: "uppercase" }}>Recent games</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {data.recentGames.map(g => (
@@ -166,9 +204,7 @@ export default function AdminDashboard({ validSlug }) {
 
 function Spinner() {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 60 }}>
-      <div style={{ width: 32, height: 32, borderRadius: "50%", border: `2px solid ${C.border2}`, borderTopColor: C.redBright, animation: "spin 0.7s linear infinite" }} />
-    </div>
+    <div style={{ width: 32, height: 32, borderRadius: "50%", border: `2px solid ${C.border2}`, borderTopColor: C.redBright, animation: "spin 0.7s linear infinite" }} />
   );
 }
 
