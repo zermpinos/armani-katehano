@@ -15,8 +15,8 @@
  *   (All existing DB env vars used by your Prisma client)
  */
 
-import { prisma } from "../../../lib/prisma";
-import { cuid }   from "../../../lib/cuid";   // or however you generate IDs
+import prisma                from "../../../lib/prisma.js";
+import { recalcAggregates } from "../../../lib/stats.prisma.js";
 
 const ALLOWED_METHODS = ["POST"];
 
