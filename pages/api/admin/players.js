@@ -31,6 +31,18 @@ async function handler(req, res) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
   const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
 
+  // ── LIST ───────────────────────────────────────────────────────────────────
+  if (req.method === "GET") {
+    try {
+      const players = await prisma.player.findMany({
+        where:   { isActive: true },
+        orderBy: { number: "asc" },
+      });
+      return res.status(200).json({ players });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
   // ── CREATE ─────────────────────────────────────────────────────────────────
   if (req.method === "POST") {
     const parsed = PlayerWriteSchema.safeParse(req.body ?? {});
