@@ -133,11 +133,11 @@ export default function AdminDashboard({ validSlug }) {
   const losses = data?.record?.losses ?? 0;
 
   const navItems = [
-    { href: `import`,  label: "Import game",  icon: "↓", desc: "Add a new game from sportstats.gr" },
-    { href: `games`,   label: "Game results", icon: "◉", desc: `${data?.totalGames ?? "--"} games recorded` },
-    { href: `roster`,  label: "Roster",       icon: "◎", desc: `${data?.totalPlayers ?? "--"} players` },
-    { href: `seasons`, label: "Seasons",      icon: "◇", desc: `${data?.totalSeasonLeagues ?? "--"} active leagues` },
-  ];
+  { href: `/admin/${slug}/import`,  label: "Import game",  icon: "↓", desc: "Add a new game from sportstats.gr" },
+  { href: `/admin/${slug}/games`,   label: "Game results", icon: "◉", desc: `${data?.totalGames ?? "--"} games recorded` },
+  { href: `/admin/${slug}/roster`,  label: "Roster",       icon: "◎", desc: `${data?.totalPlayers ?? "--"} players` },
+  { href: `/admin/${slug}/seasons`, label: "Seasons",      icon: "◇", desc: `${data?.totalSeasonLeagues ?? "--"} active leagues` },
+];
 
   return (
     <AdminLayout slug={slug} title="Dashboard" toast={toast} setToast={setToast} onLogout={logout}>
