@@ -12,28 +12,32 @@ import prisma                        from "../../../lib/prisma.js";
 import { recalcAggregates }          from "../../../lib/stats.prisma.js";
 
 const BoxScoreRowSchema = z.object({
-  playerId: z.string().cuid(),
-  minutes:  z.coerce.number().int().min(0).max(60),
-  pts:      z.coerce.number().int().min(0).max(200),
-  reb:      z.coerce.number().int().min(0).max(100),
-  orb:      z.coerce.number().int().min(0).max(50).default(0),
-  drb:      z.coerce.number().int().min(0).max(50).default(0),
-  ast:      z.coerce.number().int().min(0).max(100),
-  stl:      z.coerce.number().int().min(0).max(50),
-  blk:      z.coerce.number().int().min(0).max(50),
-  tov:      z.coerce.number().int().min(0).max(50),
-  pf:       z.coerce.number().int().min(0).max(6),
-  fgm:      z.coerce.number().int().min(0).max(100),
-  fga:      z.coerce.number().int().min(0).max(100),
-  fg3m:     z.coerce.number().int().min(0).max(50),
-  fg3a:     z.coerce.number().int().min(0).max(50),
-  ftm:      z.coerce.number().int().min(0).max(50),
-  fta:      z.coerce.number().int().min(0).max(50),
-}).refine(r => r.fgm <= r.fga,  { message: "fgm cannot exceed fga" })
-  .refine(r => r.fg3m <= r.fg3a, { message: "fg3m cannot exceed fg3a" })
-  .refine(r => r.ftm <= r.fta,   { message: "ftm cannot exceed fta" })
-  .refine(r => r.fg3m <= r.fgm,  { message: "fg3m cannot exceed fgm" })
-  .refine(r => r.orb + r.drb <= r.reb + 1, { message: "orb+drb cannot exceed reb" });
+  playerId:  z.string().cuid(),
+  minutes:   z.coerce.number().int().min(0).max(60),
+  pts:       z.coerce.number().int().min(0).max(200),
+  reb:       z.coerce.number().int().min(0).max(100),
+  orb:       z.coerce.number().int().min(0).max(50).default(0),
+  drb:       z.coerce.number().int().min(0).max(50).default(0),
+  ast:       z.coerce.number().int().min(0).max(100),
+  stl:       z.coerce.number().int().min(0).max(50),
+  blk:       z.coerce.number().int().min(0).max(50),
+  tov:       z.coerce.number().int().min(0).max(50),
+  pf:        z.coerce.number().int().min(0).max(6),
+  fgm:       z.coerce.number().int().min(0).max(100),
+  fga:       z.coerce.number().int().min(0).max(100),
+  fg2m:      z.coerce.number().int().min(0).max(100),
+  fg2a:      z.coerce.number().int().min(0).max(100),
+  fg3m:      z.coerce.number().int().min(0).max(50),
+  fg3a:      z.coerce.number().int().min(0).max(50),
+  ftm:       z.coerce.number().int().min(0).max(50),
+  fta:       z.coerce.number().int().min(0).max(50),
+})
+  .refine(r => r.fgm  <= r.fga,          { message: "fgm cannot exceed fga" })
+  .refine(r => r.fg2m <= r.fg2a,         { message: "fg2m cannot exceed fg2a" })
+  .refine(r => r.fg3m <= r.fg3a,         { message: "fg3m cannot exceed fg3a" })
+  .refine(r => r.ftm  <= r.fta,          { message: "ftm cannot exceed fta" })
+  .refine(r => r.fg2m + r.fg3m === r.fgm, { message: "fg2m + fg3m must equal fgm" })
+  .refine(r => r.orb  + r.drb <= r.reb + 1, { message: "orb+drb cannot exceed reb" });
 
 const GameWriteSchema = z.object({
   seasonLeagueId: z.string().cuid(),
@@ -69,12 +73,14 @@ function toDbRow(r, gameId = undefined) {
     ast:       r.ast,
     stl:       r.stl,
     blk:       r.blk,
-    to:        r.tov,
+    tov:       r.tov,
     pf:        r.pf,
-    fgm:       r.fgm,   // total FG made (2pt + 3pt)
-    fga:       r.fga,   // total FG attempted
-    tpm:       r.fg3m,  // 3-pointers made
-    tpa:       r.fg3a,  // 3-pointers attempted
+    fgm:       r.fgm,
+    fga:       r.fga,
+    fg2m:      r.fg2m,
+    fg2a:      r.fg2a,
+    fg3m:      r.fg3m,
+    fg3a:      r.fg3a,
     ftm:       r.ftm,
     fta:       r.fta,
     plusMinus: 0,
