@@ -7,7 +7,7 @@
  */
 
 import { requireAuth } from "../../../lib/requireAuth";
-import { prisma }      from "../../../lib/prisma";
+import prisma from "../../../lib/prisma.js";
 
 async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
