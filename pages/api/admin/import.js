@@ -2,35 +2,45 @@
  * pages/api/admin/import.js
  * POST /api/admin/import
  *
- * Called by your LOCAL scrape.js script — not by the browser.
- * Accepts pre-scraped game JSON + a shared secret, saves directly to DB.
+ * Called by your local scraper script.
+ * Accepts the new scraper JSON format and saves to DB.
  *
- * The browser import page (/admin/[slug]/import) uses /api/admin/games
- * as always. This endpoint is the "headless" path for the CLI script.
+ * Body: { secret: string, data: <scraper output> }
  *
- * Body: { secret: string, data: { match_info, armani_katehano } }
- *
- * Env vars required:
- *   IMPORT_SECRET  — shared secret between this endpoint and your local script
- *   (All existing DB env vars used by your Prisma client)
+ * Scraper output shape:
+ * {
+ *   url: string,
+ *   game: {
+ *     homeTeam, awayTeam, date, time, venue,
+ *     finalScore: { home, away },
+ *     quarterScores: [...]
+ *   },
+ *   teams: [
+ *     {
+ *       name: string,
+ *       players: [
+ *         { "#": number, Players: string, ST: string, MIN: string,
+ *           PTS, FT: {made,attempted}, "2PTS": {made,attempted},
+ *           "3PTS": {made,attempted}, FG: {made,attempted},
+ *           OREB, DREB, REB, AST, STL, BLK, TO, PF, FO, EF }
+ *       ]
+ *     }
+ *   ]
+ * }
  */
 
 import prisma                from "../../../lib/prisma.js";
 import { recalcAggregates } from "../../../lib/stats.prisma.js";
 
-const ALLOWED_METHODS = ["POST"];
-
 export default async function handler(req, res) {
-  if (!ALLOWED_METHODS.includes(req.method))
+  if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
 
-  // ── Auth: shared secret ───────────────────────────────────────────────────
+  // ── Auth ──────────────────────────────────────────────────────────────────
   const { secret, data } = req.body ?? {};
-
   const expected = process.env.IMPORT_SECRET;
   if (!expected) return res.status(500).json({ error: "IMPORT_SECRET not configured" });
 
-  // Constant-time comparison to prevent timing attacks
   let secretOk = false;
   try {
     const crypto = await import("crypto");
@@ -41,22 +51,63 @@ export default async function handler(req, res) {
 
   if (!secretOk) return res.status(401).json({ error: "Unauthorized" });
 
-  // ── Validate payload ──────────────────────────────────────────────────────
-  if (!data?.match_info || !data?.armani_katehano?.players)
-    return res.status(400).json({ error: "Missing match_info or players" });
+  // ── Validate shape ────────────────────────────────────────────────────────
+  if (!data?.game || !Array.isArray(data?.teams))
+    return res.status(400).json({ error: "Missing game or teams in payload" });
 
-  const mi      = data.match_info;
-  const players = data.armani_katehano.players;
+  const { game, teams, url: sourceUrl } = data;
 
-  if (!mi.date || !mi.opponent)
-    return res.status(400).json({ error: "match_info missing date or opponent" });
+  if (!game.finalScore || !game.homeTeam || !game.awayTeam)
+    return res.status(400).json({ error: "Missing finalScore, homeTeam or awayTeam" });
 
-  // ── Resolve seasonLeagueId from league slug ───────────────────────────────
+  // ── Find ARMANI team ──────────────────────────────────────────────────────
+  const akTeam = teams.find(t =>
+    t.name.toUpperCase().includes("ARMANI") ||
+    t.name.toUpperCase().includes("KATEHANO")
+  );
+  if (!akTeam) return res.status(400).json({ error: "ARMANI KATEHANO team not found in teams array" });
+
+  const isHome      = game.homeTeam.toUpperCase().includes("ARMANI") ||
+                      game.homeTeam.toUpperCase().includes("KATEHANO");
+  const akScore     = isHome ? game.finalScore.home : game.finalScore.away;
+  const oppScore    = isHome ? game.finalScore.away : game.finalScore.home;
+  const oppTeamName = isHome ? game.awayTeam : game.homeTeam;
+  const result      = akScore > oppScore ? "W" : "L";
+
+  // ── Parse date ────────────────────────────────────────────────────────────
+  // game.date is Greek format: "Κυριακή, 14 Σεπτεμβρίου 2025"
+  // Extract DD Month YYYY and convert
+  const GREEK_MONTHS = {
+    "Ιανουαρίου": "01", "Φεβρουαρίου": "02", "Μαρτίου": "03",
+    "Απριλίου":   "04", "Μαΐου":       "05", "Ιουνίου": "06",
+    "Ιουλίου":    "07", "Αυγούστου":   "08", "Σεπτεμβρίου": "09",
+    "Οκτωβρίου":  "10", "Νοεμβρίου":   "11", "Δεκεμβρίου":  "12",
+  };
+
+  let playedOn = null;
+  const dateMatch = (game.date || "").match(/(\d{1,2})\s+(\S+)\s+(\d{4})/);
+  if (dateMatch) {
+    const day   = dateMatch[1].padStart(2, "0");
+    const month = GREEK_MONTHS[dateMatch[2]] || "01";
+    const year  = dateMatch[3];
+    playedOn = new Date(`${year}-${month}-${day}`);
+  } else {
+    playedOn = new Date();
+  }
+
+  // ── Detect league from URL ────────────────────────────────────────────────
+  const u = (sourceUrl || "").toLowerCase();
+  let leagueSlug = "";
+  if (u.includes("winter-cup"))  leagueSlug = "wintercup";
+  else if (u.includes("rookie")) leagueSlug = "rookie";
+  else if (u.includes("bc6"))    leagueSlug = "bc6";
+  else if (u.includes("/men/"))  leagueSlug = ""; // regular season — fallback below
+
+  // ── Resolve seasonLeagueId ────────────────────────────────────────────────
   let seasonLeagueId = null;
-  if (mi.league) {
-    const league = await prisma.league.findFirst({ where: { slug: mi.league } });
+  if (leagueSlug) {
+    const league = await prisma.league.findFirst({ where: { slug: leagueSlug } });
     if (league) {
-      // Find the most recent active SeasonLeague for this league
       const sl = await prisma.seasonLeague.findFirst({
         where:   { leagueId: league.id },
         orderBy: { createdAt: "desc" },
@@ -64,89 +115,102 @@ export default async function handler(req, res) {
       if (sl) seasonLeagueId = sl.id;
     }
   }
-
   if (!seasonLeagueId) {
-    // Fallback: use the most recently created SeasonLeague
+    // Fallback: most recent SeasonLeague
     const sl = await prisma.seasonLeague.findFirst({ orderBy: { createdAt: "desc" } });
-    if (!sl) return res.status(422).json({ error: "No SeasonLeague found — create one first in the admin panel" });
+    if (!sl) return res.status(422).json({ error: "No SeasonLeague found — create one first" });
     seasonLeagueId = sl.id;
   }
 
   // ── Resolve player IDs by jersey number ───────────────────────────────────
   const allPlayers = await prisma.player.findMany({ where: { isActive: true } });
-
-  const playerMap = {}; // jersey number → player.id
+  const playerMap  = {};
   allPlayers.forEach(p => { playerMap[p.number] = p.id; });
 
-  // ── Build boxScore rows ────────────────────────────────────────────────────
-  const boxScore = players
-    .filter(p => !p.did_not_play)
-    .map(p => {
-      const playerId = playerMap[p.jersey_number];
-      if (!playerId) return null; // player not in DB — skip, don't crash
+  // ── Parse minutes ─────────────────────────────────────────────────────────
+  const parseMinutes = (minStr) => {
+    const m = (minStr || "").match(/^(\d+):(\d{2})$/);
+    if (!m) return 0;
+    return parseInt(m[1], 10);
+  };
 
-      const fg2m = p.two_point_fg?.made      ?? 0;
-      const fg2a = p.two_point_fg?.attempted ?? 0;
-      const fg3m = p.three_point_fg?.made      ?? 0;
-      const fg3a = p.three_point_fg?.attempted ?? 0;
+  // ── Build box score rows ──────────────────────────────────────────────────
+  const skipped  = [];
+  const boxScore = akTeam.players
+    .filter(p => {
+      // Skip players with 0 minutes
+      const mins = parseMinutes(p.MIN);
+      return mins > 0;
+    })
+    .map(p => {
+      const playerId = playerMap[p["#"]];
+      if (!playerId) {
+        skipped.push(`#${p["#"]} ${p.Players}`);
+        return null;
+      }
+
+      const fg2m = p["2PTS"]?.made      ?? 0;
+      const fg2a = p["2PTS"]?.attempted ?? 0;
+      const fg3m = p["3PTS"]?.made      ?? 0;
+      const fg3a = p["3PTS"]?.attempted ?? 0;
 
       return {
         playerId,
-        minutes:   p.minutes_played?.total_seconds ? Math.round(p.minutes_played.total_seconds / 60) : 0,
-        pts:  p.points,
-        reb:  p.total_rebounds,
-        orb:  p.offensive_rebounds ?? 0,
-        drb:  p.defensive_rebounds ?? 0,
-        ast:  p.assists,
-        stl:  p.steals,
-        blk:  p.blocks,
-        tov:  p.turnovers,
-        pf:   p.fouls_committed ?? 0,
-        fg2m: p.two_point_fg?.made      ?? 0,
-        fg2a: p.two_point_fg?.attempted ?? 0,
-        fg3m: p.three_point_fg?.made      ?? 0,
-        fg3a: p.three_point_fg?.attempted ?? 0,
-        fgm:  (p.two_point_fg?.made ?? 0) + (p.three_point_fg?.made ?? 0),
-        fga:  (p.two_point_fg?.attempted ?? 0) + (p.three_point_fg?.attempted ?? 0),
-        ftm:  p.free_throws?.made      ?? 0,
-        fta:  p.free_throws?.attempted ?? 0,
+        minutes:   parseMinutes(p.MIN),
+        pts:       p.PTS   ?? 0,
+        reb:       p.REB   ?? 0,
+        orb:       p.OREB  ?? 0,
+        drb:       p.DREB  ?? 0,
+        ast:       p.AST   ?? 0,
+        stl:       p.STL   ?? 0,
+        blk:       p.BLK   ?? 0,
+        tov:       p.TO    ?? 0,
+        pf:        p.PF    ?? 0,
+        fg2m,
+        fg2a,
+        fg3m,
+        fg3a,
+        fgm:       fg2m + fg3m,
+        fga:       fg2a + fg3a,
+        ftm:       p.FT?.made      ?? 0,
+        fta:       p.FT?.attempted ?? 0,
         plusMinus: 0,
       };
     })
     .filter(Boolean);
 
-  const skipped = players.filter(p => !p.did_not_play && !playerMap[p.jersey_number]);
-
-  // ── Write to DB (same pattern as your existing /api/admin/games POST) ─────
+  // ── Write to DB ───────────────────────────────────────────────────────────
   try {
-    const gameId = cuid();
+    let gameId;
 
-    await prisma.$transaction([
-      prisma.game.create({
+    await prisma.$transaction(async (tx) => {
+      const g = await tx.game.create({
         data: {
-          id:            gameId,
           seasonLeagueId,
-          opponent:      mi.opponent,
-          location:      mi.home_team?.toUpperCase().includes("ARMANI") ? "home" : "away",
-          teamScore:     mi.armani_katehano_score ?? 0,
-          opponentScore: mi.opponent_score ?? 0,
-          result:        mi.result,
-          playedOn:      new Date(mi.date),
+          opponent:      oppTeamName,
+          location:      isHome ? "home" : "away",
+          teamScore:     akScore,
+          opponentScore: oppScore,
+          result,
+          playedOn,
         },
-      }),
-      ...boxScore.map(row =>
-        prisma.playerGameStat.create({
-          data: { id: cuid(), gameId, ...row },
-        })
-      ),
-    ]);
+      });
+      gameId = g.id;
+
+      if (boxScore.length) {
+        await tx.playerGameStat.createMany({
+          data: boxScore.map(row => ({ ...row, gameId: g.id })),
+        });
+      }
+
+      await recalcAggregates(seasonLeagueId, tx);
+    });
 
     return res.status(200).json({
-      ok: true,
+      ok:              true,
       gameId,
       playersImported: boxScore.length,
-      skipped: skipped.map(p => `#${p.jersey_number} ${p.name_greek}`),
-      warnings: data._warnings ?? [],
+      skipped,
     });
 
   } catch (err) {
