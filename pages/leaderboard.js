@@ -26,6 +26,7 @@ const COLS = [
   { key:"drpg",  label:"DRB", title:"Def. Rebounds Per Game",  dec:1 },
   { key:"spg",   label:"SPG", title:"Steals Per Game",         dec:1 },
   { key:"bpg",   label:"BPG", title:"Blocks Per Game",         dec:1 },
+  { key:"tpg",   label:"TPG", title:"Turnovers Per Game",      dec:1 },
   { key:"fpg",   label:"FPG", title:"Fouls Per Game",          dec:1 },
   { key:"eff",   label:"EFF", title:"Efficiency Rating",       dec:1 },
 ];
