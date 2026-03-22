@@ -55,7 +55,7 @@ async function handler(req, res) {
     return res.status(201).json({ ok: true, league });
   } catch (err) {
     auditLog("league_create_error", { ip, error: err.message });
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: prodError(err) });
   }
 }
 
