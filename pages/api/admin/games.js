@@ -99,7 +99,7 @@ async function handler(req, res) {
       const games = await prisma.game.findMany({
         orderBy: { playedOn: "desc" },
         include: {
-          playerGameStats: {
+          playerStats: {
             include: { player: { select: { id: true, name: true, number: true } } },
           },
         },
@@ -117,7 +117,7 @@ async function handler(req, res) {
           playedOn:      g.playedOn?.toISOString() ?? null,
           notes:         g.notes,
           // Map DB column names back to frontend names
-          boxScore: g.playerGameStats.map(s => ({
+          boxScore: g.playerStats.map(s => ({
             playerId: s.playerId,
             pid:      s.playerId,
             min:      s.minutes,
@@ -138,12 +138,12 @@ async function handler(req, res) {
             fg3a:     s.fg3a,
             ftm:      s.ftm,
             fta:      s.fta,
-            eff:      s.plusMinus, // using plusMinus as eff placeholder until eff column added
+            eff:      s.pts + s.reb + s.ast + s.stl + s.blk - (s.fga - s.fgm) - (s.fta - s.ftm) - s.tov,
           })),
         })),
       });
     } catch (err) {
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: prodError(err) });
     }
   }
 
@@ -172,7 +172,7 @@ async function handler(req, res) {
       return res.status(201).json({ ok: true, gameId: game.id });
     } catch (err) {
       auditLog("game_create_error", { ip, error: err.message });
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: prodError(err) });
     }
   }
 
@@ -202,7 +202,7 @@ async function handler(req, res) {
       return res.status(200).json({ ok: true });
     } catch (err) {
       auditLog("game_update_error", { ip, error: err.message });
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: prodError(err) });
     }
   }
 
@@ -223,7 +223,7 @@ async function handler(req, res) {
       return res.status(200).json({ ok: true });
     } catch (err) {
       auditLog("game_delete_error", { ip, error: err.message });
-      return res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: prodError(err) });
     }
   }
 
