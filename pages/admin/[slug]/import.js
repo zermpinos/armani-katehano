@@ -1,45 +1,69 @@
 /**
  * pages/admin/[slug]/import.js
+ * Accepts the new scraper JSON format for browser-side review before saving.
  */
 
 import { useState, useEffect } from "react";
 import { C } from "../../../lib/theme";
 import { AdminLayout, BoxScoreTable, F, Sel, Btn, byJersey } from "../../../lib/adminShared";
 
+// ── Greek month names -> MM ────────────────────────────────────────────────────
+const GREEK_MONTHS = {
+  "Ιανουαρίου": "01", "Φεβρουαρίου": "02", "Μαρτίου":    "03",
+  "Απριλίου":   "04", "Μαΐου":       "05", "Ιουνίου":    "06",
+  "Ιουλίου":    "07", "Αυγούστου":   "08", "Σεπτεμβρίου":"09",
+  "Οκτωβρίου":  "10", "Νοεμβρίου":   "11", "Δεκεμβρίου": "12",
+};
+
+function parseGreekDate(dateStr) {
+  const m = (dateStr || "").match(/(\d{1,2})\s+(\S+)\s+(\d{4})/);
+  if (!m) return "";
+  const day   = m[1].padStart(2, "0");
+  const month = GREEK_MONTHS[m[2]] || "01";
+  return `${m[3]}-${month}-${day}`;
+}
+
+function parseMinutes(minStr) {
+  const m = (minStr || "").match(/^(\d+):(\d{2})$/);
+  if (!m) return 0;
+  return parseInt(m[1], 10);
+}
+
+function detectLeague(sourceUrl = "") {
+  const u = sourceUrl.toLowerCase();
+  if (u.includes("winter-cup"))  return "wintercup";
+  if (u.includes("rookie"))      return "rookie";
+  if (u.includes("bc6"))         return "bc6";
+  return "";
+}
+
 export default function ImportPage({ validSlug }) {
   const slug = typeof window !== "undefined" ? window.location.pathname.split("/")[2] : "";
 
-  // ── Auth state (same pattern as index.js -- no hook) ───────────────────────
   const [authed,      setAuthed]      = useState(false);
   const [checking,    setChecking]    = useState(true);
   const [password,    setPassword]    = useState("");
   const [authError,   setAuthError]   = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
-  // ── Data ──────────────────────────────────────────────────────────────────
   const [players,       setPlayers]       = useState([]);
   const [seasonLeagues, setSeasonLeagues] = useState([]);
   const [dataLoading,   setDataLoading]   = useState(false);
   const [toast,         setToast]         = useState(null);
 
-  // ── Import flow ───────────────────────────────────────────────────────────
-  const [jsonText,    setJsonText]    = useState("");
-  const [phase,       setPhase]       = useState("idle");
-  const [draft,       setDraft]       = useState(null);
-  const [highlights,  setHighlights]  = useState({});
-  const [warnings,    setWarnings]    = useState([]);
-  const [error,       setError]       = useState("");
+  const [jsonText,   setJsonText]   = useState("");
+  const [phase,      setPhase]      = useState("idle");
+  const [draft,      setDraft]      = useState(null);
+  const [highlights, setHighlights] = useState({});
+  const [warnings,   setWarnings]   = useState([]);
+  const [error,      setError]      = useState("");
 
   const showToast = (msg, type = "success") => setToast({ msg, type });
 
-  // ── On mount: check session ───────────────────────────────────────────────
   useEffect(() => {
     if (!validSlug) { setChecking(false); return; }
     fetch("/api/auth", { method: "GET" })
-      .then(r => {
-        if (r.ok) { setAuthed(true); loadBase(); }
-        setChecking(false);
-      })
+      .then(r => { if (r.ok) { setAuthed(true); loadBase(); } setChecking(false); })
       .catch(() => setChecking(false));
   }, [validSlug]);
 
@@ -52,12 +76,9 @@ export default function ImportPage({ validSlug }) {
       ]);
       if (pRes.ok)  { const d = await pRes.json();  setPlayers(d.players ?? []); }
       if (slRes.ok) { const d = await slRes.json(); setSeasonLeagues(d.seasonLeagues ?? []); }
-    } finally {
-      setDataLoading(false);
-    }
+    } finally { setDataLoading(false); }
   };
 
-  // ── Login ─────────────────────────────────────────────────────────────────
   const login = async (e) => {
     e.preventDefault();
     setAuthLoading(true); setAuthError("");
@@ -66,11 +87,8 @@ export default function ImportPage({ validSlug }) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password, slug }),
       });
-      if (res.ok) {
-        setPassword("");
-        setAuthed(true);
-        loadBase();
-      } else {
+      if (res.ok) { setPassword(""); setAuthed(true); loadBase(); }
+      else {
         const d = await res.json();
         if (res.status === 429) setAuthError(`Too many attempts. Try again in ${Math.ceil((d.retryAfter || 900) / 60)} min.`);
         else setAuthError("Invalid credentials.");
@@ -79,65 +97,124 @@ export default function ImportPage({ validSlug }) {
     finally { setAuthLoading(false); }
   };
 
-  // ── buildDraft ────────────────────────────────────────────────────────────
+  // ── buildDraft -- maps new scraper format to the review UI ────────────────
   const buildDraft = (data) => {
-    const mi = data.match_info;
-    const ak = data.armani_katehano;
-    const matchedSL = seasonLeagues.find(sl => sl.leagueSlug === mi.league) ?? seasonLeagues[0];
+    const { game, teams, url: sourceUrl } = data;
 
-    const boxScore = [...players].sort(byJersey).map(p => {
-      const parsed = ak.players.find(pp => pp.jersey_number === Number(p.number));
-      if (!parsed || parsed.did_not_play) {
-        return { pid: p.id, min: 0, pts: 0, reb: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, fgm: 0, fga: 0, fg2m: 0, fg2a: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, eff: 0 };
+    const akTeam = teams.find(t =>
+      t.name.toUpperCase().includes("ARMANI") ||
+      t.name.toUpperCase().includes("KATEHANO")
+    );
+    if (!akTeam) throw new Error("ARMANI KATEHANO team not found in JSON");
+
+    const isHome      = game.homeTeam.toUpperCase().includes("ARMANI") ||
+                        game.homeTeam.toUpperCase().includes("KATEHANO");
+    const akScore     = isHome ? game.finalScore.home  : game.finalScore.away;
+    const oppScore    = isHome ? game.finalScore.away  : game.finalScore.home;
+    const oppTeamName = isHome ? game.awayTeam         : game.homeTeam;
+    const result      = akScore > oppScore ? "W" : "L";
+    const date        = parseGreekDate(game.date);
+    const leagueSlug  = detectLeague(sourceUrl);
+
+    const matchedSL = seasonLeagues.find(sl => sl.leagueSlug === leagueSlug)
+                   ?? seasonLeagues[0];
+
+    // Build box score -- match scraper players to DB players by jersey number
+    const boxScore = [...players].sort(byJersey).map(dbPlayer => {
+      const scraped = akTeam.players.find(p => p["#"] === Number(dbPlayer.number));
+      const mins    = scraped ? parseMinutes(scraped.MIN) : 0;
+
+      if (!scraped || mins === 0) {
+        return {
+          pid: dbPlayer.id, min: 0, pts: 0, reb: 0, orb: 0, drb: 0,
+          ast: 0, stl: 0, blk: 0, tov: 0, pf: 0,
+          fgm: 0, fga: 0, fg2m: 0, fg2a: 0, fg3m: 0, fg3a: 0,
+          ftm: 0, fta: 0, eff: 0,
+        };
       }
-      const fg2m = parsed.two_point_fg?.made      ?? 0;
-      const fg2a = parsed.two_point_fg?.attempted ?? 0;
-      const fg3m = parsed.three_point_fg?.made      ?? 0;
-      const fg3a = parsed.three_point_fg?.attempted ?? 0;
+
+      const fg2m = scraped["2PTS"]?.made      ?? 0;
+      const fg2a = scraped["2PTS"]?.attempted ?? 0;
+      const fg3m = scraped["3PTS"]?.made      ?? 0;
+      const fg3a = scraped["3PTS"]?.attempted ?? 0;
+
       return {
-        pid:  p.id,
-        min:  parsed.minutes_played?.total_seconds ? Math.round(parsed.minutes_played.total_seconds / 60) : 0,
-        pts:  parsed.points,
-        reb:  parsed.total_rebounds,
-        orb:  parsed.offensive_rebounds ?? 0,
-        drb:  parsed.defensive_rebounds ?? 0,
-        ast:  parsed.assists,
-        stl:  parsed.steals,
-        blk:  parsed.blocks,
-        tov:  parsed.turnovers,
-        pf:   parsed.fouls_committed ?? 0,
+        pid:  dbPlayer.id,
+        min:  mins,
+        pts:  scraped.PTS  ?? 0,
+        reb:  scraped.REB  ?? 0,
+        orb:  scraped.OREB ?? 0,
+        drb:  scraped.DREB ?? 0,
+        ast:  scraped.AST  ?? 0,
+        stl:  scraped.STL  ?? 0,
+        blk:  scraped.BLK  ?? 0,
+        tov:  scraped.TO   ?? 0,
+        pf:   scraped.PF   ?? 0,
         fg2m, fg2a, fg3m, fg3a,
         fgm:  fg2m + fg3m,
         fga:  fg2a + fg3a,
-        ftm:  parsed.free_throws?.made      ?? 0,
-        fta:  parsed.free_throws?.attempted ?? 0,
-        eff:  parsed.efficiency ?? 0,
+        ftm:  scraped.FT?.made      ?? 0,
+        fta:  scraped.FT?.attempted ?? 0,
+        eff:  scraped.EF  ?? 0,
       };
     });
 
+    // Highlight players who actually played
     const hl = {};
-    ak.players.filter(p => !p.did_not_play).forEach(p => {
-      const player = players.find(pl => Number(pl.number) === p.jersey_number);
-      if (player) hl[player.id] = true;
+    akTeam.players.forEach(p => {
+      if (parseMinutes(p.MIN) > 0) {
+        const dbPlayer = players.find(pl => Number(pl.number) === p["#"]);
+        if (dbPlayer) hl[dbPlayer.id] = true;
+      }
     });
 
-    return { draft: { date: mi.date || "", opponent: mi.opponent || "", home: mi.home_team?.toUpperCase().includes("ARMANI") || mi.home_team?.toUpperCase().includes("KATEHANO"), result: mi.result || "W", teamScore: mi.armani_katehano_score ?? "", opponentScore: mi.opponent_score ?? "", seasonLeagueId: matchedSL?.id ?? "", boxScore }, highlights: hl };
+    // Sanity warnings
+    const warns = [];
+    akTeam.players.filter(p => parseMinutes(p.MIN) > 0).forEach(p => {
+      const fg2m = p["2PTS"]?.made ?? 0;
+      const fg3m = p["3PTS"]?.made ?? 0;
+      const ftm  = p.FT?.made ?? 0;
+      const expPts = fg2m * 2 + fg3m * 3 + ftm;
+      if ((p.PTS ?? 0) !== expPts)
+        warns.push(`#${p["#"]} ${p.Players}: pts=${p.PTS}, expected ${expPts}`);
+    });
+
+    return {
+      draft: {
+        date,
+        opponent:       oppTeamName,
+        home:           isHome,
+        result,
+        teamScore:      akScore,
+        opponentScore:  oppScore,
+        seasonLeagueId: matchedSL?.id ?? "",
+        boxScore,
+      },
+      highlights: hl,
+      warnings:   warns,
+    };
   };
 
   const parseAndReview = () => {
     setError("");
     try {
       const data = JSON.parse(jsonText.trim());
-      if (!data.match_info || !data.armani_katehano?.players)
-        throw new Error("Missing match_info or armani_katehano.players");
-      const { draft, highlights } = buildDraft(data);
-      setDraft(draft); setHighlights(highlights); setWarnings(data._warnings ?? []);
+      // Accept new format { game, teams } or old format { match_info, armani_katehano }
+      if (!data.game && !data.match_info)
+        throw new Error("Unrecognised JSON format -- expected game/teams or match_info/armani_katehano");
+      if (!data.game)
+        throw new Error("This looks like the old format. Please use the new scraper output.");
+
+      const { draft, highlights, warnings } = buildDraft(data);
+      setDraft(draft); setHighlights(highlights); setWarnings(warnings);
       setPhase("review");
-    } catch (err) { setError(`Invalid JSON: ${err.message}`); }
+    } catch (err) { setError(err.message); }
   };
 
   const updDraft = (k, v) => setDraft(d => ({ ...d, [k]: v }));
-  const updBox   = (pid, k, v) => setDraft(d => ({ ...d, boxScore: d.boxScore.map(r => r.pid === pid ? { ...r, [k]: parseFloat(v) || 0 } : r) }));
+  const updBox   = (pid, k, v) => setDraft(d => ({
+    ...d, boxScore: d.boxScore.map(r => r.pid === pid ? { ...r, [k]: parseFloat(v) || 0 } : r)
+  }));
 
   const save = async () => {
     setPhase("saving");
@@ -152,28 +229,41 @@ export default function ImportPage({ validSlug }) {
         ftm: r.ftm || 0, fta: r.fta || 0,
       };
     });
+
     const res = await fetch("/api/admin/games", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ seasonLeagueId: draft.seasonLeagueId, opponent: draft.opponent, location: draft.home ? "home" : "away", teamScore: Number(draft.teamScore) || 0, opponentScore: Number(draft.opponentScore) || 0, result: draft.result, playedOn: draft.date, boxScore }),
+      body: JSON.stringify({
+        seasonLeagueId: draft.seasonLeagueId,
+        opponent:       draft.opponent,
+        location:       draft.home ? "home" : "away",
+        teamScore:      Number(draft.teamScore) || 0,
+        opponentScore:  Number(draft.opponentScore) || 0,
+        result:         draft.result,
+        playedOn:       draft.date,
+        boxScore,
+      }),
     });
-    if (!res.ok) { const d = await res.json(); showToast(d.error || "Save failed", "error"); setPhase("review"); return; }
+
+    if (!res.ok) {
+      const d = await res.json();
+      showToast(d.error || "Save failed", "error");
+      setPhase("review");
+      return;
+    }
     showToast("Game saved!");
     setPhase("idle"); setDraft(null); setJsonText(""); setHighlights({}); setWarnings([]);
   };
 
   const leagueOptions = seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName }));
 
-  // ── 404 ───────────────────────────────────────────────────────────────────
   if (!validSlug) return null;
 
-  // ── Checking session ──────────────────────────────────────────────────────
   if (checking) return (
     <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <Spinner />
     </div>
   );
 
-  // ── Login ─────────────────────────────────────────────────────────────────
   if (!authed) return (
     <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div style={{ width: "100%", maxWidth: 360, borderRadius: 20, padding: 32, border: `1px solid ${C.border}`, background: C.surface }}>
@@ -199,26 +289,23 @@ export default function ImportPage({ validSlug }) {
     </div>
   );
 
-  // ── Main UI ───────────────────────────────────────────────────────────────
   return (
     <AdminLayout slug={slug} title="Import" toast={toast} setToast={setToast}>
       <div style={{ maxWidth: 900 }}>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: C.text, marginBottom: 4 }}>Import game</div>
           <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.5 }}>
-            Run <code style={{ background: C.surface2, padding: "1px 6px", borderRadius: 4, fontSize: 12 }}>node scripts/scrape.js [url]</code> locally, or paste JSON below.
+            Run your scraper, then paste the JSON output below.
           </div>
         </div>
 
-        {dataLoading && (
-          <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Spinner /></div>
-        )}
+        {dataLoading && <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Spinner /></div>}
 
         {!dataLoading && phase === "idle" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, textTransform: "uppercase" }}>Paste scraped JSON</div>
+            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, textTransform: "uppercase" }}>Paste scraper JSON</div>
             <textarea value={jsonText} onChange={e => setJsonText(e.target.value)}
-              placeholder='{"match_info": {...}, "armani_katehano": {...}}'
+              placeholder='{"url": "...", "game": {...}, "teams": [...]}'
               style={{ width: "100%", minHeight: 180, fontSize: 11, fontFamily: "monospace", padding: 12, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, resize: "vertical" }} />
             {error && (
               <div style={{ fontSize: 12, color: C.redText, padding: "8px 12px", borderRadius: 8, background: `${C.red}18`, border: `1px solid ${C.red}40` }}>{error}</div>
@@ -238,13 +325,13 @@ export default function ImportPage({ validSlug }) {
             <div>
               <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 10, textTransform: "uppercase" }}>Game info</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: 10 }}>
-                <F label="DATE"      value={draft.date}          onChange={v => updDraft("date", v)}          placeholder="YYYY-MM-DD" />
-                <F label="OPPONENT"  value={draft.opponent}      onChange={v => updDraft("opponent", v)} />
-                <Sel label="LEAGUE"  value={draft.seasonLeagueId || ""} onChange={v => updDraft("seasonLeagueId", v)} options={leagueOptions} />
+                <F label="DATE"       value={draft.date}          onChange={v => updDraft("date", v)}          placeholder="YYYY-MM-DD" />
+                <F label="OPPONENT"   value={draft.opponent}      onChange={v => updDraft("opponent", v)} />
+                <Sel label="LEAGUE"   value={draft.seasonLeagueId || ""} onChange={v => updDraft("seasonLeagueId", v)} options={leagueOptions} />
                 <Sel label="HOME/AWAY" value={draft.home ? "home" : "away"} onChange={v => updDraft("home", v === "home")} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
-                <Sel label="RESULT"  value={draft.result}        onChange={v => updDraft("result", v)}        options={[{ value: "W", label: "Win" }, { value: "L", label: "Loss" }]} />
-                <F label="OUR SCORE" value={draft.teamScore}     onChange={v => updDraft("teamScore", v)}     type="number" />
-                <F label="OPP SCORE" value={draft.opponentScore} onChange={v => updDraft("opponentScore", v)} type="number" />
+                <Sel label="RESULT"   value={draft.result}        onChange={v => updDraft("result", v)}        options={[{ value: "W", label: "Win" }, { value: "L", label: "Loss" }]} />
+                <F label="OUR SCORE"  value={draft.teamScore}     onChange={v => updDraft("teamScore", v)}     type="number" />
+                <F label="OPP SCORE"  value={draft.opponentScore} onChange={v => updDraft("opponentScore", v)} type="number" />
               </div>
             </div>
             <div>
