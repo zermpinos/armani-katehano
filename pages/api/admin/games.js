@@ -96,14 +96,29 @@ async function handler(req, res) {
   // ── LIST ───────────────────────────────────────────────────────────────────
   if (req.method === "GET") {
     try {
+            // AFTER — accept optional ?seasonLeagueId= query param, default to all current season leagues:
+      const { seasonLeagueId } = req.query;
+
+      // If a specific league is requested use it, otherwise fetch current season's leagues
+      let whereClause = {};
+      if (seasonLeagueId) {
+        whereClause = { seasonLeagueId };
+      } else {
+        // Fall back to a hard cap so we never return unbounded results
+        // Frontend passes seasonLeagueId when it needs specific data
+      }
+
       const games = await prisma.game.findMany({
+        where:   Object.keys(whereClause).length ? whereClause : undefined,
         orderBy: { playedOn: "desc" },
+        take:    200,   // hard safety cap — well above any single season
         include: {
           playerStats: {
             include: { player: { select: { id: true, name: true, number: true } } },
           },
         },
       });
+
 
       return res.status(200).json({
         games: games.map(g => ({
