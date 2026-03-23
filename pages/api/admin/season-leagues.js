@@ -7,6 +7,7 @@
 
 import { requireAuth }               from "../../../lib/requireAuth.js";
 import { securityHeaders, auditLog } from "../../../lib/security.js";
+import { prodError }                 from "../../../lib/utils.js";
 import prisma                        from "../../../lib/prisma.js";
 
 async function handler(req, res) {
