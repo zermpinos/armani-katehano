@@ -38,16 +38,25 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
     window.location.href = sid === "all-time" ? "/team" : `/team?season=${sid}`;
   };
 
-  // Normalise game league slugs so tab filtering is robust to DB slug variations
+  // Pre-normalise all game league slugs once, so every downstream
+  // consumer uses the same normalised value -- avoids the divergence
+  // where computeRecord used raw slugs while the box score used normalised ones.
   const normalisedGames = games.map(g => ({ ...g, _normLeague: normaliseSlug(g.league) }));
 
-  const filteredGames = games
-    .filter(g => normaliseSlug(g.league) === tab)
-    .map(g => ({ ...g, league: tab }));
+  // Filter by the active tab using the pre-normalised slug.
+  // "all" shows every game regardless of league.
+  const filteredGames = league === "all"
+    ? normalisedGames
+    : normalisedGames.filter(g => g._normLeague === league);
 
   const gp = filteredGames.length;
 
-  const rec = computeRecord(filteredGames, tab);
+  // FIX (B-03): pass filteredGames + the active league key so computeRecord
+  // operates on the exact same set of games the box score stats use.
+  // Previously this was computeRecord(games, league) -- raw games + raw slug --
+  // which caused wins/losses to diverge from the per-player averages shown
+  // on the same tab.
+  const rec = computeRecord(filteredGames, league);
 
   const allRows = filteredGames.flatMap(g => g.boxScore || []).filter(r => r.min > 0);
   const sum    = key => allRows.reduce((a, r) => a + (r[key] || 0), 0);
@@ -86,7 +95,7 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
       const n = rows.length;
       if (n === 0) return null;
       return {
-        name:     fmt(p.name),   // "Antonakos G." -- correct format
+        name:     fmt(p.name),
         fullName: p.name,
         mpg:      +(rows.reduce((a, r) => a + (r.min || 0), 0) / n).toFixed(1),
       };
