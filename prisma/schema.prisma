@@ -147,6 +147,7 @@ model PlayerSeasonAggregate {
   fg2Pct         Float        @default(0)
   player         Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
   seasonLeague   SeasonLeague @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
+  effAvg         Float        @default(0)
 
   @@unique([playerId, seasonLeagueId])
   @@index([seasonLeagueId])

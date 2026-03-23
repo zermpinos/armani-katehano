@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-  "dev":   "next dev",
-  "build": "prisma generate && next build",
-  "start": "next start",
-  "lint":  "eslint .",
-  "test":  "vitest run"
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "test": "vitest run"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
