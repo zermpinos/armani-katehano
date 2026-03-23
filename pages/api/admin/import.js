@@ -2,10 +2,8 @@
  * pages/api/admin/import.js
  * POST /api/admin/import
  *
- * Called by your local scraper script.
- * Accepts the new scraper JSON format and saves to DB.
- *
- * Body: { secret: string, data: <scraper output> }
+ * Body: { data: <scraper output> }
+ * Protected by session cookie via requireAuth().
  *
  * Scraper output shape:
  * {
@@ -29,29 +27,18 @@
  * }
  */
 
-import { createHmac, timingSafeEqual } from "crypto";
-import prisma                          from "../../../lib/prisma.js";
-import { recalcAggregates }            from "../../../lib/stats.prisma.js";
-import { prodError }                   from "../../../lib/utils.js";
+import prisma               from "../../../lib/prisma.js";
+import { recalcAggregates } from "../../../lib/stats.prisma.js";
+import { prodError }        from "../../../lib/utils.js";
+import { requireAuth }      from "../../../lib/requireAuth.js";
 
-export default async function handler(req, res) {
+export default requireAuth(async function handler(req, res) {
   if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
 
-  // ── Auth ──────────────────────────────────────────────────────────────────
-  const { secret, data } = req.body ?? {};
-  const expected = process.env.IMPORT_SECRET;
-  if (!expected) return res.status(500).json({ error: "IMPORT_SECRET not configured" });
-
-  // HMAC-based constant-time comparison — no length oracle, no unsafe fallback
-  const hmacKey  = process.env.SESSION_SECRET ?? "";
-  const ha       = createHmac("sha256", hmacKey).update(secret || "").digest();
-  const hb       = createHmac("sha256", hmacKey).update(expected).digest();
-  const secretOk = timingSafeEqual(ha, hb);
-
-  if (!secretOk) return res.status(401).json({ error: "Unauthorized" });
-
   // ── Validate shape ────────────────────────────────────────────────────────
+  const { data } = req.body ?? {};
+
   if (!data?.game || !Array.isArray(data?.teams))
     return res.status(400).json({ error: "Missing game or teams in payload" });
 
@@ -97,10 +84,10 @@ export default async function handler(req, res) {
   // ── Detect league from URL ────────────────────────────────────────────────
   const u = (sourceUrl || "").toLowerCase();
   let leagueSlug = "";
-  if (u.includes("winter-cup"))  leagueSlug = "wintercup";
-  else if (u.includes("rookie")) leagueSlug = "rookie";
-  else if (u.includes("bc6"))    leagueSlug = "bc6";
-  else if (u.includes("/men/"))  leagueSlug = ""; // regular season — fallback below
+  if (u.includes("winter-cup"))       leagueSlug = "wintercup";
+  else if (u.includes("rookie"))      leagueSlug = "rookie";
+  else if (u.includes("bc6"))         leagueSlug = "bc6";
+  else if (u.includes("/men/"))       leagueSlug = ""; // regular season — fallback below
 
   // ── Resolve seasonLeagueId ────────────────────────────────────────────────
   let seasonLeagueId = null;
@@ -115,13 +102,12 @@ export default async function handler(req, res) {
     }
   }
   if (!seasonLeagueId) {
-    // Fallback: most recent SeasonLeague
     const sl = await prisma.seasonLeague.findFirst({ orderBy: { createdAt: "desc" } });
     if (!sl) return res.status(422).json({ error: "No SeasonLeague found — create one first" });
     seasonLeagueId = sl.id;
   }
 
-  // ── Resolve player IDs by jersey number ───────────────────────────────────
+  // ── Resolve player IDs by jersey number ──────────────────────────────────
   const allPlayers = await prisma.player.findMany({ where: { isActive: true } });
   const playerMap  = {};
   allPlayers.forEach(p => { playerMap[p.number] = p.id; });
@@ -138,10 +124,7 @@ export default async function handler(req, res) {
   // ── Build box score rows ──────────────────────────────────────────────────
   const skipped  = [];
   const boxScore = akTeam.players
-    .filter(p => {
-      const mins = parseMinutes(p.MIN);
-      return mins > 0;
-    })
+    .filter(p => parseMinutes(p.MIN) > 0)
     .map(p => {
       const playerId = playerMap[p["#"]];
       if (!playerId) {
@@ -157,19 +140,16 @@ export default async function handler(req, res) {
       return {
         playerId,
         minutes:   parseMinutes(p.MIN),
-        pts:       p.PTS   ?? 0,
-        reb:       p.REB   ?? 0,
-        orb:       p.OREB  ?? 0,
-        drb:       p.DREB  ?? 0,
-        ast:       p.AST   ?? 0,
-        stl:       p.STL   ?? 0,
-        blk:       p.BLK   ?? 0,
-        tov:       p.TO    ?? 0,
-        pf:        p.PF    ?? 0,
-        fg2m,
-        fg2a,
-        fg3m,
-        fg3a,
+        pts:       p.PTS  ?? 0,
+        reb:       p.REB  ?? 0,
+        orb:       p.OREB ?? 0,
+        drb:       p.DREB ?? 0,
+        ast:       p.AST  ?? 0,
+        stl:       p.STL  ?? 0,
+        blk:       p.BLK  ?? 0,
+        tov:       p.TO   ?? 0,
+        pf:        p.PF   ?? 0,
+        fg2m, fg2a, fg3m, fg3a,
         fgm:       fg2m + fg3m,
         fga:       fg2a + fg3a,
         ftm:       p.FT?.made      ?? 0,
@@ -184,16 +164,10 @@ export default async function handler(req, res) {
     let gameId;
 
     await prisma.$transaction(async (tx) => {
-      // ── Duplicate check ───────────────────────────────────────────────────
       if (sourceUrl) {
-        const duplicate = await tx.game.findUnique({
-          where: { sourceUrl },
-        });
+        const duplicate = await tx.game.findUnique({ where: { sourceUrl } });
         if (duplicate) {
-          throw Object.assign(
-            new Error("DUPLICATE"),
-            { gameId: duplicate.id }
-          );
+          throw Object.assign(new Error("DUPLICATE"), { gameId: duplicate.id });
         }
       }
 
@@ -230,12 +204,12 @@ export default async function handler(req, res) {
   } catch (err) {
     if (err.message === "DUPLICATE") {
       return res.status(409).json({
-        ok:    false,
-        error: "This game has already been imported.",
+        ok:     false,
+        error:  "This game has already been imported.",
         gameId: err.gameId,
       });
     }
     console.error("[import]", err);
     return res.status(500).json({ error: prodError(err) });
   }
-}
+});
