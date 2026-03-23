@@ -13,6 +13,29 @@ const BOX_COLS = [
   {key:"ftm",label:"FTM"},{key:"fta",label:"FTA"},{key:"eff",label:"EFF"},
 ];
 
+/**
+ * B-04: topScorer was referenced in JSX but never set by getGames() in
+ * repository.prisma.js, so it was silently undefined and never rendered.
+ *
+ * Fix: derive it client-side from the box score rows that are already present.
+ * Returns a display string like "A. Katehano 22 PTS" or null if no box score.
+ */
+function getTopScorer(game, players) {
+  const rows = game.boxScore;
+  if (!rows || rows.length === 0) return null;
+
+  const playing = rows.filter(r => (r.min || r.minutes || 0) > 0);
+  if (playing.length === 0) return null;
+
+  const best = playing.reduce((top, r) => (r.pts ?? 0) > (top.pts ?? 0) ? r : top, playing[0]);
+  if (!best || (best.pts ?? 0) === 0) return null;
+
+  const player = players.find(p => p.id === (best.pid || best.playerId));
+  if (!player) return null;
+
+  return `${fmt(player.name)} ${best.pts} PTS`;
+}
+
 function BoxScore({ game, players, onClose }) {
   const rows = (game.boxScore || [])
     .map(r => ({ ...r, player: players.find(p => p.id === r.pid) }))
@@ -79,38 +102,45 @@ export default function GamesPage({ games, players }) {
         </div>
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-          {sorted.map(g => (
-            <button key={g.id} onClick={() => setSelected(g)} style={{
-              display:"flex", alignItems:"center", justifyContent:"space-between",
-              padding:"14px 18px", borderRadius:12, border:`1px solid ${C.border}`,
-              background:C.surface, cursor:"pointer", textAlign:"left", fontFamily:"inherit",
-              transition:"border-color 0.15s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.borderColor=`${C.redBright}55`}
-            onMouseLeave={e => e.currentTarget.style.borderColor=C.border}
-            >
-              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                <span style={{
-                  width:34, height:34, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
-                  fontSize:12, fontWeight:900, flexShrink:0,
-                  background: g.result==="W" ? `${C.green}20` : `${C.red}30`,
-                  color: g.result==="W" ? C.green : C.redText,
-                  border: `1px solid ${g.result==="W" ? `${C.green}40` : `${C.redText}30`}`,
-                }}>{g.result}</span>
-                <div>
-                  <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{g.home ? "vs" : "@"} {g.opponent}</div>
-                  <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{g.date}</div>
+          {sorted.map(g => {
+            // B-04: derive topScorer from box score rows — was previously
+            // referencing g.topScorer which is never set by the repository.
+            const topScorer = getTopScorer(g, players);
+
+            return (
+              <button key={g.id} onClick={() => setSelected(g)} style={{
+                display:"flex", alignItems:"center", justifyContent:"space-between",
+                padding:"14px 18px", borderRadius:12, border:`1px solid ${C.border}`,
+                background:C.surface, cursor:"pointer", textAlign:"left", fontFamily:"inherit",
+                transition:"border-color 0.15s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor=`${C.redBright}55`}
+              onMouseLeave={e => e.currentTarget.style.borderColor=C.border}
+              >
+                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                  <span style={{
+                    width:34, height:34, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
+                    fontSize:12, fontWeight:900, flexShrink:0,
+                    background: g.result==="W" ? `${C.green}20` : `${C.red}30`,
+                    color: g.result==="W" ? C.green : C.redText,
+                    border: `1px solid ${g.result==="W" ? `${C.green}40` : `${C.redText}30`}`,
+                  }}>{g.result}</span>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{g.home ? "vs" : "@"} {g.opponent}</div>
+                    <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{g.date}</div>
+                  </div>
                 </div>
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:24 }}>
-                <div style={{ textAlign:"right" }}>
-                  <div style={{ fontSize:18, fontWeight:900, color:C.text }}>{g.score}</div>
-                  {g.topScorer && <div style={{ fontSize:11, color:C.textDim }}>{g.topScorer}</div>}
+                <div style={{ display:"flex", alignItems:"center", gap:24 }}>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontSize:18, fontWeight:900, color:C.text }}>{g.score}</div>
+                    {/* B-04: now renders when box score data is present */}
+                    {topScorer && <div style={{ fontSize:11, color:C.textDim }}>{topScorer}</div>}
+                  </div>
+                  <div style={{ fontSize:11, color:C.textDim }}>BOX SCORE →</div>
                 </div>
-                <div style={{ fontSize:11, color:C.textDim }}>BOX SCORE →</div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       )}
       {selected && <BoxScore game={selected} players={players} onClose={() => setSelected(null)} />}
