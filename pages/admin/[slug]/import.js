@@ -3,21 +3,19 @@
  * Accepts the new scraper JSON format for browser-side review before saving.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { C } from "../../../lib/theme";
-import { AdminLayout, BoxScoreTable, F, Sel, Btn, byJersey } from "../../../lib/adminShared";
+import { AdminLayout, BoxScoreTable, F, Sel, Btn, byJersey, useAdminAuth } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck.js';
-import { parseGreekDate, parseMinutes, detectLeagueSlug} from "../../../lib/greekDate.js";
+import { parseGreekDate, parseMinutes, detectLeagueSlug } from "../../../lib/greekDate.js";  // Q-04
 
 
 export default function ImportPage({ validSlug }) {
   const slug = typeof window !== "undefined" ? window.location.pathname.split("/")[2] : "";
 
-  const [authed,      setAuthed]      = useState(false);
-  const [checking,    setChecking]    = useState(true);
-  const [password,    setPassword]    = useState("");
-  const [authError,   setAuthError]   = useState("");
-  const [authLoading, setAuthLoading] = useState(false);
+  // Q-01: replaced ~25 lines of duplicated auth state + useEffect + login fn
+  // with a single hook call.
+  const { authed, loading: checking, loginError, handleLogin } = useAdminAuth(slug);
 
   const [players,       setPlayers]       = useState([]);
   const [seasonLeagues, setSeasonLeagues] = useState([]);
@@ -33,13 +31,6 @@ export default function ImportPage({ validSlug }) {
 
   const showToast = (msg, type = "success") => setToast({ msg, type });
 
-  useEffect(() => {
-    if (!validSlug) { setChecking(false); return; }
-    fetch("/api/auth", { method: "GET" })
-      .then(r => { if (r.ok) { setAuthed(true); loadBase(); } setChecking(false); })
-      .catch(() => setChecking(false));
-  }, [validSlug]);
-
   const loadBase = async () => {
     setDataLoading(true);
     try {
@@ -52,23 +43,8 @@ export default function ImportPage({ validSlug }) {
     } finally { setDataLoading(false); }
   };
 
-  const login = async (e) => {
-    e.preventDefault();
-    setAuthLoading(true); setAuthError("");
-    try {
-      const res = await fetch("/api/auth", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, slug }),
-      });
-      if (res.ok) { setPassword(""); setAuthed(true); loadBase(); }
-      else {
-        const d = await res.json();
-        if (res.status === 429) setAuthError(`Too many attempts. Try again in ${Math.ceil((d.retryAfter || 900) / 60)} min.`);
-        else setAuthError("Invalid credentials.");
-      }
-    } catch { setAuthError("Network error."); }
-    finally { setAuthLoading(false); }
-  };
+  // Trigger data load once authenticated
+  useState(() => { if (authed) loadBase(); }, [authed]);
 
   // ── buildDraft — maps new scraper format to the review UI ────────────────
   const buildDraft = (data) => {
@@ -86,8 +62,8 @@ export default function ImportPage({ validSlug }) {
     const oppScore    = isHome ? game.finalScore.away  : game.finalScore.home;
     const oppTeamName = isHome ? game.awayTeam         : game.homeTeam;
     const result      = akScore > oppScore ? "W" : "L";
-    const date        = parseGreekDate(game.date);
-    const leagueSlug  = detectLeagueSlug(sourceUrl);
+    const date        = parseGreekDate(game.date);       // Q-04: from lib/greekDate.js
+    const leagueSlug  = detectLeagueSlug(sourceUrl);     // Q-04: from lib/greekDate.js
 
     const matchedSL = seasonLeagues.find(sl => sl.leagueSlug === leagueSlug)
                    ?? seasonLeagues[0];
@@ -95,7 +71,7 @@ export default function ImportPage({ validSlug }) {
     // Build box score — match scraper players to DB players by jersey number
     const boxScore = [...players].sort(byJersey).map(dbPlayer => {
       const scraped = akTeam.players.find(p => p["#"] === Number(dbPlayer.number));
-      const mins    = scraped ? parseMinutes(scraped.MIN) : 0;
+      const mins    = scraped ? parseMinutes(scraped.MIN) : 0;  // Q-04: from lib/greekDate.js
 
       if (!scraped || mins === 0) {
         return {
@@ -239,26 +215,7 @@ export default function ImportPage({ validSlug }) {
 
   if (!authed) return (
     <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ width: "100%", maxWidth: 360, borderRadius: 20, padding: 32, border: `1px solid ${C.border}`, background: C.surface }}>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ width: 52, height: 52, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontSize: 22, background: `${C.red}18`, border: `1px solid ${C.red}45` }}>🔐</div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: C.text }}>Admin Access</div>
-          <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Armani Katehano · Team Manager</div>
-        </div>
-        <form onSubmit={login} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", marginBottom: 5, color: C.textDim, textTransform: "uppercase" }}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password"
-              style={{ width: "100%", padding: "9px 12px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none" }} />
-          </div>
-          {authError && <div style={{ fontSize: 12, color: C.redText }}>{authError}</div>}
-          <button type="submit" disabled={authLoading || !password}
-            style={{ padding: "12px", fontWeight: 900, fontSize: 14, letterSpacing: "0.12em", textTransform: "uppercase", borderRadius: 10, border: "none", background: C.red, color: C.text, cursor: "pointer", fontFamily: "inherit", opacity: authLoading || !password ? 0.5 : 1 }}>
-            {authLoading ? "VERIFYING…" : "SIGN IN"}
-          </button>
-        </form>
-        <div style={{ textAlign: "center", fontSize: 10, color: C.textDim, marginTop: 16 }}>5 failed attempts → 15-minute lockout</div>
-      </div>
+      <LoginForm onLogin={handleLogin} error={loginError} />
     </div>
   );
 
@@ -322,8 +279,45 @@ export default function ImportPage({ validSlug }) {
   );
 }
 
+// ── Themed Spinner — kept local to preserve C (theme token) styling ───────────
 function Spinner() {
   return <div style={{ width: 32, height: 32, borderRadius: "50%", border: `2px solid ${C.border2}`, borderTopColor: C.redBright, animation: "spin 0.7s linear infinite" }} />;
+}
+
+// Q-01: now receives (onLogin, error) from useAdminAuth hook
+function LoginForm({ onLogin, error }) {
+  const [password, setPassword] = useState("");
+  const [loading,  setLoading]  = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    await onLogin(password);
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ width: "100%", maxWidth: 360, borderRadius: 20, padding: 32, border: `1px solid ${C.border}`, background: C.surface }}>
+      <div style={{ textAlign: "center", marginBottom: 28 }}>
+        <div style={{ width: 52, height: 52, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontSize: 22, background: `${C.red}18`, border: `1px solid ${C.red}45` }}>🔐</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: C.text }}>Admin Access</div>
+        <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Armani Katehano · Team Manager</div>
+      </div>
+      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", marginBottom: 5, color: C.textDim, textTransform: "uppercase" }}>Password</label>
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password"
+            style={{ width: "100%", padding: "9px 12px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none" }} />
+        </div>
+        {error && <div style={{ fontSize: 12, color: C.redText }}>{error}</div>}
+        <button type="submit" disabled={loading || !password}
+          style={{ padding: "12px", fontWeight: 900, fontSize: 14, letterSpacing: "0.12em", textTransform: "uppercase", borderRadius: 10, border: "none", background: C.red, color: C.text, cursor: "pointer", fontFamily: "inherit", opacity: loading || !password ? 0.5 : 1 }}>
+          {loading ? "VERIFYING…" : "SIGN IN"}
+        </button>
+      </form>
+      <div style={{ textAlign: "center", fontSize: 10, color: C.textDim, marginTop: 16 }}>5 failed attempts → 15-minute lockout</div>
+    </div>
+  );
 }
 
 export async function getServerSideProps({ params }) {
