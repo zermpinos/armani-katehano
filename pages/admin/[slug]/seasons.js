@@ -6,6 +6,7 @@
 import { useState, useEffect } from "react";
 import { C } from "../../../lib/theme";
 import { AdminLayout, F, Sel, Btn, Toast } from "../../../lib/adminShared";
+import { validateAdminSlug } from '../../../lib/adminSlugCheck.js';
 
 export default function SeasonsPage({ validSlug }) {
   const slug = typeof window !== "undefined" ? window.location.pathname.split("/")[2] : "";
@@ -205,14 +206,6 @@ function LoginForm({ password, setPassword, authError, authLoading, onSubmit }) 
 }
 
 export async function getServerSideProps({ params }) {
-  const { slug } = params;
-  const expected = process.env.ADMIN_SLUG;
-  let validSlug = false;
-  try {
-    const crypto = await import("crypto");
-    const a = Buffer.from(slug || "");
-    const b = Buffer.from(expected || "");
-    if (a.length === b.length) validSlug = crypto.timingSafeEqual(a, b);
-  } catch { validSlug = slug === expected; }
+  const validSlug = await validateAdminSlug(params.slug);
   return { props: { validSlug } };
 }
