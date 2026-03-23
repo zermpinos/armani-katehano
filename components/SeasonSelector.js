@@ -24,7 +24,7 @@ export default function SeasonSelector({ seasons, currentSeason, onChange, showA
   const label = (sid) => {
     if (sid === "all-time") return "All Time";
     // "2025-26" -> "2025-26" (en-dash for display)
-    return sid.replace("-", "-");
+    return sid.replace(/-/g, "-");
   };
 
   return (

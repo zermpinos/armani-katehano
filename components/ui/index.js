@@ -97,7 +97,7 @@ export function Select({ label, value, onChange, options }) {
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 export function Toast({ message, type = "success", onDone }) {
-  useEffect(() => { const t = setTimeout(onDone, 2800); return () => clearTimeout(t); }, []);
+  useEffect(() => { const t = setTimeout(onDone, 2800); return () => clearTimeout(t); }, [onDone]);
   return (
     <div style={{
       position:"fixed", bottom:24, right:24, zIndex:200,
