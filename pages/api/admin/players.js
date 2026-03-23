@@ -6,11 +6,12 @@
  */
 
 import { z }                         from "zod";
+import { zCuid }                     from "../../../lib/validators.js";
 import { requireAuth }               from "../../../lib/requireAuth.js";
 import { securityHeaders, auditLog } from "../../../lib/security.js";
 import prisma                        from "../../../lib/prisma.js";
-import { slugify } from "../../../lib/utils.js";
-import { prodError } from "../../../lib/utils.js";
+import { slugify }                   from "../../../lib/utils.js";
+import { prodError }                 from "../../../lib/utils.js";
 
 const PlayerWriteSchema = z.object({
   name:     z.string().min(1).max(100),
@@ -22,7 +23,7 @@ const PlayerWriteSchema = z.object({
 });
 
 const PlayerUpdateSchema = PlayerWriteSchema.extend({
-  playerId: z.string().cuid(),
+  playerId: zCuid,   // ← was z.string().cuid() — removed in Zod v4
   isActive: z.boolean().optional(),
 });
 

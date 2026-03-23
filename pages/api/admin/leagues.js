@@ -4,17 +4,17 @@
  */
 
 import { z }                         from "zod";
+import { zCuid, zCuidOptional }      from "../../../lib/validators.js";
 import { requireAuth }               from "../../../lib/requireAuth.js";
 import { securityHeaders, auditLog } from "../../../lib/security.js";
 import prisma                        from "../../../lib/prisma.js";
-import { slugify } from "../../../lib/utils.js";
-
+import { slugify, prodError }        from "../../../lib/utils.js";
 
 const LeagueCreateSchema = z.object({
   name:      z.string().min(1).max(100),
   organizer: z.string().max(100).optional().nullable(),
   level:     z.string().max(50).optional().nullable(),
-  seasonId:  z.string().cuid().optional(),
+  seasonId:  zCuidOptional,   // ← was z.string().cuid().optional() — removed in Zod v4
 });
 
 async function handler(req, res) {
@@ -29,6 +29,7 @@ async function handler(req, res) {
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });
   }
+
   const { name, organizer, level, seasonId } = parsed.data;
   const slug = slugify(name);
 
@@ -53,7 +54,7 @@ async function handler(req, res) {
     return res.status(201).json({ ok: true, league });
   } catch (err) {
     auditLog("league_create_error", { ip, error: err.message });
-    return res.status(500).json({ error: prodError(err) });
+    return res.status(500).json({ error: prodError(err) });  // ← prodError now imported (fixes B-02 for this file too)
   }
 }
 
