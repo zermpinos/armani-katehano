@@ -29,9 +29,9 @@
  * }
  */
 
-import prisma                from "../../../lib/prisma.js";
-import { recalcAggregates } from "../../../lib/stats.prisma.js";
 import { createHmac, timingSafeEqual } from "crypto";
+import prisma                          from "../../../lib/prisma.js";
+import { recalcAggregates }            from "../../../lib/stats.prisma.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST")
@@ -42,18 +42,12 @@ export default async function handler(req, res) {
   const expected = process.env.IMPORT_SECRET;
   if (!expected) return res.status(500).json({ error: "IMPORT_SECRET not configured" });
 
-  let secretOk = false;
-  try {
-    const crypto = await import("crypto");
-    const a = Buffer.from(secret || "");
-    const b = Buffer.from(expected);
-    const hmacKey = process.env.SESSION_SECRET ?? "fallback-dev-key";
-    const ha = createHmac("sha256", hmacKey).update(secret || "").digest();
-    const hb = createHmac("sha256", hmacKey).update(expected).digest();
-    secretOk = timingSafeEqual(ha, hb);
-  } catch { secretOk = secret === expected; }
-
-  if (!secretOk) return res.status(401).json({ error: "Unauthorized" });
+  // HMAC both sides so comparison is always constant-time regardless of length
+  const hmacKey = process.env.SESSION_SECRET ?? "dev-fallback";
+  const ha = createHmac("sha256", hmacKey).update(secret || "").digest();
+  const hb = createHmac("sha256", hmacKey).update(expected).digest();
+  if (!timingSafeEqual(ha, hb))
+    return res.status(401).json({ error: "Unauthorized" });
 
   // ── Validate shape ────────────────────────────────────────────────────────
   if (!data?.game || !Array.isArray(data?.teams))
@@ -80,12 +74,11 @@ export default async function handler(req, res) {
 
   // ── Parse date ────────────────────────────────────────────────────────────
   // game.date is Greek format: "Κυριακή, 14 Σεπτεμβρίου 2025"
-  // Extract DD Month YYYY and convert
   const GREEK_MONTHS = {
-    "Ιανουαρίου": "01", "Φεβρουαρίου": "02", "Μαρτίου": "03",
-    "Απριλίου":   "04", "Μαΐου":       "05", "Ιουνίου": "06",
-    "Ιουλίου":    "07", "Αυγούστου":   "08", "Σεπτεμβρίου": "09",
-    "Οκτωβρίου":  "10", "Νοεμβρίου":   "11", "Δεκεμβρίου":  "12",
+    "Ιανουαρίου": "01", "Φεβρουαρίου": "02", "Μαρτίου":    "03",
+    "Απριλίου":   "04", "Μαΐου":       "05", "Ιουνίου":    "06",
+    "Ιουλίου":    "07", "Αυγούστου":   "08", "Σεπτεμβρίου":"09",
+    "Οκτωβρίου":  "10", "Νοεμβρίου":   "11", "Δεκεμβρίου": "12",
   };
 
   let playedOn = null;
@@ -102,10 +95,10 @@ export default async function handler(req, res) {
   // ── Detect league from URL ────────────────────────────────────────────────
   const u = (sourceUrl || "").toLowerCase();
   let leagueSlug = "";
-  if (u.includes("winter-cup"))  leagueSlug = "wintercup";
-  else if (u.includes("rookie")) leagueSlug = "rookie";
-  else if (u.includes("bc6"))    leagueSlug = "bc6";
-  else if (u.includes("/men/"))  leagueSlug = ""; // regular season -- fallback below
+  if (u.includes("winter-cup"))       leagueSlug = "wintercup";
+  else if (u.includes("rookie"))      leagueSlug = "rookie";
+  else if (u.includes("bc6"))         leagueSlug = "bc6";
+  else if (u.includes("/men/"))       leagueSlug = ""; // regular season -- fallback below
 
   // ── Resolve seasonLeagueId ────────────────────────────────────────────────
   let seasonLeagueId = null;
@@ -120,7 +113,6 @@ export default async function handler(req, res) {
     }
   }
   if (!seasonLeagueId) {
-    // Fallback: most recent SeasonLeague
     const sl = await prisma.seasonLeague.findFirst({ orderBy: { createdAt: "desc" } });
     if (!sl) return res.status(422).json({ error: "No SeasonLeague found -- create one first" });
     seasonLeagueId = sl.id;
@@ -131,21 +123,19 @@ export default async function handler(req, res) {
   const playerMap  = {};
   allPlayers.forEach(p => { playerMap[p.number] = p.id; });
 
-  // ── Parse minutes ─────────────────────────────────────────────────────────
+  // ── Parse minutes (rounds to nearest minute) ──────────────────────────────
   const parseMinutes = (minStr) => {
     const m = (minStr || "").match(/^(\d+):(\d{2})$/);
     if (!m) return 0;
-    return parseInt(m[1], 10);
+    const mins = parseInt(m[1], 10);
+    const secs = parseInt(m[2], 10);
+    return secs >= 30 ? mins + 1 : mins;
   };
 
   // ── Build box score rows ──────────────────────────────────────────────────
   const skipped  = [];
   const boxScore = akTeam.players
-    .filter(p => {
-      // Skip players with 0 minutes
-      const mins = parseMinutes(p.MIN);
-      return mins > 0;
-    })
+    .filter(p => parseMinutes(p.MIN) > 0)
     .map(p => {
       const playerId = playerMap[p["#"]];
       if (!playerId) {
@@ -161,15 +151,15 @@ export default async function handler(req, res) {
       return {
         playerId,
         minutes:   parseMinutes(p.MIN),
-        pts:       p.PTS   ?? 0,
-        reb:       p.REB   ?? 0,
-        orb:       p.OREB  ?? 0,
-        drb:       p.DREB  ?? 0,
-        ast:       p.AST   ?? 0,
-        stl:       p.STL   ?? 0,
-        blk:       p.BLK   ?? 0,
-        tov:       p.TO    ?? 0,
-        pf:        p.PF    ?? 0,
+        pts:       p.PTS  ?? 0,
+        reb:       p.REB  ?? 0,
+        orb:       p.OREB ?? 0,
+        drb:       p.DREB ?? 0,
+        ast:       p.AST  ?? 0,
+        stl:       p.STL  ?? 0,
+        blk:       p.BLK  ?? 0,
+        tov:       p.TO   ?? 0,
+        pf:        p.PF   ?? 0,
         fg2m,
         fg2a,
         fg3m,
@@ -188,6 +178,26 @@ export default async function handler(req, res) {
     let gameId;
 
     await prisma.$transaction(async (tx) => {
+
+      // ── Duplicate check ─────────────────────────────────────────────────
+      // Prevents the same game being imported twice if the scraper is re-run.
+      // We match on season + opponent + date + both scores.
+      const duplicate = await tx.game.findFirst({
+        where: {
+          seasonLeagueId,
+          opponent:      oppTeamName,
+          playedOn,
+          teamScore:     akScore,
+          opponentScore: oppScore,
+        },
+      });
+      if (duplicate) {
+        const err = new Error("DUPLICATE");
+        err.gameId = duplicate.id;
+        throw err;
+      }
+
+      // ── Create game ──────────────────────────────────────────────────────
       const g = await tx.game.create({
         data: {
           seasonLeagueId,
@@ -218,7 +228,16 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
+    // ── Duplicate game -- not an error, just tell the caller ────────────────
+    if (err.message === "DUPLICATE") {
+      return res.status(409).json({
+        ok:      false,
+        error:   "This game has already been imported.",
+        gameId:  err.gameId,
+      });
+    }
+
     console.error("[import]", err);
-    return res.status(500).json({ error: prodError(err) });
+    return res.status(500).json({ error: err.message });
   }
 }

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { C } from "../lib/theme";
+import { SITE_NAME, CURRENT_SEASON, COPYRIGHT_YEAR } from "../lib/constants.js";
+
 
 const NAV_LINKS = [
   { href: "/",           label: "Home"       },
@@ -12,24 +14,24 @@ const NAV_LINKS = [
   { href: "/team",       label: "Team Stats" },
 ];
 
-export default function Layout({ children, title = "Armani Katehano" }) {
+export default function Layout({ children, title = SITE_NAME }) {
   const router      = useRouter();
   const [open, setOpen] = useState(false);
 
   return (
     <>
       <Head>
-        <title>{title === "Armani Katehano" ? title : `${title} · Armani Katehano`}</title>
-        <meta name="description" content="Armani Katehano Basketball -- Season Stats 2025-26" />
+        <title>{title === SITE_NAME ? title : `${title} · ${SITE_NAME}`}</title>
+        <meta name="description" content={`${SITE_NAME} Basketball -- Season Stats ${CURRENT_SEASON}`} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#1c1c1e" />
-        <meta property="og:title" content={title === "Armani Katehano" ? title : `${title} · Armani Katehano`} />
-        <meta property="og:description" content="Armani Katehano Basketball -- Season Stats 2025-26" />
+        <meta property="og:title" content={title === SITE_NAME ? title : `${title} · ${SITE_NAME}`} />
+        <meta property="og:description" content={`${SITE_NAME} Basketball -- Season Stats ${CURRENT_SEASON}`} />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="/logo.png" />
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={title === "Armani Katehano" ? title : `${title} · Armani Katehano`} />
-        <meta name="twitter:description" content="Armani Katehano Basketball -- Season Stats 2025-26" />
+        <meta name="twitter:title" content={title === SITE_NAME ? title : `${title} · ${SITE_NAME}`} />
+        <meta name="twitter:description" content={`${SITE_NAME} Basketball -- Season Stats ${CURRENT_SEASON}`} />
       </Head>
 
       {/* Navbar */}
@@ -52,7 +54,7 @@ export default function Layout({ children, title = "Armani Katehano" }) {
               />
               <div className="brand-text">
                 <div style={{ fontWeight:900, fontSize:13, letterSpacing:"0.1em", textTransform:"uppercase", lineHeight:1, color:C.text }}>Armani Katehano</div>
-                <div style={{ fontWeight:700, fontSize:11, letterSpacing:"0.15em", marginTop:1, color:C.redText }}>2025-26</div>
+                <div style={{ fontWeight:700, fontSize:11, letterSpacing:"0.15em", marginTop:1, color:C.redText }}>{CURRENT_SEASON}</div>
               </div>
             </Link>
 
@@ -125,7 +127,7 @@ export default function Layout({ children, title = "Armani Katehano" }) {
         <div style={{ maxWidth:1280, margin:"0 auto", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
             <img src="/logo.png" alt="AK" style={{ width:20, height:20, objectFit:"contain", opacity:0.5 }} />
-            <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.12em", color:C.textDim, textTransform:"uppercase" }}>© 2026 Armani Katehano · 2025-26</div>
+            <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.12em", color:C.textDim, textTransform:"uppercase" }}>© {COPYRIGHT_YEAR} {SITE_NAME} · {CURRENT_SEASON}</div>
           </div>
           <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.12em", color:C.border2 }}>AK STATS ENGINE</div>
         </div>

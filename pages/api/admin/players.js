@@ -9,14 +9,8 @@ import { z }                         from "zod";
 import { requireAuth }               from "../../../lib/requireAuth.js";
 import { securityHeaders, auditLog } from "../../../lib/security.js";
 import prisma                        from "../../../lib/prisma.js";
-
-function slugify(name) {
-  return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-}
-
-function prodError(err) {
-  return process.env.NODE_ENV === "production" ? "Internal server error" : err.message;
-}
+import { slugify } from "../../../lib/utils.js";
+import { prodError } from "../../../lib/utils.js";
 
 const PlayerWriteSchema = z.object({
   name:     z.string().min(1).max(100),
