@@ -39,6 +39,7 @@ async function handler(req, res) {
         playerStats:  true,
       },
       orderBy: { playedOn: "desc" },
+      take:    200,   // current season only, but cap for safety
     }) : [];
 
     // Get stats for current season
