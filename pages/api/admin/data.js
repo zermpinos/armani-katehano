@@ -104,20 +104,19 @@ async function handler(req, res) {
         ast:      r.ast,
         stl:      r.stl,
         blk:      r.blk,
-        tov:      r.to,
+        tov:      r.tov,
         pf:       r.pf,
         fgm:      r.fgm,
         fga:      r.fga,
-        fg2m:     r.fgm - r.tpm,
-        fg2a:     r.fga - r.tpa,
-        fg3m:     r.tpm,
-        fg3a:     r.tpa,
+        fg2m:     r.fg2m,
+        fg2a:     r.fg2a,
+        fg3m:     r.fg3m,
+        fg3a:     r.fg3a,
         ftm:      r.ftm,
         fta:      r.fta,
-        orb:      0,
-        drb:      0,
-        eff:      r.pts + r.reb + r.ast + r.stl + r.blk
-                  - (r.fga - r.fgm) - (r.fta - r.ftm) - r.to,
+        orb:      r.orb,
+        drb:      r.drb,
+        eff:      r.pts + r.reb + r.ast + r.stl + r.blk - (r.fga - r.fgm) - (r.fta - r.ftm) - r.tov,
       })),
     }));
 
@@ -148,7 +147,7 @@ async function handler(req, res) {
       schedule: [],
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: prodError(err) });
   }
 }
 
