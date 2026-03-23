@@ -7,13 +7,15 @@
  */
 
 import { z }                         from "zod";
+import { zCuid }                     from "../../../lib/validators.js";
 import { requireAuth }               from "../../../lib/requireAuth.js";
 import { securityHeaders, auditLog } from "../../../lib/security.js";
 import prisma                        from "../../../lib/prisma.js";
 import { recalcAggregates }          from "../../../lib/stats.prisma.js";
+import { prodError }                 from "../../../lib/utils.js";
 
 const BoxScoreRowSchema = z.object({
-  playerId:  z.string().cuid(),
+  playerId:  zCuid,   // ← was z.string().cuid() — removed in Zod v4
   minutes:   z.coerce.number().int().min(0).max(60),
   pts:       z.coerce.number().int().min(0).max(200),
   reb:       z.coerce.number().int().min(0).max(100),
@@ -42,7 +44,7 @@ const BoxScoreRowSchema = z.object({
   .refine(r => r.orb  + r.drb <= r.reb + 1,   { message: "orb+drb cannot exceed reb" });
 
 const GameWriteSchema = z.object({
-  seasonLeagueId: z.string().cuid(),
+  seasonLeagueId: zCuid,   // ← was z.string().cuid() — removed in Zod v4
   opponent:       z.string().min(1).max(100),
   location:       z.enum(["home", "away"]).default("away"),
   teamScore:      z.coerce.number().int().min(0).max(300),
@@ -54,12 +56,12 @@ const GameWriteSchema = z.object({
 });
 
 const GameUpdateSchema = GameWriteSchema.extend({
-  gameId: z.string().cuid(),
+  gameId: zCuid,   // ← was z.string().cuid() — removed in Zod v4
 });
 
 const GameDeleteSchema = z.object({
-  gameId:         z.string().cuid(),
-  seasonLeagueId: z.string().cuid(),
+  gameId:         zCuid,   // ← was z.string().cuid() — removed in Zod v4
+  seasonLeagueId: zCuid,   // ← was z.string().cuid() — removed in Zod v4
 });
 
 /** Maps a validated box score row into the shape Prisma expects. */
@@ -75,14 +77,14 @@ function toDbRow(r, gameId = undefined) {
     ast:       r.ast,
     stl:       r.stl,
     blk:       r.blk,
-    tov:       r.tov,       // ← was "to" (reserved word) — now "tov"
+    tov:       r.tov,
     pf:        r.pf,
     fgm:       r.fgm,
     fga:       r.fga,
-    fg2m:      r.fg2m,      // ← new column
-    fg2a:      r.fg2a,      // ← new column
-    fg3m:      r.fg3m,      // ← was "tpm"
-    fg3a:      r.fg3a,      // ← was "tpa"
+    fg2m:      r.fg2m,
+    fg2a:      r.fg2a,
+    fg3m:      r.fg3m,
+    fg3a:      r.fg3a,
     ftm:       r.ftm,
     fta:       r.fta,
     plusMinus: 0,
@@ -96,22 +98,17 @@ async function handler(req, res) {
   // ── LIST ───────────────────────────────────────────────────────────────────
   if (req.method === "GET") {
     try {
-            // AFTER — accept optional ?seasonLeagueId= query param, default to all current season leagues:
       const { seasonLeagueId } = req.query;
 
-      // If a specific league is requested use it, otherwise fetch current season's leagues
       let whereClause = {};
       if (seasonLeagueId) {
         whereClause = { seasonLeagueId };
-      } else {
-        // Fall back to a hard cap so we never return unbounded results
-        // Frontend passes seasonLeagueId when it needs specific data
       }
 
       const games = await prisma.game.findMany({
         where:   Object.keys(whereClause).length ? whereClause : undefined,
         orderBy: { playedOn: "desc" },
-        take:    200,   // hard safety cap — well above any single season
+        take:    200,
         include: {
           playerStats: {
             include: { player: { select: { id: true, name: true, number: true } } },
@@ -119,19 +116,17 @@ async function handler(req, res) {
         },
       });
 
-
       return res.status(200).json({
         games: games.map(g => ({
-          id:            g.id,
+          id:             g.id,
           seasonLeagueId: g.seasonLeagueId,
-          opponent:      g.opponent,
-          location:      g.location,
-          teamScore:     g.teamScore,
-          opponentScore: g.opponentScore,
-          result:        g.result,
-          playedOn:      g.playedOn?.toISOString() ?? null,
-          notes:         g.notes,
-          // Map DB column names back to frontend names
+          opponent:       g.opponent,
+          location:       g.location,
+          teamScore:      g.teamScore,
+          opponentScore:  g.opponentScore,
+          result:         g.result,
+          playedOn:       g.playedOn?.toISOString() ?? null,
+          notes:          g.notes,
           boxScore: g.playerStats.map(s => ({
             playerId: s.playerId,
             pid:      s.playerId,
