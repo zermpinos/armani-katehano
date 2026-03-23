@@ -3,7 +3,7 @@
  * Generates a static sitemap for all public pages.
  */
 
-const BASE_URL = "https://armanikatehano.gr";
+const BASE_URL = "https://armani-katehano.vercel.app";
 
 function buildSitemap() {
   const pages = [
