@@ -1,23 +1,20 @@
 /**
  * pages/sitemap.xml.js
- * Generates a dynamic sitemap for public pages and player profiles.
+ * Generates a static sitemap for all public pages.
  */
-import { getAllPublicData } from "../lib/data";
 
 const BASE_URL = "https://armanikatehano.gr";
 
-function buildSitemap(players) {
-  const staticPages = [
-    { url: "/",            priority: "1.0", changefreq: "daily"   },
-    { url: "/players",     priority: "0.9", changefreq: "weekly"  },
-    { url: "/leaderboard", priority: "0.9", changefreq: "weekly"  },
-    { url: "/games",       priority: "0.8", changefreq: "weekly"  },
-    { url: "/team",        priority: "0.8", changefreq: "weekly"  },
+function buildSitemap() {
+  const pages = [
+    { url: "/",            priority: "1.0", changefreq: "daily"  },
+    { url: "/players",     priority: "0.9", changefreq: "weekly" },
+    { url: "/leaderboard", priority: "0.9", changefreq: "weekly" },
+    { url: "/games",       priority: "0.8", changefreq: "weekly" },
+    { url: "/team",        priority: "0.8", changefreq: "weekly" },
   ];
 
-  const entries = [
-    ...staticPages,
-  ].map(({ url, priority, changefreq }) => `
+  const entries = pages.map(({ url, priority, changefreq }) => `
   <url>
     <loc>${BASE_URL}${url}</loc>
     <changefreq>${changefreq}</changefreq>
@@ -35,13 +32,10 @@ export default function Sitemap() {
 }
 
 export async function getServerSideProps({ res }) {
-  const { players } = await getAllPublicData();
-  const xml = buildSitemap(players);
-
+  const xml = buildSitemap();
   res.setHeader("Content-Type", "text/xml");
   res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
   res.write(xml);
   res.end();
-
   return { props: {} };
 }
