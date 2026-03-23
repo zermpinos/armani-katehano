@@ -2,41 +2,29 @@
  * pages/api/admin/import.js
  * POST /api/admin/import
  *
- * Body: { data: <scraper output> }
- * Protected by session cookie via requireAuth().
- *
- * Scraper output shape:
- * {
- *   url: string,
- *   game: {
- *     homeTeam, awayTeam, date, time, venue,
- *     finalScore: { home, away },
- *     quarterScores: [...]
- *   },
- *   teams: [
- *     {
- *       name: string,
- *       players: [
- *         { "#": number, Players: string, ST: string, MIN: string,
- *           PTS, FT: {made,attempted}, "2PTS": {made,attempted},
- *           "3PTS": {made,attempted}, FG: {made,attempted},
- *           OREB, DREB, REB, AST, STL, BLK, TO, PF, FO, EF }
- *       ]
- *     }
- *   ]
- * }
+ * Accepts a scraper payload, resolves player IDs, writes the game +
+ * box score to DB inside a transaction, then recomputes aggregates.
+ * Protected by admin session cookie via requireAuth().
  */
 
 import prisma               from "../../../lib/prisma.js";
 import { recalcAggregates } from "../../../lib/stats.prisma.js";
 import { prodError }        from "../../../lib/utils.js";
 import { requireAuth }      from "../../../lib/requireAuth.js";
+import {
+  parseGreekDate,
+  detectLeagueSlug,
+  parseMinutes,
+} from "../../../lib/greekDate.js";   // ← extracted (fixes Q-04)
+
+// Single source of truth for team name matching
+const AK_IDENTIFIERS = ["ARMANI", "KATEHANO"];
 
 export default requireAuth(async function handler(req, res) {
   if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
 
-  // ── Validate shape ────────────────────────────────────────────────────────
+  // ── Validate top-level shape ───────────────────────────────────────────────
   const { data } = req.body ?? {};
 
   if (!data?.game || !Array.isArray(data?.teams))
@@ -47,50 +35,40 @@ export default requireAuth(async function handler(req, res) {
   if (!game.finalScore || !game.homeTeam || !game.awayTeam)
     return res.status(400).json({ error: "Missing finalScore, homeTeam or awayTeam" });
 
-  // ── Find ARMANI team ──────────────────────────────────────────────────────
+  // ── Find ARMANI team ───────────────────────────────────────────────────────
   const akTeam = teams.find(t =>
-    t.name.toUpperCase().includes("ARMANI") ||
-    t.name.toUpperCase().includes("KATEHANO")
+    AK_IDENTIFIERS.some(id => t.name.toUpperCase().includes(id))
   );
-  if (!akTeam) return res.status(400).json({ error: "ARMANI KATEHANO team not found in teams array" });
-
-  const isHome      = game.homeTeam.toUpperCase().includes("ARMANI") ||
-                      game.homeTeam.toUpperCase().includes("KATEHANO");
-  const akScore     = isHome ? game.finalScore.home : game.finalScore.away;
-  const oppScore    = isHome ? game.finalScore.away : game.finalScore.home;
-  const oppTeamName = isHome ? game.awayTeam : game.homeTeam;
-  const result      = akScore > oppScore ? "W" : "L";
-
-  // ── Parse date ────────────────────────────────────────────────────────────
-  // game.date is Greek format: "Κυριακή, 14 Σεπτεμβρίου 2025"
-  const GREEK_MONTHS = {
-    "Ιανουαρίου": "01", "Φεβρουαρίου": "02", "Μαρτίου": "03",
-    "Απριλίου":   "04", "Μαΐου":       "05", "Ιουνίου": "06",
-    "Ιουλίου":    "07", "Αυγούστου":   "08", "Σεπτεμβρίου": "09",
-    "Οκτωβρίου":  "10", "Νοεμβρίου":   "11", "Δεκεμβρίου":  "12",
-  };
-
-  let playedOn = null;
-  const dateMatch = (game.date || "").match(/(\d{1,2})\s+(\S+)\s+(\d{4})/);
-  if (dateMatch) {
-    const day   = dateMatch[1].padStart(2, "0");
-    const month = GREEK_MONTHS[dateMatch[2]] || "01";
-    const year  = dateMatch[3];
-    playedOn = new Date(`${year}-${month}-${day}`);
-  } else {
-    playedOn = new Date();
+  if (!akTeam) {
+    const found = teams.map(t => `"${t.name}"`).join(", ");
+    return res.status(400).json({
+      error: `ARMANI KATEHANO team not found. Teams in payload: ${found}`,
+    });
   }
 
-  // ── Detect league from URL ────────────────────────────────────────────────
-  const u = (sourceUrl || "").toLowerCase();
-  let leagueSlug = "";
-  if (u.includes("winter-cup"))       leagueSlug = "wintercup";
-  else if (u.includes("rookie"))      leagueSlug = "rookie";
-  else if (u.includes("bc6"))         leagueSlug = "bc6";
-  else if (u.includes("/men/"))       leagueSlug = ""; // regular season — fallback below
+  // ── Derive game metadata ───────────────────────────────────────────────────
+  const isHome = AK_IDENTIFIERS.some(id =>
+    game.homeTeam.toUpperCase().includes(id)
+  );
+
+  // Validate scores are real numbers before any arithmetic
+  const akScore  = Number(isHome ? game.finalScore.home : game.finalScore.away);
+  const oppScore = Number(isHome ? game.finalScore.away : game.finalScore.home);
+
+  if (!Number.isFinite(akScore) || !Number.isFinite(oppScore)) {
+    return res.status(400).json({
+      error: `Invalid finalScore values: home=${game.finalScore.home}, away=${game.finalScore.away}`,
+    });
+  }
+
+  const oppTeamName = isHome ? game.awayTeam : game.homeTeam;
+  const result      = akScore > oppScore ? "W" : "L";
+  const playedOn    = parseGreekDate(game.date);       // ← from lib/greekDate.js
 
   // ── Resolve seasonLeagueId ────────────────────────────────────────────────
+  const leagueSlug = detectLeagueSlug(sourceUrl);       // ← from lib/greekDate.js
   let seasonLeagueId = null;
+
   if (leagueSlug) {
     const league = await prisma.league.findFirst({ where: { slug: leagueSlug } });
     if (league) {
@@ -101,30 +79,21 @@ export default requireAuth(async function handler(req, res) {
       if (sl) seasonLeagueId = sl.id;
     }
   }
+
   if (!seasonLeagueId) {
     const sl = await prisma.seasonLeague.findFirst({ orderBy: { createdAt: "desc" } });
     if (!sl) return res.status(422).json({ error: "No SeasonLeague found — create one first" });
     seasonLeagueId = sl.id;
   }
 
-  // ── Resolve player IDs by jersey number ──────────────────────────────────
+  // ── Resolve player IDs by jersey number ───────────────────────────────────
   const allPlayers = await prisma.player.findMany({ where: { isActive: true } });
-  const playerMap  = {};
-  allPlayers.forEach(p => { playerMap[p.number] = p.id; });
-
-  // ── Parse minutes (rounds to nearest minute) ──────────────────────────────
-  const parseMinutes = (minStr) => {
-    const m = (minStr || "").match(/^(\d+):(\d{2})$/);
-    if (!m) return 0;
-    const mins = parseInt(m[1], 10);
-    const secs = parseInt(m[2], 10);
-    return secs >= 30 ? mins + 1 : mins;
-  };
+  const playerMap  = Object.fromEntries(allPlayers.map(p => [p.number, p.id]));
 
   // ── Build box score rows ──────────────────────────────────────────────────
   const skipped  = [];
   const boxScore = akTeam.players
-    .filter(p => parseMinutes(p.MIN) > 0)
+    .filter(p => parseMinutes(p.MIN) > 0)              // ← from lib/greekDate.js
     .map(p => {
       const playerId = playerMap[p["#"]];
       if (!playerId) {
