@@ -6,13 +6,15 @@
  * reaches the DB -- they must all work correctly.
  */
 import { describe, it, expect } from "vitest";
-import { z } from "zod";
+import { z }                    from "zod";
+import { zCuid }                from "../lib/validators.js";
 
-// ─── Inline the schema (copy from pages/api/admin/games.js) ───────────────────
+// ─── Inline the schema (mirrors pages/api/admin/games.js) ────────────────────
 // Keeping it here avoids importing Next.js API route internals into tests.
+// If you change the schema in games.js, update this copy too.
 
 const BoxScoreRowSchema = z.object({
-  playerId:  z.string().cuid(),
+  playerId:  zCuid,   // ← was z.string().cuid() -- removed in Zod v4
   minutes:   z.coerce.number().int().min(0).max(60),
   pts:       z.coerce.number().int().min(0).max(200),
   reb:       z.coerce.number().int().min(0).max(100),
@@ -40,9 +42,9 @@ const BoxScoreRowSchema = z.object({
   .refine(r => r.fg3m <= r.fgm,             { message: "fg3m cannot exceed fgm" })
   .refine(r => r.orb  + r.drb <= r.reb + 1, { message: "orb+drb cannot exceed reb" });
 
-// ─── Valid base row to build tests from ───────────────────────────────────────
+// ─── Valid base row ───────────────────────────────────────────────────────────
 const VALID_ROW = {
-  playerId: "clxxxxxxxxxxxxxxxxxxxxxx",  // valid cuid shape
+  playerId: "clxxxxxxxxxxxxxxxxxxxxxx",  // 26 chars, starts with 'c' -- valid CUID shape
   minutes: 28, pts: 14, reb: 5,
   orb: 2, drb: 3,
   ast: 3, stl: 1, blk: 0, tov: 2, pf: 2,
@@ -56,7 +58,27 @@ function valid(overrides = {}) {
   return BoxScoreRowSchema.safeParse({ ...VALID_ROW, ...overrides });
 }
 
-// ─── Tests ─────────────────────────────────────────────────────────────────────
+// ─── CUID validator tests ─────────────────────────────────────────────────────
+
+describe("zCuid validator", () => {
+  it("accepts a valid CUID", () => {
+    expect(zCuid.safeParse("clxxxxxxxxxxxxxxxxxxxxxx").success).toBe(true);
+  });
+
+  it("rejects a UUID", () => {
+    expect(zCuid.safeParse("550e8400-e29b-41d4-a716-446655440000").success).toBe(false);
+  });
+
+  it("rejects an empty string", () => {
+    expect(zCuid.safeParse("").success).toBe(false);
+  });
+
+  it("rejects a string that doesn't start with c", () => {
+    expect(zCuid.safeParse("alxxxxxxxxxxxxxxxxxxxxxx").success).toBe(false);
+  });
+});
+
+// ─── BoxScoreRowSchema tests ──────────────────────────────────────────────────
 
 describe("BoxScoreRowSchema -- valid row", () => {
   it("accepts a fully valid row", () => {
@@ -103,21 +125,18 @@ describe("BoxScoreRowSchema -- made/attempted refinements", () => {
 
 describe("BoxScoreRowSchema -- fg2m + fg3m = fgm refinement", () => {
   it("rejects fg2m + fg3m != fgm", () => {
-    // fg2m=3 + fg3m=2 = 5, but fgm=6
     const r = valid({ fgm: 6, fg2m: 3, fg3m: 2 });
     expect(r.success).toBe(false);
     expect(r.error.flatten().formErrors).toContain("fg2m + fg3m must equal fgm");
   });
 
   it("accepts fg2m + fg3m = fgm exactly", () => {
-    // fg2m=4 + fg3m=2 = 6 = fgm
     expect(valid({ fgm: 6, fg2m: 4, fg3m: 2 }).success).toBe(true);
   });
 });
 
 describe("BoxScoreRowSchema -- rebound refinement", () => {
   it("rejects orb + drb > reb + 1", () => {
-    // orb=3 + drb=4 = 7, but reb=5 -> 7 > 6
     const r = valid({ reb: 5, orb: 3, drb: 4 });
     expect(r.success).toBe(false);
     expect(r.error.flatten().formErrors).toContain("orb+drb cannot exceed reb");

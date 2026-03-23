@@ -1,3 +1,4 @@
+// eslint.config.mjs
 import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 
 const eslintConfig = [
@@ -10,6 +11,12 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
     ],
+  },
+  {
+    // Custom rules -- applied to all non-ignored JS/JSX files
+    rules: {
+      "no-undef": "error", // catches prodError, requireAuth, etc. used without import
+    },
   },
 ];
 
