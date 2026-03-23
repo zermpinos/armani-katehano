@@ -14,7 +14,7 @@ async function handler(req, res) {
     const leagues = await prisma.league.findMany({ orderBy: { name: "asc" } });
     return res.status(200).json({ leagues });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: prodError(err) });
   }
 }
 

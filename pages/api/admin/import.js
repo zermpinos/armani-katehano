@@ -31,6 +31,7 @@
 
 import prisma                from "../../../lib/prisma.js";
 import { recalcAggregates } from "../../../lib/stats.prisma.js";
+import { createHmac, timingSafeEqual } from "crypto";
 
 export default async function handler(req, res) {
   if (req.method !== "POST")
@@ -46,7 +47,10 @@ export default async function handler(req, res) {
     const crypto = await import("crypto");
     const a = Buffer.from(secret || "");
     const b = Buffer.from(expected);
-    if (a.length === b.length) secretOk = crypto.timingSafeEqual(a, b);
+    const hmacKey = process.env.SESSION_SECRET ?? "fallback-dev-key";
+    const ha = createHmac("sha256", hmacKey).update(secret || "").digest();
+    const hb = createHmac("sha256", hmacKey).update(expected).digest();
+    secretOk = timingSafeEqual(ha, hb);
   } catch { secretOk = secret === expected; }
 
   if (!secretOk) return res.status(401).json({ error: "Unauthorized" });
@@ -215,6 +219,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error("[import]", err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: prodError(err) });
   }
 }
