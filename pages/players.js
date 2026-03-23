@@ -38,6 +38,7 @@ function PlayerDetail({ player, onClose }) {
   const [selSeason, setSelSeason] = useState("All");
   const [selLeague, setSelLeague] = useState("All");
   const [selStat,   setSelStat]   = useState("pts");
+  const [showInfo,  setShowInfo]  = useState(false);
 
   const STAT_OPTIONS = [
     { key:"pts", label:"PTS", color:C.redBright },
@@ -55,12 +56,12 @@ function PlayerDetail({ player, onClose }) {
   const activeStat = STAT_OPTIONS.find(o => o.key === selStat);
 
   const radarData = [
-    { stat:"Scoring",    value: Math.min(100, Math.round((s.ppg / 18) * 100)) },
-    { stat:"Rebounds",   value: Math.min(100, Math.round((s.rpg / 11) * 100)) },
-    { stat:"Assists",    value: Math.min(100, Math.round((s.apg / 8)  * 100)) },
-    { stat:"Defense",    value: Math.min(100, Math.round(((s.spg + s.bpg) / 3.5) * 100)) },
+    { stat:"Scoring",    value: Math.min(100, Math.round((s.ppg / 20) * 100)) },
+    { stat:"Rebounds",   value: Math.min(100, Math.round((s.rpg / 10) * 100)) },
+    { stat:"Assists",    value: Math.min(100, Math.round((s.apg / 6)  * 100)) },
+    { stat:"STL+BLK",   value: Math.min(100, Math.round(((s.spg + s.bpg) / 5) * 100)) },
     { stat:"Shooting",   value: Math.min(100, Math.round(s.fgPct)) },
-    { stat:"Efficiency", value: Math.min(100, Math.round((s.eff / 22) * 100)) },
+    { stat:"Efficiency", value: Math.min(100, Math.round((s.eff / 20) * 100)) },
   ];
 
   const filterBtnStyle = (active) => ({
@@ -115,10 +116,10 @@ function PlayerDetail({ player, onClose }) {
                 <StatCell label="BPG" value={s.bpg} />
                 <StatCell label="TPG" value={s.tpg} />
                 <StatCell label="FPG" value={s.fpg ?? 0} />
-                <StatCell label="FG%"  value={`${s.fgPct}%`} />
+                <StatCell label="FG%"  value={s.fgPct > 0 ? `${s.fgPct}%` : "--"} />
                 <StatCell label="2P%"  value={s.fg2Pct > 0 ? `${s.fg2Pct}%` : "--"} />
                 <StatCell label="3P%"  value={s.fg3Pct > 0 ? `${s.fg3Pct}%` : "--"} />
-                <StatCell label="FT%"  value={`${s.ftPct}%`} />
+                <StatCell label="FT%"  value={s.ftPct !== null && s.ftPct !== undefined ? `${s.ftPct}%` : "--"} />
                 <StatCell label="MPG"  value={s.mpg} />
                 <StatCell label="EFF"  value={s.eff} highlight />
               </div>
@@ -129,7 +130,34 @@ function PlayerDetail({ player, onClose }) {
           {s.ppg > 0 && (
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:16 }}>
               <div>
-                <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:8, textTransform:"uppercase" }}>Skill Profile</div>
+                {/* Skill Profile heading with ⓘ toggle */}
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+                  <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Skill Profile</div>
+                  <button
+                    onClick={() => setShowInfo(v => !v)}
+                    style={{
+                      width:16, height:16, borderRadius:"50%", border:`1px solid ${C.border2}`,
+                      background: showInfo ? `${C.red}25` : "transparent",
+                      color: showInfo ? C.redText : C.textDim,
+                      fontSize:10, fontWeight:900, cursor:"pointer",
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      lineHeight:1, padding:0, fontFamily:"inherit",
+                    }}
+                    title="How is this calculated?"
+                  >ⓘ</button>
+                </div>
+
+                {/* Info panel */}
+                {showInfo && (
+                  <div style={{
+                    marginBottom:8, padding:"8px 12px", borderRadius:8,
+                    border:`1px solid ${C.border}`, background:C.base,
+                    fontSize:11, color:C.textSub, lineHeight:1.6,
+                  }}>
+                    Each axis is scored 0-100 against a ceiling set for this level of gameplay: 20 PPG · 10 RPG · 6 APG · 5 STL+BLK · FG% direct · 20 EFF
+                  </div>
+                )}
+
                 <div style={{ borderRadius:12, border:`1px solid ${C.border}`, padding:8, background:C.base }}>
                   <ResponsiveContainer width="100%" height={200}>
                     <RadarChart data={radarData} margin={{ top:10, right:20, bottom:10, left:20 }}>
