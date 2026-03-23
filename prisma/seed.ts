@@ -254,15 +254,19 @@ async function main() {
           minutes:   row.min,
           pts:       row.pts,
           reb:       row.reb,
+          orb:       row.orb,
+          drb:       row.drb,
           ast:       row.ast,
           stl:       row.stl,
           blk:       row.blk,
-          to:        row.tov,
+          tov:       row.tov,   // ← fixed
           pf:        row.pf,
           fgm:       row.fgm,
           fga:       row.fga,
-          tpm:       row.fg3m,
-          tpa:       row.fg3a,
+          fg2m:      row.fg2m ?? (row.fgm - row.fg3m),
+          fg2a:      row.fg2a ?? (row.fga - row.fg3a),
+          fg3m:      row.fg3m,  // ← fixed
+          fg3a:      row.fg3a,  // ← fixed
           ftm:       row.ftm,
           fta:       row.fta,
           plusMinus: 0,
@@ -299,8 +303,8 @@ async function main() {
 
       const totalFgm  = sum("fgm");
       const totalFga  = sum("fga");
-      const totalTpm  = sum("tpm");
-      const totalTpa  = sum("tpa");
+      const totalFg3m = sum("fg3m");
+      const totalFg3a = sum("fg3a");
       const totalFtm  = sum("ftm");
       const totalFta  = sum("fta");
       const totalPts  = sum("pts");
@@ -314,21 +318,24 @@ async function main() {
           playerId,
           seasonLeagueId: sl.id,
           gp,
-          ptsAvg:    avg("pts"),
-          rebAvg:    avg("reb"),
-          astAvg:    avg("ast"),
-          stlAvg:    avg("stl"),
-          blkAvg:    avg("blk"),
-          toAvg:     avg("to"),
-          pfAvg:     avg("pf"),
+          ptsAvg:     avg("pts"),
+          rebAvg:     avg("reb"),
+          orbAvg:     avg("orb"),
+          drbAvg:     avg("drb"),
+          astAvg:     avg("ast"),
+          stlAvg:     avg("stl"),
+          blkAvg:     avg("blk"),
+          toAvg:      avg("tov"),
+          pfAvg:      avg("pf"),
           minutesAvg: avg("minutes"),
-          fgPct:     pct(totalFgm, totalFga),
-          tpPct:     pct(totalTpm, totalTpa),
-          ftPct:     pct(totalFtm, totalFta),
-          tsPct:     tsPctVal,
-          ptsTotal:  totalPts,
-          rebTotal:  totalReb,
-          astTotal:  totalAst,
+          fgPct:      pct(totalFgm,  totalFga),
+          fg2Pct:     pct(sum("fg2m"), sum("fg2a")),
+          tpPct:      pct(totalFg3m, totalFg3a),
+          ftPct:      pct(totalFtm,  totalFta),
+          tsPct:      tsPctVal,
+          ptsTotal:   totalPts,
+          rebTotal:   totalReb,
+          astTotal:   totalAst,
         },
       });
       aggCount++;
