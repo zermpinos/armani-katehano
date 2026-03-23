@@ -41,13 +41,13 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
   // Normalise game league slugs so tab filtering is robust to DB slug variations
   const normalisedGames = games.map(g => ({ ...g, _normLeague: normaliseSlug(g.league) }));
 
-  const filteredGames = league === "all"
-    ? normalisedGames
-    : normalisedGames.filter(g => g._normLeague === league);
+  const filteredGames = games
+    .filter(g => normaliseSlug(g.league) === tab)
+    .map(g => ({ ...g, league: tab }));
 
   const gp = filteredGames.length;
 
-  const rec = computeRecord(games, league === "all" ? null : league);
+  const rec = computeRecord(filteredGames, tab);
 
   const allRows = filteredGames.flatMap(g => g.boxScore || []).filter(r => r.min > 0);
   const sum    = key => allRows.reduce((a, r) => a + (r[key] || 0), 0);
