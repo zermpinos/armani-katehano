@@ -38,7 +38,7 @@ async function handler(req, res) {
     });
   } catch (err) {
     auditLog("season_leagues_fetch_error", { error: err.message });
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: prodError(err) });
   }
 }
 
