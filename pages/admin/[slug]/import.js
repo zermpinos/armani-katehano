@@ -7,36 +7,8 @@ import { useState, useEffect } from "react";
 import { C } from "../../../lib/theme";
 import { AdminLayout, BoxScoreTable, F, Sel, Btn, byJersey } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck.js';
+import { parseGreekDate, parseMinutes, detectLeagueSlug} from "../../../lib/greekDate.js";
 
-// ── Greek month names → MM ────────────────────────────────────────────────────
-const GREEK_MONTHS = {
-  "Ιανουαρίου": "01", "Φεβρουαρίου": "02", "Μαρτίου":    "03",
-  "Απριλίου":   "04", "Μαΐου":       "05", "Ιουνίου":    "06",
-  "Ιουλίου":    "07", "Αυγούστου":   "08", "Σεπτεμβρίου":"09",
-  "Οκτωβρίου":  "10", "Νοεμβρίου":   "11", "Δεκεμβρίου": "12",
-};
-
-function parseGreekDate(dateStr) {
-  const m = (dateStr || "").match(/(\d{1,2})\s+(\S+)\s+(\d{4})/);
-  if (!m) return "";
-  const day   = m[1].padStart(2, "0");
-  const month = GREEK_MONTHS[m[2]] || "01";
-  return `${m[3]}-${month}-${day}`;
-}
-
-function parseMinutes(minStr) {
-  const m = (minStr || "").match(/^(\d+):(\d{2})$/);
-  if (!m) return 0;
-  return parseInt(m[1], 10);
-}
-
-function detectLeague(sourceUrl = "") {
-  const u = sourceUrl.toLowerCase();
-  if (u.includes("winter-cup"))  return "wintercup";
-  if (u.includes("rookie"))      return "rookie";
-  if (u.includes("bc6"))         return "bc6";
-  return "";
-}
 
 export default function ImportPage({ validSlug }) {
   const slug = typeof window !== "undefined" ? window.location.pathname.split("/")[2] : "";
@@ -115,7 +87,7 @@ export default function ImportPage({ validSlug }) {
     const oppTeamName = isHome ? game.awayTeam         : game.homeTeam;
     const result      = akScore > oppScore ? "W" : "L";
     const date        = parseGreekDate(game.date);
-    const leagueSlug  = detectLeague(sourceUrl);
+    const leagueSlug  = detectLeagueSlug(sourceUrl);
 
     const matchedSL = seasonLeagues.find(sl => sl.leagueSlug === leagueSlug)
                    ?? seasonLeagues[0];
