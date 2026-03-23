@@ -5,6 +5,8 @@
 
 import { requireAuth }           from "../../../lib/requireAuth.js";
 import { securityHeaders }       from "../../../lib/security.js";
+import { prodError }             from "../../../lib/utils.js";   // B-02: was missing, caused ReferenceError on 500 paths
+import { calcEff }               from "../../../lib/stats.js";   // Q-05: replaces inline EFF formula
 import prisma                    from "../../../lib/prisma.js";
 
 async function handler(req, res) {
@@ -117,15 +119,16 @@ async function handler(req, res) {
         fta:      r.fta,
         orb:      r.orb,
         drb:      r.drb,
-        eff:      r.pts + r.reb + r.ast + r.stl + r.blk - (r.fga - r.fgm) - (r.fta - r.ftm) - r.tov,
+        // Q-05: was inlined as r.pts + r.reb + ... — now uses shared calcEff()
+        eff:      calcEff(r),
       })),
     }));
 
     return res.status(200).json({
-      currentSeason:  currentSeason?.name ?? null,
+      currentSeason:   currentSeason?.name ?? null,
       currentSeasonId: currentSeason?.id ?? null,
-      seasons:        seasons.map(s => ({ id: s.id, name: s.name, year: s.year })),
-      players:        players.map(p => ({
+      seasons:         seasons.map(s => ({ id: s.id, name: s.name, year: s.year })),
+      players:         players.map(p => ({
         id:       p.id,
         slug:     p.slug,
         name:     p.name,
@@ -137,9 +140,9 @@ async function handler(req, res) {
       })),
       leagues,
       seasonLeagues:  seasonLeagues.map(sl => ({
-        id:        sl.id,
-        leagueId:  sl.leagueId,
-        seasonId:  sl.seasonId,
+        id:         sl.id,
+        leagueId:   sl.leagueId,
+        seasonId:   sl.seasonId,
         leagueName: sl.league.name,
         leagueSlug: sl.league.slug,
       })),

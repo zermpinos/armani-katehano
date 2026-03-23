@@ -3,9 +3,9 @@
  * Roster management — view, add, edit players.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { C } from "../../../lib/theme";
-import { AdminLayout, F, Sel, Btn, Toast, byJersey } from "../../../lib/adminShared";
+import { AdminLayout, F, Sel, Btn, Toast, byJersey, useAdminAuth } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck.js';
 
 const POSITIONS = ["PG", "SG", "SF", "PF", "C", "PG/SG", "PG/SF", "SG/SF", "SF/PF", "PF/C"];
@@ -13,11 +13,9 @@ const POSITIONS = ["PG", "SG", "SF", "PF", "C", "PG/SG", "PG/SF", "SG/SF", "SF/P
 export default function RosterPage({ validSlug }) {
   const slug = typeof window !== "undefined" ? window.location.pathname.split("/")[2] : "";
 
-  const [authed,      setAuthed]      = useState(false);
-  const [checking,    setChecking]    = useState(true);
-  const [password,    setPassword]    = useState("");
-  const [authError,   setAuthError]   = useState("");
-  const [authLoading, setAuthLoading] = useState(false);
+  // Q-01: replaced ~25 lines of duplicated auth state + useEffect + login fn
+  // with a single hook call.
+  const { authed, loading: checking, loginError, handleLogin } = useAdminAuth(slug);
 
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -28,13 +26,6 @@ export default function RosterPage({ validSlug }) {
 
   const showToast = (msg, type = "success") => setToast({ msg, type });
 
-  useEffect(() => {
-    if (!validSlug) { setChecking(false); return; }
-    fetch("/api/auth", { method: "GET" })
-      .then(r => { if (r.ok) { setAuthed(true); loadPlayers(); } setChecking(false); })
-      .catch(() => setChecking(false));
-  }, [validSlug]);
-
   const loadPlayers = async () => {
     setLoading(true);
     try {
@@ -43,23 +34,8 @@ export default function RosterPage({ validSlug }) {
     } finally { setLoading(false); }
   };
 
-  const login = async (e) => {
-    e.preventDefault();
-    setAuthLoading(true); setAuthError("");
-    try {
-      const res = await fetch("/api/auth", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, slug }),
-      });
-      if (res.ok) { setPassword(""); setAuthed(true); loadPlayers(); }
-      else {
-        const d = await res.json();
-        if (res.status === 429) setAuthError(`Too many attempts. Try again in ${Math.ceil((d.retryAfter || 900) / 60)} min.`);
-        else setAuthError("Invalid credentials.");
-      }
-    } catch { setAuthError("Network error."); }
-    finally { setAuthLoading(false); }
-  };
+  // Trigger data load once authenticated
+  useState(() => { if (authed) loadPlayers(); }, [authed]);
 
   const startNew  = () => { setDraft({ name: "", number: "", position: "PG", height: "", weight: "" }); setEditId("new"); };
   const startEdit = p => { setDraft({ ...p }); setEditId(p.id); };
@@ -108,7 +84,7 @@ export default function RosterPage({ validSlug }) {
 
   if (!authed) return (
     <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <LoginForm password={password} setPassword={setPassword} authError={authError} authLoading={authLoading} onSubmit={login} />
+      <LoginForm onLogin={handleLogin} error={loginError} />
     </div>
   );
 
@@ -148,27 +124,39 @@ export default function RosterPage({ validSlug }) {
   );
 }
 
+// ── Themed Spinner — kept local to preserve C (theme token) styling ───────────
 function Spinner() {
   return <div style={{ width: 32, height: 32, borderRadius: "50%", border: `2px solid ${C.border2}`, borderTopColor: C.redBright, animation: "spin 0.7s linear infinite" }} />;
 }
 
-function LoginForm({ password, setPassword, authError, authLoading, onSubmit }) {
+// Q-01: now receives (onLogin, error) from useAdminAuth hook
+function LoginForm({ onLogin, error }) {
+  const [password, setPassword] = useState("");
+  const [loading,  setLoading]  = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    await onLogin(password);
+    setLoading(false);
+  };
+
   return (
     <div style={{ width: "100%", maxWidth: 360, borderRadius: 20, padding: 32, border: `1px solid ${C.border}`, background: C.surface }}>
       <div style={{ textAlign: "center", marginBottom: 28 }}>
         <div style={{ width: 52, height: 52, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontSize: 22, background: `${C.red}18`, border: `1px solid ${C.red}45` }}>🔐</div>
         <div style={{ fontSize: 22, fontWeight: 900, color: C.text }}>Admin Access</div>
       </div>
-      <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div>
           <label style={{ display: "block", fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", marginBottom: 5, color: C.textDim, textTransform: "uppercase" }}>Password</label>
           <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password"
             style={{ width: "100%", padding: "9px 12px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none" }} />
         </div>
-        {authError && <div style={{ fontSize: 12, color: C.redText }}>{authError}</div>}
-        <button type="submit" disabled={authLoading || !password}
-          style={{ padding: "12px", fontWeight: 900, fontSize: 14, letterSpacing: "0.12em", textTransform: "uppercase", borderRadius: 10, border: "none", background: C.red, color: C.text, cursor: "pointer", fontFamily: "inherit", opacity: authLoading || !password ? 0.5 : 1 }}>
-          {authLoading ? "VERIFYING…" : "SIGN IN"}
+        {error && <div style={{ fontSize: 12, color: C.redText }}>{error}</div>}
+        <button type="submit" disabled={loading || !password}
+          style={{ padding: "12px", fontWeight: 900, fontSize: 14, letterSpacing: "0.12em", textTransform: "uppercase", borderRadius: 10, border: "none", background: C.red, color: C.text, cursor: "pointer", fontFamily: "inherit", opacity: loading || !password ? 0.5 : 1 }}>
+          {loading ? "VERIFYING…" : "SIGN IN"}
         </button>
       </form>
     </div>
