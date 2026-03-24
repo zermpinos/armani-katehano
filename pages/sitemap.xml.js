@@ -1,53 +1,42 @@
 /**
  * pages/sitemap.xml.js
- * Generates a dynamic sitemap.xml
+ * Generates a static sitemap for all public pages.
  */
 
 const BASE_URL = "https://armani-katehano.vercel.app";
 
 function buildSitemap() {
   const pages = [
-    { url: "",             priority: "1.0", changefreq: "daily"  }, // homepage
+    { url: "/",            priority: "1.0", changefreq: "daily"  },
     { url: "/players",     priority: "0.9", changefreq: "weekly" },
     { url: "/leaderboard", priority: "0.9", changefreq: "weekly" },
     { url: "/games",       priority: "0.8", changefreq: "weekly" },
-@@ -16,37 +11,18 @@ function buildSitemap() {
+    { url: "/team",        priority: "0.8", changefreq: "weekly" },
+  ];
 
-  const entries = pages.map(({ url, priority, changefreq }) => {
-    const loc = `${BASE_URL}${url}`;
-    return `
+  const entries = pages.map(({ url, priority, changefreq }) => `
+
+
   <url>
-    <loc>${loc}</loc>
+    <loc>${BASE_URL}${url}</loc>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>
-  </url>`;
+  </url>`).join("");
 
-
-  }).join("");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${entries}
-</urlset>`;
-}
-
-export default function Sitemap() {
-  return null;
-}
+@@ -33,9 +36,17 @@ export default function Sitemap() {
 
 export async function getServerSideProps({ res }) {
   const xml = buildSitemap();
 
   res.setHeader("Content-Type", "text/xml");
-  res.setHeader(
-    "Cache-Control",
-    "public, s-maxage=3600, stale-while-revalidate=86400"
-  );
+  res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
+
+
+
 
   res.write(xml);
   res.end();
-
-  return {
-    props: {},
-  };
-}
+  return { props: {} };
