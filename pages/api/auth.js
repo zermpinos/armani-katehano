@@ -1,83 +1,94 @@
 /**
- * api/auth.js
- * POST /api/auth   -> login
- * DELETE /api/auth -> logout
+ * pages/api/auth.js
  *
- * Brute-force protection: 5 failed attempts in 15 minutes -> lockout (Neon).
+ * GET    /api/auth  -> 200 if session cookie is valid, 401 otherwise
+ * POST   /api/auth  -> validate password, set session cookie on success
+ * DELETE /api/auth  -> clear session cookie (logout)
+ *
+ * S-03: Now uses verifyPassword() (bcrypt) from lib/security.js.
+ *       Previously used safePasswordCompare() (SHA-256) which is not a KDF.
+ *
+ * ADMIN_PASSWORD must be stored as a bcrypt hash in Vercel env vars.
+ * Generate it once:
+ *   node -e "require('bcryptjs').hash('YOUR_PASSWORD',12).then(console.log)"
  */
 
+import { isLockedOut, recordAttempt, clearAttempts } from "../../../lib/loginAttempts.js";
 import {
-  isLockedOut,
-  recordAttempt,
-  clearAttempts,
-  getLockoutTTL,
-} from "../../lib/loginAttempts.js";
-
-import {
-  safePasswordCompare,
+  verifySession,
+  verifyPassword,
   buildSessionCookie,
   clearSessionCookie,
-  getSessionToken,
-  verifyPayload,
   securityHeaders,
   auditLog,
-} from "../../lib/security.js";
-
-const REQUIRED_ENV = ["ADMIN_PASSWORD", "SESSION_SECRET", "ADMIN_SLUG"];
-for (const key of REQUIRED_ENV) {
-  if (!process.env[key]) throw new Error(`Missing required env var: ${key}`);
-}
+  checkCsrf,
+} from "../../../lib/security.js";
 
 export default async function handler(req, res) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
+
   const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
 
-  // ── Session check ────────────────────────────────────────────────
+  // ── GET: check existing session ───────────────────────────────────────────
   if (req.method === "GET") {
-    const token = getSessionToken(req.headers.cookie ?? "");
-    const valid = token ? verifyPayload(token, process.env.SESSION_SECRET) !== null : false;
-    return res.status(valid ? 200 : 401).json({ ok: valid });
+    const cookie  = req.cookies?.["__Host-ak_session"] ?? "";
+    const payload = verifySession(cookie);
+
+    if (payload) {
+      return res.status(200).json({ ok: true });
+    }
+    return res.status(401).json({ error: "Not authenticated" });
   }
 
-  // ── Logout ───────────────────────────────────────────────────────
+  // ── DELETE: logout ────────────────────────────────────────────────────────
   if (req.method === "DELETE") {
     res.setHeader("Set-Cookie", clearSessionCookie());
     auditLog("logout", { ip });
     return res.status(200).json({ ok: true });
   }
 
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  // ── POST: login ───────────────────────────────────────────────────────────
+  if (req.method === "POST") {
+    // CSRF check -- Origin/Referer must match the app host
+    if (!checkCsrf(req)) {
+      auditLog("csrf_rejected", { ip });
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const { password, slug } = req.body ?? {};
+
+    if (!password || typeof password !== "string") {
+      return res.status(400).json({ error: "Password is required" });
+    }
+
+    // ── Brute-force lockout ───────────────────────────────────────────────
+    const locked = await isLockedOut(ip);
+    if (locked) {
+      auditLog("login_locked", { ip });
+      return res.status(429).json({
+        error:      "Too many failed attempts. Try again later.",
+        retryAfter: 900, // seconds
+      });
+    }
+
+    // ── Password check (S-03: bcrypt via verifyPassword) ─────────────────
+    const valid = await verifyPassword(password);
+
+    if (!valid) {
+      await recordAttempt(ip);
+      auditLog("login_failed", { ip });
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    // ── Success: clear lockout counter, set session cookie ────────────────
+    await clearAttempts(ip);
+
+    const payload = JSON.stringify({ ip, ts: Date.now() });
+    res.setHeader("Set-Cookie", buildSessionCookie(payload));
+
+    auditLog("login_success", { ip, slug });
+    return res.status(200).json({ ok: true });
   }
 
-  // ── Lockout check ────────────────────────────────────────────────────────────
-  if (await isLockedOut(ip)) {
-    const retryAfter = await getLockoutTTL(ip);
-    auditLog("login_blocked_lockout", { ip });
-    return res.status(429).json({
-      error: "Too many attempts. Try again later.",
-      retryAfter,
-    });
-  }
-
-  const { password, slug } = req.body ?? {};
-
-  if (typeof password !== "string" || typeof slug !== "string") {
-    return res.status(400).json({ error: "Invalid request" });
-  }
-
-  const passwordOk = safePasswordCompare(password, process.env.ADMIN_PASSWORD);
-  const slugOk     = safePasswordCompare(slug,     process.env.ADMIN_SLUG);
-
-  if (!passwordOk || !slugOk) {
-    await recordAttempt(ip);
-    auditLog("login_failed", { ip });
-    return res.status(401).json({ error: "Invalid credentials" });
-  }
-
-  // ── Success ──────────────────────────────────────────────────────────────────
-  await clearAttempts(ip);
-  res.setHeader("Set-Cookie", buildSessionCookie(process.env.SESSION_SECRET));
-  auditLog("login_success", { ip });
-  return res.status(200).json({ ok: true });
+  return res.status(405).json({ error: "Method not allowed" });
 }
