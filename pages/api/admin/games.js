@@ -13,6 +13,7 @@ import { securityHeaders, auditLog } from "../../../lib/security.js";
 import prisma                        from "../../../lib/prisma.js";
 import { recalcAggregates }          from "../../../lib/stats.prisma.js";
 import { prodError }                 from "../../../lib/utils.js";
+import { calcEff }                   from "../../../lib/stats.js";  // Q-05: replaces inline EFF formula
 
 const BoxScoreRowSchema = z.object({
   playerId:  zCuid,   // ← was z.string().cuid() -- removed in Zod v4
@@ -148,7 +149,8 @@ async function handler(req, res) {
             fg3a:     s.fg3a,
             ftm:      s.ftm,
             fta:      s.fta,
-            eff:      s.pts + s.reb + s.ast + s.stl + s.blk - (s.fga - s.fgm) - (s.fta - s.ftm) - s.tov,
+            // Q-05: was inlined as s.pts + s.reb + ... -- now uses shared calcEff()
+            eff:      calcEff(s),
           })),
         })),
       });
