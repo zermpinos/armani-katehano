@@ -7,11 +7,13 @@ import { z }                         from "zod";
 import { requireAuth }               from "../../../lib/requireAuth.js";
 import { securityHeaders, auditLog } from "../../../lib/security.js";
 import prisma                        from "../../../lib/prisma.js";
+import { prodError } from "../../../lib/utils.js";      // B-02: was missing
+import { zCuid } from "../../../lib/validators.js";      // D-01: needed below
 
 const SeasonCreateSchema = z.object({
   name:      z.string().min(1).max(100),
   year:      z.coerce.number().int().min(2000).max(2100),
-  leagueIds: z.array(z.string().cuid()).max(20).optional(),
+  leagueIds: z.array(zCuid).max(20).optional(),
 });
 
 async function handler(req, res) {
