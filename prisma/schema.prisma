@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../lib/generated/prisma"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -72,6 +73,7 @@ model Game {
   notes          String?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
+  sourceUrl      String?          @unique(where: raw("(\"sourceUrl\" IS NOT NULL)"))
   seasonLeague   SeasonLeague     @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
   playerStats    PlayerGameStat[]
 }
@@ -146,7 +148,6 @@ model PlayerSeasonAggregate {
   drbAvg         Float        @default(0)
   fg2Pct         Float        @default(0)
   effAvg         Float        @default(0)
-  // Shot totals -- used to compute accurate cross-league percentages
   fgmTotal       Int          @default(0)
   fgaTotal       Int          @default(0)
   fg2mTotal      Int          @default(0)
