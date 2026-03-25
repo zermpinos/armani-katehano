@@ -1,8 +1,3 @@
-/**
- * pages/sitemap.xml.js
- * Generates a static sitemap for all public pages.
- */
-
 const BASE_URL = "https://armani-katehano.vercel.app";
 
 function buildSitemap() {
@@ -25,4 +20,20 @@ function buildSitemap() {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   ${entries}
 </urlset>`;
+}
+
+export default function Sitemap() {
+  return null;
+}
+
+export async function getServerSideProps({ res }) {
+  const xml = buildSitemap();
+
+  res.setHeader("Content-Type", "text/xml");
+  res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
+
+  res.write(xml);
+  res.end();
+
+  return { props: {} };
 }
