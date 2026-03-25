@@ -6,6 +6,8 @@
 import { useState, useEffect } from "react";
 import { C } from "../../../lib/theme";
 import { AdminLayout, Toast } from "../../../lib/adminShared";
+import { validateAdminSlug } from "../../../lib/adminSlugCheck.js";
+
 
 export default function AdminDashboard({ validSlug }) {
   const [authed,      setAuthed]      = useState(false);
@@ -218,5 +220,9 @@ export async function getServerSideProps({ params }) {
     const b = Buffer.from(expected || "");
     if (a.length === b.length) validSlug = crypto.timingSafeEqual(a, b);
   } catch { validSlug = slug === expected; }
-  return { props: { validSlug } };
+
+  // don't serve the page at all for invalid slugs
+  if (!validSlug) return { notFound: true };
+
+  return { props: { validSlug } };  // or just { props: {} } since validSlug is always true here now
 }
