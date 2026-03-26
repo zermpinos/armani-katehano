@@ -19,6 +19,8 @@
  */
 
 import prisma from "../../../lib/prisma.js";
+import crypto from "crypto";
+
 
 // Rows older than this window are safe to delete.
 // Must match LOCKOUT_TTL_S in lib/loginAttempts.js so we never prune
@@ -42,7 +44,13 @@ export default async function handler(req, res) {
   const authHeader = req.headers.authorization ?? "";
   const token      = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
 
-  if (token !== cronSecret) {
+  // S-02: Use timingSafeEqual instead of !== to prevent timing side-channel attacks.
+  // timingSafeEqual throws if the two buffers have different byte lengths, so the
+  // length check must come first -- a mismatched length is itself an auth failure.
+  const a = Buffer.from(token,      "utf8");
+  const b = Buffer.from(cronSecret, "utf8");
+  const tokenValid = a.length === b.length && crypto.timingSafeEqual(a, b);
+  if (!tokenValid) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
