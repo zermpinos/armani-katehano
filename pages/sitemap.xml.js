@@ -15,28 +15,14 @@ function buildSitemap() {
   ];
 
   const entries = pages.map(({ url, priority, changefreq }) => `
-
-
   <url>
     <loc>${BASE_URL}${url}</loc>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>
   </url>`).join("");
 
-
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-@@ -33,9 +36,17 @@ export default function Sitemap() {
-
-export async function getServerSideProps({ res }) {
-  const xml = buildSitemap();
-
-  res.setHeader("Content-Type", "text/xml");
-  res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
-
-
-
-
-  res.write(xml);
-  res.end();
-  return { props: {} };
+  ${entries}
+</urlset>`;
+}
