@@ -4,147 +4,93 @@
  */
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { C } from "../../../lib/theme";
-import { AdminLayout, Toast } from "../../../lib/adminShared";
-import { validateAdminSlug } from "../../../lib/adminSlugCheck.js";
-
+import { AdminLayout, Spinner, LoginForm, useAdminAuth } from "../../../lib/adminShared";
+import { validateAdminSlug } from "../../../lib/adminSlugCheck";
 
 export default function AdminDashboard({ validSlug }) {
-  const [authed,      setAuthed]      = useState(false);
-  const [checking,    setChecking]    = useState(true);
-  const [data,        setData]        = useState(null);
-  const [loading,     setLoading]     = useState(false);
-  const [toast,       setToast]       = useState(null);
-  const [password,    setPassword]    = useState("");
-  const [authError,   setAuthError]   = useState("");
-  const [authLoading, setAuthLoading] = useState(false);
+  // A-02 fix: derive slug from the Next.js router, not window.location.
+  // router.query is {} on first render; fall back to validSlug (from SSR props)
+  // so the auth hook has a non-empty slug immediately.
+  const router = useRouter();
+  const slug = router.query.slug || validSlug;
 
-  const slug = typeof window !== "undefined"
-    ? window.location.pathname.split("/")[2]
-    : "";
+  // Q-03 fix: use the shared hook instead of inline auth state.
+  const { authed, loading: authLoading, loginError, handleLogin, handleLogout } =
+    useAdminAuth(slug);
 
-  // ── On mount: check if already logged in ─────────────────────────────────
-  useEffect(() => {
-    if (!validSlug) { setChecking(false); return; }
-    fetch("/api/auth", { method: "GET" })
-      .then(r => {
-        if (r.ok) { setAuthed(true); loadDashboard(); }
-        setChecking(false);
-      })
-      .catch(() => setChecking(false));
-  }, [validSlug]);
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [toast,   setToast]   = useState(null);
 
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/dashboard");
+      // Uses the existing /api/admin/data endpoint — no separate dashboard endpoint needed.
+      const res = await fetch("/api/admin/data");
       if (!res.ok) return;
-      setData(await res.json());
+      const json = await res.json();
+      setData(json);
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Login ─────────────────────────────────────────────────────────────────
-  const login = async (e) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthError("");
-    try {
-      const res = await fetch("/api/auth", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ password, slug }),
-      });
-      if (res.ok) {
-        setPassword("");
-        setAuthed(true);   // ← this is what was missing
-        loadDashboard();
-      } else {
-        const d = await res.json();
-        if (res.status === 429)
-          setAuthError(`Too many attempts. Try again in ${Math.ceil((d.retryAfter || 900) / 60)} min.`);
-        else
-          setAuthError("Invalid credentials.");
-      }
-    } catch {
-      setAuthError("Network error.");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const logout = async () => {
-    await fetch("/api/auth", { method: "DELETE" });
-    setAuthed(false);
-    setData(null);
-  };
+  // Guard: don't fetch until the router has hydrated and auth is confirmed.
+  useEffect(() => {
+    if (authed && slug) loadDashboard();
+  }, [authed, slug]);
 
   // ── 404 ───────────────────────────────────────────────────────────────────
-  if (!validSlug) return (
-    <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 96, fontWeight: 900, color: C.border }}>404</div>
-        <div style={{ fontSize: 14, color: C.textDim }}>Page not found</div>
+  // validSlug is false when adminSlugCheck rejects the URL segment.
+  // getServerSideProps returns { notFound: true } so Next.js renders its own
+  // 404 page — this branch is a belt-and-suspenders fallback only.
+  if (!validSlug) return null;
+
+  // ── Auth loading ──────────────────────────────────────────────────────────
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.base }}>
+        <Spinner />
       </div>
-    </div>
-  );
+    );
+  }
 
-  // ── Checking session ──────────────────────────────────────────────────────
-  if (checking) return (
-    <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <Spinner />
-    </div>
-  );
-
-  // ── Login screen ──────────────────────────────────────────────────────────
-  if (!authed) return (
-    <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ width: "100%", maxWidth: 360, borderRadius: 20, padding: 32, border: `1px solid ${C.border}`, background: C.surface }}>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ width: 52, height: 52, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontSize: 22, background: `${C.red}18`, border: `1px solid ${C.red}45` }}>🔐</div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: C.text }}>Admin Access</div>
-          <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Armani Katehano · Team Manager</div>
-        </div>
-        <form onSubmit={login} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", marginBottom: 5, color: C.textDim, textTransform: "uppercase" }}>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Enter password"
-              style={{ width: "100%", padding: "9px 12px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none" }}
-            />
-          </div>
-          {authError && <div style={{ fontSize: 12, color: C.redText }}>{authError}</div>}
-          <button
-            type="submit"
-            disabled={authLoading || !password}
-            style={{ padding: "12px", fontWeight: 900, fontSize: 14, letterSpacing: "0.12em", textTransform: "uppercase", borderRadius: 10, border: "none", background: C.red, color: C.text, cursor: "pointer", fontFamily: "inherit", opacity: authLoading || !password ? 0.5 : 1 }}>
-            {authLoading ? "VERIFYING…" : "SIGN IN"}
-          </button>
-        </form>
-        <div style={{ textAlign: "center", fontSize: 10, color: C.textDim, marginTop: 16 }}>5 failed attempts → 15-minute lockout</div>
+  // ── Not authed → Login screen ─────────────────────────────────────────────
+  if (!authed) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.base, padding: 16 }}>
+        <LoginForm onLogin={handleLogin} error={loginError} />
       </div>
-    </div>
-  );
+    );
+  }
 
-  // ── Dashboard ─────────────────────────────────────────────────────────────
+  // ── Derived display values ────────────────────────────────────────────────
   const wins   = data?.record?.wins   ?? 0;
   const losses = data?.record?.losses ?? 0;
 
+  // Compute team-wide averages from the stats map returned by /api/admin/data.
+  // statsMap is { [playerId]: { ppg, rpg, apg, gp, ... } }.
+  const statValues = data?.stats ? Object.values(data.stats) : [];
+  const totalGp    = statValues.reduce((s, p) => s + (p.gp || 0), 0);
+  const wavg = key => totalGp > 0
+    ? (statValues.reduce((s, p) => s + (p[key] || 0) * (p.gp || 0), 0) / totalGp).toFixed(1)
+    : "—";
+
   const navItems = [
-  { href: `/admin/${slug}/import`,  label: "Import game",  icon: "↓", desc: "Add a new game from sportstats.gr" },
-  { href: `/admin/${slug}/games`,   label: "Game results", icon: "◉", desc: `${data?.totalGames ?? "—"} games recorded` },
-  { href: `/admin/${slug}/roster`,  label: "Roster",       icon: "◎", desc: `${data?.totalPlayers ?? "—"} players` },
-  { href: `/admin/${slug}/seasons`, label: "Seasons",      icon: "◇", desc: `${data?.totalSeasonLeagues ?? "—"} active leagues` },
-];
+    { href: `/admin/${slug}/import`,  label: "Import game",   icon: "↓", desc: "Add a new game from sportstats.gr" },
+    { href: `/admin/${slug}/games`,   label: "Game results",  icon: "◉", desc: `${data?.games?.length ?? "—"} games recorded` },
+    { href: `/admin/${slug}/roster`,  label: "Roster",        icon: "◎", desc: `${data?.players?.length ?? "—"} players` },
+    { href: `/admin/${slug}/seasons`, label: "Seasons",       icon: "◇", desc: `${data?.seasonLeagues?.length ?? "—"} active leagues` },
+  ];
 
   return (
-    <AdminLayout slug={slug} title="Dashboard" toast={toast} setToast={setToast} onLogout={logout}>
+    <AdminLayout slug={slug} title="Dashboard" toast={toast} setToast={setToast} onLogout={handleLogout}>
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Spinner /></div>
+        <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
+          <Spinner />
+        </div>
       ) : (
         <>
           {/* Summary strip */}
@@ -152,9 +98,9 @@ export default function AdminDashboard({ validSlug }) {
             {[
               ["SEASON",  data?.currentSeason ?? "—"],
               ["RECORD",  `${wins}–${losses}`],
-              ["PPG",     data?.ppg ?? "—"],
-              ["RPG",     data?.rpg ?? "—"],
-              ["APG",     data?.apg ?? "—"],
+              ["PPG",     wavg("ppg")],
+              ["RPG",     wavg("rpg")],
+              ["APG",     wavg("apg")],
             ].map(([label, value]) => (
               <div key={label} style={{ borderRadius: 10, padding: "12px 14px", textAlign: "center", border: `1px solid ${C.border}`, background: C.surface }}>
                 <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 4 }}>{label}</div>
@@ -166,10 +112,7 @@ export default function AdminDashboard({ validSlug }) {
           {/* Quick links */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginBottom: 28 }}>
             {navItems.map(link => (
-              <a key={link.href} href={link.href}
-                style={{ display: "block", borderRadius: 12, padding: "18px 20px", border: `1px solid ${C.border}`, background: C.surface, textDecoration: "none" }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = C.red}
-                onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+              <a key={link.href} href={link.href} style={{ display: "block", borderRadius: 12, padding: "18px 20px", border: `1px solid ${C.border}`, background: C.surface, textDecoration: "none" }}>
                 <div style={{ fontSize: 20, marginBottom: 8 }}>{link.icon}</div>
                 <div style={{ fontSize: 13, fontWeight: 900, color: C.text, marginBottom: 3 }}>{link.label}</div>
                 <div style={{ fontSize: 11, color: C.textDim }}>{link.desc}</div>
@@ -178,23 +121,34 @@ export default function AdminDashboard({ validSlug }) {
           </div>
 
           {/* Recent games */}
-          {data?.recentGames?.length > 0 && (
+          {data?.games?.length > 0 && (
             <div>
-              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 10, textTransform: "uppercase" }}>Recent games</div>
+              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 10, textTransform: "uppercase" }}>
+                Recent games
+              </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {data.recentGames.map(g => (
-                  <div key={g.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 900, background: g.result === "W" ? `${C.green}22` : `${C.red}22`, color: g.result === "W" ? C.green : C.redText }}>{g.result}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>vs {g.opponent}</span>
-                      <span style={{ fontSize: 12, color: C.textDim }}>{g.teamScore}–{g.opponentScore}</span>
+                {[...data.games]
+                  .sort((a, b) => new Date(b.date) - new Date(a.date))
+                  .slice(0, 5)
+                  .map(g => (
+                    <div key={g.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 900, background: g.result === "W" ? `${C.green}22` : `${C.red}22`, color: g.result === "W" ? C.green : C.redText }}>
+                          {g.result}
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                          {g.home ? "vs" : "@"} {g.opponent}
+                        </span>
+                        <span style={{ fontSize: 12, color: C.textDim }}>{g.score}</span>
+                      </div>
+                      <span style={{ fontSize: 11, color: C.textDim }}>{g.date}</span>
                     </div>
-                    <span style={{ fontSize: 11, color: C.textDim }}>{g.playedOn?.slice(0, 10)}</span>
-                  </div>
-                ))}
+                  ))}
               </div>
               <div style={{ marginTop: 10 }}>
-                <a href="games" style={{ fontSize: 11, color: C.redText, fontWeight: 700, textDecoration: "none" }}>View all games →</a>
+                <a href={`/admin/${slug}/games`} style={{ fontSize: 11, color: C.redText, fontWeight: 700, textDecoration: "none" }}>
+                  View all games →
+                </a>
               </div>
             </div>
           )}
@@ -204,17 +158,11 @@ export default function AdminDashboard({ validSlug }) {
   );
 }
 
-function Spinner() {
-  return (
-    <div style={{ width: 32, height: 32, borderRadius: "50%", border: `2px solid ${C.border2}`, borderTopColor: C.redBright, animation: "spin 0.7s linear infinite" }} />
-  );
-}
-
+// ── SSR slug validation ─────────────────────────────────────────────────────
 export async function getServerSideProps({ params }) {
   const validSlug = await validateAdminSlug(params.slug);
-  
-  // don't serve the page at all for invalid slugs
+  // Return notFound so Next.js renders its built-in 404 page for bad slugs,
+  // rather than mounting the component with validSlug = false.
   if (!validSlug) return { notFound: true };
-
-  return { props: {} };
+  return { props: { validSlug } };
 }
