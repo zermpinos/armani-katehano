@@ -211,18 +211,10 @@ function Spinner() {
 }
 
 export async function getServerSideProps({ params }) {
-  const { slug } = params;
-  const expected = process.env.ADMIN_SLUG;
-  let validSlug = false;
-  try {
-    const crypto = await import("crypto");
-    const a = Buffer.from(slug || "");
-    const b = Buffer.from(expected || "");
-    if (a.length === b.length) validSlug = crypto.timingSafeEqual(a, b);
-  } catch { validSlug = slug === expected; }
-
+  const validSlug = await validateAdminSlug(params.slug);
+  
   // don't serve the page at all for invalid slugs
   if (!validSlug) return { notFound: true };
 
-  return { props: { validSlug } };  // or just { props: {} } since validSlug is always true here now
+  return { props: {} };
 }
