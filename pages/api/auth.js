@@ -11,16 +11,7 @@
  */
 
 import { isLockedOut, recordAttempt, clearAttempts } from "../../lib/loginAttempts.js";
-import {
-  getSessionToken,
-  verifyPayload,
-  verifyPassword,
-  buildSessionCookie,
-  clearSessionCookie,
-  securityHeaders,
-  auditLog,
-  checkCsrf,
-} from "../../lib/security.js";
+import {getSessionToken, verifyPayload, verifyPassword,buildSessionCookie,clearSessionCookie, securityHeaders,auditLog, checkCsrf,} from "../../lib/security.js";
 
 export default async function handler(req, res) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
