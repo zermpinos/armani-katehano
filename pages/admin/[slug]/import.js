@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { C } from "../../../lib/theme";
-import { AdminLayout, BoxScoreTable, F, Sel, Btn, byJersey, useAdminAuth, Spinner, LoginForm } from "../../../lib/adminShared";
+import { AdminLayout, BoxScoreTable, F, Sel, Btn, byJersey, useAdminAuth } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck.js';
 import { parseGreekDate, parseMinutes, detectLeagueSlug } from "../../../lib/greekDate.js";  // Q-04
 
@@ -276,6 +276,47 @@ export default function ImportPage({ validSlug }) {
         )}
       </div>
     </AdminLayout>
+  );
+}
+
+// ── Themed Spinner -- kept local to preserve C (theme token) styling ───────────
+function Spinner() {
+  return <div style={{ width: 32, height: 32, borderRadius: "50%", border: `2px solid ${C.border2}`, borderTopColor: C.redBright, animation: "spin 0.7s linear infinite" }} />;
+}
+
+// Q-01: now receives (onLogin, error) from useAdminAuth hook
+function LoginForm({ onLogin, error }) {
+  const [password, setPassword] = useState("");
+  const [loading,  setLoading]  = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    await onLogin(password);
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ width: "100%", maxWidth: 360, borderRadius: 20, padding: 32, border: `1px solid ${C.border}`, background: C.surface }}>
+      <div style={{ textAlign: "center", marginBottom: 28 }}>
+        <div style={{ width: 52, height: 52, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontSize: 22, background: `${C.red}18`, border: `1px solid ${C.red}45` }}>🔐</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: C.text }}>Admin Access</div>
+        <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Armani Katehano · Team Manager</div>
+      </div>
+      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", marginBottom: 5, color: C.textDim, textTransform: "uppercase" }}>Password</label>
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password"
+            style={{ width: "100%", padding: "9px 12px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none" }} />
+        </div>
+        {error && <div style={{ fontSize: 12, color: C.redText }}>{error}</div>}
+        <button type="submit" disabled={loading || !password}
+          style={{ padding: "12px", fontWeight: 900, fontSize: 14, letterSpacing: "0.12em", textTransform: "uppercase", borderRadius: 10, border: "none", background: C.red, color: C.text, cursor: "pointer", fontFamily: "inherit", opacity: loading || !password ? 0.5 : 1 }}>
+          {loading ? "VERIFYING..." : "SIGN IN"}
+        </button>
+      </form>
+      <div style={{ textAlign: "center", fontSize: 10, color: C.textDim, marginTop: 16 }}>5 failed attempts -> 15-minute lockout</div>
+    </div>
   );
 }
 
