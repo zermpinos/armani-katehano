@@ -3,18 +3,19 @@
  * Roster management — view, add, edit players.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { C } from "../../../lib/theme";
-import { AdminLayout, F, Sel, Btn, Toast, byJersey, useAdminAuth } from "../../../lib/adminShared";
+import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, useAdminAuth, byJersey } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck.js';
 
 const POSITIONS = ["PG", "SG", "SF", "PF", "C", "PG/SG", "PG/SF", "SG/SF", "SF/PF", "PF/C"];
 
 export default function RosterPage({ validSlug }) {
-  const slug = typeof window !== "undefined" ? window.location.pathname.split("/")[2] : "";
+  // A-02 fix: derive slug from the Next.js router, not window.location.
+  const router = useRouter();
+  const slug = router.query.slug || validSlug;
 
-  // Q-01: replaced ~25 lines of duplicated auth state + useEffect + login fn
-  // with a single hook call.
   const { authed, loading: checking, loginError, handleLogin } = useAdminAuth(slug);
 
   const [players, setPlayers] = useState([]);
@@ -29,13 +30,20 @@ export default function RosterPage({ validSlug }) {
   const loadPlayers = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/players");
-      if (res.ok) { const d = await res.json(); setPlayers(d.players ?? []); }
+      // A-01 fix: pull players from the central /api/admin/data endpoint,
+      // which is auth-gated by requireAuth and already returns the full player list.
+      const res = await fetch("/api/admin/data");
+      if (res.ok) {
+        const d = await res.json();
+        setPlayers(d.players ?? []);
+      }
     } finally { setLoading(false); }
   };
 
-  // Trigger data load once authenticated
-  useState(() => { if (authed) loadPlayers(); }, [authed]);
+  // A-02 fix: guard so we don't fire with an empty slug before the router hydrates.
+  useEffect(() => {
+    if (authed && slug) loadPlayers();
+  }, [authed, slug]);
 
   const startNew  = () => { setDraft({ name: "", number: "", position: "PG", height: "", weight: "" }); setEditId("new"); };
   const startEdit = p => { setDraft({ ...p }); setEditId(p.id); };
@@ -45,9 +53,9 @@ export default function RosterPage({ validSlug }) {
   const save = async () => {
     const isNew = editId === "new";
     const res = await fetch("/api/admin/players", {
-      method: isNew ? "POST" : "PUT",
+      method:  isNew ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(isNew ? draft : { playerId: editId, ...draft }),
+      body:    JSON.stringify(isNew ? draft : { playerId: editId, ...draft }),
     });
     if (!res.ok) { const d = await res.json(); showToast(d.error || "Save failed", "error"); return; }
     showToast(isNew ? "Player added!" : "Player saved!");
@@ -74,6 +82,7 @@ export default function RosterPage({ validSlug }) {
     </div>
   );
 
+  // ── 404 ───────────────────────────────────────────────────────────────────
   if (!validSlug) return null;
 
   if (checking) return (
@@ -121,45 +130,6 @@ export default function RosterPage({ validSlug }) {
         </div>
       )}
     </AdminLayout>
-  );
-}
-
-// ── Themed Spinner — kept local to preserve C (theme token) styling ───────────
-function Spinner() {
-  return <div style={{ width: 32, height: 32, borderRadius: "50%", border: `2px solid ${C.border2}`, borderTopColor: C.redBright, animation: "spin 0.7s linear infinite" }} />;
-}
-
-// Q-01: now receives (onLogin, error) from useAdminAuth hook
-function LoginForm({ onLogin, error }) {
-  const [password, setPassword] = useState("");
-  const [loading,  setLoading]  = useState(false);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    await onLogin(password);
-    setLoading(false);
-  };
-
-  return (
-    <div style={{ width: "100%", maxWidth: 360, borderRadius: 20, padding: 32, border: `1px solid ${C.border}`, background: C.surface }}>
-      <div style={{ textAlign: "center", marginBottom: 28 }}>
-        <div style={{ width: 52, height: 52, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontSize: 22, background: `${C.red}18`, border: `1px solid ${C.red}45` }}>🔐</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: C.text }}>Admin Access</div>
-      </div>
-      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", marginBottom: 5, color: C.textDim, textTransform: "uppercase" }}>Password</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password"
-            style={{ width: "100%", padding: "9px 12px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none" }} />
-        </div>
-        {error && <div style={{ fontSize: 12, color: C.redText }}>{error}</div>}
-        <button type="submit" disabled={loading || !password}
-          style={{ padding: "12px", fontWeight: 900, fontSize: 14, letterSpacing: "0.12em", textTransform: "uppercase", borderRadius: 10, border: "none", background: C.red, color: C.text, cursor: "pointer", fontFamily: "inherit", opacity: loading || !password ? 0.5 : 1 }}>
-          {loading ? "VERIFYING…" : "SIGN IN"}
-        </button>
-      </form>
-    </div>
   );
 }
 
