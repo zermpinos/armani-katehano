@@ -24,7 +24,13 @@ const nextConfig = {
         ],
       },
       {
-        source: "/api/(.*)",
+        source: "/api/auth",
+        headers: [
+          { key: "Cache-Control", value: "no-store" },
+        ],
+      },
+      {
+        source: "/api/admin/(.*)",
         headers: [
           { key: "Cache-Control", value: "no-store" },
         ],

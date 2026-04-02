@@ -188,7 +188,6 @@ async function handler(req, res) {
       })),
       games:    shapedGames,
       stats:    statsMap,
-      schedule: [],
     });
   } catch (err) {
     return res.status(500).json({ error: prodError(err) });
