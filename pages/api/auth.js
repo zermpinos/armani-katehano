@@ -11,7 +11,7 @@
  */
 
 import { isLockedOut, recordAttempt, clearAttempts } from "../../lib/loginAttempts.js";
-import {getSessionToken, verifyPayload, verifyPassword,buildSessionCookie,clearSessionCookie, securityHeaders,auditLog, checkCsrf,} from "../../lib/security.js";
+import {getSessionToken, verifyPayload, verifyPassword,buildSessionCookie,clearSessionCookie, securityHeaders,auditLog, csrfCheck,} from "../../lib/security.js";
 
 export default async function handler(req, res) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 
   // ── POST: login ───────────────────────────────────────────────────────────
   if (req.method === "POST") {
-    if (!checkCsrf(req)) {
+    if (!csrfCheck(req, { strict: true })) {
       auditLog("csrf_rejected", { ip });
       return res.status(403).json({ error: "Forbidden" });
     }
