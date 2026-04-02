@@ -7,40 +7,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { z }                    from "zod";
-import { zCuid }                from "../lib/validators.js";
-
-// ─── Inline the schema (mirrors pages/api/admin/games.js) ────────────────────
-// Keeping it here avoids importing Next.js API route internals into tests.
-// If you change the schema in games.js, update this copy too.
-
-const BoxScoreRowSchema = z.object({
-  playerId:  zCuid,   // ← was z.string().cuid() — removed in Zod v4
-  minutes:   z.coerce.number().int().min(0).max(60),
-  pts:       z.coerce.number().int().min(0).max(200),
-  reb:       z.coerce.number().int().min(0).max(100),
-  orb:       z.coerce.number().int().min(0).max(50).default(0),
-  drb:       z.coerce.number().int().min(0).max(50).default(0),
-  ast:       z.coerce.number().int().min(0).max(100),
-  stl:       z.coerce.number().int().min(0).max(50),
-  blk:       z.coerce.number().int().min(0).max(50),
-  tov:       z.coerce.number().int().min(0).max(50),
-  pf:        z.coerce.number().int().min(0).max(6),
-  fgm:       z.coerce.number().int().min(0).max(100),
-  fga:       z.coerce.number().int().min(0).max(100),
-  fg2m:      z.coerce.number().int().min(0).max(100),
-  fg2a:      z.coerce.number().int().min(0).max(100),
-  fg3m:      z.coerce.number().int().min(0).max(50),
-  fg3a:      z.coerce.number().int().min(0).max(50),
-  ftm:       z.coerce.number().int().min(0).max(50),
-  fta:       z.coerce.number().int().min(0).max(50),
-})
-  .refine(r => r.fgm  <= r.fga,             { message: "fgm cannot exceed fga" })
-  .refine(r => r.fg2m <= r.fg2a,            { message: "fg2m cannot exceed fg2a" })
-  .refine(r => r.fg3m <= r.fg3a,            { message: "fg3m cannot exceed fg3a" })
-  .refine(r => r.ftm  <= r.fta,             { message: "ftm cannot exceed fta" })
-  .refine(r => r.fg2m + r.fg3m === r.fgm,   { message: "fg2m + fg3m must equal fgm" })
-  .refine(r => r.fg3m <= r.fgm,             { message: "fg3m cannot exceed fgm" })
-  .refine(r => r.orb  + r.drb <= r.reb + 1, { message: "orb+drb cannot exceed reb" });
+import { BoxScoreRowSchema }    from "../lib/validators.js";
 
 // ─── Valid base row ───────────────────────────────────────────────────────────
 const VALID_ROW = {
@@ -58,23 +25,25 @@ function valid(overrides = {}) {
   return BoxScoreRowSchema.safeParse({ ...VALID_ROW, ...overrides });
 }
 
-// ─── CUID validator tests ─────────────────────────────────────────────────────
+// ─── z.string().cuid() validator tests ───────────────────────────────────────
 
-describe("zCuid validator", () => {
+const cuidSchema = z.string().cuid();
+
+describe("z.string().cuid() validator", () => {
   it("accepts a valid CUID", () => {
-    expect(zCuid.safeParse("clxxxxxxxxxxxxxxxxxxxxxx").success).toBe(true);
+    expect(cuidSchema.safeParse("clxxxxxxxxxxxxxxxxxxxxxx").success).toBe(true);
   });
 
   it("rejects a UUID", () => {
-    expect(zCuid.safeParse("550e8400-e29b-41d4-a716-446655440000").success).toBe(false);
+    expect(cuidSchema.safeParse("550e8400-e29b-41d4-a716-446655440000").success).toBe(false);
   });
 
   it("rejects an empty string", () => {
-    expect(zCuid.safeParse("").success).toBe(false);
+    expect(cuidSchema.safeParse("").success).toBe(false);
   });
 
   it("rejects a string that doesn't start with c", () => {
-    expect(zCuid.safeParse("alxxxxxxxxxxxxxxxxxxxxxx").success).toBe(false);
+    expect(cuidSchema.safeParse("alxxxxxxxxxxxxxxxxxxxxxx").success).toBe(false);
   });
 });
 
