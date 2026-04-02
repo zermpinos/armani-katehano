@@ -74,6 +74,8 @@ model Game {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   sourceUrl      String?          @unique(where: raw("(\"sourceUrl\" IS NOT NULL)"))
+  offRating      Float?
+  defRating      Float?
   seasonLeague   SeasonLeague     @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
   playerStats    PlayerGameStat[]
 }
