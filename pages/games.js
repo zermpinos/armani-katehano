@@ -7,10 +7,20 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import { fmt } from "../lib/utils";
 
 const BOX_COLS = [
-  {key:"min",label:"MIN"},{key:"pts",label:"PTS"},{key:"reb",label:"REB"},
-  {key:"ast",label:"AST"},{key:"stl",label:"STL"},{key:"blk",label:"BLK"},{key:"tov",label:"TOV"},
-  {key:"fgm",label:"FGM"},{key:"fga",label:"FGA"},{key:"fg3m",label:"3PM"},{key:"fg3a",label:"3PA"},
-  {key:"ftm",label:"FTM"},{key:"fta",label:"FTA"},{key:"eff",label:"EFF"},
+  {key:"min",label:"MIN"},
+  {key:"pts",label:"PTS"},
+  {key:"reb",label:"REB"},
+  {key:"ast",label:"AST"},
+  {key:"stl",label:"STL"},
+  {key:"blk",label:"BLK"},
+  {key:"tov",label:"TOV"},
+  {key:"fgm",label:"FGM"},
+  {key:"fga",label:"FGA"},
+  {key:"fg3m",label:"3PM"},
+  {key:"fg3a",label:"3PA"},
+  {key:"ftm",label:"FTM"},
+  {key:"fta",label:"FTA"},
+  {key:"eff",label:"EFF"},
 ];
 
 /**
