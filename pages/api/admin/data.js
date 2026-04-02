@@ -55,56 +55,71 @@ async function handler(req, res) {
     }) : [];
 
     // ── Shape stats ─────────────────────────────────────────────────────────
-    // A-01 fix: include the full stat set, not just the 9-field subset.
-    // R-01 fix: map tpPct (Prisma/DB name) → fg3Pct (app-layer convention).
-    const statsMap = {};
+    // Merge multi-league aggregates per player.
+    // Rate stats: weighted average by gp.
+    // Percentage stats: recomputed from summed raw totals (statistically correct).
+    // This mirrors the approach in lib/repository.prisma.js:getStats().
+    const merged = {};
     for (const agg of aggregates) {
       const pid = agg.playerId;
-      if (!statsMap[pid]) {
-        statsMap[pid] = {
-          ppg:    +agg.ptsAvg.toFixed(1),
-          rpg:    +agg.rebAvg.toFixed(1),
-          orpg:   +agg.orbAvg.toFixed(1),
-          drpg:   +agg.drbAvg.toFixed(1),
-          apg:    +agg.astAvg.toFixed(1),
-          spg:    +agg.stlAvg.toFixed(1),
-          bpg:    +agg.blkAvg.toFixed(1),
-          tpg:    +agg.toAvg.toFixed(1),
-          fpg:    +agg.pfAvg.toFixed(1),
-          mpg:    +agg.minutesAvg.toFixed(1),
-          fgPct:  +agg.fgPct.toFixed(1),
-          fg2Pct: +agg.fg2Pct.toFixed(1),
-          fg3Pct: +agg.tpPct.toFixed(1),   // R-01: tpPct in DB → fg3Pct in app
-          ftPct:  +agg.ftPct.toFixed(1),
-          tsPct:  +agg.tsPct.toFixed(1),
-          effAvg: +agg.effAvg.toFixed(1),
-          gp:     agg.gp,
-        };
+      if (!merged[pid]) {
+        merged[pid] = { ...agg };
         continue;
       }
-      // Weighted average across multiple SeasonLeagues in the same season.
-      const prev    = statsMap[pid];
+      const prev    = merged[pid];
       const totalGp = prev.gp + agg.gp;
       const wavg    = (a, b) =>
-        totalGp > 0 ? +((a * prev.gp + b * agg.gp) / totalGp).toFixed(1) : 0;
+        totalGp > 0 ? +((a * prev.gp + b * agg.gp) / totalGp).toFixed(2) : 0;
+      merged[pid] = {
+        ...prev,
+        gp:         totalGp,
+        ptsAvg:     wavg(prev.ptsAvg,     agg.ptsAvg),
+        rebAvg:     wavg(prev.rebAvg,     agg.rebAvg),
+        orbAvg:     wavg(prev.orbAvg,     agg.orbAvg),
+        drbAvg:     wavg(prev.drbAvg,     agg.drbAvg),
+        astAvg:     wavg(prev.astAvg,     agg.astAvg),
+        stlAvg:     wavg(prev.stlAvg,     agg.stlAvg),
+        blkAvg:     wavg(prev.blkAvg,     agg.blkAvg),
+        toAvg:      wavg(prev.toAvg,      agg.toAvg),
+        pfAvg:      wavg(prev.pfAvg,      agg.pfAvg),
+        minutesAvg: wavg(prev.minutesAvg, agg.minutesAvg),
+        effAvg:     wavg(prev.effAvg,     agg.effAvg),
+        tsPct:      wavg(prev.tsPct,      agg.tsPct),
+        // Shot totals summed so percentages can be recomputed accurately
+        fgmTotal:   prev.fgmTotal  + agg.fgmTotal,
+        fgaTotal:   prev.fgaTotal  + agg.fgaTotal,
+        fg2mTotal:  prev.fg2mTotal + agg.fg2mTotal,
+        fg2aTotal:  prev.fg2aTotal + agg.fg2aTotal,
+        fg3mTotal:  prev.fg3mTotal + agg.fg3mTotal,
+        fg3aTotal:  prev.fg3aTotal + agg.fg3aTotal,
+        ftmTotal:   prev.ftmTotal  + agg.ftmTotal,
+        ftaTotal:   prev.ftaTotal  + agg.ftaTotal,
+      };
+    }
+
+    const pct = (m, a) => a > 0 ? +((m / a) * 100).toFixed(1) : 0;
+
+    const statsMap = {};
+    for (const [pid, agg] of Object.entries(merged)) {
       statsMap[pid] = {
-        ppg:    wavg(prev.ppg,    agg.ptsAvg),
-        rpg:    wavg(prev.rpg,    agg.rebAvg),
-        orpg:   wavg(prev.orpg,   agg.orbAvg),
-        drpg:   wavg(prev.drpg,   agg.drbAvg),
-        apg:    wavg(prev.apg,    agg.astAvg),
-        spg:    wavg(prev.spg,    agg.stlAvg),
-        bpg:    wavg(prev.bpg,    agg.blkAvg),
-        tpg:    wavg(prev.tpg,    agg.toAvg),
-        fpg:    wavg(prev.fpg,    agg.pfAvg),
-        mpg:    wavg(prev.mpg,    agg.minutesAvg),
-        fgPct:  wavg(prev.fgPct,  agg.fgPct),
-        fg2Pct: wavg(prev.fg2Pct, agg.fg2Pct),
-        fg3Pct: wavg(prev.fg3Pct, agg.tpPct),  // R-01: tpPct in DB → fg3Pct in app
-        ftPct:  wavg(prev.ftPct,  agg.ftPct),
-        tsPct:  wavg(prev.tsPct,  agg.tsPct),
-        effAvg: wavg(prev.effAvg, agg.effAvg),
-        gp:     totalGp,
+        ppg:    +agg.ptsAvg.toFixed(1),
+        rpg:    +agg.rebAvg.toFixed(1),
+        orpg:   +agg.orbAvg.toFixed(1),
+        drpg:   +agg.drbAvg.toFixed(1),
+        apg:    +agg.astAvg.toFixed(1),
+        spg:    +agg.stlAvg.toFixed(1),
+        bpg:    +agg.blkAvg.toFixed(1),
+        tpg:    +agg.toAvg.toFixed(1),
+        fpg:    +agg.pfAvg.toFixed(1),
+        mpg:    +agg.minutesAvg.toFixed(1),
+        // Percentages from raw totals — accurate across leagues
+        fgPct:  pct(agg.fgmTotal,  agg.fgaTotal),
+        fg2Pct: pct(agg.fg2mTotal, agg.fg2aTotal),
+        fg3Pct: pct(agg.fg3mTotal, agg.fg3aTotal),  // tpPct (DB) → fg3Pct (app)
+        ftPct:  agg.ftaTotal > 0 ? pct(agg.ftmTotal, agg.ftaTotal) : null,
+        tsPct:  +agg.tsPct.toFixed(1),
+        eff:    +agg.effAvg.toFixed(1),  // named eff to match public convention
+        gp:     agg.gp,
       };
     }
 
