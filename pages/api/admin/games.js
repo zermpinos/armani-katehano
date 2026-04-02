@@ -6,43 +6,14 @@
  * GET    /api/admin/games -> list all games (lightweight, no box score)
  */
 
-import { z }                         from "zod";
-import { zCuid }                     from "../../../lib/validators.js";
-import { requireAuth }               from "../../../lib/requireAuth.js";
-import { securityHeaders, auditLog } from "../../../lib/security.js";
-import prisma                        from "../../../lib/prisma.js";
-import { recalcAggregates }          from "../../../lib/stats.prisma.js";
-import { prodError }                 from "../../../lib/utils.js";
-import { calcEff }                   from "../../../lib/stats.js";  // Q-05: replaces inline EFF formula
-
-const BoxScoreRowSchema = z.object({
-  playerId:  zCuid,   // ← was z.string().cuid() -- removed in Zod v4
-  minutes:   z.coerce.number().int().min(0).max(60),
-  pts:       z.coerce.number().int().min(0).max(200),
-  reb:       z.coerce.number().int().min(0).max(100),
-  orb:       z.coerce.number().int().min(0).max(50).default(0),
-  drb:       z.coerce.number().int().min(0).max(50).default(0),
-  ast:       z.coerce.number().int().min(0).max(100),
-  stl:       z.coerce.number().int().min(0).max(50),
-  blk:       z.coerce.number().int().min(0).max(50),
-  tov:       z.coerce.number().int().min(0).max(50),
-  pf:        z.coerce.number().int().min(0).max(6),
-  fgm:       z.coerce.number().int().min(0).max(100),
-  fga:       z.coerce.number().int().min(0).max(100),
-  fg2m:      z.coerce.number().int().min(0).max(100),
-  fg2a:      z.coerce.number().int().min(0).max(100),
-  fg3m:      z.coerce.number().int().min(0).max(50),
-  fg3a:      z.coerce.number().int().min(0).max(50),
-  ftm:       z.coerce.number().int().min(0).max(50),
-  fta:       z.coerce.number().int().min(0).max(50),
-})
-  .refine(r => r.fgm  <= r.fga,               { message: "fgm cannot exceed fga" })
-  .refine(r => r.fg2m <= r.fg2a,              { message: "fg2m cannot exceed fg2a" })
-  .refine(r => r.fg3m <= r.fg3a,              { message: "fg3m cannot exceed fg3a" })
-  .refine(r => r.ftm  <= r.fta,               { message: "ftm cannot exceed fta" })
-  .refine(r => r.fg2m + r.fg3m === r.fgm,     { message: "fg2m + fg3m must equal fgm" })
-  .refine(r => r.fg3m <= r.fgm,               { message: "fg3m cannot exceed fgm" })
-  .refine(r => r.orb  + r.drb <= r.reb + 1,   { message: "orb+drb cannot exceed reb" });
+import { z }                              from "zod";
+import { zCuid, BoxScoreRowSchema }       from "../../../lib/validators.js";
+import { requireAuth }                    from "../../../lib/requireAuth.js";
+import { securityHeaders, auditLog }      from "../../../lib/security.js";
+import prisma                             from "../../../lib/prisma.js";
+import { recalcAggregates }               from "../../../lib/stats.prisma.js";
+import { prodError }                      from "../../../lib/utils.js";
+import { calcEff }                        from "../../../lib/stats.js";
 
 const GameWriteSchema = z.object({
   seasonLeagueId: zCuid,   // ← was z.string().cuid() -- removed in Zod v4
