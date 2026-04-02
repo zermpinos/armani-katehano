@@ -16,3 +16,8 @@ npm-debug.log*
 *.swp
 *.swo
 *~
+
+CLAUDE.md
+audit.txt
+structure.txt
+
