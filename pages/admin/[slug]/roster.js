@@ -82,8 +82,6 @@ export default function RosterPage({ validSlug }) {
     </div>
   );
 
-  // ── 404 ───────────────────────────────────────────────────────────────────
-  if (!validSlug) return null;
 
   if (checking) return (
     <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -134,6 +132,6 @@ export default function RosterPage({ validSlug }) {
 }
 
 export async function getServerSideProps({ params }) {
-  const validSlug = await validateAdminSlug(params.slug);
-  return { props: { validSlug } };
+  if (!await validateAdminSlug(params.slug)) return { notFound: true };
+  return { props: { validSlug: true } };
 }
