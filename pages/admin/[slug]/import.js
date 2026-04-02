@@ -62,7 +62,8 @@ export default function ImportPage({ validSlug }) {
     const oppScore    = isHome ? game.finalScore.away  : game.finalScore.home;
     const oppTeamName = isHome ? game.awayTeam         : game.homeTeam;
     const result      = akScore > oppScore ? "W" : "L";
-    const date        = parseGreekDate(game.date);       // Q-04: from lib/greekDate.js
+    const parsedDate  = parseGreekDate(game.date);        // Q-04: from lib/greekDate.js
+    const date        = parsedDate ? parsedDate.toISOString().slice(0, 10) : "";
     const leagueSlug  = detectLeagueSlug(sourceUrl);     // Q-04: from lib/greekDate.js
 
     const matchedSL = seasonLeagues.find(sl => sl.leagueSlug === leagueSlug)
