@@ -7,15 +7,16 @@
  * Protected by admin session cookie via requireAuth().
  */
 
-import prisma               from "../../../lib/prisma.js";
-import { recalcAggregates } from "../../../lib/stats.prisma.js";
-import { prodError }        from "../../../lib/utils.js";
-import { requireAuth }      from "../../../lib/requireAuth.js";
+import prisma                    from "../../../lib/prisma.js";
+import { recalcAggregates }     from "../../../lib/stats.prisma.js";
+import { prodError }            from "../../../lib/utils.js";
+import { requireAuth }          from "../../../lib/requireAuth.js";
+import { BoxScoreRowSchema }    from "../../../lib/validators.js";
 import {
   parseGreekDate,
   detectLeagueSlug,
   parseMinutes,
-} from "../../../lib/greekDate.js";   // ← extracted (fixes Q-04)
+} from "../../../lib/greekDate.js";
 
 // Single source of truth for team name matching
 const AK_IDENTIFIERS = ["ARMANI", "KATEHANO"];
@@ -128,6 +129,21 @@ export default requireAuth(async function handler(req, res) {
     })
     .filter(Boolean);
 
+  // ── Validate box score rows ───────────────────────────────────────────────
+  const validationErrors = [];
+  const validatedBoxScore = boxScore.map((row, i) => {
+    const result = BoxScoreRowSchema.safeParse(row);
+    if (!result.success) {
+      validationErrors.push({ row: i, errors: result.error.flatten() });
+      return null;
+    }
+    return result.data;
+  }).filter(Boolean);
+
+  if (validationErrors.length > 0) {
+    return res.status(400).json({ error: "Invalid box score data", details: validationErrors });
+  }
+
   // ── Write to DB ───────────────────────────────────────────────────────────
   try {
     let gameId;
@@ -154,9 +170,9 @@ export default requireAuth(async function handler(req, res) {
       });
       gameId = g.id;
 
-      if (boxScore.length) {
+      if (validatedBoxScore.length) {
         await tx.playerGameStat.createMany({
-          data: boxScore.map(row => ({ ...row, gameId: g.id })),
+          data: validatedBoxScore.map(row => ({ ...row, gameId: g.id, plusMinus: 0 })),
         });
       }
 
@@ -166,7 +182,7 @@ export default requireAuth(async function handler(req, res) {
     return res.status(200).json({
       ok:              true,
       gameId,
-      playersImported: boxScore.length,
+      playersImported: validatedBoxScore.length,
       skipped,
     });
 
