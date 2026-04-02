@@ -66,6 +66,9 @@ export default requireAuth(async function handler(req, res) {
   const result      = akScore > oppScore ? "W" : "L";
   const playedOn    = parseGreekDate(game.date);       // ← from lib/greekDate.js
 
+  const offRating   = Number.isFinite(Number(game.offRating)) ? Number(game.offRating) : null;
+  const defRating   = Number.isFinite(Number(game.defRating)) ? Number(game.defRating) : null;
+
   // ── Resolve seasonLeagueId ────────────────────────────────────────────────
   const leagueSlug = detectLeagueSlug(sourceUrl);       // ← from lib/greekDate.js
   let seasonLeagueId = null;
@@ -166,6 +169,8 @@ export default requireAuth(async function handler(req, res) {
           result,
           playedOn,
           sourceUrl:     sourceUrl ?? null,
+          offRating:     offRating ?? null,
+          defRating:     defRating ?? null,
         },
       });
       gameId = g.id;
