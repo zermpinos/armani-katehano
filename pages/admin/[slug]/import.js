@@ -205,7 +205,6 @@ export default function ImportPage({ validSlug }) {
 
   const leagueOptions = seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName }));
 
-  if (!validSlug) return null;
 
   if (checking) return (
     <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -321,6 +320,6 @@ function LoginForm({ onLogin, error }) {
 }
 
 export async function getServerSideProps({ params }) {
-  const validSlug = await validateAdminSlug(params.slug);
-  return { props: { validSlug } };
+  if (!await validateAdminSlug(params.slug)) return { notFound: true };
+  return { props: { validSlug: true } };
 }
