@@ -170,19 +170,19 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
         <>
           {/* Key averages */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:12, marginBottom:24 }}>
-            <StatTile label="PPG"     value={rec.ppg}             sub="per game" highlight />
-            <StatTile label="OPP PPG" value={rec.oppPpg}          sub="per game" />
-            <StatTile label="RPG"     value={teamAvg.rpg}         sub="per game" />
-            <StatTile label="APG"     value={teamAvg.apg}         sub="per game" />
-            <StatTile label="SPG"     value={teamAvg.spg}         sub="per game" />
-            <StatTile label="BPG"     value={teamAvg.bpg}         sub="per game" />
-            <StatTile label="TOV"     value={teamAvg.tpg}         sub="per game" />
-            <StatTile label="A/T"     value={teamAvg.atRatio}     sub="ast / tov" />
-            <StatTile label="OFF RTG" value={offRtgAvg ?? "—"}    sub="off rating" />
-            <StatTile label="DEF RTG" value={defRtgAvg ?? "—"}    sub="def rating" />
-            <StatTile label="FG%"     value={`${teamAvg.fgPct}%`}  sub="field goal" />
-            <StatTile label="3P%"     value={`${teamAvg.fg3Pct}%`} sub="three-point" />
-            <StatTile label="FT%"     value={`${teamAvg.ftPct}%`}  sub="free throw" />
+            <StatTile label="PPG"     value={rec.ppg}             sub="" highlight />
+            <StatTile label="OPP PPG" value={rec.oppPpg}          sub="" />
+            <StatTile label="RPG"     value={teamAvg.rpg}         sub="" />
+            <StatTile label="APG"     value={teamAvg.apg}         sub="" />
+            <StatTile label="SPG"     value={teamAvg.spg}         sub="" />
+            <StatTile label="BPG"     value={teamAvg.bpg}         sub="" />
+            <StatTile label="TOV"     value={teamAvg.tpg}         sub="" />
+            <StatTile label="Assists/TOV"     value={teamAvg.atRatio}     sub="" />
+            <StatTile label="OFF RTG" value={offRtgAvg ?? "—"}    sub="" />
+            <StatTile label="DEF RTG" value={defRtgAvg ?? "—"}    sub="" />
+            <StatTile label="FG%"     value={`${teamAvg.fgPct}%`}  sub="" />
+            <StatTile label="3P%"     value={`${teamAvg.fg3Pct}%`} sub="" />
+            <StatTile label="FT%"     value={`${teamAvg.ftPct}%`}  sub="" />
           </div>
 
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))", gap:20, marginBottom:20 }}>
