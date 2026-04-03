@@ -50,9 +50,9 @@ export default function GamesPage({ validSlug }) {
   }, [authed, slug]);
 
   const leagueOptions = seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName }));
-  const emptyRow      = pid => ({ pid, min: 0, pts: 0, reb: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, fgm: 0, fga: 0, fg2m: 0, fg2a: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, eff: 0 });
+  const emptyRow      = playerId => ({ playerId, minutes: 0, pts: 0, reb: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, fgm: 0, fga: 0, fg2m: 0, fg2a: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, eff: 0 });
   const buildBox      = existing => [...players].sort(byJersey).map(p => {
-    const found = existing?.find(r => (r.pid || r.playerId) === p.id);
+    const found = existing?.find(r => r.playerId === p.id);
     return found || emptyRow(p.id);
   });
 
@@ -68,8 +68,8 @@ export default function GamesPage({ validSlug }) {
 
   const cancel   = () => { setEditId(null); setDraft({}); };
   const updGame  = (k, v) => setDraft(d => ({ ...d, [k]: v }));
-  const updBox   = (pid, k, v) => setDraft(d => ({
-    ...d, boxScore: d.boxScore.map(r => (r.pid || r.playerId) === pid ? { ...r, [k]: parseFloat(v) || 0 } : r)
+  const updBox   = (playerId, k, v) => setDraft(d => ({
+    ...d, boxScore: d.boxScore.map(r => r.playerId === playerId ? { ...r, [k]: parseFloat(v) || 0 } : r)
   }));
 
   const save = async () => {
@@ -78,8 +78,8 @@ export default function GamesPage({ validSlug }) {
       const fg2m = r.fg2m || 0, fg2a = r.fg2a || 0;
       const fg3m = r.fg3m || 0, fg3a = r.fg3a || 0;
       return {
-        playerId: r.pid || r.playerId,
-        minutes:  r.min || r.minutes || 0,
+        playerId: r.playerId,
+        minutes:  r.minutes || 0,
         pts: r.pts || 0, reb: r.reb || 0, orb: r.orb || 0, drb: r.drb || 0,
         ast: r.ast || 0, stl: r.stl || 0, blk: r.blk || 0, tov: r.tov || 0,
         pf: r.pf || 0, fg2m, fg2a, fg3m, fg3a, fgm: fg2m + fg3m, fga: fg2a + fg3a,

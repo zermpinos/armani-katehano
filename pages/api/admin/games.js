@@ -12,7 +12,7 @@ import { requireAuth }                    from "../../../lib/requireAuth.js";
 import { securityHeaders, auditLog }      from "../../../lib/security.js";
 import prisma                             from "../../../lib/prisma.js";
 import { recalcAggregates }               from "../../../lib/stats.prisma.js";
-import { prodError }                      from "../../../lib/utils.js";
+import { prodError, MAX_GAMES_PER_PAGE }  from "../../../lib/utils.js";
 import { calcEff }                        from "../../../lib/stats.js";
 
 const GameWriteSchema = z.object({
@@ -83,7 +83,7 @@ async function handler(req, res) {
       const games = await prisma.game.findMany({
         where:   whereClause,
         orderBy: { playedOn: "desc" },
-        take:    200,
+        take:    MAX_GAMES_PER_PAGE,
         include: {
           playerStats: {
             include: { player: { select: { id: true, name: true, number: true } } },
