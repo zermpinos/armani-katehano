@@ -7,7 +7,7 @@
  */
 
 import { z }                              from "zod";
-import { zCuid, BoxScoreRowSchema }       from "../../../lib/validators.js";
+import { BoxScoreRowSchema }              from "../../../lib/validators.js";
 import { requireAuth }                    from "../../../lib/requireAuth.js";
 import { securityHeaders, auditLog }      from "../../../lib/security.js";
 import prisma                             from "../../../lib/prisma.js";
@@ -16,7 +16,7 @@ import { prodError }                      from "../../../lib/utils.js";
 import { calcEff }                        from "../../../lib/stats.js";
 
 const GameWriteSchema = z.object({
-  seasonLeagueId: zCuid,   // ← was z.string().cuid() -- removed in Zod v4
+  seasonLeagueId: z.string().cuid(),
   opponent:       z.string().min(1).max(100),
   location:       z.enum(["home", "away"]).default("away"),
   teamScore:      z.coerce.number().int().min(0).max(300),
@@ -28,12 +28,12 @@ const GameWriteSchema = z.object({
 });
 
 const GameUpdateSchema = GameWriteSchema.extend({
-  gameId: zCuid,   // ← was z.string().cuid() -- removed in Zod v4
+  gameId: z.string().cuid(),
 });
 
 const GameDeleteSchema = z.object({
-  gameId:         zCuid,   // ← was z.string().cuid() -- removed in Zod v4
-  seasonLeagueId: zCuid,   // ← was z.string().cuid() -- removed in Zod v4
+  gameId:         z.string().cuid(),
+  seasonLeagueId: z.string().cuid(),
 });
 
 /** Maps a validated box score row into the shape Prisma expects. */
@@ -72,13 +72,14 @@ async function handler(req, res) {
     try {
       const { seasonLeagueId } = req.query;
 
-      let whereClause = {};
-      if (seasonLeagueId) {
-        whereClause = { seasonLeagueId };
+      if (seasonLeagueId && !z.string().cuid().safeParse(seasonLeagueId).success) {
+        return res.status(400).json({ error: "Invalid seasonLeagueId" });
       }
 
+      const whereClause = seasonLeagueId ? { seasonLeagueId } : undefined;
+
       const games = await prisma.game.findMany({
-        where:   Object.keys(whereClause).length ? whereClause : undefined,
+        where:   whereClause,
         orderBy: { playedOn: "desc" },
         take:    200,
         include: {

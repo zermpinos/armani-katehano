@@ -4,7 +4,6 @@
  */
 
 import { z }                         from "zod";
-import { zCuid, zCuidOptional }      from "../../../lib/validators.js";
 import { requireAuth }               from "../../../lib/requireAuth.js";
 import { securityHeaders, auditLog } from "../../../lib/security.js";
 import prisma                        from "../../../lib/prisma.js";
@@ -14,7 +13,7 @@ const LeagueCreateSchema = z.object({
   name:      z.string().min(1).max(100),
   organizer: z.string().max(100).optional().nullable(),
   level:     z.string().max(50).optional().nullable(),
-  seasonId:  zCuidOptional,   // ← was z.string().cuid().optional() -- removed in Zod v4
+  seasonId:  z.string().cuid().optional(),
 });
 
 async function handler(req, res) {
