@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     }
 
     await clearAttempts(ip);
-    const payload = JSON.stringify({ ip, ts: Date.now() });
+    const payload = JSON.stringify({ ts: Date.now() });
     res.setHeader("Set-Cookie", buildSessionCookie(payload));
     auditLog("login_success", { ip, slug });
     return res.status(200).json({ ok: true });
