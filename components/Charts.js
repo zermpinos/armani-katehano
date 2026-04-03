@@ -4,7 +4,8 @@
  */
 export {
   LineChart, BarChart, RadarChart,
-  Line, Bar, Cell, Radar,
+  Line, Bar, Area, Cell, Radar,
+  LabelList,
   PolarGrid, PolarAngleAxis,
   XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend,
