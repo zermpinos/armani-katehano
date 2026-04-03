@@ -5,7 +5,7 @@ const PAGES = [
   { url: "/players",     priority: "0.9", changefreq: "weekly" },
   { url: "/leaderboard", priority: "0.9", changefreq: "weekly" },
   { url: "/games",       priority: "0.8", changefreq: "weekly" },
-  { url: "/team",        priority: "0.8", changefreq: "weekly" },
+  { url: "/team-stats",  priority: "0.8", changefreq: "weekly" },
 ];
 
 function buildSitemap(lastmod) {
