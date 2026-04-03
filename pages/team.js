@@ -51,12 +51,10 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
 
   const gp = filteredGames.length;
 
-  // FIX (B-03): pass filteredGames + the active league key so computeRecord
-  // operates on the exact same set of games the box score stats use.
-  // Previously this was computeRecord(games, league) -- raw games + raw slug --
-  // which caused wins/losses to diverge from the per-player averages shown
-  // on the same tab.
-  const rec = computeRecord(filteredGames, league);
+  // filteredGames is already scoped to the active league tab -- pass no
+  // leagueFilter so computeRecord doesn't re-filter and produce wrong PPG
+  // for the "all" tab (where no game has g.league === "all").
+  const rec = computeRecord(filteredGames);
 
   const allRows = filteredGames.flatMap(g => g.boxScore || []).filter(r => r.min > 0);
   const sum    = key => allRows.reduce((a, r) => a + (r[key] || 0), 0);
@@ -67,7 +65,17 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
     rpg:    avg("reb"), apg: avg("ast"),
     spg:    avg("stl"), bpg: avg("blk"), tpg: avg("tov"),
     fgPct:  pct("fgm","fga"), fg3Pct: pct("fg3m","fg3a"), ftPct: pct("ftm","fta"),
+    atRatio: sum("tov") > 0 ? +(sum("ast") / sum("tov")).toFixed(2) : 0,
   };
+
+  // Offensive / Defensive Rating -- game-level floats, averaged across filtered games
+  const ratedGames  = filteredGames.filter(g => g.offRating != null);
+  const offRtgAvg   = ratedGames.length > 0
+    ? +(ratedGames.reduce((a, g) => a + g.offRating, 0) / ratedGames.length).toFixed(1)
+    : null;
+  const defRtgAvg   = ratedGames.length > 0
+    ? +(ratedGames.reduce((a, g) => a + g.defRating, 0) / ratedGames.length).toFixed(1)
+    : null;
 
   const playerPpg = players.map(p => {
     const rows = filteredGames
@@ -162,16 +170,19 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
         <>
           {/* Key averages */}
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:12, marginBottom:24 }}>
-            <StatTile label="PPG"  value={rec.ppg}    sub="per game" highlight />
-            <StatTile label="OPP PPG" value={rec.oppPpg} sub="per game" />
-            <StatTile label="RPG"  value={teamAvg.rpg}  sub="per game" />
-            <StatTile label="APG"  value={teamAvg.apg}  sub="per game" />
-            <StatTile label="SPG"  value={teamAvg.spg}  sub="per game" />
-            <StatTile label="BPG"  value={teamAvg.bpg}  sub="per game" />
-            <StatTile label="TOV"  value={teamAvg.tpg}  sub="per game" />
-            <StatTile label="FG%"  value={`${teamAvg.fgPct}%`}  sub="field goal" />
-            <StatTile label="3P%"  value={`${teamAvg.fg3Pct}%`} sub="three-point" />
-            <StatTile label="FT%"  value={`${teamAvg.ftPct}%`}  sub="free throw" />
+            <StatTile label="PPG"     value={rec.ppg}             sub="per game" highlight />
+            <StatTile label="OPP PPG" value={rec.oppPpg}          sub="per game" />
+            <StatTile label="RPG"     value={teamAvg.rpg}         sub="per game" />
+            <StatTile label="APG"     value={teamAvg.apg}         sub="per game" />
+            <StatTile label="SPG"     value={teamAvg.spg}         sub="per game" />
+            <StatTile label="BPG"     value={teamAvg.bpg}         sub="per game" />
+            <StatTile label="TOV"     value={teamAvg.tpg}         sub="per game" />
+            <StatTile label="A/T"     value={teamAvg.atRatio}     sub="ast / tov" />
+            <StatTile label="OFF RTG" value={offRtgAvg ?? "--"}    sub="off rating" />
+            <StatTile label="DEF RTG" value={defRtgAvg ?? "--"}    sub="def rating" />
+            <StatTile label="FG%"     value={`${teamAvg.fgPct}%`}  sub="field goal" />
+            <StatTile label="3P%"     value={`${teamAvg.fg3Pct}%`} sub="three-point" />
+            <StatTile label="FT%"     value={`${teamAvg.ftPct}%`}  sub="free throw" />
           </div>
 
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))", gap:20, marginBottom:20 }}>
