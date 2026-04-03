@@ -3,7 +3,7 @@
  * Accepts the new scraper JSON format for browser-side review before saving.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { C } from "../../../lib/theme";
 import { AdminLayout, BoxScoreTable, F, Sel, Btn, byJersey, useAdminAuth } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck.js';
@@ -44,7 +44,7 @@ export default function ImportPage({ validSlug }) {
   };
 
   // Trigger data load once authenticated
-  useState(() => { if (authed) loadBase(); }, [authed]);
+  useEffect(() => { if (authed) loadBase(); }, [authed]);
 
   // ── buildDraft — maps new scraper format to the review UI ────────────────
   const buildDraft = (data) => {
