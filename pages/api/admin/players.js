@@ -6,7 +6,6 @@
  */
 
 import { z }                         from "zod";
-import { zCuid }                     from "../../../lib/validators.js";
 import { requireAuth }               from "../../../lib/requireAuth.js";
 import { securityHeaders, auditLog } from "../../../lib/security.js";
 import prisma                        from "../../../lib/prisma.js";
@@ -23,7 +22,7 @@ const PlayerWriteSchema = z.object({
 });
 
 const PlayerUpdateSchema = PlayerWriteSchema.extend({
-  playerId: zCuid,   // ← was z.string().cuid() -- removed in Zod v4
+  playerId: z.string().cuid(),
   isActive: z.boolean().optional(),
 });
 
