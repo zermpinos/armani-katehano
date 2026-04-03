@@ -157,7 +157,6 @@ export default function GamesPage({ allGames, players, seasons, currentSeason })
       <SectionHeading
         label={`${selectedSeason.replace(/-/g, "–")} Season`}
         title="Games"
-        right={`${filtered.length} Games`}
       />
 
       <SeasonSelector
@@ -165,6 +164,7 @@ export default function GamesPage({ allGames, players, seasons, currentSeason })
         currentSeason={selectedSeason}
         onChange={handleSeasonChange}
         showAllTime={false}
+        right={`${filtered.length} Games`}
       />
 
       <LeagueFilter

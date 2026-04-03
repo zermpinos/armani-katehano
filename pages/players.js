@@ -300,12 +300,13 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
 
   return (
     <Layout title="Players">
-      <SectionHeading label="2025–26 Season" title="Players" right={`${players.length} Players`} />
+      <SectionHeading label="2025–26 Season" title="Players" />
       <SeasonSelector
         seasons={seasons}
         currentSeason={activeSeason}
         onChange={sid => { setActiveSeason(sid); setSelected(null); }}
         showAllTime={true}
+        right={`${players.length} Players`}
       />
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:14 }}>
         {sorted.map(p => <PlayerCard key={p.id} player={p} onClick={() => setSelected(p)} />)}
