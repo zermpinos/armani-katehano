@@ -1,20 +1,19 @@
 /**
  * pages/admin/[slug]/import.js
- * Accepts the new scraper JSON format for browser-side review before saving.
+ * Admin enters a game URL → server scrapes it → admin reviews → saves.
+ * Also accepts an optional YouTube video URL.
  */
 
 import { useState, useEffect } from "react";
 import { C } from "../../../lib/theme";
 import { AdminLayout, BoxScoreTable, F, Sel, Btn, byJersey, useAdminAuth } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck.js';
-import { parseGreekDate, parseMinutes, detectLeagueSlug } from "../../../lib/greekDate.js";  // Q-04
+import { parseGreekDate, parseMinutes, detectLeagueSlug } from "../../../lib/greekDate.js";
 
 
 export default function ImportPage({ validSlug }) {
   const slug = typeof window !== "undefined" ? window.location.pathname.split("/")[2] : "";
 
-  // Q-01: replaced ~25 lines of duplicated auth state + useEffect + login fn
-  // with a single hook call.
   const { authed, loading: checking, loginError, handleLogin } = useAdminAuth(slug);
 
   const [players,       setPlayers]       = useState([]);
@@ -22,7 +21,9 @@ export default function ImportPage({ validSlug }) {
   const [dataLoading,   setDataLoading]   = useState(false);
   const [toast,         setToast]         = useState(null);
 
-  const [jsonText,   setJsonText]   = useState("");
+  const [gameUrl,    setGameUrl]    = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [fetching,   setFetching]   = useState(false);
   const [phase,      setPhase]      = useState("idle");
   const [draft,      setDraft]      = useState(null);
   const [highlights, setHighlights] = useState({});
@@ -43,10 +44,9 @@ export default function ImportPage({ validSlug }) {
     } finally { setDataLoading(false); }
   };
 
-  // Trigger data load once authenticated
   useEffect(() => { if (authed) loadBase(); }, [authed]);
 
-  // ── buildDraft — maps new scraper format to the review UI ────────────────
+  // ── buildDraft — maps scraper JSON to the review UI ──────────────────────
   const buildDraft = (data) => {
     const { game, teams, url: sourceUrl } = data;
 
@@ -54,7 +54,7 @@ export default function ImportPage({ validSlug }) {
       t.name.toUpperCase().includes("ARMANI") ||
       t.name.toUpperCase().includes("KATEHANO")
     );
-    if (!akTeam) throw new Error("ARMANI KATEHANO team not found in JSON");
+    if (!akTeam) throw new Error("ARMANI KATEHANO team not found in scraped data");
 
     const isHome      = game.homeTeam.toUpperCase().includes("ARMANI") ||
                         game.homeTeam.toUpperCase().includes("KATEHANO");
@@ -62,17 +62,16 @@ export default function ImportPage({ validSlug }) {
     const oppScore    = isHome ? game.finalScore.away  : game.finalScore.home;
     const oppTeamName = isHome ? game.awayTeam         : game.homeTeam;
     const result      = akScore > oppScore ? "W" : "L";
-    const parsedDate  = parseGreekDate(game.date);        // Q-04: from lib/greekDate.js
+    const parsedDate  = parseGreekDate(game.date);
     const date        = parsedDate ? parsedDate.toISOString().slice(0, 10) : "";
-    const leagueSlug  = detectLeagueSlug(sourceUrl);     // Q-04: from lib/greekDate.js
+    const leagueSlug  = detectLeagueSlug(sourceUrl);
 
     const matchedSL = seasonLeagues.find(sl => sl.leagueSlug === leagueSlug)
                    ?? seasonLeagues[0];
 
-    // Build box score — match scraper players to DB players by jersey number
     const boxScore = [...players].sort(byJersey).map(dbPlayer => {
       const scraped = akTeam.players.find(p => p["#"] === Number(dbPlayer.number));
-      const mins    = scraped ? parseMinutes(scraped.MIN) : 0;  // Q-04: from lib/greekDate.js
+      const mins    = scraped ? parseMinutes(scraped.MIN) : 0;
 
       if (!scraped || mins === 0) {
         return {
@@ -109,7 +108,6 @@ export default function ImportPage({ validSlug }) {
       };
     });
 
-    // Highlight players who actually played
     const hl = {};
     akTeam.players.forEach(p => {
       if (parseMinutes(p.MIN) > 0) {
@@ -118,7 +116,6 @@ export default function ImportPage({ validSlug }) {
       }
     });
 
-    // Sanity warnings
     const warns = [];
     akTeam.players.filter(p => parseMinutes(p.MIN) > 0).forEach(p => {
       const fg2m = p["2PTS"]?.made ?? 0;
@@ -138,6 +135,7 @@ export default function ImportPage({ validSlug }) {
         teamScore:      akScore,
         opponentScore:  oppScore,
         seasonLeagueId: matchedSL?.id ?? "",
+        sourceUrl:      sourceUrl ?? null,
         boxScore,
       },
       highlights: hl,
@@ -145,20 +143,27 @@ export default function ImportPage({ validSlug }) {
     };
   };
 
-  const parseAndReview = () => {
+  // ── fetchAndReview — calls the server-side scraper ───────────────────────
+  const fetchAndReview = async () => {
     setError("");
+    setFetching(true);
     try {
-      const data = JSON.parse(jsonText.trim());
-      // Accept new format { game, teams } or old format { match_info, armani_katehano }
-      if (!data.game && !data.match_info)
-        throw new Error("Unrecognised JSON format — expected game/teams or match_info/armani_katehano");
-      if (!data.game)
-        throw new Error("This looks like the old format. Please use the new scraper output.");
+      const res = await fetch("/api/admin/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: gameUrl.trim() }),
+      });
+      const body = await res.json();
+      if (!res.ok) { setError(body.error || "Scrape failed"); return; }
 
-      const { draft, highlights, warnings } = buildDraft(data);
+      const { draft, highlights, warnings } = buildDraft(body.data);
       setDraft(draft); setHighlights(highlights); setWarnings(warnings);
       setPhase("review");
-    } catch (err) { setError(err.message); }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setFetching(false);
+    }
   };
 
   const updDraft = (k, v) => setDraft(d => ({ ...d, [k]: v }));
@@ -190,6 +195,8 @@ export default function ImportPage({ validSlug }) {
         opponentScore:  Number(draft.opponentScore) || 0,
         result:         draft.result,
         playedOn:       draft.date,
+        sourceUrl:      draft.sourceUrl ?? null,
+        youtubeUrl:     youtubeUrl.trim() || null,
         boxScore,
       }),
     });
@@ -201,11 +208,15 @@ export default function ImportPage({ validSlug }) {
       return;
     }
     showToast("Game saved!");
-    setPhase("idle"); setDraft(null); setJsonText(""); setHighlights({}); setWarnings([]);
+    setPhase("idle");
+    setDraft(null);
+    setGameUrl("");
+    setYoutubeUrl("");
+    setHighlights({});
+    setWarnings([]);
   };
 
   const leagueOptions = seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName }));
-
 
   if (checking) return (
     <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -225,22 +236,53 @@ export default function ImportPage({ validSlug }) {
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: C.text, marginBottom: 4 }}>Import game</div>
           <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.5 }}>
-            Run your scraper, then paste the JSON output below.
+            Paste the game URL from basketcity.sportstats.gr — the server fetches and parses it automatically.
           </div>
         </div>
 
         {dataLoading && <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Spinner /></div>}
 
         {!dataLoading && phase === "idle" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, textTransform: "uppercase" }}>Paste scraper JSON</div>
-            <textarea value={jsonText} onChange={e => setJsonText(e.target.value)}
-              placeholder='{"url": "...", "game": {...}, "teams": [...]}'
-              style={{ width: "100%", minHeight: 180, fontSize: 11, fontFamily: "monospace", padding: 12, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, resize: "vertical" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 6, textTransform: "uppercase" }}>Game URL</div>
+              <input
+                type="url"
+                value={gameUrl}
+                onChange={e => setGameUrl(e.target.value)}
+                placeholder="https://basketcity.sportstats.gr/men/gamedetails/id/…"
+                disabled={fetching}
+                style={{ width: "100%", padding: "10px 12px", fontSize: 13, fontFamily: "inherit", borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 6, textTransform: "uppercase" }}>YouTube video URL <span style={{ fontWeight: 400, textTransform: "none", fontSize: 11 }}>(optional)</span></div>
+              <input
+                type="url"
+                value={youtubeUrl}
+                onChange={e => setYoutubeUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=…"
+                disabled={fetching}
+                style={{ width: "100%", padding: "10px 12px", fontSize: 13, fontFamily: "inherit", borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+
             {error && (
               <div style={{ fontSize: 12, color: C.redText, padding: "8px 12px", borderRadius: 8, background: `${C.red}18`, border: `1px solid ${C.red}40` }}>{error}</div>
             )}
-            <div><Btn onClick={parseAndReview} disabled={!jsonText.trim()}>REVIEW</Btn></div>
+
+            <div>
+              <Btn onClick={fetchAndReview} disabled={!gameUrl.trim() || fetching}>
+                {fetching ? "FETCHING…" : "FETCH & REVIEW"}
+              </Btn>
+            </div>
+
+            {fetching && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, color: C.textDim, fontSize: 12 }}>
+                <Spinner size={18} /> Scraping game page…
+              </div>
+            )}
           </div>
         )}
 
@@ -252,6 +294,7 @@ export default function ImportPage({ validSlug }) {
                 {warnings.map((w, i) => <div key={i}>• {w}</div>)}
               </div>
             )}
+
             <div>
               <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 10, textTransform: "uppercase" }}>Game info</div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: 10 }}>
@@ -264,10 +307,23 @@ export default function ImportPage({ validSlug }) {
                 <F label="OPP SCORE"  value={draft.opponentScore} onChange={v => updDraft("opponentScore", v)} type="number" />
               </div>
             </div>
+
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 6, textTransform: "uppercase" }}>YouTube video URL <span style={{ fontWeight: 400, textTransform: "none", fontSize: 11 }}>(optional)</span></div>
+              <input
+                type="url"
+                value={youtubeUrl}
+                onChange={e => setYoutubeUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=…"
+                style={{ width: "100%", padding: "10px 12px", fontSize: 13, fontFamily: "inherit", borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+
             <div>
               <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 10, textTransform: "uppercase" }}>Box score — green rows played</div>
               <BoxScoreTable players={players} rows={draft.boxScore} onUpdate={updBox} highlights={highlights} />
             </div>
+
             <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
               <Btn onClick={save} variant="green" disabled={phase === "saving"}>{phase === "saving" ? "SAVING…" : "SAVE GAME"}</Btn>
               <Btn variant="ghost" onClick={() => { setPhase("idle"); setDraft(null); }} disabled={phase === "saving"}>BACK</Btn>
@@ -279,12 +335,12 @@ export default function ImportPage({ validSlug }) {
   );
 }
 
-// ── Themed Spinner — kept local to preserve C (theme token) styling ───────────
-function Spinner() {
-  return <div style={{ width: 32, height: 32, borderRadius: "50%", border: `2px solid ${C.border2}`, borderTopColor: C.redBright, animation: "spin 0.7s linear infinite" }} />;
+function Spinner({ size = 32 }) {
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", border: `2px solid ${C.border2}`, borderTopColor: C.redBright, animation: "spin 0.7s linear infinite", flexShrink: 0 }} />
+  );
 }
 
-// Q-01: now receives (onLogin, error) from useAdminAuth hook
 function LoginForm({ onLogin, error }) {
   const [password, setPassword] = useState("");
   const [loading,  setLoading]  = useState(false);
