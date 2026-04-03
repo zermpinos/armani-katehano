@@ -132,7 +132,6 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
     return (
       <Layout title="Team Stats">
         <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:4 }}>
-          <img src="/logo.png" alt="Armani Katehano" style={{ width:64, height:64, objectFit:"contain", flexShrink:0 }} />
           <SectionHeading label="2025–26 Season" title="Team Stats" />
         </div>
         <div style={{ textAlign:"center", padding:48, color:C.textDim }}>
