@@ -108,7 +108,6 @@ export default function HomePage({ players, games, stats }) {
                         <stop offset="100%" stopColor={C.red} stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="4 4" stroke={C.border2} vertical={false} />
                     <XAxis dataKey="game" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
                     <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
                     <Tooltip
@@ -127,8 +126,8 @@ export default function HomePage({ players, games, stats }) {
                       }}
                     />
                     <Area type="monotone" dataKey="pts" stroke="none" fill="url(#trendFill)" />
-                    <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={3} dot={false} activeDot={{ r:5 }} name="AK" />
-                    <Line type="monotone" dataKey="opp" stroke={C.textDim} strokeWidth={2} dot={false} strokeDasharray="5 5" opacity={0.6} name="OPP" />
+                    <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={3} dot={{ fill:C.redBright, r:3, strokeWidth:0 }} activeDot={{ r:5 }} name="AK" />
+                    <Line type="monotone" dataKey="opp" stroke={C.silver} strokeWidth={2} dot={{ fill:C.silver, r:3, strokeWidth:0 }} activeDot={{ r:5 }} strokeDasharray="5 5" name="OPP" />
                     <Legend wrapperStyle={{ fontSize:11, color:C.textSub }} />
                   </LineChart>
                 </ResponsiveContainer>
