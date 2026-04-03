@@ -135,7 +135,7 @@ async function handler(req, res) {
   if (req.method === "POST") {
     const parsed = GameWriteSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.flatten() });
+      return res.status(400).json({ error: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ") });
     }
     const { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, boxScore } = parsed.data;
 
@@ -164,7 +164,7 @@ async function handler(req, res) {
   if (req.method === "PUT") {
     const parsed = GameUpdateSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.flatten() });
+      return res.status(400).json({ error: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ") });
     }
     const { gameId, seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, boxScore } = parsed.data;
 
@@ -194,7 +194,7 @@ async function handler(req, res) {
   if (req.method === "DELETE") {
     const parsed = GameDeleteSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.flatten() });
+      return res.status(400).json({ error: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ") });
     }
     const { gameId, seasonLeagueId } = parsed.data;
 
