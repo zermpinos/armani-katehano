@@ -11,17 +11,24 @@
  * at the shaping boundary here, so all consumers above this layer use fg3Pct.
  */
 
-import { requireAuth }     from "../../../lib/requireAuth.js";
-import { securityHeaders } from "../../../lib/security.js";
-import { prodError }       from "../../../lib/utils.js";
-import { calcEff }         from "../../../lib/stats.js";
-import prisma              from "../../../lib/prisma.js";
+import { requireAuth }                  from "../../../lib/requireAuth.js";
+import { securityHeaders }             from "../../../lib/security.js";
+import { prodError, MAX_GAMES_PER_PAGE } from "../../../lib/utils.js";
+import { calcEff }                     from "../../../lib/stats.js";
+import prisma                          from "../../../lib/prisma.js";
+import { z }                           from "zod";
 
 async function handler(req, res) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
 
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // Optional filter: ?seasonLeagueId=<cuid> scopes games to one season-league.
+  const filterParam = req.query.seasonLeagueId;
+  if (filterParam && !z.string().cuid().safeParse(filterParam).success) {
+    return res.status(400).json({ error: "Invalid seasonLeagueId" });
   }
 
   try {
@@ -40,18 +47,21 @@ async function handler(req, res) {
 
     const seasonLeagueIds = seasonLeagues.map(sl => sl.id);
 
-    const games = seasonLeagueIds.length ? await prisma.game.findMany({
-      where:   { seasonLeagueId: { in: seasonLeagueIds } },
+    // If a specific seasonLeagueId is requested, use it; otherwise scope to current season.
+    const gameWhereIds = filterParam ? [filterParam] : seasonLeagueIds;
+
+    const games = gameWhereIds.length ? await prisma.game.findMany({
+      where:   { seasonLeagueId: { in: gameWhereIds } },
       include: {
         seasonLeague: { include: { league: true } },
         playerStats:  true,
       },
       orderBy: { playedOn: "desc" },
-      take:    200,
+      take:    MAX_GAMES_PER_PAGE,
     }) : [];
 
-    const aggregates = seasonLeagueIds.length ? await prisma.playerSeasonAggregate.findMany({
-      where: { seasonLeagueId: { in: seasonLeagueIds } },
+    const aggregates = gameWhereIds.length ? await prisma.playerSeasonAggregate.findMany({
+      where: { seasonLeagueId: { in: gameWhereIds } },
     }) : [];
 
     // ── Shape stats ─────────────────────────────────────────────────────────
@@ -142,8 +152,6 @@ async function handler(req, res) {
       youtubeUrl:     g.youtubeUrl ?? null,
       boxScore: g.playerStats.map(r => ({
         playerId: r.playerId,
-        pid:      r.playerId,
-        min:      r.minutes,
         minutes:  r.minutes,
         pts:      r.pts,
         reb:      r.reb,
