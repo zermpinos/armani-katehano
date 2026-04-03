@@ -5,7 +5,7 @@ import { getAllPublicData } from "../lib/data";
 import { computeRecord } from "../lib/stats";
 import { fmt, fmtDate } from "../lib/utils";
 import ErrorBoundary from "../components/ErrorBoundary";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
+import { LineChart, Line, BarChart, Bar, Area, LabelList, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 
 function SplitTick({ x, y, payload }) {
   const parts = (payload.value || "").split(" ");
@@ -95,16 +95,26 @@ export default function HomePage({ players, games, stats }) {
 
             {/* Scoring trend */}
             {trend.length > 0 && (
-              <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
-                <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Scoring Trend — Last {trend.length} Games</div>
-                <ResponsiveContainer width="100%" height={180}>
+              <div style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
+                <div style={{ marginBottom:12 }}>
+                  <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Scoring Trend</div>
+                  <div style={{ fontSize:18, fontWeight:700, color:C.text }}>Last {trend.length} Games</div>
+                </div>
+                <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={trend} margin={{ top:4, right:8, left:0, bottom:0 }}>
-                    <CartesianGrid strokeDasharray="4 4" stroke={C.border2} />
+                    <defs>
+                      <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={C.redBright} stopOpacity={0.25}/>
+                        <stop offset="100%" stopColor={C.red} stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="4 4" stroke={C.border2} vertical={false} />
                     <XAxis dataKey="game" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
-                    <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} padding={{ top:12, bottom:4 }} />
+                    <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
                     <Tooltip {...chartTooltipStyle} />
-                    <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={2.5} dot={{ fill:C.redBright, r:3 }} name="AK" />
-                    <Line type="monotone" dataKey="opp" stroke={C.silver} strokeWidth={2} dot={{ r:4, fill:C.surface, stroke:C.silver, strokeWidth:2 }} name="OPP" strokeDasharray="4 2" />
+                    <Area type="monotone" dataKey="pts" stroke="none" fill="url(#trendFill)" />
+                    <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={3} dot={false} activeDot={{ r:5 }} name="AK" />
+                    <Line type="monotone" dataKey="opp" stroke={C.textDim} strokeWidth={2} dot={false} strokeDasharray="5 5" opacity={0.6} name="OPP" />
                     <Legend wrapperStyle={{ fontSize:11, color:C.textSub }} />
                   </LineChart>
                 </ResponsiveContainer>
@@ -113,10 +123,16 @@ export default function HomePage({ players, games, stats }) {
 
             {/* Top scorers — fmt() produces "Lastname F." which is short enough for angled labels */}
             {topScorers.length > 0 && (
-              <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
+              <div style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
                 <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Top Scorers — PPG</div>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={topScorers} margin={{ top:4, right:8, left:0, bottom:8 }}>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={topScorers} margin={{ top:10, right:8, left:0, bottom:8 }}>
+                    <defs>
+                      <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={C.redBright} />
+                        <stop offset="100%" stopColor={C.red} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="4 4" stroke={C.border2} vertical={false} />
                     <XAxis
                       dataKey="name"
@@ -128,7 +144,9 @@ export default function HomePage({ players, games, stats }) {
                     />
                     <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
                     <Tooltip {...chartTooltipStyle} formatter={v => [`${v} PPG`]} />
-                    <Bar dataKey="ppg" fill={C.red} radius={[4,4,0,0]} maxBarSize={44} />
+                    <Bar dataKey="ppg" fill="url(#barGrad)" radius={[6,6,0,0]} maxBarSize={44}>
+                      <LabelList dataKey="ppg" position="top" style={{ fill:C.text, fontWeight:600, fontSize:12 }} />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
