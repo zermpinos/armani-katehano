@@ -111,7 +111,21 @@ export default function HomePage({ players, games, stats }) {
                     <CartesianGrid strokeDasharray="4 4" stroke={C.border2} vertical={false} />
                     <XAxis dataKey="game" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
                     <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
-                    <Tooltip {...chartTooltipStyle} />
+                    <Tooltip
+                      {...chartTooltipStyle}
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const entries = payload.filter(p => p.name === "AK" || p.name === "OPP");
+                        if (!entries.length) return null;
+                        return (
+                          <div style={chartTooltipStyle.contentStyle}>
+                            {entries.map(p => (
+                              <div key={p.name} style={{ color: p.color }}>{p.name}: {p.value} pts</div>
+                            ))}
+                          </div>
+                        );
+                      }}
+                    />
                     <Area type="monotone" dataKey="pts" stroke="none" fill="url(#trendFill)" />
                     <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={3} dot={false} activeDot={{ r:5 }} name="AK" />
                     <Line type="monotone" dataKey="opp" stroke={C.textDim} strokeWidth={2} dot={false} strokeDasharray="5 5" opacity={0.6} name="OPP" />
@@ -133,7 +147,6 @@ export default function HomePage({ players, games, stats }) {
                         <stop offset="100%" stopColor={C.red} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="4 4" stroke={C.border2} vertical={false} />
                     <XAxis
                       dataKey="name"
                       tick={<SplitTick />}
