@@ -17,7 +17,7 @@ export default function SeasonSelector({ seasons, currentSeason, onChange, showA
 
   // Only render the selector when there is something to switch between
   const showSelector = seasons.length > 1 || showAllTime;
-  if (!showSelector) return null;
+  if (!showSelector && !right) return null;
 
   const tabs = [...seasons].sort().reverse(); // newest first
   const options = showAllTime ? [...tabs, "all-time"] : tabs;
@@ -30,33 +30,35 @@ export default function SeasonSelector({ seasons, currentSeason, onChange, showA
 
   return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:20 }}>
-      <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-        {options.map(sid => {
-          const active = sid === currentSeason;
-          return (
-            <button
-              key={sid}
-              onClick={() => onChange(sid)}
-              style={{
-                padding: "5px 14px",
-                fontSize: 11,
-                fontWeight: 900,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                borderRadius: 8,
-                border: `1px solid ${active ? C.red : C.border}`,
-                background: active ? C.red : "transparent",
-                color: active ? C.text : C.textDim,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                transition: "all 0.15s",
-              }}
-            >
-              {label(sid)}
-            </button>
-          );
-        })}
-      </div>
+      {showSelector && (
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+          {options.map(sid => {
+            const active = sid === currentSeason;
+            return (
+              <button
+                key={sid}
+                onClick={() => onChange(sid)}
+                style={{
+                  padding: "5px 14px",
+                  fontSize: 11,
+                  fontWeight: 900,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  borderRadius: 8,
+                  border: `1px solid ${active ? C.red : C.border}`,
+                  background: active ? C.red : "transparent",
+                  color: active ? C.text : C.textDim,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  transition: "all 0.15s",
+                }}
+              >
+                {label(sid)}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {right && <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, flexShrink:0 }}>{right}</div>}
     </div>
   );
