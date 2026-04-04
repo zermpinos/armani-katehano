@@ -118,7 +118,7 @@ export default function Layout({ children, title = SITE_NAME }) {
       </nav>
 
       {/* Page content */}
-      <main style={{ maxWidth:1280, margin:"0 auto", padding:"88px 16px 48px" }}>
+      <main style={{ maxWidth:1280, margin:"0 auto", padding:"88px 16px 48px", flexGrow:1, width:"100%" }}>
         {children}
       </main>
 
