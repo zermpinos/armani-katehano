@@ -131,9 +131,7 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
   if (games.length === 0) {
     return (
       <Layout title="Team Stats">
-        <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:4 }}>
-          <SectionHeading label="2025-26 Season" title="Team Stats" />
-        </div>
+        <SectionHeading label="2025-26 Season" title="Team Stats" />
         <div style={{ textAlign:"center", padding:48, color:C.textDim }}>
           <div style={{ fontSize:36, marginBottom:12 }}>📊</div>
           <div style={{ fontSize:15, fontWeight:700 }}>No data yet</div>
@@ -144,11 +142,9 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
 
   return (
     <Layout title="Team Stats">
-      <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:4 }}>
-        <SectionHeading label="2025-26 Season" title="Team Stats" right={`${gp} games played`} />
-      </div>
-    
-      <SeasonSelector seasons={seasons} currentSeason={currentSeason} onChange={handleSeasonChange} showAllTime={false} />
+      <SectionHeading label="2025-26 Season" title="Team Stats" />
+
+      <SeasonSelector seasons={seasons} currentSeason={currentSeason} onChange={handleSeasonChange} showAllTime={false} right={`${gp} Games Played`} />
 
       {/* League tabs */}
       <div style={{ display:"flex", gap:8, marginBottom:24, flexWrap:"wrap" }}>
