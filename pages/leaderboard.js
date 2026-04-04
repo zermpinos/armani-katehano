@@ -56,13 +56,14 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
 
   return (
     <Layout title="Leaderboard">
-      <SectionHeading label="2025-26 Season" title="Leaderboard" right="Click column to sort" />
+      <SectionHeading label="2025-26 Season" title="Leaderboard" />
 
       <SeasonSelector
         seasons={seasons}
         currentSeason={activeSeason}
         onChange={setActiveSeason}
         showAllTime={true}
+        right="Click column to sort"
       />
 
       <div style={{ fontSize:12, color:C.textDim, marginBottom:16 }}>
