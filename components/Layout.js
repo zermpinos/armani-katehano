@@ -123,26 +123,39 @@ export default function Layout({ children, title = SITE_NAME }) {
       </main>
 
       {/* Footer */}
-      <footer style={{ borderTop:`1px solid ${C.border}`, padding:"20px 16px" }}>
-        <div style={{ maxWidth:1280, margin:"0 auto", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <img src="/logo.png" alt="AK" style={{ width:20, height:20, objectFit:"contain", opacity:0.5 }} />
-            <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.12em", color:C.textDim, textTransform:"uppercase" }}>© {COPYRIGHT_YEAR} {SITE_NAME} · {CURRENT_SEASON}</div>
-          </div>
-          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-            <a
-              href="https://www.instagram.com/armanikatehano_b.c/"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display:"flex", alignItems:"center", gap:5, fontSize:11, fontWeight:900, letterSpacing:"0.08em", color:C.textDim, opacity:0.7 }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-              </svg>
-              @armanikatehano_b.c
-            </a>
+      <footer style={{ borderTop:`1px solid ${C.border}`, padding:"24px 16px" }}>
+        <div style={{ maxWidth:1280, margin:"0 auto", display:"flex", flexDirection:"column", alignItems:"center", gap:14 }}>
+
+          {/* Instagram — center, prominent */}
+          <a
+            href="https://www.instagram.com/armanikatehano_b.c/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display:"flex", alignItems:"center", gap:8,
+              fontSize:13, fontWeight:900, letterSpacing:"0.08em",
+              color:C.text,
+              background:`linear-gradient(135deg,#e1306c22,#833ab422)`,
+              border:`1px solid #e1306c55`,
+              borderRadius:8, padding:"7px 16px",
+              transition:"opacity 0.15s",
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#e1306c">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+            @armanikatehano_b.c
+          </a>
+
+          {/* Bottom row */}
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", width:"100%" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <img src="/logo.png" alt="AK" style={{ width:20, height:20, objectFit:"contain", opacity:0.5 }} />
+              <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.12em", color:C.textDim, textTransform:"uppercase" }}>© {COPYRIGHT_YEAR} {SITE_NAME} · {CURRENT_SEASON}</div>
+            </div>
             <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.08em", color:C.border2 }}>made with ❤️‍🔥 by @p.zermpinos</div>
           </div>
+
         </div>
       </footer>
 
