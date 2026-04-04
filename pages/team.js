@@ -275,13 +275,17 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
 
           {/* Minutes distribution -- horizontal bar chart, mobile-friendly */}
           {minutesDist.length > 0 && (
-            <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
+            <div
+              style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}
+              role="img"
+              aria-label="Minutes Distribution Chart (MPG)"
+            >
               <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Minutes Distribution (MPG)</div>
-              <ResponsiveContainer width="100%" height={chartHeight}>
+              <ResponsiveContainer width="100%" height={minutesDist.length * 40}>
                 <BarChart
                   data={minutesDist}
                   layout="vertical"
-                  margin={{ top:0, right:40, left:0, bottom:0 }}
+                  margin={{ top:10, right:20, left:0, bottom:10 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
                   <XAxis
@@ -295,18 +299,25 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
                     type="category"
                     dataKey="name"
                     tick={{ fill:C.textSub, fontSize:12, fontWeight:700 }}
+                    tickFormatter={(name) => name.length > 12 ? name.slice(0, 12) + "..." : name}
                     axisLine={false}
                     tickLine={false}
-                    width={100}
+                    width={120}
                   />
                   <Tooltip
                     {...chartTooltipStyle}
-                    formatter={v => [`${v} min`]}
+                    formatter={(value) => [`${value} min`]}
                     labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ""}
                   />
-                  <Bar dataKey="mpg" fill={C.red} radius={[0,4,4,0]} maxBarSize={22} label={{ position:"right", fill:C.textDim, fontSize:11, fontWeight:700 }}>
-                    {minutesDist.map((_, i) => (
-                      <Cell key={i} fill={i === 0 ? C.redBright : C.red} />
+                  <Bar
+                    dataKey="mpg"
+                    radius={[0,4,4,0]}
+                    maxBarSize={Math.min(40, 600 / minutesDist.length)}
+                    label={{ position:"right", fill:C.textDim, fontSize:11, fontWeight:700 }}
+                    isAnimationActive={true}
+                  >
+                    {minutesDist.map((entry, i) => (
+                      <Cell key={i} fill={entry.highlight || i === 0 ? C.redBright : C.red} />
                     ))}
                   </Bar>
                 </BarChart>
