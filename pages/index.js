@@ -108,6 +108,7 @@ export default function HomePage({ players, games, stats }) {
                         <stop offset="100%" stopColor={C.red} stopOpacity={0}/>
                       </linearGradient>
                     </defs>
+                    <CartesianGrid strokeDasharray="4 4" stroke={C.border2} vertical={false} />
                     <XAxis dataKey="game" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
                     <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
                     <Tooltip
