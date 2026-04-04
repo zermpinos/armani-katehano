@@ -80,7 +80,7 @@ export default function AdminDashboard({ validSlug }) {
 
   const navItems = [
     { href: `/admin/${slug}/import`,  label: "Import game",   icon: "↓", desc: "Add a new game from sportstats.gr" },
-    { href: `/admin/${slug}/game-stats`,   label: "Game results",  icon: "◉", desc: `${data?.games?.length ?? "--"} games recorded` },
+    { href: `/admin/${slug}/games`,   label: "Game results",  icon: "◉", desc: `${data?.games?.length ?? "--"} games recorded` },
     { href: `/admin/${slug}/roster`,  label: "Roster",        icon: "◎", desc: `${data?.players?.length ?? "--"} players` },
     { href: `/admin/${slug}/seasons`, label: "Seasons",       icon: "◇", desc: `${data?.seasonLeagues?.length ?? "--"} active leagues` },
   ];
@@ -146,7 +146,7 @@ export default function AdminDashboard({ validSlug }) {
                   ))}
               </div>
               <div style={{ marginTop: 10 }}>
-                <a href={`/admin/${slug}/game-stats`} style={{ fontSize: 11, color: C.redText, fontWeight: 700, textDecoration: "none" }}>
+                <a href={`/admin/${slug}/games`} style={{ fontSize: 11, color: C.redText, fontWeight: 700, textDecoration: "none" }}>
                   View all games ->
                 </a>
               </div>
