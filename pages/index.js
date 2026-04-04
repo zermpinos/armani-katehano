@@ -5,17 +5,8 @@ import { getAllPublicData } from "../lib/data";
 import { computeRecord } from "../lib/stats";
 import { fmt, fmtDate } from "../lib/utils";
 import ErrorBoundary from "../components/ErrorBoundary";
-import { LineChart, Line, BarChart, Bar, Area, LabelList, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
+import { LineChart, Line, BarChart, Bar, Cell, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 
-function SplitTick({ x, y, payload }) {
-  const parts = (payload.value || "").split(" ");
-  return (
-    <g transform={`translate(${x},${y})`}>
-      <text x={0} y={0} dy={14} textAnchor="middle" fill={C.textSub} fontSize={10} fontWeight={700}>{parts[0]}</text>
-      {parts[1] && <text x={0} y={0} dy={26} textAnchor="middle" fill={C.textSub} fontSize={10} fontWeight={700}>{parts[1]}</text>}
-    </g>
-  );
-}
 
 export default function HomePage({ players, games, stats }) {
   const playersWithStats = players.map(p => ({
@@ -137,30 +128,44 @@ export default function HomePage({ players, games, stats }) {
               </div>
             )}
 
-            {/* Top scorers -- fmt() produces "Lastname F." which is short enough for angled labels */}
+            {/* Top scorers -- horizontal bars, mobile-friendly, no label overlap */}
             {topScorers.length > 0 && (
-              <div style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
+              <div
+                style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}
+                role="img"
+                aria-label="Top Scorers -- PPG"
+              >
                 <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Top Scorers -- PPG</div>
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={topScorers} margin={{ top:10, right:8, left:0, bottom:8 }}>
+                <ResponsiveContainer width="100%" height={topScorers.length * 44}>
+                  <BarChart data={topScorers} layout="vertical" margin={{ top:10, right:40, left:0, bottom:10 }}>
                     <defs>
-                      <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={C.redBright} />
-                        <stop offset="100%" stopColor={C.red} />
+                      <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor={C.red} />
+                        <stop offset="100%" stopColor={C.redBright} />
                       </linearGradient>
                     </defs>
-                    <XAxis
+                    <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+                    <XAxis type="number" tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
+                    <YAxis
+                      type="category"
                       dataKey="name"
-                      tick={<SplitTick />}
-                      axisLine={{ stroke: C.border2 }}
+                      tick={{ fill:C.textSub, fontSize:12, fontWeight:700 }}
+                      axisLine={false}
                       tickLine={false}
-                      height={44}
-                      interval={0}
+                      width={130}
                     />
-                    <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
                     <Tooltip {...chartTooltipStyle} formatter={v => [`${v} PPG`]} />
-                    <Bar dataKey="ppg" fill="url(#barGrad)" radius={[6,6,0,0]} maxBarSize={44}>
-                      <LabelList dataKey="ppg" position="top" style={{ fill:C.text, fontWeight:600, fontSize:12 }} />
+                    <Bar
+                      dataKey="ppg"
+                      fill="url(#barGrad)"
+                      radius={[0, 6, 6, 0]}
+                      maxBarSize={Math.min(40, 600 / topScorers.length)}
+                      label={{ position:"right", fill:C.textDim, fontSize:11, fontWeight:700 }}
+                      isAnimationActive={true}
+                    >
+                      {topScorers.map((_, i) => (
+                        <Cell key={i} fill={i === 0 ? C.redBright : `url(#barGrad)`} />
+                      ))}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
