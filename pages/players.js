@@ -27,7 +27,7 @@ function StatCell({ label, value, highlight }) {
   );
 }
 
-function PlayerDetail({ player, onClose }) {
+function PlayerDetail({ player, onClose, activeSeason }) {
   const s = player.stats;
   const gameLog = player.gameLog || [];
 
@@ -39,6 +39,7 @@ function PlayerDetail({ player, onClose }) {
   const [selLeague, setSelLeague] = useState("All");
   const [selStat,   setSelStat]   = useState("pts");
   const [showInfo,  setShowInfo]  = useState(false);
+  const [logView,   setLogView]   = useState("chart"); // "chart" | "table"
 
   const STAT_OPTIONS = [
     { key:"pts", label:"PTS", color:C.redBright },
@@ -119,11 +120,44 @@ function PlayerDetail({ player, onClose }) {
                 <StatCell label="FG%"  value={s.fgPct > 0 ? `${s.fgPct}%` : "--"} />
                 <StatCell label="2P%"  value={s.fg2Pct > 0 ? `${s.fg2Pct}%` : "--"} />
                 <StatCell label="3P%"  value={s.fg3Pct > 0 ? `${s.fg3Pct}%` : "--"} />
-                <StatCell label="FT%"  value={s.ftPct !== null && s.ftPct !== undefined ? `${s.ftPct}%` : "--"} />
+                <StatCell label="FTM"  value={s.ftmPg > 0 ? s.ftmPg : "--"} />
+                <StatCell label="FTA"  value={s.ftaPg > 0 ? s.ftaPg : "--"} />
+                <StatCell label="FT%"  value={s.ftPct > 0 ? `${s.ftPct}%` : "--"} />
                 <StatCell label="MPG"  value={s.mpg} />
                 <StatCell label="EFF"  value={s.eff} highlight />
               </div>
             </>
+          )}
+
+          {/* Season-by-season breakdown (all-time view only) */}
+          {activeSeason === "all-time" && player.seasonHistory && Object.keys(player.seasonHistory).length > 1 && (
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:12, textTransform:"uppercase" }}>Season by Season</div>
+              <div style={{ borderRadius:10, border:`1px solid ${C.border}`, overflow:"hidden" }}>
+                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
+                  <thead>
+                    <tr style={{ background:C.base }}>
+                      {["Season","GP","PPG","RPG","APG","FG%","EFF"].map(h => (
+                        <th key={h} style={{ padding:"6px 10px", textAlign: h === "Season" ? "left" : "center", fontWeight:900, letterSpacing:"0.1em", color:C.textDim, borderBottom:`1px solid ${C.border}` }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(player.seasonHistory).sort((a,b) => b[0].localeCompare(a[0])).map(([sid, ss], i) => (
+                      <tr key={sid} style={{ background: i % 2 === 0 ? C.surface : C.base }}>
+                        <td style={{ padding:"6px 10px", fontWeight:700, color:C.textSub }}>{sid.replace(/-/g,"-")}</td>
+                        <td style={{ padding:"6px 10px", textAlign:"center", color:C.textDim }}>{ss.gp}</td>
+                        <td style={{ padding:"6px 10px", textAlign:"center", fontWeight:900, color:C.redText }}>{ss.ppg}</td>
+                        <td style={{ padding:"6px 10px", textAlign:"center", color:C.text }}>{ss.rpg}</td>
+                        <td style={{ padding:"6px 10px", textAlign:"center", color:C.text }}>{ss.apg}</td>
+                        <td style={{ padding:"6px 10px", textAlign:"center", color:C.text }}>{ss.fgPct > 0 ? `${ss.fgPct}%` : "--"}</td>
+                        <td style={{ padding:"6px 10px", textAlign:"center", fontWeight:900, color:C.gold }}>{ss.eff}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
 
           {/* Charts */}
@@ -171,10 +205,21 @@ function PlayerDetail({ player, onClose }) {
 
               {gameLog.length > 0 && (
                 <div>
-                  {/* Chart header + stat selector */}
+                  {/* Chart header + view toggle */}
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6, flexWrap:"wrap", gap:6 }}>
                     <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>
                       Game Log {filtered.length > 0 ? `(${filtered.length})` : ""}
+                    </div>
+                    <div style={{ display:"flex", gap:4 }}>
+                      {["chart","table"].map(v => (
+                        <button key={v} onClick={() => setLogView(v)} style={{
+                          padding:"2px 9px", fontSize:10, fontWeight:900, letterSpacing:"0.08em", borderRadius:5,
+                          border:`1px solid ${logView === v ? `${C.redBright}60` : C.border}`,
+                          background: logView === v ? `${C.red}25` : "transparent",
+                          color: logView === v ? C.redText : C.textDim,
+                          cursor:"pointer", fontFamily:"inherit", textTransform:"uppercase",
+                        }}>{v}</button>
+                      ))}
                     </div>
                   </div>
 
@@ -205,35 +250,72 @@ function PlayerDetail({ player, onClose }) {
                     ))}
                   </div>
 
-                  <div style={{ borderRadius:12, border:`1px solid ${C.border}`, padding:8, background:C.base }}>
-                    {filtered.length === 0 ? (
-                      <div style={{ height:200, display:"flex", alignItems:"center", justifyContent:"center", color:C.textDim, fontSize:12 }}>No games match this filter</div>
-                    ) : (
-                      <ResponsiveContainer width="100%" height={200}>
-                        <LineChart data={filtered} margin={{ top:8, right:4, left:-24, bottom:0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                          <XAxis dataKey="label" tick={{ fill:C.textDim, fontSize:10 }} axisLine={false} tickLine={false} />
-                          <YAxis tick={{ fill:C.textDim, fontSize:10 }} axisLine={false} tickLine={false} />
-                          <Tooltip
-                            {...chartTooltipStyle}
-                            formatter={(val) => [val, activeStat?.label]}
-                            labelFormatter={(label, payload) => {
-                              const g = payload?.[0]?.payload;
-                              return g ? `${label} vs ${g.opponent}` : label;
-                            }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey={selStat}
-                            stroke={activeStat?.color || C.redBright}
-                            strokeWidth={2}
-                            dot={{ fill: activeStat?.color || C.redBright, r:3 }}
-                            name={activeStat?.label}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    )}
-                  </div>
+                  {logView === "chart" ? (
+                    <div style={{ borderRadius:12, border:`1px solid ${C.border}`, padding:8, background:C.base }}>
+                      {filtered.length === 0 ? (
+                        <div style={{ height:200, display:"flex", alignItems:"center", justifyContent:"center", color:C.textDim, fontSize:12 }}>No games match this filter</div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height={200}>
+                          <LineChart data={filtered} margin={{ top:8, right:4, left:-24, bottom:0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                            <XAxis dataKey="label" tick={{ fill:C.textDim, fontSize:10 }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fill:C.textDim, fontSize:10 }} axisLine={false} tickLine={false} />
+                            <Tooltip
+                              {...chartTooltipStyle}
+                              formatter={(val) => [val, activeStat?.label]}
+                              labelFormatter={(label, payload) => {
+                                const g = payload?.[0]?.payload;
+                                return g ? `${label} vs ${g.opponent}` : label;
+                              }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey={selStat}
+                              stroke={activeStat?.color || C.redBright}
+                              strokeWidth={2}
+                              dot={{ fill: activeStat?.color || C.redBright, r:3 }}
+                              name={activeStat?.label}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ borderRadius:12, border:`1px solid ${C.border}`, background:C.base, overflow:"hidden" }}>
+                      {filtered.length === 0 ? (
+                        <div style={{ height:80, display:"flex", alignItems:"center", justifyContent:"center", color:C.textDim, fontSize:12 }}>No games match this filter</div>
+                      ) : (
+                        <div style={{ overflowY:"auto", maxHeight:260 }}>
+                          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
+                            <thead style={{ position:"sticky", top:0, background:C.surface2, zIndex:1 }}>
+                              <tr>
+                                {["#","Date","vs","MIN","PTS","REB","AST","STL","BLK","FT","EFF"].map(h => (
+                                  <th key={h} style={{ padding:"5px 7px", textAlign: h === "vs" || h === "Date" ? "left" : "center", fontWeight:900, letterSpacing:"0.08em", color:C.textDim, borderBottom:`1px solid ${C.border}`, whiteSpace:"nowrap" }}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {filtered.map((g, i) => (
+                                <tr key={g.gameId || i} style={{ background: i % 2 === 0 ? C.base : "transparent", borderBottom:`1px solid ${C.border}` }}>
+                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.textDim, fontWeight:700 }}>{i+1}</td>
+                                  <td style={{ padding:"5px 7px", color:C.textDim, whiteSpace:"nowrap" }}>{g.date ? g.date.slice(5) : "--"}</td>
+                                  <td style={{ padding:"5px 7px", color:C.textSub, maxWidth:90, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{g.opponent || "--"}</td>
+                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.textDim }}>{g.min || "--"}</td>
+                                  <td style={{ padding:"5px 7px", textAlign:"center", fontWeight:900, color:C.redText }}>{g.pts}</td>
+                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.text }}>{g.reb}</td>
+                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.text }}>{g.ast}</td>
+                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.text }}>{g.stl}</td>
+                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.text }}>{g.blk}</td>
+                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.text, whiteSpace:"nowrap" }}>{g.fta > 0 ? `${g.ftm}/${g.fta}` : "--"}</td>
+                                  <td style={{ padding:"5px 7px", textAlign:"center", fontWeight:900, color:C.gold }}>{g.eff}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -265,9 +347,14 @@ function PlayerCard({ player, onClick }) {
       <div style={{ height:170, display:"flex", alignItems:"flex-end", justifyContent:"center", background:C.base, position:"relative" }}>
         {playerImg(player)
           ? <img src={playerImg(player)} alt={player.name} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", objectPosition:"top", borderRadius:0 }} />
-          : <span style={{ fontSize:52, lineHeight:1, paddingBottom:12 }}>🏀</span>
+          : <span style={{ fontSize:52, lineHeight:1, paddingBottom:12, zIndex:1, position:"relative" }}>🏀</span>
         }
-        <div style={{ position:"absolute", top:10, right:10, width:26, height:26, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, background:C.red, color:C.text, zIndex:1 }}>{player.number}</div>
+        {/* gradient overlay */}
+        <div style={{ position:"absolute", bottom:0, left:0, right:0, height:64, background:"linear-gradient(to bottom, transparent, rgba(28,28,30,0.9))", zIndex:1, pointerEvents:"none" }} />
+        <div style={{ position:"absolute", top:10, right:10, width:26, height:26, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, background:C.red, color:C.text, zIndex:2 }}>{player.number}</div>
+        {hasStats && (
+          <div style={{ position:"absolute", bottom:8, left:10, fontSize:10, fontWeight:900, letterSpacing:"0.1em", color:C.textSub, background:"rgba(28,28,30,0.7)", borderRadius:6, padding:"2px 7px", zIndex:2 }}>{s.gp} GP</div>
+        )}
       </div>
       <div style={{ padding:14 }}>
         <div style={{ fontSize:13, fontWeight:900, color: hov ? C.redText : C.text, transition:"color 0.2s", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{fmt(player.name)}</div>
@@ -294,19 +381,24 @@ function PlayerCard({ player, onClick }) {
   );
 }
 
-export default function PlayersPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap }) {
+export default function PlayersPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }) {
   const [selected, setSelected] = useState(null);
   const [activeSeason, setActiveSeason] = useState(currentSeason);
+  const [search, setSearch] = useState("");
 
   // Merge bio + stats for the active season (or all-time)
   const activeStatsMap = activeSeason === "all-time" ? allTimeStatsMap : statsMap;
   const playersWithStats = players.map(p => ({
     ...p,
-    stats:   activeStatsMap[p.id] ?? { ppg:0,rpg:0,orpg:0,drpg:0,apg:0,spg:0,bpg:0,tpg:0,fpg:0,fgPct:0,fg2Pct:0,fg3Pct:0,ftPct:0,mpg:0,eff:0,gp:0 },
-    gameLog: activeStatsMap[p.id]?.gameLog ?? [],
+    stats:          activeStatsMap[p.id] ?? { ppg:0,rpg:0,orpg:0,drpg:0,apg:0,spg:0,bpg:0,tpg:0,fpg:0,fgPct:0,fg2Pct:0,fg3Pct:0,ftPct:0,ftmPg:0,ftaPg:0,mpg:0,eff:0,gp:0 },
+    gameLog:        activeStatsMap[p.id]?.gameLog ?? [],
+    seasonHistory:  playerSeasonHistory?.[p.id] ?? {},
   }));
 
   const sorted = [...playersWithStats].sort((a, b) => Number(a.number) - Number(b.number));
+  const displayed = search.trim()
+    ? sorted.filter(p => p.name.toLowerCase().includes(search.trim().toLowerCase()))
+    : sorted;
 
   return (
     <Layout title="Players">
@@ -314,14 +406,27 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
       <SeasonSelector
         seasons={seasons}
         currentSeason={activeSeason}
-        onChange={sid => { setActiveSeason(sid); setSelected(null); }}
+        onChange={sid => { setActiveSeason(sid); setSelected(null); setSearch(""); }}
         showAllTime={true}
         right={`${players.length} Players`}
       />
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(185px,1fr))", gap:14 }}>
-        {sorted.map(p => <PlayerCard key={p.id} player={p} onClick={() => setSelected(p)} />)}
+      <div style={{ marginBottom:16 }}>
+        <input
+          type="text"
+          placeholder="Search players..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{
+            width:"100%", maxWidth:260, padding:"7px 14px", borderRadius:8,
+            border:`1px solid ${C.border2}`, background:C.surface2, color:C.text,
+            fontSize:12, fontFamily:"inherit", outline:"none",
+          }}
+        />
       </div>
-      {selected && <PlayerDetail player={selected} onClose={() => setSelected(null)} seasons={seasons} />}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(185px,1fr))", gap:14 }}>
+        {displayed.map(p => <PlayerCard key={p.id} player={p} onClick={() => setSelected(p)} />)}
+      </div>
+      {selected && <PlayerDetail player={selected} onClose={() => setSelected(null)} activeSeason={activeSeason} />}
     </Layout>
   );
 }
@@ -330,5 +435,18 @@ export async function getStaticProps() {
   const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
   const allSeasonsStats = await getAllSeasonsStats(seasons);
   const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
-  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap }, revalidate: 3600 };
+
+  // Build per-player season history: { [pid]: { [seasonId]: SeasonStats } }
+  const playerSeasonHistory = {};
+  for (const [sid, seasonMap] of Object.entries(allSeasonsStats)) {
+    for (const player of players) {
+      const s = seasonMap[player.id];
+      if (s && s.gp > 0) {
+        if (!playerSeasonHistory[player.id]) playerSeasonHistory[player.id] = {};
+        playerSeasonHistory[player.id][sid] = s;
+      }
+    }
+  }
+
+  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }, revalidate: 3600 };
 }
