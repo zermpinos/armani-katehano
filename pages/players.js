@@ -300,7 +300,7 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
 
   return (
     <Layout title="Players">
-      <SectionHeading label="2025–26 Season" title="Roster" right={`${players.length} Players`} />
+      <SectionHeading label="2025–26 Season" title="Players" right={`${players.length} Players`} />
       <SeasonSelector
         seasons={seasons}
         currentSeason={activeSeason}
