@@ -124,7 +124,7 @@ export default function Layout({ children, title = SITE_NAME }) {
 
       {/* Footer */}
       <footer style={{ borderTop:`1px solid ${C.border}`, padding:"20px 16px" }}>
-        <div style={{ maxWidth:1280, margin:"0 auto", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div className="footer-inner" style={{ maxWidth:1280, margin:"0 auto" }}>
 
           {/* Left: copyright */}
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -169,6 +169,23 @@ export default function Layout({ children, title = SITE_NAME }) {
           .desktop-nav { display: flex !important; }
           .hamburger   { display: none !important; }
           .mobile-menu { display: none !important; }
+        }
+
+        /* Footer: stack on mobile, row on desktop */
+        .footer-inner {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 14px;
+          text-align: center;
+        }
+        @media (min-width: 640px) {
+          .footer-inner {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+          }
         }
 
         @keyframes spin    { to { transform: rotate(360deg); } }
