@@ -117,16 +117,18 @@ export default function HomePage({ players, games, stats }) {
                         if (!active || !payload?.length) return null;
                         const entries = payload.filter(p => p.name === "AK" || p.name === "OPP");
                         if (!entries.length) return null;
+                        const game = payload[0]?.payload?.game;
                         return (
                           <div style={chartTooltipStyle.contentStyle}>
+                            {game && <div style={{ color: C.textDim, fontSize:10, marginBottom:4 }}>{game}</div>}
                             {entries.map(p => (
-                              <div key={p.name} style={{ color: p.color }}>{p.name}: {p.value} pts</div>
+                              <div key={p.name} style={{ color: p.color }}>{p.name}: {p.value}</div>
                             ))}
                           </div>
                         );
                       }}
                     />
-                    <Area type="monotone" dataKey="pts" stroke="none" fill="url(#trendFill)" />
+                    <Area type="monotone" dataKey="pts" stroke="none" fill="url(#trendFill)" legendType="none" />
                     <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={3} dot={{ fill:C.redBright, r:3, strokeWidth:0 }} activeDot={{ r:5 }} name="AK" />
                     <Line type="monotone" dataKey="opp" stroke={C.silver} strokeWidth={2} dot={{ fill:C.silver, r:3, strokeWidth:0 }} activeDot={{ r:5 }} strokeDasharray="5 5" name="OPP" />
                     <Legend wrapperStyle={{ fontSize:11, color:C.textSub }} />
