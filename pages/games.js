@@ -155,7 +155,7 @@ export default function GamesPage({ allGames, players, seasons, currentSeason })
   return (
     <Layout title="Games">
       <SectionHeading
-        label={selectedSeason.replace(/-/g, "-")}
+        label={`${selectedSeason.replace(/-/g, "-")} Season`}
         title="Games"
         right={`${filtered.length} Games`}
       />
