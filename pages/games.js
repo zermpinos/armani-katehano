@@ -153,10 +153,10 @@ export default function GamesPage({ allGames, players, seasons, currentSeason })
   }, [allGames, selectedSeason, selectedLeague]);
 
   return (
-    <Layout title="Game Results">
+    <Layout title="Games">
       <SectionHeading
         label={selectedSeason.replace(/-/g, "–")}
-        title="Game Results"
+        title="Games"
         right={`${filtered.length} Games`}
       />
 
