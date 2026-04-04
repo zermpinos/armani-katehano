@@ -79,6 +79,8 @@ model Game {
   defRating      Float?
   seasonLeague   SeasonLeague     @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
   playerStats    PlayerGameStat[]
+
+  @@index([playedOn])
 }
 
 model RosterEntry {
@@ -154,6 +156,7 @@ model PlayerSeasonAggregate {
   drbAvg         Float        @default(0)
   fg2Pct         Float        @default(0)
   effAvg         Float        @default(0)
+  createdAt      DateTime     @default(now())
   fgmTotal       Int          @default(0)
   fgaTotal       Int          @default(0)
   fg2mTotal      Int          @default(0)
