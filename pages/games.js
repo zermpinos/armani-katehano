@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
+import SeasonSelector from "../components/SeasonSelector";
 import { C } from "../lib/theme";
-import { getAllPublicData } from "../lib/data";
+import { getAllGames, getPlayers, getSeasons, getConfig } from "../lib/data";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { fmt } from "../lib/utils";
 
@@ -23,13 +24,6 @@ const BOX_COLS = [
   {key:"eff",label:"EFF"},
 ];
 
-/**
- * B-04: topScorer was referenced in JSX but never set by getGames() in
- * repository.prisma.js, so it was silently undefined and never rendered.
- *
- * Fix: derive it client-side from the box score rows that are already present.
- * Returns a display string like "A. Katehano 22 PTS" or null if no box score.
- */
 function getTopScorer(game, players) {
   const rows = game.boxScore;
   if (!rows || rows.length === 0) return null;
@@ -97,24 +91,96 @@ function BoxScore({ game, players, onClose }) {
   );
 }
 
-export default function GamesPage({ games, players }) {
+function LeagueFilter({ leagues, selected, onChange }) {
+  if (leagues.length <= 1) return null;
+  const options = [{ slug: "all", name: "All" }, ...leagues];
+  return (
+    <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:20 }}>
+      {options.map(l => {
+        const active = l.slug === selected;
+        return (
+          <button
+            key={l.slug}
+            onClick={() => onChange(l.slug)}
+            style={{
+              padding: "5px 14px",
+              fontSize: 11,
+              fontWeight: 900,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              borderRadius: 8,
+              border: `1px solid ${active ? C.red : C.border}`,
+              background: active ? C.red : "transparent",
+              color: active ? C.text : C.textDim,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              transition: "all 0.15s",
+            }}
+          >
+            {l.name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function GamesPage({ allGames, players, seasons, currentSeason }) {
+  const [selectedSeason, setSelectedSeason] = useState(currentSeason);
+  const [selectedLeague, setSelectedLeague] = useState("all");
   const [selected, setSelected] = useState(null);
-  const sorted = [...games].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  // Leagues available in the selected season (sorted by name)
+  const seasonLeagues = useMemo(() => {
+    const seen = new Map();
+    allGames
+      .filter(g => g.season === selectedSeason)
+      .forEach(g => { if (!seen.has(g.league)) seen.set(g.league, g.leagueName); });
+    return [...seen.entries()].map(([slug, name]) => ({ slug, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allGames, selectedSeason]);
+
+  // Reset league filter when season changes and the current league isn't available
+  const handleSeasonChange = (sid) => {
+    setSelectedSeason(sid);
+    setSelectedLeague("all");
+  };
+
+  const filtered = useMemo(() => {
+    return allGames
+      .filter(g => g.season === selectedSeason)
+      .filter(g => selectedLeague === "all" || g.league === selectedLeague)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [allGames, selectedSeason, selectedLeague]);
 
   return (
     <Layout title="Game Results">
-      <SectionHeading label="2025-26 Season" title="Game Results" right={`${games.length} Games`} />
+      <SectionHeading
+        label={selectedSeason.replace(/-/g, "-")}
+        title="Game Results"
+        right={`${filtered.length} Games`}
+      />
 
-      {games.length === 0 ? (
+      <SeasonSelector
+        seasons={seasons}
+        currentSeason={selectedSeason}
+        onChange={handleSeasonChange}
+        showAllTime={false}
+      />
+
+      <LeagueFilter
+        leagues={seasonLeagues}
+        selected={selectedLeague}
+        onChange={setSelectedLeague}
+      />
+
+      {filtered.length === 0 ? (
         <div style={{ textAlign:"center", padding:48, color:C.textDim }}>
           <div style={{ fontSize:36, marginBottom:12 }}>📋</div>
           <div style={{ fontSize:15, fontWeight:700 }}>No games recorded yet</div>
         </div>
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-          {sorted.map(g => {
-            // B-04: derive topScorer from box score rows -- was previously
-            // referencing g.topScorer which is never set by the repository.
+          {filtered.map(g => {
             const topScorer = getTopScorer(g, players);
 
             return (
@@ -137,13 +203,17 @@ export default function GamesPage({ games, players }) {
                   }}>{g.result}</span>
                   <div>
                     <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{g.home ? "vs" : "@"} {g.opponent}</div>
-                    <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{g.date}</div>
+                    <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>
+                      {g.date}
+                      {seasonLeagues.length > 1 && selectedLeague === "all" && (
+                        <span style={{ marginLeft:8, color:C.textDim, opacity:0.7 }}>{g.leagueName}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:24 }}>
                   <div style={{ textAlign:"right" }}>
                     <div style={{ fontSize:18, fontWeight:900, color:C.text }}>{g.score}</div>
-                    {/* B-04: now renders when box score data is present */}
                     {topScorer && <div style={{ fontSize:11, color:C.textDim }}>{topScorer}</div>}
                   </div>
                   <div style={{ fontSize:11, color:C.textDim }}>BOX SCORE -></div>
@@ -159,6 +229,14 @@ export default function GamesPage({ games, players }) {
 }
 
 export async function getStaticProps() {
-  const { games, players } = await getAllPublicData();
-  return { props: { games, players }, revalidate: 3600 };
+  const [allGames, players, seasons, config] = await Promise.all([
+    getAllGames(),
+    getPlayers(),
+    getSeasons(),
+    getConfig(),
+  ]);
+  return {
+    props: { allGames, players, seasons, currentSeason: config.currentSeason },
+    revalidate: 3600,
+  };
 }
