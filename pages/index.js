@@ -7,6 +7,16 @@ import { fmt, fmtDate } from "../lib/utils";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 
+function SplitTick({ x, y, payload }) {
+  const parts = (payload.value || "").split(" ");
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={14} textAnchor="middle" fill={C.textSub} fontSize={10} fontWeight={700}>{parts[0]}</text>
+      {parts[1] && <text x={0} y={0} dy={26} textAnchor="middle" fill={C.textSub} fontSize={10} fontWeight={700}>{parts[1]}</text>}
+    </g>
+  );
+}
+
 export default function HomePage({ players, games, stats }) {
   const playersWithStats = players.map(p => ({
     ...p,
@@ -90,11 +100,11 @@ export default function HomePage({ players, games, stats }) {
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart data={trend} margin={{ top:4, right:8, left:-20, bottom:0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                    <XAxis dataKey="game" tick={false} axisLine={false} tickLine={false} />
+                    <XAxis dataKey="game" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
                     <YAxis tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
                     <Tooltip {...chartTooltipStyle} />
                     <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={2.5} dot={{ fill:C.redBright, r:3 }} name="AK" />
-                    <Line type="monotone" dataKey="opp" stroke={C.border2} strokeWidth={2} dot={{ fill:C.border2, r:3 }} name="OPP" strokeDasharray="4 2" />
+                    <Line type="monotone" dataKey="opp" stroke={C.silver} strokeWidth={2} dot={{ fill:C.silver, r:3 }} name="OPP" strokeDasharray="4 2" />
                     <Legend wrapperStyle={{ fontSize:11, color:C.textSub }} />
                   </LineChart>
                 </ResponsiveContainer>
@@ -110,10 +120,10 @@ export default function HomePage({ players, games, stats }) {
                     <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
                     <XAxis
                       dataKey="name"
-                      tick={{ fill:C.textSub, fontSize:10, fontWeight:700, angle:-30, textAnchor:"end" }}
-                      axisLine={false}
+                      tick={<SplitTick />}
+                      axisLine={{ stroke: C.border2 }}
                       tickLine={false}
-                      height={56}
+                      height={44}
                       interval={0}
                     />
                     <YAxis tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
