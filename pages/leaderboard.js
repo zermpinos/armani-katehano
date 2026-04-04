@@ -142,7 +142,6 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
             <span style={{ fontSize:12, fontWeight:700, color:m.color }}>{["1st","2nd","3rd"][i]} place</span>
           </div>
         ))}
-        <span style={{ fontSize:12, color:C.textDim }}>· Click any column to sort</span>
       </div>
     </Layout>
   );
