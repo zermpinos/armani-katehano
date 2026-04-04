@@ -7,10 +7,11 @@
  * Protected by admin session cookie via requireAuth().
  */
 
-import { z }             from 'zod';
-import { requireAuth }   from '../../../lib/requireAuth.js';
-import { scrapeGame }    from '../../../lib/boxscore-scraper.js';
-import { securityHeaders } from '../../../lib/security.js';
+import { z }                              from 'zod';
+import { requireAuth }                   from '../../../lib/requireAuth.js';
+import { scrapeGame }                    from '../../../lib/boxscore-scraper.js';
+import { securityHeaders }               from '../../../lib/security.js';
+import { ScrapedGameSchema }             from '../../../lib/validators.js';
 
 const ScrapeSchema = z.object({
   url: z.string().url().max(500),
@@ -51,6 +52,16 @@ export default requireAuth(async function handler(req, res) {
     data = scrapeGame(html, url);
   } catch (err) {
     return res.status(422).json({ error: `Parse error: ${err.message}` });
+  }
+
+  // Validate the scraped shape before sending it to the client.
+  // This catches format changes in the source site early.
+  const validation = ScrapedGameSchema.safeParse(data);
+  if (!validation.success) {
+    return res.status(422).json({
+      error: 'Scraped data has unexpected shape -- the source site may have changed format.',
+      detail: validation.error.flatten(),
+    });
   }
 
   if (!data.teams.length)

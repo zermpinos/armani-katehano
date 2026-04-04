@@ -40,6 +40,10 @@ export default async function handler(req, res) {
     console.error("[cleanup] CRON_SECRET is not set -- endpoint disabled");
     return res.status(500).json({ error: "Cleanup endpoint is not configured" });
   }
+  if (cronSecret.length < 32) {
+    console.error("[cleanup] CRON_SECRET is too short (< 32 chars) -- endpoint disabled");
+    return res.status(500).json({ error: "Cleanup endpoint is not configured" });
+  }
 
   const authHeader = req.headers.authorization ?? "";
   const token      = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
