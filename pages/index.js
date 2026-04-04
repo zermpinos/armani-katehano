@@ -99,7 +99,7 @@ export default function HomePage({ players, games, stats }) {
                 <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Scoring Trend -- Last {trend.length} Games</div>
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart data={trend} margin={{ top:4, right:8, left:0, bottom:0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                    <CartesianGrid strokeDasharray="4 4" stroke={C.border2} />
                     <XAxis dataKey="game" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
                     <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
                     <Tooltip {...chartTooltipStyle} />
