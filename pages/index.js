@@ -98,10 +98,10 @@ export default function HomePage({ players, games, stats }) {
               <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
                 <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Scoring Trend — Last {trend.length} Games</div>
                 <ResponsiveContainer width="100%" height={180}>
-                  <LineChart data={trend} margin={{ top:4, right:24, left:-20, bottom:0 }}>
+                  <LineChart data={trend} margin={{ top:4, right:8, left:0, bottom:0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                     <XAxis dataKey="game" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
-                    <YAxis tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
+                    <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
                     <Tooltip {...chartTooltipStyle} />
                     <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={2.5} dot={{ fill:C.redBright, r:3 }} name="AK" />
                     <Line type="monotone" dataKey="opp" stroke={C.silver} strokeWidth={2} dot={{ fill:C.silver, r:3 }} name="OPP" strokeDasharray="4 2" />
@@ -116,7 +116,7 @@ export default function HomePage({ players, games, stats }) {
               <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
                 <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Top Scorers — PPG</div>
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={topScorers} margin={{ top:4, right:24, left:-20, bottom:8 }}>
+                  <BarChart data={topScorers} margin={{ top:4, right:8, left:0, bottom:8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
                     <XAxis
                       dataKey="name"
@@ -126,7 +126,7 @@ export default function HomePage({ players, games, stats }) {
                       height={44}
                       interval={0}
                     />
-                    <YAxis tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
+                    <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
                     <Tooltip {...chartTooltipStyle} formatter={v => [`${v} PPG`]} />
                     <Bar dataKey="ppg" fill={C.red} radius={[4,4,0,0]} maxBarSize={44} />
                   </BarChart>
