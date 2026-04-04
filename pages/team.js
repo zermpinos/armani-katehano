@@ -103,9 +103,8 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
       const n = rows.length;
       if (n === 0) return null;
       return {
-        name:     fmt(p.name),
-        fullName: p.name,
-        mpg:      +(rows.reduce((a, r) => a + (r.min || 0), 0) / n).toFixed(1),
+        name: fmt(p.name),
+        mpg:  +(rows.reduce((a, r) => a + (r.min || 0), 0) / n).toFixed(1),
       };
     })
     .filter(Boolean)
@@ -299,15 +298,14 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
                     type="category"
                     dataKey="name"
                     tick={{ fill:C.textSub, fontSize:12, fontWeight:700 }}
-                    tickFormatter={(name) => name.length > 12 ? name.slice(0, 12) + "…" : name}
                     axisLine={false}
                     tickLine={false}
-                    width={120}
+                    width={130}
                   />
                   <Tooltip
                     {...chartTooltipStyle}
                     formatter={(value) => [`${value} min`]}
-                    labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ""}
+                    labelFormatter={(_, payload) => payload?.[0]?.payload?.name ?? ""}
                   />
                   <Bar
                     dataKey="mpg"
