@@ -57,12 +57,12 @@ export default function GamesPage({ validSlug }) {
   });
 
   const startNew = () => {
-    setDraft({ date: "", opponent: "", home: true, result: "W", teamScore: "", opponentScore: "", seasonLeagueId: seasonLeagues[0]?.id ?? "", boxScore: buildBox([]) });
+    setDraft({ date: "", opponent: "", home: true, result: "W", teamScore: "", opponentScore: "", seasonLeagueId: seasonLeagues[0]?.id ?? "", sourceUrl: "", youtubeUrl: "", boxScore: buildBox([]) });
     setEditId("new");
   };
 
   const startEdit = g => {
-    setDraft({ ...g, date: g.date ?? g.playedOn?.slice(0, 10) ?? "", home: g.home ?? g.location === "home", boxScore: buildBox(g.boxScore) });
+    setDraft({ ...g, date: g.date ?? g.playedOn?.slice(0, 10) ?? "", home: g.home ?? g.location === "home", sourceUrl: g.sourceUrl ?? "", youtubeUrl: g.youtubeUrl ?? "", boxScore: buildBox(g.boxScore) });
     setEditId(g.id);
   };
 
@@ -99,6 +99,8 @@ export default function GamesPage({ validSlug }) {
         opponentScore:  Number(draft.opponentScore) || 0,
         result:         draft.result,
         playedOn:       draft.date,
+        sourceUrl:      draft.sourceUrl || null,
+        youtubeUrl:     draft.youtubeUrl || null,
         boxScore,
       }),
     });
@@ -133,6 +135,10 @@ export default function GamesPage({ validSlug }) {
         <Sel label="RESULT"    value={draft.result}         onChange={v => updGame("result", v)}         options={[{ value: "W", label: "Win" }, { value: "L", label: "Loss" }]} />
         <F label="OUR SCORE"   value={draft.teamScore}      onChange={v => updGame("teamScore", v)}      type="number" />
         <F label="OPP SCORE"   value={draft.opponentScore}  onChange={v => updGame("opponentScore", v)}  type="number" />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+        <F label="OFFICIAL STATS URL" value={draft.sourceUrl} onChange={v => updGame("sourceUrl", v)} placeholder="https://..." />
+        <F label="YOUTUBE REPLAY URL" value={draft.youtubeUrl} onChange={v => updGame("youtubeUrl", v)} placeholder="https://youtube.com/..." />
       </div>
       <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 8, paddingTop: 8, borderTop: `1px solid ${C.border}`, textTransform: "uppercase" }}>Box score</div>
       <BoxScoreTable players={players} rows={draft.boxScore || []} onUpdate={updBox} />

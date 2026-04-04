@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import SeasonSelector from "../components/SeasonSelector";
@@ -46,6 +46,11 @@ function BoxScore({ game, players, onClose }) {
     .filter(r => r.player && r.min > 0)
     .sort((a, b) => Number(a.player.number) - Number(b.player.number));
 
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
   return (
     <div style={{ position:"fixed", inset:0, zIndex:100, overflowY:"auto", padding:"80px 16px 32px", background:"rgba(0,0,0,0.82)" }} onClick={onClose}>
       <div style={{ maxWidth:900, margin:"0 auto", borderRadius:16, border:`1px solid ${C.border2}`, background:C.surface, overflow:"hidden" }} onClick={e => e.stopPropagation()}>
@@ -53,6 +58,22 @@ function BoxScore({ game, players, onClose }) {
           <div>
             <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase", marginBottom:2 }}>{game.date}</div>
             <div style={{ fontSize:17, fontWeight:900, color:C.text }}>{game.home ? "vs" : "@"} {game.opponent} · <span style={{ color: game.result==="W" ? C.green : C.redText }}>{game.result} {game.score}</span></div>
+            {(game.sourceUrl || game.youtubeUrl) && (
+              <div style={{ display:"flex", gap:10, marginTop:8 }}>
+                {game.sourceUrl && (
+                  <a href={game.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize:11, fontWeight:700, color:C.textDim, textDecoration:"none", padding:"3px 10px", borderRadius:6, border:`1px solid ${C.border2}`, display:"inline-flex", alignItems:"center", gap:5 }}
+                    onClick={e => e.stopPropagation()}>
+                    Official Stats ↗
+                  </a>
+                )}
+                {game.youtubeUrl && (
+                  <a href={game.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize:11, fontWeight:700, color:"#ff4444", textDecoration:"none", padding:"3px 10px", borderRadius:6, border:"1px solid #ff444440", display:"inline-flex", alignItems:"center", gap:5 }}
+                    onClick={e => e.stopPropagation()}>
+                    Watch Replay ▶
+                  </a>
+                )}
+              </div>
+            )}
           </div>
           <button onClick={onClose} style={{ fontSize:28, fontWeight:900, color:C.textDim, background:"none", border:"none", cursor:"pointer" }}>×</button>
         </div>
@@ -125,9 +146,43 @@ function LeagueFilter({ leagues, selected, onChange }) {
   );
 }
 
+function ResultFilter({ selected, onChange }) {
+  const options = [{ value: "all", label: "All" }, { value: "W", label: "Wins" }, { value: "L", label: "Losses" }];
+  return (
+    <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:20 }}>
+      {options.map(o => {
+        const active = o.value === selected;
+        return (
+          <button
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            style={{
+              padding: "5px 14px",
+              fontSize: 11,
+              fontWeight: 900,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              borderRadius: 8,
+              border: `1px solid ${active ? (o.value === "W" ? C.green : o.value === "L" ? C.redText : C.red) : C.border}`,
+              background: active ? (o.value === "W" ? `${C.green}25` : o.value === "L" ? `${C.red}30` : C.red) : "transparent",
+              color: active ? (o.value === "W" ? C.green : o.value === "L" ? C.redText : C.text) : C.textDim,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              transition: "all 0.15s",
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function GamesPage({ allGames, players, seasons, currentSeason }) {
   const [selectedSeason, setSelectedSeason] = useState(currentSeason);
   const [selectedLeague, setSelectedLeague] = useState("all");
+  const [selectedResult, setSelectedResult] = useState("all");
   const [selected, setSelected] = useState(null);
 
   // Leagues available in the selected season (sorted by name)
@@ -143,14 +198,16 @@ export default function GamesPage({ allGames, players, seasons, currentSeason })
   const handleSeasonChange = (sid) => {
     setSelectedSeason(sid);
     setSelectedLeague("all");
+    setSelectedResult("all");
   };
 
   const filtered = useMemo(() => {
     return allGames
       .filter(g => g.season === selectedSeason)
       .filter(g => selectedLeague === "all" || g.league === selectedLeague)
+      .filter(g => selectedResult === "all" || g.result === selectedResult)
       .sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [allGames, selectedSeason, selectedLeague]);
+  }, [allGames, selectedSeason, selectedLeague, selectedResult]);
 
   return (
     <Layout title="Games">
@@ -172,6 +229,8 @@ export default function GamesPage({ allGames, players, seasons, currentSeason })
         selected={selectedLeague}
         onChange={setSelectedLeague}
       />
+
+      <ResultFilter selected={selectedResult} onChange={setSelectedResult} />
 
       {filtered.length === 0 ? (
         <div style={{ textAlign:"center", padding:48, color:C.textDim }}>
