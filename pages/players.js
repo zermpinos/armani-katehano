@@ -120,8 +120,7 @@ function PlayerDetail({ player, onClose, activeSeason }) {
                 <StatCell label="FG%"  value={s.fgPct > 0 ? `${s.fgPct}%` : "--"} />
                 <StatCell label="2P%"  value={s.fg2Pct > 0 ? `${s.fg2Pct}%` : "--"} />
                 <StatCell label="3P%"  value={s.fg3Pct > 0 ? `${s.fg3Pct}%` : "--"} />
-                <StatCell label="FTM"  value={s.ftmPg > 0 ? s.ftmPg : "--"} />
-                <StatCell label="FTA"  value={s.ftaPg > 0 ? s.ftaPg : "--"} />
+                <StatCell label="FT"   value={s.ftaPg > 0 ? `${s.ftmPg}/${s.ftaPg}` : "--"} />
                 <StatCell label="FT%"  value={s.ftPct > 0 ? `${s.ftPct}%` : "--"} />
                 <StatCell label="MPG"  value={s.mpg} />
                 <StatCell label="EFF"  value={s.eff} highlight />
