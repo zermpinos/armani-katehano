@@ -33,16 +33,17 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
   }, [games]);
 
   // Filter by the active tab using the raw DB slug.
-  const filteredGames = league === "all"
-    ? games
-    : games.filter(g => g.league === league);
+  const filteredGames = useMemo(
+    () => league === "all" ? games : games.filter(g => g.league === league),
+    [league, games],
+  );
 
   const gp = filteredGames.length;
 
   // filteredGames is already scoped to the active league tab — pass no
   // leagueFilter so computeRecord doesn't re-filter and produce wrong PPG
   // for the "all" tab (where no game has g.league === "all").
-  const rec = computeRecord(filteredGames);
+  const rec = useMemo(() => computeRecord(filteredGames), [filteredGames]);
 
   const allRows = filteredGames.flatMap(g => g.boxScore || []).filter(r => r.min > 0);
   const sum    = key => allRows.reduce((a, r) => a + (r[key] || 0), 0);
