@@ -253,30 +253,40 @@ function PlayerDetail({ player, onClose }) {
 function PlayerCard({ player, onClick }) {
   const [hov, setHov] = useState(false);
   const s = player.stats;
+  const hasStats = s.gp > 0;
   return (
     <button onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} style={{
       borderRadius:12, overflow:"hidden", textAlign:"left", width:"100%", cursor:"pointer",
       border:`1px solid ${hov ? `${C.redBright}55` : C.border}`,
       background:C.surface, boxShadow: hov ? `0 8px 32px ${C.red}30` : "none",
       transition:"all 0.2s", fontFamily:"inherit",
+      opacity: hasStats ? 1 : 0.55,
     }}>
-      <div style={{ height:100, display:"flex", alignItems:"flex-end", justifyContent:"center", background:C.base, position:"relative" }}>
+      <div style={{ height:170, display:"flex", alignItems:"flex-end", justifyContent:"center", background:C.base, position:"relative" }}>
         {playerImg(player)
           ? <img src={playerImg(player)} alt={player.name} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", objectPosition:"top", borderRadius:0 }} />
-          : <span style={{ fontSize:48, lineHeight:1, paddingBottom:8 }}>🏀</span>
+          : <span style={{ fontSize:52, lineHeight:1, paddingBottom:12 }}>🏀</span>
         }
         <div style={{ position:"absolute", top:10, right:10, width:26, height:26, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, background:C.red, color:C.text, zIndex:1 }}>{player.number}</div>
       </div>
       <div style={{ padding:14 }}>
-        <div style={{ fontSize:13, fontWeight:900, color: hov ? C.redText : C.text, transition:"color 0.2s" }}>{fmt(player.name)}</div>
-        <div style={{ fontSize:11, fontWeight:700, letterSpacing:"0.1em", color:C.textDim, marginTop:2 }}>{player.position}</div>
-        <div style={{ display:"flex", gap:0, marginTop:12, paddingTop:12, borderTop:`1px solid ${C.border}` }}>
-          {[["PPG",s.ppg],["RPG",s.rpg],["APG",s.apg]].map(([l,v]) => (
-            <div key={l} style={{ flex:1, textAlign:"center" }}>
-              <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim }}>{l}</div>
-              <div style={{ fontSize:15, fontWeight:900, color:C.text, marginTop:2 }}>{v}</div>
+        <div style={{ fontSize:13, fontWeight:900, color: hov ? C.redText : C.text, transition:"color 0.2s", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{fmt(player.name)}</div>
+        <div style={{ marginTop:6 }}>
+          <span style={{ fontSize:10, fontWeight:900, letterSpacing:"0.12em", borderRadius:99, padding:"2px 8px", color:C.textSub, background:C.surface2, border:`1px solid ${C.border2}` }}>{player.position}</span>
+        </div>
+        <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${C.border}` }}>
+          {hasStats ? (
+            <div style={{ display:"flex", gap:0 }}>
+              {[["PPG",s.ppg],["RPG",s.rpg],["APG",s.apg],["EFF",s.eff]].map(([l,v]) => (
+                <div key={l} style={{ flex:1, textAlign:"center" }}>
+                  <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim }}>{l}</div>
+                  <div style={{ fontSize:14, fontWeight:900, color: l === "EFF" ? C.gold : C.text, marginTop:2 }}>{v}</div>
+                </div>
+              ))}
             </div>
-          ))}
+          ) : (
+            <div style={{ textAlign:"center", fontSize:10, fontWeight:700, letterSpacing:"0.1em", color:C.textDim, padding:"4px 0" }}>NO STATS YET</div>
+          )}
         </div>
       </div>
       <div style={{ height:2, background:C.redBright, transform: hov ? "scaleX(1)" : "scaleX(0)", transformOrigin:"left", transition:"transform 0.3s" }} />
@@ -308,7 +318,7 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
         showAllTime={true}
         right={`${players.length} Players`}
       />
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:14 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(185px,1fr))", gap:14 }}>
         {sorted.map(p => <PlayerCard key={p.id} player={p} onClick={() => setSelected(p)} />)}
       </div>
       {selected && <PlayerDetail player={selected} onClose={() => setSelected(null)} seasons={seasons} />}
