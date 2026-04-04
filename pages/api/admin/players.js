@@ -9,13 +9,13 @@ import { z }                         from "zod";
 import { requireAuth }               from "../../../lib/requireAuth.js";
 import { securityHeaders, auditLog } from "../../../lib/security.js";
 import prisma                        from "../../../lib/prisma.js";
-import { slugify }                   from "../../../lib/utils.js";
-import { prodError }                 from "../../../lib/utils.js";
+import { slugify, prodError }        from "../../../lib/utils.js";
+import { POSITIONS }                 from "../../../lib/positions.js";
 
 const PlayerWriteSchema = z.object({
   name:     z.string().min(1).max(100),
   number:   z.coerce.number().int().min(0).max(99),
-  position: z.enum(["PG", "SG", "SF", "PF", "C"]),
+  position: z.enum(POSITIONS),
   height:   z.string().max(10).optional().nullable(),
   weight:   z.string().max(10).optional().nullable(),
   photoUrl: z.string().max(255).optional().nullable(),

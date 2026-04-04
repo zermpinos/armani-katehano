@@ -75,7 +75,7 @@ export default function ImportPage({ validSlug }) {
 
       if (!scraped || mins === 0) {
         return {
-          pid: dbPlayer.id, min: 0, pts: 0, reb: 0, orb: 0, drb: 0,
+          playerId: dbPlayer.id, minutes: 0, pts: 0, reb: 0, orb: 0, drb: 0,
           ast: 0, stl: 0, blk: 0, tov: 0, pf: 0,
           fgm: 0, fga: 0, fg2m: 0, fg2a: 0, fg3m: 0, fg3a: 0,
           ftm: 0, fta: 0, eff: 0,
@@ -88,8 +88,8 @@ export default function ImportPage({ validSlug }) {
       const fg3a = scraped["3PTS"]?.attempted ?? 0;
 
       return {
-        pid:  dbPlayer.id,
-        min:  mins,
+        playerId: dbPlayer.id,
+        minutes:  mins,
         pts:  scraped.PTS  ?? 0,
         reb:  scraped.REB  ?? 0,
         orb:  scraped.OREB ?? 0,
@@ -112,7 +112,7 @@ export default function ImportPage({ validSlug }) {
     akTeam.players.forEach(p => {
       if (parseMinutes(p.MIN) > 0) {
         const dbPlayer = players.find(pl => Number(pl.number) === p["#"]);
-        if (dbPlayer) hl[dbPlayer.id] = true;
+        if (dbPlayer) hl[dbPlayer.id] = true;  // keyed by playerId
       }
     });
 
@@ -167,8 +167,8 @@ export default function ImportPage({ validSlug }) {
   };
 
   const updDraft = (k, v) => setDraft(d => ({ ...d, [k]: v }));
-  const updBox   = (pid, k, v) => setDraft(d => ({
-    ...d, boxScore: d.boxScore.map(r => r.pid === pid ? { ...r, [k]: parseFloat(v) || 0 } : r)
+  const updBox   = (playerId, k, v) => setDraft(d => ({
+    ...d, boxScore: d.boxScore.map(r => r.playerId === playerId ? { ...r, [k]: parseFloat(v) || 0 } : r)
   }));
 
   const save = async () => {
@@ -177,7 +177,7 @@ export default function ImportPage({ validSlug }) {
       const fg2m = r.fg2m || 0, fg2a = r.fg2a || 0;
       const fg3m = r.fg3m || 0, fg3a = r.fg3a || 0;
       return {
-        playerId: r.pid, minutes: r.min || 0,
+        playerId: r.playerId, minutes: r.minutes || 0,
         pts: r.pts || 0, reb: r.reb || 0, orb: r.orb || 0, drb: r.drb || 0,
         ast: r.ast || 0, stl: r.stl || 0, blk: r.blk || 0, tov: r.tov || 0,
         pf: r.pf || 0, fg2m, fg2a, fg3m, fg3a, fgm: fg2m + fg3m, fga: fg2a + fg3a,
