@@ -35,11 +35,14 @@ function detectLeagueSlug(url) {
 }
 
 function parseMinutes(minStr) {
-  const m = (minStr || "").match(/^(\d+):(\d{2})$/);
-  if (!m) return 0;
-  const mins = parseInt(m[1], 10);
-  const secs = parseInt(m[2], 10);
-  return secs >= 30 ? mins + 1 : mins;
+  const str = String(minStr || "").trim();
+  if (!str || str.toUpperCase() === "DNP") return 0;
+  if (str.includes(":")) {
+    const [m, sec] = str.split(":").map(Number);
+    return +(m + sec / 60).toFixed(2);
+  }
+  const n = parseFloat(str);
+  return isNaN(n) ? 0 : n;
 }
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
@@ -118,14 +121,14 @@ describe("parseMinutes", () => {
     expect(parseMinutes("26:00")).toBe(26);
   });
 
-  it("rounds up when seconds >= 30", () => {
-    expect(parseMinutes("26:30")).toBe(27);
-    expect(parseMinutes("26:59")).toBe(27);
+  it("returns decimal minutes for non-zero seconds", () => {
+    expect(parseMinutes("26:30")).toBe(+(26 + 30 / 60).toFixed(2)); // 26.5
+    expect(parseMinutes("27:51")).toBe(+(27 + 51 / 60).toFixed(2)); // 27.85
+    expect(parseMinutes("32:14")).toBe(+(32 + 14 / 60).toFixed(2)); // 32.23
   });
 
-  it("rounds down when seconds < 30", () => {
-    expect(parseMinutes("26:29")).toBe(26);
-    expect(parseMinutes("26:01")).toBe(26);
+  it("parses plain numeric string (no colon)", () => {
+    expect(parseMinutes("26")).toBe(26);
   });
 
   it("returns 0 for 0:00", () => {
@@ -134,7 +137,10 @@ describe("parseMinutes", () => {
 
   it("returns 0 for empty/invalid string", () => {
     expect(parseMinutes("")).toBe(0);
-    expect(parseMinutes("26")).toBe(0);
     expect(parseMinutes(null)).toBe(0);
+  });
+
+  it("returns 0 for DNP", () => {
+    expect(parseMinutes("DNP")).toBe(0);
   });
 });

@@ -97,7 +97,7 @@ model PlayerGameStat {
   id        String   @id @default(cuid())
   playerId  String
   gameId    String
-  minutes   Int      @default(0)
+  minutes   Float    @default(0)
   pts       Int      @default(0)
   reb       Int      @default(0)
   ast       Int      @default(0)
