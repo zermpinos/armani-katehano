@@ -11,7 +11,7 @@ const NAV_LINKS = [
   { href: "/players",    label: "Players"    },
   { href: "/leaderboard",label: "Leaderboard"},
   { href: "/games",      label: "Games"      },
-  { href: "/team",       label: "Team Stats" },
+  { href: "/team-stats", label: "Team Stats" },
 ];
 
 export default function Layout({ children, title = SITE_NAME }) {

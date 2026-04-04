@@ -35,7 +35,7 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
   const [league, setLeague] = useState("all");
 
   const handleSeasonChange = sid => {
-    window.location.href = sid === "all-time" ? "/team" : `/team?season=${sid}`;
+    window.location.href = sid === "all-time" ? "/team-stats" : `/team-stats?season=${sid}`;
   };
 
   // Pre-normalise all game league slugs once, so every downstream
