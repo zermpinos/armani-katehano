@@ -138,6 +138,8 @@ async function handler(req, res) {
       score:          `${g.teamScore}-${g.opponentScore}`,
       league:         g.seasonLeague.league.slug,
       notes:          g.notes ?? "",
+      sourceUrl:      g.sourceUrl ?? null,
+      youtubeUrl:     g.youtubeUrl ?? null,
       boxScore: g.playerStats.map(r => ({
         playerId: r.playerId,
         pid:      r.playerId,

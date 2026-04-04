@@ -24,6 +24,8 @@ const GameWriteSchema = z.object({
   result:         z.enum(["W", "L"]),
   playedOn:       z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
   notes:          z.string().max(1000).optional().nullable(),
+  sourceUrl:      z.string().url().max(500).optional().nullable(),
+  youtubeUrl:     z.string().url().max(500).optional().nullable(),
   boxScore:       z.array(BoxScoreRowSchema).max(20).optional(),
 });
 
@@ -137,12 +139,12 @@ async function handler(req, res) {
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ") });
     }
-    const { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, boxScore } = parsed.data;
+    const { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, sourceUrl, youtubeUrl, boxScore } = parsed.data;
 
     try {
       const game = await prisma.$transaction(async (tx) => {
         const g = await tx.game.create({
-          data: { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null },
+          data: { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null, sourceUrl: sourceUrl ?? null, youtubeUrl: youtubeUrl ?? null },
         });
         if (boxScore?.length) {
           await tx.playerGameStat.createMany({
@@ -166,13 +168,13 @@ async function handler(req, res) {
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ") });
     }
-    const { gameId, seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, boxScore } = parsed.data;
+    const { gameId, seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, sourceUrl, youtubeUrl, boxScore } = parsed.data;
 
     try {
       await prisma.$transaction(async (tx) => {
         await tx.game.update({
           where: { id: gameId },
-          data:  { opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null },
+          data:  { opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null, sourceUrl: sourceUrl ?? null, youtubeUrl: youtubeUrl ?? null },
         });
         await tx.playerGameStat.deleteMany({ where: { gameId } });
         if (boxScore?.length) {
