@@ -98,7 +98,7 @@ export default function HomePage({ players, games, stats }) {
               <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
                 <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Scoring Trend -- Last {trend.length} Games</div>
                 <ResponsiveContainer width="100%" height={180}>
-                  <LineChart data={trend} margin={{ top:4, right:8, left:-20, bottom:0 }}>
+                  <LineChart data={trend} margin={{ top:4, right:24, left:-20, bottom:0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
                     <XAxis dataKey="game" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
                     <YAxis tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
@@ -116,7 +116,7 @@ export default function HomePage({ players, games, stats }) {
               <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
                 <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Top Scorers -- PPG</div>
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={topScorers} margin={{ top:4, right:8, left:-20, bottom:8 }}>
+                  <BarChart data={topScorers} margin={{ top:4, right:24, left:-20, bottom:8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
                     <XAxis
                       dataKey="name"
