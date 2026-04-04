@@ -101,10 +101,10 @@ export default function HomePage({ players, games, stats }) {
                   <LineChart data={trend} margin={{ top:4, right:8, left:0, bottom:0 }}>
                     <CartesianGrid strokeDasharray="4 4" stroke={C.border2} />
                     <XAxis dataKey="game" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
-                    <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
+                    <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} padding={{ top:12, bottom:4 }} />
                     <Tooltip {...chartTooltipStyle} />
                     <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={2.5} dot={{ fill:C.redBright, r:3 }} name="AK" />
-                    <Line type="monotone" dataKey="opp" stroke={C.silver} strokeWidth={2} dot={{ fill:C.silver, r:3 }} name="OPP" strokeDasharray="4 2" />
+                    <Line type="monotone" dataKey="opp" stroke={C.silver} strokeWidth={2} dot={{ r:4, fill:C.surface, stroke:C.silver, strokeWidth:2 }} name="OPP" strokeDasharray="4 2" />
                     <Legend wrapperStyle={{ fontSize:11, color:C.textSub }} />
                   </LineChart>
                 </ResponsiveContainer>
@@ -117,7 +117,7 @@ export default function HomePage({ players, games, stats }) {
                 <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Top Scorers — PPG</div>
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={topScorers} margin={{ top:4, right:8, left:0, bottom:8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
+                    <CartesianGrid strokeDasharray="4 4" stroke={C.border2} vertical={false} />
                     <XAxis
                       dataKey="name"
                       tick={<SplitTick />}
