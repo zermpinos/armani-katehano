@@ -2,7 +2,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 
-html, body {
+html {
   height: 100%;
 }
 
@@ -12,6 +12,10 @@ body {
   font-family: 'Trebuchet MS', 'Gill Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
+  min-height: 100vh;
+}
+
+#__next {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
