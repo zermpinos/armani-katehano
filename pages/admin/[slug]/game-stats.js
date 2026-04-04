@@ -1,5 +1,5 @@
 /**
- * pages/admin/[slug]/games.js
+ * pages/admin/[slug]/game-stats.js
  * Game list -- view, edit, delete all games.
  */
 
