@@ -18,7 +18,7 @@
  * header management is needed for the cron invocation.
  */
 
-import prisma from "../../../lib/prisma.js";
+import prisma from "../../../lib/prisma";
 import crypto from "crypto";
 
 

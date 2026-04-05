@@ -13,7 +13,7 @@ export {
   getStats,
   getAllPublicData,
   getAllSeasonsStats,
-} from "./repository.prisma.js";
+} from "./repository.prisma";
 
 export {
   computeRecord,
@@ -22,4 +22,4 @@ export {
   recalcPlayerAverages,
   calcEff,
   mergeAggregates,
-} from "./stats.js";
+} from "./stats";

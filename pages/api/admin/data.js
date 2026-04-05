@@ -12,10 +12,10 @@
  */
 
 import { requireAuth }                  from "../../../lib/requireAuth.js";
-import { securityHeaders }             from "../../../lib/security.js";
-import { prodError, MAX_GAMES_PER_PAGE } from "../../../lib/utils.js";
-import { calcEff, aggregatesToStatsMap } from "../../../lib/stats.js";
-import prisma                          from "../../../lib/prisma.js";
+import { securityHeaders }             from "../../../lib/security";
+import { prodError, MAX_GAMES_PER_PAGE } from "../../../lib/utils";
+import { calcEff, aggregatesToStatsMap } from "../../../lib/stats";
+import prisma                          from "../../../lib/prisma";
 import { z }                           from "zod";
 
 async function handler(req, res) {

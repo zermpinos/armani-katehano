@@ -3,15 +3,15 @@
  * Integration tests for pages/api/games/[id].js
  *
  * Public endpoint — no auth. Tests CUID validation and getBoxScore response shaping.
- * Mocks: lib/data.js (getBoxScore) so no DB is needed.
+ * Mocks: lib/data (getBoxScore) so no DB is needed.
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-vi.mock("../lib/data.js", () => ({
+vi.mock("../lib/data", () => ({
   getBoxScore: vi.fn(),
 }));
 
-import { getBoxScore } from "../lib/data.js";
+import { getBoxScore } from "../lib/data";
 import handler          from "../pages/api/games/[id].js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

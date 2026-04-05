@@ -5,13 +5,13 @@
  * POST   /api/auth  → validate password, set session cookie on success
  * DELETE /api/auth  → clear session cookie (logout)
  *
- * S-03: Now uses verifyPassword() (bcrypt) from lib/security.js.
+ * S-03: Now uses verifyPassword() (bcrypt) from lib/security.
  *       ADMIN_PASSWORD must be stored as a bcrypt hash in Vercel env vars.
  *       Generate: node -e "require('bcryptjs').hash('YOUR_PW',12).then(console.log)"
  */
 
 import { isLockedOut, recordAttempt, clearAttempts } from "../../lib/loginAttempts.js";
-import {getSessionToken, verifyPayload, verifyPassword,buildSessionCookie,clearSessionCookie, securityHeaders,auditLog, csrfCheck,} from "../../lib/security.js";
+import {getSessionToken, verifyPayload, verifyPassword,buildSessionCookie,clearSessionCookie, securityHeaders,auditLog, csrfCheck,} from "../../lib/security";
 
 export default async function handler(req, res) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
