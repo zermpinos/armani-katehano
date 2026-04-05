@@ -43,6 +43,9 @@ async function handler(req, res) {
 
     const failed = results.filter(r => r.status === "error");
 
+    const pagesToRevalidate = ["/", "/players", "/leaderboard", "/games", "/team-stats"];
+    await Promise.allSettled(pagesToRevalidate.map(p => res.revalidate(p)));
+
     return res.status(200).json({
       recalculated: results.length,
       failed:       failed.length,
