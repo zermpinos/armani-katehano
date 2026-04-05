@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Layout from "../components/Layout";
 import { SectionHeading, StatTile } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
@@ -9,27 +9,6 @@ import SeasonSelector from "../components/SeasonSelector";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "../components/Charts";
 
-const LEAGUE_TABS = [
-  { key: "all",       label: "All Games"     },
-  { key: "rookie",    label: "Rookie League" },
-  { key: "bc6",       label: "BC6"           },
-  { key: "wintercup", label: "Winter Cup"    },
-];
-
-const LEAGUE_LABELS = { all: "All Games", rookie: "Rookie League", bc6: "BC6", wintercup: "Winter Cup" };
-
-/**
- * Normalise a league slug for comparison so minor DB variations
- * (e.g. "Rookie", "rookie-league", "ROOKIE") still match the tab key.
- */
-function normaliseSlug(slug) {
-  if (!slug) return "";
-  const s = slug.toLowerCase().replace(/[\s_-]+/g, "");
-  if (s.includes("rookie") || s.includes("neon") || s.includes("νεαν") || s.includes("νεων")) return "rookie";
-  if (s.includes("bc6") || s.includes("b6") || s.includes("βκατ")) return "bc6";
-  if (s.includes("winter") || s.includes("χειμ")) return "wintercup";
-  return slug.toLowerCase();
-}
 
 export default function TeamPage({ players, games, seasons, currentSeason }) {
   const [league, setLeague] = useState("all");
@@ -38,16 +17,25 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
     window.location.href = sid === "all-time" ? "/team-stats" : `/team-stats?season=${sid}`;
   };
 
-  // Pre-normalise all game league slugs once, so every downstream
-  // consumer uses the same normalised value -- avoids the divergence
-  // where computeRecord used raw slugs while the box score used normalised ones.
-  const normalisedGames = games.map(g => ({ ...g, _normLeague: normaliseSlug(g.league) }));
+  // Derive league tabs from the actual games data so any new league added to
+  // the DB automatically appears without code changes.
+  const leagueTabs = useMemo(() => {
+    const seen = new Map();
+    games.forEach(g => {
+      if (g.league && !seen.has(g.league)) seen.set(g.league, g.leagueName || g.league);
+    });
+    return [
+      { key: "all", label: "All Games" },
+      ...[...seen.entries()]
+        .map(([key, label]) => ({ key, label }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    ];
+  }, [games]);
 
-  // Filter by the active tab using the pre-normalised slug.
-  // "all" shows every game regardless of league.
+  // Filter by the active tab using the raw DB slug.
   const filteredGames = league === "all"
-    ? normalisedGames
-    : normalisedGames.filter(g => g._normLeague === league);
+    ? games
+    : games.filter(g => g.league === league);
 
   const gp = filteredGames.length;
 
@@ -146,9 +134,9 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
 
       <SeasonSelector seasons={seasons} currentSeason={currentSeason} onChange={handleSeasonChange} showAllTime={false} right={`${gp} Games Played`} />
 
-      {/* League tabs */}
+      {/* League tabs -- derived from games data, always reflects actual DB state */}
       <div style={{ display:"flex", gap:8, marginBottom:24, flexWrap:"wrap" }}>
-        {LEAGUE_TABS.map(t => (
+        {leagueTabs.map(t => (
           <button key={t.key} style={tabStyle(t.key)} onClick={() => setLeague(t.key)}>
             {t.label}
           </button>
@@ -157,7 +145,7 @@ export default function TeamPage({ players, games, seasons, currentSeason }) {
 
       {gp === 0 ? (
         <div style={{ textAlign:"center", padding:48, color:C.textDim, borderRadius:12, border:`1px solid ${C.border}`, background:C.surface }}>
-          <div style={{ fontSize:13, fontWeight:700 }}>No {LEAGUE_LABELS[league]} games recorded yet</div>
+          <div style={{ fontSize:13, fontWeight:700 }}>No {leagueTabs.find(t => t.key === league)?.label ?? league} games recorded yet</div>
         </div>
       ) : (
         <>
