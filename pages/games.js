@@ -24,20 +24,9 @@ const BOX_COLS = [
   {key:"eff",label:"EFF"},
 ];
 
-function getTopScorer(game, players) {
-  const rows = game.boxScore;
-  if (!rows || rows.length === 0) return null;
-
-  const playing = rows.filter(r => (r.min || r.minutes || 0) > 0);
-  if (playing.length === 0) return null;
-
-  const best = playing.reduce((top, r) => (r.pts ?? 0) > (top.pts ?? 0) ? r : top, playing[0]);
-  if (!best || (best.pts ?? 0) === 0) return null;
-
-  const player = players.find(p => p.id === (best.pid || best.playerId));
-  if (!player) return null;
-
-  return `${fmt(player.name)} ${best.pts} PTS`;
+function formatTopScorer(topScorer) {
+  if (!topScorer || !topScorer.pts) return null;
+  return `${fmt(topScorer.name)} ${topScorer.pts} PTS`;
 }
 
 function BoxScore({ game, players, onClose }) {
@@ -184,6 +173,18 @@ export default function GamesPage({ allGames, players, seasons, currentSeason })
   const [selectedLeague, setSelectedLeague] = useState("all");
   const [selectedResult, setSelectedResult] = useState("all");
   const [selected, setSelected] = useState(null);
+  const [loadingBoxScore, setLoadingBoxScore] = useState(false);
+
+  async function handleGameClick(game) {
+    setLoadingBoxScore(true);
+    try {
+      const res = await fetch(`/api/games/${game.id}`);
+      const { boxScore } = await res.json();
+      setSelected({ ...game, boxScore });
+    } finally {
+      setLoadingBoxScore(false);
+    }
+  }
 
   // Leagues available in the selected season (sorted by name)
   const seasonLeagues = useMemo(() => {
@@ -240,10 +241,10 @@ export default function GamesPage({ allGames, players, seasons, currentSeason })
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
           {filtered.map(g => {
-            const topScorer = getTopScorer(g, players);
+            const topScorer = formatTopScorer(g.topScorer);
 
             return (
-              <button key={g.id} onClick={() => setSelected(g)} style={{
+              <button key={g.id} onClick={() => handleGameClick(g)} disabled={loadingBoxScore} style={{
                 display:"flex", alignItems:"center", justifyContent:"space-between",
                 padding:"14px 18px", borderRadius:12, border:`1px solid ${C.border}`,
                 background:C.surface, cursor:"pointer", textAlign:"left", fontFamily:"inherit",

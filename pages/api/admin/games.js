@@ -104,8 +104,7 @@ async function handler(req, res) {
           notes:          g.notes,
           boxScore: g.playerStats.map(s => ({
             playerId: s.playerId,
-            pid:      s.playerId,
-            min:      s.minutes,
+            minutes:  s.minutes,
             pts:      s.pts,
             reb:      s.reb,
             orb:      s.orb,
