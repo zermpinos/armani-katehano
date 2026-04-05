@@ -14,7 +14,7 @@
 import { requireAuth }                  from "../../../lib/requireAuth.js";
 import { securityHeaders }             from "../../../lib/security.js";
 import { prodError, MAX_GAMES_PER_PAGE } from "../../../lib/utils.js";
-import { calcEff }                     from "../../../lib/stats.js";
+import { calcEff, mergeAggregates }    from "../../../lib/stats.js";
 import prisma                          from "../../../lib/prisma.js";
 import { z }                           from "zod";
 
@@ -65,46 +65,15 @@ async function handler(req, res) {
     }) : [];
 
     // ── Shape stats ─────────────────────────────────────────────────────────
-    // Merge multi-league aggregates per player.
-    // Rate stats: weighted average by gp.
-    // Percentage stats: recomputed from summed raw totals (statistically correct).
-    // This mirrors the approach in lib/repository.prisma.js:getStats().
+    // Merge multi-league aggregates per player using shared mergeAggregates.
     const merged = {};
     for (const agg of aggregates) {
       const pid = agg.playerId;
       if (!merged[pid]) {
         merged[pid] = { ...agg };
-        continue;
+      } else {
+        merged[pid] = mergeAggregates(merged[pid], agg);
       }
-      const prev    = merged[pid];
-      const totalGp = prev.gp + agg.gp;
-      const wavg    = (a, b) =>
-        totalGp > 0 ? +((a * prev.gp + b * agg.gp) / totalGp).toFixed(2) : 0;
-      merged[pid] = {
-        ...prev,
-        gp:         totalGp,
-        ptsAvg:     wavg(prev.ptsAvg,     agg.ptsAvg),
-        rebAvg:     wavg(prev.rebAvg,     agg.rebAvg),
-        orbAvg:     wavg(prev.orbAvg,     agg.orbAvg),
-        drbAvg:     wavg(prev.drbAvg,     agg.drbAvg),
-        astAvg:     wavg(prev.astAvg,     agg.astAvg),
-        stlAvg:     wavg(prev.stlAvg,     agg.stlAvg),
-        blkAvg:     wavg(prev.blkAvg,     agg.blkAvg),
-        toAvg:      wavg(prev.toAvg,      agg.toAvg),
-        pfAvg:      wavg(prev.pfAvg,      agg.pfAvg),
-        minutesAvg: wavg(prev.minutesAvg, agg.minutesAvg),
-        effAvg:     wavg(prev.effAvg,     agg.effAvg),
-        tsPct:      wavg(prev.tsPct,      agg.tsPct),
-        // Shot totals summed so percentages can be recomputed accurately
-        fgmTotal:   prev.fgmTotal  + agg.fgmTotal,
-        fgaTotal:   prev.fgaTotal  + agg.fgaTotal,
-        fg2mTotal:  prev.fg2mTotal + agg.fg2mTotal,
-        fg2aTotal:  prev.fg2aTotal + agg.fg2aTotal,
-        fg3mTotal:  prev.fg3mTotal + agg.fg3mTotal,
-        fg3aTotal:  prev.fg3aTotal + agg.fg3aTotal,
-        ftmTotal:   prev.ftmTotal  + agg.ftmTotal,
-        ftaTotal:   prev.ftaTotal  + agg.ftaTotal,
-      };
     }
 
     const pct = (m, a) => a > 0 ? +((m / a) * 100).toFixed(1) : 0;
