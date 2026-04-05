@@ -14,7 +14,7 @@
 import { requireAuth }                  from "../../../lib/requireAuth.js";
 import { securityHeaders }             from "../../../lib/security.js";
 import { prodError, MAX_GAMES_PER_PAGE } from "../../../lib/utils.js";
-import { calcEff, mergeAggregates }    from "../../../lib/stats.js";
+import { calcEff, aggregatesToStatsMap } from "../../../lib/stats.js";
 import prisma                          from "../../../lib/prisma.js";
 import { z }                           from "zod";
 
@@ -65,42 +65,7 @@ async function handler(req, res) {
     }) : [];
 
     // ── Shape stats ─────────────────────────────────────────────────────────
-    // Merge multi-league aggregates per player using shared mergeAggregates.
-    const merged = {};
-    for (const agg of aggregates) {
-      const pid = agg.playerId;
-      if (!merged[pid]) {
-        merged[pid] = { ...agg };
-      } else {
-        merged[pid] = mergeAggregates(merged[pid], agg);
-      }
-    }
-
-    const pct = (m, a) => a > 0 ? +((m / a) * 100).toFixed(1) : 0;
-
-    const statsMap = {};
-    for (const [pid, agg] of Object.entries(merged)) {
-      statsMap[pid] = {
-        ppg:    +agg.ptsAvg.toFixed(1),
-        rpg:    +agg.rebAvg.toFixed(1),
-        orpg:   +agg.orbAvg.toFixed(1),
-        drpg:   +agg.drbAvg.toFixed(1),
-        apg:    +agg.astAvg.toFixed(1),
-        spg:    +agg.stlAvg.toFixed(1),
-        bpg:    +agg.blkAvg.toFixed(1),
-        tpg:    +agg.toAvg.toFixed(1),
-        fpg:    +agg.pfAvg.toFixed(1),
-        mpg:    +agg.minutesAvg.toFixed(1),
-        // Percentages from raw totals — accurate across leagues
-        fgPct:  pct(agg.fgmTotal,  agg.fgaTotal),
-        fg2Pct: pct(agg.fg2mTotal, agg.fg2aTotal),
-        fg3Pct: pct(agg.fg3mTotal, agg.fg3aTotal),  // tpPct (DB) → fg3Pct (app)
-        ftPct:  agg.ftaTotal > 0 ? pct(agg.ftmTotal, agg.ftaTotal) : null,
-        tsPct:  +agg.tsPct.toFixed(1),
-        eff:    +agg.effAvg.toFixed(1),  // named eff to match public convention
-        gp:     agg.gp,
-      };
-    }
+    const statsMap = aggregatesToStatsMap(aggregates);
 
     // ── Shape games ──────────────────────────────────────────────────────────
     // The `date` field is surfaced as a plain ISO string (YYYY-MM-DD) so page
