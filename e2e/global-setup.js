@@ -6,7 +6,7 @@
  * previous test runs (or manual testing) doesn't cause authenticated
  * dashboard tests to fail with "Too many attempts".
  */
-import prisma from "../lib/prisma.js";
+import prisma from "../lib/prisma";
 
 export default async function globalSetup() {
   await prisma.loginAttempt.deleteMany({});

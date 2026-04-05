@@ -2,7 +2,7 @@
  * tests/api.games.admin.test.js
  * Integration tests for pages/api/admin/games.js (wrapped in requireAuth).
  *
- * Mocks: lib/prisma.js (Prisma client), lib/stats.prisma.js (recalcAggregates).
+ * Mocks: lib/prisma (Prisma client), lib/stats.prisma.js (recalcAggregates).
  * requireAuth and all security functions (CSRF, session signing) are real.
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
@@ -32,7 +32,7 @@ const { mockPrisma } = vi.hoisted(() => {
   return { mockPrisma: mp };
 });
 
-vi.mock("../lib/prisma.js", () => ({
+vi.mock("../lib/prisma", () => ({
   default: mockPrisma,
   prisma:  mockPrisma,
 }));
@@ -41,7 +41,7 @@ vi.mock("../lib/stats.prisma.js", () => ({
   recalcAggregates: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { signSession }      from "../lib/security.js";
+import { signSession }      from "../lib/security";
 import { recalcAggregates } from "../lib/stats.prisma.js";
 import handler               from "../pages/api/admin/games.js";
 

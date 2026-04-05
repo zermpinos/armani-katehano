@@ -1,10 +1,10 @@
 /**
  * tests/validators.test.js
- * Additional tests for lib/validators.js — coercion, boundary values, ScrapedGameSchema.
+ * Additional tests for lib/validators — coercion, boundary values, ScrapedGameSchema.
  * The refinement tests for BoxScoreRowSchema already live in tests/schema.test.js.
  */
 import { describe, it, expect } from "vitest";
-import { BoxScoreRowSchema, ScrapedGameSchema } from "../lib/validators.js";
+import { BoxScoreRowSchema, ScrapedGameSchema } from "../lib/validators";
 
 const BASE_ROW = {
   playerId: "clxxxxxxxxxxxxxxxxxxxxxx",

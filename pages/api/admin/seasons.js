@@ -5,9 +5,9 @@
 
 import { z }                         from "zod";
 import { requireAuth }               from "../../../lib/requireAuth.js";
-import { securityHeaders, auditLog } from "../../../lib/security.js";
-import prisma                        from "../../../lib/prisma.js";
-import { prodError } from "../../../lib/utils.js";      // B-02: was missing
+import { securityHeaders, auditLog } from "../../../lib/security";
+import prisma                        from "../../../lib/prisma";
+import { prodError } from "../../../lib/utils";      // B-02: was missing
 
 const SeasonCreateSchema = z.object({
   name:      z.string().min(1).max(100),
