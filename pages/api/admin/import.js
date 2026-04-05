@@ -184,6 +184,11 @@ export default requireAuth(async function handler(req, res) {
       await recalcAggregates(seasonLeagueId, tx);
     });
 
+    // Revalidate all public ISR pages so they reflect the new game immediately
+    // rather than waiting up to an hour for the next scheduled rebuild.
+    const pagesToRevalidate = ["/", "/players", "/leaderboard", "/games", "/team-stats"];
+    await Promise.allSettled(pagesToRevalidate.map(p => res.revalidate(p)));
+
     return res.status(200).json({
       ok:              true,
       gameId,
