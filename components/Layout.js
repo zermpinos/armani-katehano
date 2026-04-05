@@ -14,24 +14,27 @@ const NAV_LINKS = [
   { href: "/team-stats", label: "Team Stats" },
 ];
 
-export default function Layout({ children, title = SITE_NAME }) {
+export default function Layout({ children, title = SITE_NAME, ogDescription }) {
   const router      = useRouter();
   const [open, setOpen] = useState(false);
+
+  const pageTitle = title === SITE_NAME ? title : `${title} · ${SITE_NAME}`;
+  const desc      = ogDescription ?? `${SITE_NAME} Basketball -- Season Stats ${CURRENT_SEASON}`;
 
   return (
     <>
       <Head>
-        <title>{title === SITE_NAME ? title : `${title} · ${SITE_NAME}`}</title>
-        <meta name="description" content={`${SITE_NAME} Basketball -- Season Stats ${CURRENT_SEASON}`} />
+        <title>{pageTitle}</title>
+        <meta name="description" content={desc} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#1c1c1e" />
-        <meta property="og:title" content={title === SITE_NAME ? title : `${title} · ${SITE_NAME}`} />
-        <meta property="og:description" content={`${SITE_NAME} Basketball -- Season Stats ${CURRENT_SEASON}`} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={desc} />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="/logo.png" />
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content={title === SITE_NAME ? title : `${title} · ${SITE_NAME}`} />
-        <meta name="twitter:description" content={`${SITE_NAME} Basketball -- Season Stats ${CURRENT_SEASON}`} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={desc} />
       </Head>
 
       {/* Navbar */}
