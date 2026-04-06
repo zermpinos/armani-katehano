@@ -179,3 +179,17 @@ model LoginAttempt {
 
   @@index([ip, attemptedAt])
 }
+
+model UpcomingGame {
+  id             String    @id @default(cuid())
+  opponent       String
+  scheduledFor   DateTime
+  location       String    @default("home")
+  competition    String?
+  notes          String?
+  seasonLeagueId String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([scheduledFor])
+}
