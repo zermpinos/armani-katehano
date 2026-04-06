@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * tests/api.games.admin.test.js
  * Integration tests for pages/api/admin/games.js (wrapped in requireAuth).

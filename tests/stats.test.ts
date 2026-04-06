@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * tests/stats.test.js
  * Tests for lib/stats.prisma.js — recalcAggregates
