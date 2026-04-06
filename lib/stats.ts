@@ -14,9 +14,9 @@
 // Used by lib/repository.prisma.js and pages/api/admin/data.js so the
 // logic lives in exactly one place.
 
-export function mergeAggregates(prev, agg) {
+export function mergeAggregates(prev: any, agg: any) {
   const totalGp = prev.gp + agg.gp;
-  const wavg = (a, b) =>
+  const wavg = (a: number, b: number) =>
     totalGp > 0 ? +((a * prev.gp + b * agg.gp) / totalGp).toFixed(2) : 0;
 
   return {
@@ -56,7 +56,7 @@ export function mergeAggregates(prev, agg) {
 // Raw shot totals (fgm, fga, …) are carried forward for further aggregation
 // (e.g. buildAllTimeStatsMap).
 
-export function aggregatesToStatsMap(aggregates) {
+export function aggregatesToStatsMap(aggregates: any[]) {
   // Merge per-player across leagues
   const merged: Record<string, any> = {};
   for (const agg of aggregates) {
@@ -68,9 +68,9 @@ export function aggregatesToStatsMap(aggregates) {
     }
   }
 
-  const pct = (m, a) => a > 0 ? +((m / a) * 100).toFixed(1) : 0;
+  const pct = (m: number, a: number) => a > 0 ? +((m / a) * 100).toFixed(1) : 0;
 
-  const statsMap = {};
+  const statsMap: Record<string, any> = {};
   for (const [pid, agg] of Object.entries(merged)) {
     const fgaTotal  = agg.fgaTotal  ?? 0;
     const fg2aTotal = agg.fg2aTotal ?? 0;
@@ -129,7 +129,7 @@ export function aggregatesToStatsMap(aggregates) {
  *   { wins, losses, homeWins, homeLosses, awayWins, awayLosses,
  *     streak: { type, count }, ppg, oppPpg, gp }
  */
-export function computeRecord(games, leagueFilter = null) {
+export function computeRecord(games: any[], leagueFilter: string | null = null) {
   const filtered = leagueFilter
     ? games.filter(g => (g.league || "") === leagueFilter)
     : games;
@@ -201,13 +201,13 @@ export function computeRecord(games, leagueFilter = null) {
  * Players who did not play in any game get a zeroed entry so the leaderboard
  * can still render them consistently.
  */
-export function buildStatsMap(players, games) {
-  const statsMap = {};
+export function buildStatsMap(players: any[], games: any[]) {
+  const statsMap: Record<string, any> = {};
 
   for (const player of players) {
     const rows = games
       .filter(g => g.boxScore)
-      .flatMap(g => g.boxScore.filter(r => r.pid === player.id && r.min > 0));
+      .flatMap((g: any) => g.boxScore.filter((r: any) => r.pid === player.id && r.min > 0));
 
     if (rows.length === 0) {
       statsMap[player.id] = {
@@ -220,17 +220,17 @@ export function buildStatsMap(players, games) {
     }
 
     const n   = rows.length;
-    const sum = f => rows.reduce((acc, r) => acc + (r[f] || 0), 0);
-    const avg = f => +(sum(f) / n).toFixed(1);
-    const pct = (m, a) => {
+    const sum = (f: string) => rows.reduce((acc: number, r: any) => acc + (r[f] || 0), 0);
+    const avg = (f: string) => +(sum(f) / n).toFixed(1);
+    const pct = (m: string, a: string) => {
       const t = sum(a);
       return t > 0 ? +(sum(m) / t * 100).toFixed(1) : 0;
     };
 
     const gameLog = games
-      .filter(g => g.boxScore)
-      .map(g => {
-        const r = g.boxScore.find(r => r.pid === player.id && r.min > 0);
+      .filter((g: any) => g.boxScore)
+      .map((g: any) => {
+        const r = g.boxScore.find((r: any) => r.pid === player.id && r.min > 0);
         if (!r) return null;
         return {
           gameId:   g.id,
@@ -249,7 +249,7 @@ export function buildStatsMap(players, games) {
         };
       })
       .filter(Boolean)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     statsMap[player.id] = {
       ppg:    avg("pts"),
@@ -287,12 +287,12 @@ export function buildStatsMap(players, games) {
  *
  * Returns: { [pid]: SeasonStats }  — weighted averages across all seasons
  */
-export function buildAllTimeStatsMap(allSeasonsStats, players) {
-  const statsMap = {};
+export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
+  const statsMap: Record<string, any> = {};
 
   for (const player of players) {
     const entries = Object.values(allSeasonsStats)
-      .map(seasonStats => seasonStats[player.id])
+      .map((seasonStats: any) => seasonStats[player.id])
       .filter(s => s && s.gp > 0);
 
     if (entries.length === 0) {
@@ -307,13 +307,13 @@ export function buildAllTimeStatsMap(allSeasonsStats, players) {
 
     // Weight each season's averages by games played
     const totalGp = entries.reduce((s, e) => s + e.gp, 0);
-    const wavg = key => {
-      const weighted = entries.reduce((s, e) => s + (e[key] || 0) * e.gp, 0);
+    const wavg = (key: string) => {
+      const weighted = entries.reduce((s: number, e: any) => s + (e[key] || 0) * e.gp, 0);
       return +(weighted / totalGp).toFixed(1);
     };
 
     // Sum raw shot totals across seasons for statistically correct percentages
-    const sumRaw = key => entries.reduce((s, e) => s + (e[key] ?? 0), 0);
+    const sumRaw = (key: string) => entries.reduce((s: number, e: any) => s + (e[key] ?? 0), 0);
     const fgm  = sumRaw("fgm");
     const fga  = sumRaw("fga");
     const fg2m = sumRaw("fg2m");
@@ -322,7 +322,7 @@ export function buildAllTimeStatsMap(allSeasonsStats, players) {
     const fg3a = sumRaw("fg3a");
     const ftm  = sumRaw("ftm");
     const fta  = sumRaw("fta");
-    const pct  = (m, a) => a > 0 ? +((m / a) * 100).toFixed(1) : 0;
+    const pct  = (m: number, a: number) => a > 0 ? +((m / a) * 100).toFixed(1) : 0;
 
     const allGameLogs = entries
       .flatMap(e => e.gameLog || [])
@@ -361,7 +361,7 @@ export function buildAllTimeStatsMap(allSeasonsStats, players) {
 // Kept for backward compat — wraps buildStatsMap, returns updated players array.
 // New code should call buildStatsMap directly.
 
-export function recalcPlayerAverages(players, games) {
+export function recalcPlayerAverages(players: any[], games: any[]) {
   const statsMap = buildStatsMap(players, games);
   return players.map(player => ({
     ...player,
