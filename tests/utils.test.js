@@ -1,9 +1,9 @@
 /**
  * tests/utils.test.js
- * Tests for lib/utils.js -- fmt, parseScore, fmtDate, slugify.
+ * Tests for lib/utils -- fmt, parseScore, fmtDate, slugify.
  */
 import { describe, it, expect } from "vitest";
-import { fmt, parseScore, fmtDate, slugify } from "../lib/utils.js";
+import { fmt, parseScore, fmtDate, slugify } from "../lib/utils";
 
 // ─── fmt ──────────────────────────────────────────────────────────────────────
 

@@ -10,8 +10,8 @@
 import { z }                              from 'zod';
 import { requireAuth }                   from '../../../lib/requireAuth.js';
 import { scrapeGame }                    from '../../../lib/boxscore-scraper.js';
-import { securityHeaders }               from '../../../lib/security.js';
-import { ScrapedGameSchema }             from '../../../lib/validators.js';
+import { securityHeaders }               from '../../../lib/security';
+import { ScrapedGameSchema }             from '../../../lib/validators';
 
 const ScrapeSchema = z.object({
   url: z.string().url().max(500),

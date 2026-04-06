@@ -1,5 +1,24 @@
 /** Shared design tokens -- import as: import { C } from '../lib/theme' */
-export const C = {
+export interface ColorTokens {
+  base:      string;
+  surface:   string;
+  surface2:  string;
+  border:    string;
+  border2:   string;
+  red:       string;
+  redBright: string;
+  redText:   string;
+  text:      string;
+  textSub:   string;
+  textDim:   string;
+  gold:      string;
+  silver:    string;
+  bronze:    string;
+  green:     string;
+  greenDim:  string;
+}
+
+export const C: ColorTokens = {
   base:      "#1c1c1e",
   surface:   "#242426",
   surface2:  "#2a2a2c",

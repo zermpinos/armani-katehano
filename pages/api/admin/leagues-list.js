@@ -4,9 +4,9 @@
  */
 
 import { requireAuth }               from "../../../lib/requireAuth.js";
-import { securityHeaders }           from "../../../lib/security.js";
-import { prodError }                 from "../../../lib/utils.js";
-import prisma                        from "../../../lib/prisma.js";
+import { securityHeaders }           from "../../../lib/security";
+import { prodError }                 from "../../../lib/utils";
+import prisma                        from "../../../lib/prisma";
 
 async function handler(req, res) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
