@@ -8,15 +8,15 @@
  */
 
 import prisma                    from "../../../lib/prisma";
-import { recalcAggregates }     from "../../../lib/stats.prisma.js";
+import { recalcAggregates }     from '../../../lib/stats.prisma';
 import { prodError }            from "../../../lib/utils";
-import { requireAuth }          from "../../../lib/requireAuth.js";
+import { requireAuth }          from '../../../lib/requireAuth';
 import { BoxScoreRowSchema }    from "../../../lib/validators";
 import {
   parseGreekDate,
   detectLeagueSlug,
   parseMinutes,
-} from "../../../lib/greekDate.js";
+} from '../../../lib/greekDate';
 
 // Single source of truth for team name matching
 const AK_IDENTIFIERS = ["ARMANI", "KATEHANO"];

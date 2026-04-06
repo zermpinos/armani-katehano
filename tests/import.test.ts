@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * tests/import.test.js
  * Tests for lib/greekDate.js helpers (parseGreekDate, detectLeagueSlug, parseMinutes).

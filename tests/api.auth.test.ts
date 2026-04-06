@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * tests/api.auth.test.js
  * Integration tests for pages/api/auth.js

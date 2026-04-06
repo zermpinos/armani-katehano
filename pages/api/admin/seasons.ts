@@ -4,7 +4,7 @@
  */
 
 import { z }                         from "zod";
-import { requireAuth }               from "../../../lib/requireAuth.js";
+import { requireAuth }               from '../../../lib/requireAuth';
 import { securityHeaders, auditLog } from "../../../lib/security";
 import prisma                        from "../../../lib/prisma";
 import { prodError } from "../../../lib/utils";      // B-02: was missing

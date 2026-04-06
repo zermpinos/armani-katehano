@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { C } from "../../../lib/theme";
 import { AdminLayout, BoxScoreTable, F, Sel, Btn, byJersey, useAdminAuth } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck';
-import { parseGreekDate, parseMinutes, detectLeagueSlug } from "../../../lib/greekDate.js";
+import { parseGreekDate, parseMinutes, detectLeagueSlug } from '../../../lib/greekDate';
 
 
 export default function ImportPage({ validSlug }: any) {

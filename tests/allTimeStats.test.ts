@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * tests/allTimeStats.test.js
  *

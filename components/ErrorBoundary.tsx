@@ -3,20 +3,30 @@
  * Catches rendering errors in a subtree and shows a fallback
  * instead of white-screening the entire page.
  */
-import { Component } from "react";
+import { Component, ReactNode, ErrorInfo } from "react";
 import { C } from "../lib/theme";
 
-export default class ErrorBoundary extends Component {
-  constructor(props) {
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  label?: string;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: unknown;
+}
+
+export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: unknown): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[ErrorBoundary]", error, info.componentStack);
   }
 
