@@ -112,6 +112,10 @@ export function aggregatesToStatsMap(aggregates: any[]) {
       fg3a: agg.fg3aTotal ?? 0,
       ftm:  agg.ftmTotal  ?? 0,
       fta:  agg.ftaTotal  ?? 0,
+      // Season totals stored directly in DB
+      pts_total: agg.ptsTotal ?? 0,
+      reb_total: agg.rebTotal ?? 0,
+      ast_total: agg.astTotal ?? 0,
     };
   }
 
@@ -350,6 +354,10 @@ export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
       gp:     totalGp,
       // Carry raw totals forward so further aggregation stays accurate
       fgm, fga, fg2m, fg2a, fg3m, fg3a, ftm, fta,
+      // Season totals — summed across seasons
+      pts_total: sumRaw("pts_total"),
+      reb_total: sumRaw("reb_total"),
+      ast_total: sumRaw("ast_total"),
       gameLog: allGameLogs,
     };
   }
