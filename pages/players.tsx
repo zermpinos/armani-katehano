@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
@@ -381,7 +382,8 @@ function PlayerCard({ player, onClick }: any) {
 }
 
 export default function PlayersPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }: any) {
-  const [selected, setSelected] = useState(null);
+  const router = useRouter();
+  const [selected, setSelected] = useState<any>(null);
   const [activeSeason, setActiveSeason] = useState(currentSeason);
   const [search, setSearch] = useState("");
 
@@ -393,6 +395,14 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
     gameLog:        activeStatsMap[p.id]?.gameLog ?? [],
     seasonHistory:  playerSeasonHistory?.[p.id] ?? {},
   }));
+
+  // Auto-open player detail when navigated from another page (e.g. leaderboard row click)
+  useEffect(() => {
+    const { player: playerId } = router.query;
+    if (!playerId || playersWithStats.length === 0) return;
+    const found = playersWithStats.find((p: any) => p.id === playerId);
+    if (found) setSelected(found);
+  }, [router.query.player, playersWithStats.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sorted = [...playersWithStats].sort((a, b) => Number(a.number) - Number(b.number));
   const displayed = search.trim()
