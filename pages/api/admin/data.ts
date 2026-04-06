@@ -11,7 +11,7 @@
  * at the shaping boundary here, so all consumers above this layer use fg3Pct.
  */
 
-import { requireAuth }                  from "../../../lib/requireAuth.js";
+import { requireAuth }                  from "../../../lib/requireAuth";
 import { securityHeaders }             from "../../../lib/security";
 import { prodError, MAX_GAMES_PER_PAGE } from "../../../lib/utils";
 import { calcEff, aggregatesToStatsMap } from "../../../lib/stats";

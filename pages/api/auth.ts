@@ -10,7 +10,7 @@
  *       Generate: node -e "require('bcryptjs').hash('YOUR_PW',12).then(console.log)"
  */
 
-import { isLockedOut, recordAttempt, clearAttempts } from "../../lib/loginAttempts.js";
+import { isLockedOut, recordAttempt, clearAttempts } from "../../lib/loginAttempts";
 import {getSessionToken, verifyPayload, verifyPassword,buildSessionCookie,clearSessionCookie, securityHeaders,auditLog, csrfCheck,} from "../../lib/security";
 
 export default async function handler(req: any, res: any) {

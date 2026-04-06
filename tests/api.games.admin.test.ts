@@ -43,8 +43,8 @@ vi.mock("../lib/stats.prisma.js", () => ({
 }));
 
 import { signSession }      from "../lib/security";
-import { recalcAggregates } from "../lib/stats.prisma.js";
-import handler               from "../pages/api/admin/games.js";
+import { recalcAggregates } from "../lib/stats.prisma";
+import handler               from "../pages/api/admin/games";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
