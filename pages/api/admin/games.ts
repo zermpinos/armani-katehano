@@ -9,7 +9,7 @@
 import { z }                              from "zod";
 import { BoxScoreRowSchema }              from "../../../lib/validators";
 import { requireAuth }                    from "../../../lib/requireAuth";
-import { securityHeaders, auditLog }      from "../../../lib/security";
+import { auditLog }                       from "../../../lib/security";
 import prisma                             from "../../../lib/prisma";
 import { recalcAggregates }               from "../../../lib/stats.prisma";
 import { prodError, MAX_GAMES_PER_PAGE }  from "../../../lib/utils";
@@ -66,7 +66,6 @@ function toDbRow(r: any, gameId: string) {
 }
 
 async function handler(req: any, res: any) {
-  Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
   const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
 
   // ── LIST ───────────────────────────────────────────────────────────────────

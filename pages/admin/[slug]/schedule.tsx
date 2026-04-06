@@ -14,7 +14,7 @@ export default function SchedulePage({ validSlug }: any) {
   const router = useRouter();
   const slug = router.query.slug || validSlug;
 
-  const { authed, loading: checking, loginError, handleLogin } = useAdminAuth(slug);
+  const { authed, loading: checking, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
 
   const [schedule,  setSchedule]  = useState<any[]>([]);
   const [loading,   setLoading]   = useState(false);
@@ -146,7 +146,7 @@ export default function SchedulePage({ validSlug }: any) {
   );
 
   return (
-    <AdminLayout slug={slug} title="Schedule" toast={toast} setToast={setToast}>
+    <AdminLayout slug={slug} title="Schedule" toast={toast} setToast={setToast} onLogout={handleLogout}>
       <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontSize: 20, fontWeight: 900, color: C.text }}>Upcoming games</div>
         <Btn onClick={startNew}>+ ADD GAME</Btn>
