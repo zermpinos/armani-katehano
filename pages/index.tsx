@@ -26,6 +26,56 @@ function getCountdownInfo(isoStr: string): { label: string; tier: "today" | "wee
   /* future */               return { label: fmtDate(isoStr), tier: "future" };
 }
 
+// Format time prominently in Athens timezone
+function formatGameTime(isoStr: string): string {
+  const gameTime = new Date(isoStr);
+  return gameTime.toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Athens" });
+}
+
+// Generate Google Calendar link
+function getGoogleCalendarLink(opponent: string, isoStr: string, venue?: string): string {
+  const gameTime = new Date(isoStr);
+  const endTime = new Date(gameTime.getTime() + 120 * 60000); // 2 hours duration
+
+  const formatGoogleTime = (date: Date) => {
+    return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  };
+
+  const title = encodeURIComponent(`Armani Katehano vs ${opponent}`);
+  const details = encodeURIComponent(venue ? `Venue: ${venue}` : "Game");
+  const location = encodeURIComponent(venue || "");
+  const dates = `${formatGoogleTime(gameTime)}/${formatGoogleTime(endTime)}`;
+
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${dates}`;
+}
+
+// Generate Apple Calendar (iCal) link
+function getAppleCalendarLink(opponent: string, isoStr: string, venue?: string): string {
+  const gameTime = new Date(isoStr);
+  const endTime = new Date(gameTime.getTime() + 120 * 60000); // 2 hours duration
+
+  const formatICalTime = (date: Date) => {
+    return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  };
+
+  const title = `Armani Katehano vs ${opponent}`;
+  const description = venue ? `Venue: ${venue}` : "";
+
+  const ical = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Armani Katehano//EN
+BEGIN:VEVENT
+DTSTART:${formatICalTime(gameTime)}
+DTEND:${formatICalTime(endTime)}
+SUMMARY:${title}
+DESCRIPTION:${description}
+END:VEVENT
+END:VCALENDAR`;
+
+  const encoded = encodeURIComponent(ical);
+  return `data:text/calendar,${encoded}`;
+}
+
 
 export default function HomePage({ players, games, stats, upcomingGames }: any) {
   const playersWithStats = players.map((p: any) => ({
@@ -109,44 +159,148 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {upcomingGames.slice(0, 5).map((g: any) => {
               const { label, tier } = getCountdownInfo(g.scheduledFor);
+              const gameTime = formatGameTime(g.scheduledFor);
               const isTodaysGame = tier === "today";
               const isWeek = tier === "week";
               const accentColor = isTodaysGame ? C.gold : isWeek ? C.redText : C.textSub;
+              const venue = g.notes; // Use notes field for venue
+
               return (
                 <div key={g.id} style={{
                   display:"flex",
                   alignItems:"flex-start",
                   justifyContent:"space-between",
                   gap:12,
-                  padding:"12px 14px",
-                  borderRadius:10,
+                  padding:"14px 16px",
+                  borderRadius:12,
                   border:`1px solid ${isTodaysGame ? `${C.gold}40` : C.border}`,
                   background: isTodaysGame ? `${C.gold}08` : "transparent",
                   transition:"all 0.2s ease",
+                  cursor:"pointer",
+                  transform:"translateY(0px)",
+                  boxShadow:isTodaysGame ? `0 8px 16px ${C.gold}10` : "0 1px 4px rgba(0,0,0,0.1)",
+                } as any}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = isTodaysGame ? `0 12px 24px ${C.gold}15` : "0 4px 12px rgba(0,0,0,0.15)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0px)";
+                  e.currentTarget.style.boxShadow = isTodaysGame ? `0 8px 16px ${C.gold}10` : "0 1px 4px rgba(0,0,0,0.1)";
                 }}>
-                  {/* Left: opponent + competition */}
+                  {/* Left: opponent + time + competition */}
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:"clamp(13px,4vw,14px)", fontWeight:700, color:C.text }}>
-                      {g.location === "home" ? "vs" : "@"} {g.opponent}
+                    <div style={{ display:"flex", alignItems:"baseline", gap:8, marginBottom:4 }}>
+                      <div style={{ fontSize:"clamp(14px,4vw,16px)", fontWeight:800, color:C.text }}>
+                        {g.location === "home" ? "vs" : "@"} {g.opponent}
+                      </div>
+                      <div style={{ fontSize:"clamp(12px,3vw,13px)", fontWeight:700, color:accentColor }}>
+                        {gameTime}
+                      </div>
                     </div>
                     {g.competition && (
-                      <div style={{ fontSize:11, color:C.textDim, marginTop:2, fontWeight:500 }}>
+                      <div style={{ fontSize:11, color:C.textDim, marginBottom:6, fontWeight:500 }}>
                         {g.competition}
                       </div>
                     )}
+                    {venue && (
+                      <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:C.textSub, marginTop:6 }}>
+                        <a
+                          href={`https://www.google.com/maps/search/${encodeURIComponent(venue)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ display:"flex", alignItems:"center", gap:4, color:C.textSub, textDecoration:"none", transition:"color 0.2s" }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = C.redText)}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = C.textSub)}
+                        >
+                          📍 {venue}
+                        </a>
+                      </div>
+                    )}
                   </div>
-                  {/* Right: countdown badge */}
-                  <div style={{ textAlign:"right", whiteSpace:"nowrap" }}>
+
+                  {/* Right: countdown badge + calendar buttons */}
+                  <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8, whiteSpace:"nowrap" }}>
                     <div style={{
                       fontSize:11,
                       fontWeight:700,
                       color:accentColor,
-                      padding:"4px 8px",
+                      padding:"6px 10px",
                       borderRadius:6,
                       background: isTodaysGame ? `${C.gold}15` : isWeek ? `${C.redText}08` : "transparent",
                       letterSpacing:"0.02em",
                     }}>
                       {label}
+                    </div>
+                    {/* Calendar buttons */}
+                    <div style={{ display:"flex", gap:6 }}>
+                      <a
+                        href={getGoogleCalendarLink(g.opponent, g.scheduledFor, venue)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Add to Google Calendar"
+                        style={{
+                          display:"flex",
+                          alignItems:"center",
+                          justifyContent:"center",
+                          width:28,
+                          height:28,
+                          borderRadius:6,
+                          border:`1px solid ${C.border}`,
+                          background:C.base,
+                          color:C.text,
+                          fontSize:13,
+                          fontWeight:700,
+                          textDecoration:"none",
+                          transition:"all 0.2s ease",
+                          cursor:"pointer",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = C.redText;
+                          e.currentTarget.style.color = C.surface;
+                          e.currentTarget.style.borderColor = C.redText;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = C.base;
+                          e.currentTarget.style.color = C.text;
+                          e.currentTarget.style.borderColor = C.border;
+                        }}
+                      >
+                        📅
+                      </a>
+                      <a
+                        href={getAppleCalendarLink(g.opponent, g.scheduledFor, venue)}
+                        download={`Armani-Katehano-vs-${g.opponent.replace(/\s+/g, "-")}.ics`}
+                        title="Add to Apple Calendar"
+                        style={{
+                          display:"flex",
+                          alignItems:"center",
+                          justifyContent:"center",
+                          width:28,
+                          height:28,
+                          borderRadius:6,
+                          border:`1px solid ${C.border}`,
+                          background:C.base,
+                          color:C.text,
+                          fontSize:13,
+                          fontWeight:700,
+                          textDecoration:"none",
+                          transition:"all 0.2s ease",
+                          cursor:"pointer",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = C.redText;
+                          e.currentTarget.style.color = C.surface;
+                          e.currentTarget.style.borderColor = C.redText;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = C.base;
+                          e.currentTarget.style.color = C.text;
+                          e.currentTarget.style.borderColor = C.border;
+                        }}
+                      >
+                        🍎
+                      </a>
                     </div>
                   </div>
                 </div>
