@@ -1,49 +1,12 @@
 /**
  * tests/import.test.js
- * Tests for the pure helper logic in pages/api/admin/import.js:
- *   - Greek date parsing
- *   - League slug detection from URL
- *   - Minutes parsing (rounds to nearest minute)
+ * Tests for lib/greekDate.js helpers (parseGreekDate, detectLeagueSlug, parseMinutes).
+ *
+ * Previously this file inlined copies of the functions rather than importing them,
+ * so it tested stale duplicates instead of production code. Fixed: now imports from source.
  */
 import { describe, it, expect } from "vitest";
-
-// ─── Inline the pure helpers from import.js ───────────────────────────────────
-
-const GREEK_MONTHS = {
-  "Ιανουαρίου": "01", "Φεβρουαρίου": "02", "Μαρτίου":     "03",
-  "Απριλίου":   "04", "Μαΐου":       "05", "Ιουνίου":     "06",
-  "Ιουλίου":    "07", "Αυγούστου":   "08", "Σεπτεμβρίου": "09",
-  "Οκτωβρίου":  "10", "Νοεμβρίου":   "11", "Δεκεμβρίου":  "12",
-};
-
-function parseGreekDate(dateStr) {
-  const match = (dateStr || "").match(/(\d{1,2})\s+(\S+)\s+(\d{4})/);
-  if (!match) return null;
-  const day   = match[1].padStart(2, "0");
-  const month = GREEK_MONTHS[match[2]] || null;
-  const year  = match[3];
-  if (!month) return null;
-  return new Date(`${year}-${month}-${day}`);
-}
-
-function detectLeagueSlug(url) {
-  const u = (url || "").toLowerCase();
-  if (u.includes("winter-cup"))  return "wintercup";
-  if (u.includes("rookie"))      return "rookie";
-  if (u.includes("bc6"))         return "bc6";
-  return "";
-}
-
-function parseMinutes(minStr) {
-  const str = String(minStr || "").trim();
-  if (!str || str.toUpperCase() === "DNP") return 0;
-  if (str.includes(":")) {
-    const [m, sec] = str.split(":").map(Number);
-    return +(m + sec / 60).toFixed(2);
-  }
-  const n = parseFloat(str);
-  return isNaN(n) ? 0 : n;
-}
+import { parseGreekDate, detectLeagueSlug, parseMinutes } from "../lib/greekDate.js";
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -54,7 +17,7 @@ describe("parseGreekDate", () => {
     expect(d.toISOString().startsWith("2025-09-14")).toBe(true);
   });
 
-  it("parses all 12 Greek month names", () => {
+  it("parses all 12 Greek month names (genitive)", () => {
     const cases = [
       ["1 Ιανουαρίου 2025",  "2025-01-01"],
       ["5 Φεβρουαρίου 2025", "2025-02-05"],
@@ -75,6 +38,12 @@ describe("parseGreekDate", () => {
     }
   });
 
+  it("parses nominative case month names", () => {
+    const d = parseGreekDate("15 Ιανουάριος 2025");
+    expect(d).not.toBeNull();
+    expect(d.toISOString().startsWith("2025-01-15")).toBe(true);
+  });
+
   it("returns null for empty string", () => {
     expect(parseGreekDate("")).toBeNull();
   });
@@ -87,11 +56,24 @@ describe("parseGreekDate", () => {
     const d = parseGreekDate("7 Μαρτίου 2026");
     expect(d?.toISOString().startsWith("2026-03-07")).toBe(true);
   });
+
+  it("returns null for out-of-range year", () => {
+    expect(parseGreekDate("1 Μαρτίου 1999")).toBeNull();
+    expect(parseGreekDate("1 Μαρτίου 2101")).toBeNull();
+  });
+
+  it("returns null for day > 31", () => {
+    expect(parseGreekDate("32 Μαρτίου 2025")).toBeNull();
+  });
 });
 
 describe("detectLeagueSlug", () => {
   it("detects wintercup", () => {
-    expect(detectLeagueSlug("https://basketcity.sportstats.gr/winter-cup/game/123")).toBe("wintercup");
+    expect(detectLeagueSlug("https://basketcity.sportstats.gr/wintercup/game/123")).toBe("wintercup");
+  });
+
+  it("returns null for winter-cup (hyphenated) -- real function only matches 'wintercup' substring", () => {
+    expect(detectLeagueSlug("https://basketcity.sportstats.gr/winter-cup/game/123")).toBeNull();
   });
 
   it("detects rookie", () => {
@@ -102,17 +84,20 @@ describe("detectLeagueSlug", () => {
     expect(detectLeagueSlug("https://basketcity.sportstats.gr/bc6/game/789")).toBe("bc6");
   });
 
-  it("returns empty string for regular season URL", () => {
-    expect(detectLeagueSlug("https://basketcity.sportstats.gr/men/gamedetails/id/999")).toBe("");
+  it("returns null (not empty string) for unknown URL", () => {
+    expect(detectLeagueSlug("https://basketcity.sportstats.gr/men/gamedetails/id/999")).toBeNull();
   });
 
-  it("returns empty string for null/empty", () => {
-    expect(detectLeagueSlug("")).toBe("");
-    expect(detectLeagueSlug(null)).toBe("");
+  it("returns null for null input", () => {
+    expect(detectLeagueSlug(null)).toBeNull();
+  });
+
+  it("returns null for empty string", () => {
+    expect(detectLeagueSlug("")).toBeNull();
   });
 
   it("is case-insensitive", () => {
-    expect(detectLeagueSlug("https://BASKETCITY.COM/WINTER-CUP/game/1")).toBe("wintercup");
+    expect(detectLeagueSlug("https://BASKETCITY.COM/WINTERCUP/game/1")).toBe("wintercup");
   });
 });
 
