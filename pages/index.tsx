@@ -174,6 +174,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                   </div>
                   <button
                     onClick={() => setShowTrendModal(true)}
+                    className="show-more-btn"
                     style={{
                       fontSize:12,
                       fontWeight:700,
@@ -761,16 +762,8 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
 
       <style>{`
         @media (max-width: 640px) {
-          .trend-modal-backdrop {
-            align-items: flex-end !important;
-          }
-          .trend-modal-content {
-            borderRadius: 16px 16px 0 0 !important;
-            maxHeight: 85vh !important;
-            maxWidth: 100% !important;
-          }
-          .trend-buttons {
-            gridTemplateColumns: repeat(auto-fit, minmax(60px, 1fr)) !important;
+          .show-more-btn {
+            display: none !important;
           }
         }
       `}</style>
