@@ -1,0 +1,85 @@
+/**
+ * pages/api/admin/cleanup.js
+ * DELETE /api/admin/cleanup
+ *
+ * Purges expired LoginAttempt rows from the database.
+ * Called on a schedule by Vercel Cron (see vercel.json).
+ *
+ * S-06: Without this job the LoginAttempt table grows unboundedly.
+ * The brute-force lockout check (isLockedOut) scans this table on
+ * every login attempt — unbounded growth degrades its performance.
+ *
+ * Security: protected by a shared secret in the Authorization header
+ * so it cannot be triggered by arbitrary callers.
+ * The secret must match CRON_SECRET in Vercel Environment Variables.
+ *
+ * Vercel automatically sets Authorization: Bearer <CRON_SECRET> on
+ * cron-triggered requests when CRON_SECRET is configured — no manual
+ * header management is needed for the cron invocation.
+ */
+
+import prisma from "../../../lib/prisma";
+import crypto from "crypto";
+
+
+// Rows older than this window are safe to delete.
+// Must match LOCKOUT_TTL_S in lib/loginAttempts.js so we never prune
+// rows that are still within an active lockout window.
+const LOCKOUT_TTL_MS = 15 * 60 * 1000; // 15 minutes in milliseconds
+
+export default async function handler(req: any, res: any) {
+  // Only allow DELETE (or GET — Vercel cron uses GET by default)
+  if (req.method !== "DELETE" && req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // ── Auth: verify the cron secret ─────────────────────────────────────────
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    // If CRON_SECRET is not configured, refuse all calls rather than running unprotected
+    console.error("[cleanup] CRON_SECRET is not set — endpoint disabled");
+    return res.status(500).json({ error: "Cleanup endpoint is not configured" });
+  }
+  if (cronSecret.length < 32) {
+    console.error("[cleanup] CRON_SECRET is too short (< 32 chars) — endpoint disabled");
+    return res.status(500).json({ error: "Cleanup endpoint is not configured" });
+  }
+
+  const authHeader = req.headers.authorization ?? "";
+  const token      = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+
+  // S-02: Use timingSafeEqual instead of !== to prevent timing side-channel attacks.
+  // timingSafeEqual throws if the two buffers have different byte lengths, so the
+  // length check must come first — a mismatched length is itself an auth failure.
+  const a = Buffer.from(token || '', 'utf8');
+  const b = Buffer.from(cronSecret || '', 'utf8');
+  
+  const tokenValid =
+    a.length === b.length && crypto.timingSafeEqual(a, b);
+  
+  if (!tokenValid) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  // ── Purge expired rows ───────────────────────────────────────────────────
+  try {
+    const cutoff = new Date(Date.now() - LOCKOUT_TTL_MS);
+
+    const result = await prisma.loginAttempt.deleteMany({
+      where: {
+        attemptedAt: { lt: cutoff },
+      },
+    });
+
+    console.log(`[cleanup] Purged ${result.count} expired LoginAttempt rows`);
+
+    return res.status(200).json({
+      ok:      true,
+      deleted: result.count,
+      cutoff:  cutoff.toISOString(),
+    });
+  } catch (err) {
+    console.error("[cleanup] LoginAttempt purge failed:", err);
+    return res.status(500).json({ error: "Cleanup failed" });
+  }
+}
