@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * tests/statsEngine.test.js
  * Tests for the stats engine in lib/stats:

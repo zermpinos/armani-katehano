@@ -12,8 +12,8 @@ import {
   SESSION_TTL_S, // S-06: imported to enforce TTL server-side
 } from "./security";
 
-export function requireAuth(handler) {
-  return async function (req, res) {
+export function requireAuth(handler: (req: any, res: any) => any) {
+  return async function (req: any, res: any) {
     // Apply security headers to every response
     Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
 
