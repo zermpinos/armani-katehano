@@ -8,10 +8,10 @@
 
 import { z }                              from "zod";
 import { BoxScoreRowSchema }              from "../../../lib/validators";
-import { requireAuth }                    from "../../../lib/requireAuth.js";
+import { requireAuth }                    from "../../../lib/requireAuth";
 import { securityHeaders, auditLog }      from "../../../lib/security";
 import prisma                             from "../../../lib/prisma";
-import { recalcAggregates }               from "../../../lib/stats.prisma.js";
+import { recalcAggregates }               from "../../../lib/stats.prisma";
 import { prodError, MAX_GAMES_PER_PAGE }  from "../../../lib/utils";
 import { calcEff }                        from "../../../lib/stats";
 
