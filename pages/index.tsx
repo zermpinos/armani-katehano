@@ -39,6 +39,7 @@ export default function HomePage({ players, games, stats }: any) {
     .map((g, i) => {
       const parts = (g.score || "0–0").split(/[–-]/);
       return {
+        idx:    i,
         game:   g.home ? `vs ${g.opponent || `G${i + 1}`}` : `@ ${g.opponent || `G${i + 1}`}`,
         pts:    parseInt(parts[0]) || 0,
         opp:    parseInt(parts[1]) || 0,
@@ -100,7 +101,7 @@ export default function HomePage({ players, games, stats }: any) {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="4 4" stroke={C.border2} vertical={false} />
-                    <XAxis dataKey="game" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
+                    <XAxis dataKey="idx" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
                     <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
                     <Tooltip
                       {...chartTooltipStyle}
