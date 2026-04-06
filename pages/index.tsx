@@ -233,74 +233,77 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                       {label}
                     </div>
                     {/* Calendar buttons */}
-                    <div style={{ display:"flex", gap:6 }}>
-                      <a
-                        href={getGoogleCalendarLink(g.opponent, g.scheduledFor, venue)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Add to Google Calendar"
-                        style={{
-                          display:"flex",
-                          alignItems:"center",
-                          justifyContent:"center",
-                          width:28,
-                          height:28,
-                          borderRadius:6,
-                          border:`1px solid ${C.border}`,
-                          background:C.base,
-                          color:C.text,
-                          fontSize:13,
-                          fontWeight:700,
-                          textDecoration:"none",
-                          transition:"all 0.2s ease",
-                          cursor:"pointer",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = C.redText;
-                          e.currentTarget.style.color = C.surface;
-                          e.currentTarget.style.borderColor = C.redText;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = C.base;
-                          e.currentTarget.style.color = C.text;
-                          e.currentTarget.style.borderColor = C.border;
-                        }}
-                      >
-                        📅
-                      </a>
-                      <a
-                        href={getAppleCalendarLink(g.opponent, g.scheduledFor, venue)}
-                        download={`Armani-Katehano-vs-${g.opponent.replace(/\s+/g, "-")}.ics`}
-                        title="Add to Apple Calendar"
-                        style={{
-                          display:"flex",
-                          alignItems:"center",
-                          justifyContent:"center",
-                          width:28,
-                          height:28,
-                          borderRadius:6,
-                          border:`1px solid ${C.border}`,
-                          background:C.base,
-                          color:C.text,
-                          fontSize:13,
-                          fontWeight:700,
-                          textDecoration:"none",
-                          transition:"all 0.2s ease",
-                          cursor:"pointer",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = C.redText;
-                          e.currentTarget.style.color = C.surface;
-                          e.currentTarget.style.borderColor = C.redText;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = C.base;
-                          e.currentTarget.style.color = C.text;
-                          e.currentTarget.style.borderColor = C.border;
-                        }}
-                      >
-                        🍎
-                      </a>
+                    <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
+                      <div style={{ fontSize:10, fontWeight:600, color:C.textDim, letterSpacing:"0.03em" }}>Add to calendar</div>
+                      <div style={{ display:"flex", gap:6 }}>
+                        <a
+                          href={getGoogleCalendarLink(g.opponent, g.scheduledFor, venue)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Add to Google Calendar"
+                          style={{
+                            display:"flex",
+                            alignItems:"center",
+                            justifyContent:"center",
+                            width:28,
+                            height:28,
+                            borderRadius:6,
+                            border:`1px solid ${C.border}`,
+                            background:C.base,
+                            color:C.text,
+                            fontSize:13,
+                            fontWeight:700,
+                            textDecoration:"none",
+                            transition:"all 0.2s ease",
+                            cursor:"pointer",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = C.redText;
+                            e.currentTarget.style.color = C.surface;
+                            e.currentTarget.style.borderColor = C.redText;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = C.base;
+                            e.currentTarget.style.color = C.text;
+                            e.currentTarget.style.borderColor = C.border;
+                          }}
+                        >
+                          📅
+                        </a>
+                        <a
+                          href={getAppleCalendarLink(g.opponent, g.scheduledFor, venue)}
+                          download={`Armani-Katehano-vs-${g.opponent.replace(/\s+/g, "-")}.ics`}
+                          title="Download .ics file"
+                          style={{
+                            display:"flex",
+                            alignItems:"center",
+                            justifyContent:"center",
+                            width:28,
+                            height:28,
+                            borderRadius:6,
+                            border:`1px solid ${C.border}`,
+                            background:C.base,
+                            color:C.text,
+                            fontSize:13,
+                            fontWeight:700,
+                            textDecoration:"none",
+                            transition:"all 0.2s ease",
+                            cursor:"pointer",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = C.redText;
+                            e.currentTarget.style.color = C.surface;
+                            e.currentTarget.style.borderColor = C.redText;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = C.base;
+                            e.currentTarget.style.color = C.text;
+                            e.currentTarget.style.borderColor = C.border;
+                          }}
+                        >
+                          📋
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
