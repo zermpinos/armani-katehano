@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Layout from "../components/Layout";
 import { StatTile, SectionHeading } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
@@ -78,6 +79,9 @@ END:VCALENDAR`;
 
 
 export default function HomePage({ players, games, stats, upcomingGames }: any) {
+  const [trendRange, setTrendRange] = useState(10);
+  const [showTrendModal, setShowTrendModal] = useState(false);
+
   const playersWithStats = players.map((p: any) => ({
     ...p,
     stats: stats[p.id] ?? { ppg:0, rpg:0, apg:0, fgPct:0, eff:0, mpg:0, gp:0 },
@@ -94,6 +98,24 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
     ? activePlayers.reduce((b: any, p: any) => p.stats.eff > b.stats.eff ? p : b, activePlayers[0])
     : null;
 
+  // Helper to generate trend data for a given range
+  const generateTrendData = (rangeGames: number) => {
+    return [...games]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, rangeGames)
+      .reverse()
+      .map((g, i) => {
+        const parts = (g.score || "0–0").split(/[–-]/);
+        return {
+          idx:    i,
+          game:   g.home ? `vs ${g.opponent || `G${i + 1}`}` : `@ ${g.opponent || `G${i + 1}`}`,
+          pts:    parseInt(parts[0]) || 0,
+          opp:    parseInt(parts[1]) || 0,
+          result: g.result,
+        };
+      });
+  };
+
   // Top scorers — fmt() gives "Antonakos G." format correctly
   const topScorers = [...playersWithStats]
     .filter(p => p.stats.ppg > 0)
@@ -101,20 +123,8 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
     .slice(0, 5)
     .map(p => ({ name: fmt(p.name), ppg: p.stats.ppg }));
 
-  const trend = [...games]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 10)
-    .reverse()
-    .map((g, i) => {
-      const parts = (g.score || "0–0").split(/[–-]/);
-      return {
-        idx:    i,
-        game:   g.home ? `vs ${g.opponent || `G${i + 1}`}` : `@ ${g.opponent || `G${i + 1}`}`,
-        pts:    parseInt(parts[0]) || 0,
-        opp:    parseInt(parts[1]) || 0,
-        result: g.result,
-      };
-    });
+  const trend = generateTrendData(10);
+  const extendedTrend = generateTrendData(trendRange);
 
   const recentGames = [...games]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -162,8 +172,9 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                     <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Scoring Trend</div>
                     <div style={{ fontSize:18, fontWeight:700, color:C.text }}>Last {trend.length} Games</div>
                   </div>
-                  <Link href="/games">
-                    <a style={{
+                  <button
+                    onClick={() => setShowTrendModal(true)}
+                    style={{
                       fontSize:12,
                       fontWeight:700,
                       color:C.redText,
@@ -171,7 +182,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                       borderRadius:8,
                       border:`1px solid ${C.redText}40`,
                       background:`${C.redText}08`,
-                      textDecoration:"none",
+                      cursor:"pointer",
                       transition:"all 0.2s ease",
                       whiteSpace:"nowrap",
                     }}
@@ -183,8 +194,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                       e.currentTarget.style.background = `${C.redText}08`;
                       e.currentTarget.style.borderColor = `${C.redText}40`;
                     }}
-                    >Show More →</a>
-                  </Link>
+                  >Show More →</button>
                 </div>
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={trend} margin={{ top:4, right:8, left:0, bottom:0 }}>
@@ -228,29 +238,28 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
               <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
                   <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Recent Results</div>
-                  <Link href="/games">
-                    <a style={{
-                      fontSize:12,
-                      fontWeight:700,
-                      color:C.redText,
-                      padding:"8px 12px",
-                      borderRadius:8,
-                      border:`1px solid ${C.redText}40`,
-                      background:`${C.redText}08`,
-                      textDecoration:"none",
-                      transition:"all 0.2s ease",
-                      whiteSpace:"nowrap",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = `${C.redText}15`;
-                      e.currentTarget.style.borderColor = C.redText;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = `${C.redText}08`;
-                      e.currentTarget.style.borderColor = `${C.redText}40`;
-                    }}
-                    >Show More →</a>
-                  </Link>
+                  <Link href="/games" style={{
+                    fontSize:12,
+                    fontWeight:700,
+                    color:C.redText,
+                    padding:"8px 12px",
+                    borderRadius:8,
+                    border:`1px solid ${C.redText}40`,
+                    background:`${C.redText}08`,
+                    textDecoration:"none",
+                    transition:"all 0.2s ease",
+                    whiteSpace:"nowrap",
+                    cursor:"pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = `${C.redText}15`;
+                    e.currentTarget.style.borderColor = C.redText;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = `${C.redText}08`;
+                    e.currentTarget.style.borderColor = `${C.redText}40`;
+                  }}
+                  >Show More →</Link>
                 </div>
                 <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                   {recentGames.map(g => (
@@ -287,29 +296,28 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
               >
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
                   <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Top Scorers — PPG</div>
-                  <Link href="/players">
-                    <a style={{
-                      fontSize:12,
-                      fontWeight:700,
-                      color:C.redText,
-                      padding:"8px 12px",
-                      borderRadius:8,
-                      border:`1px solid ${C.redText}40`,
-                      background:`${C.redText}08`,
-                      textDecoration:"none",
-                      transition:"all 0.2s ease",
-                      whiteSpace:"nowrap",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = `${C.redText}15`;
-                      e.currentTarget.style.borderColor = C.redText;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = `${C.redText}08`;
-                      e.currentTarget.style.borderColor = `${C.redText}40`;
-                    }}
-                    >Show More →</a>
-                  </Link>
+                  <Link href="/players" style={{
+                    fontSize:12,
+                    fontWeight:700,
+                    color:C.redText,
+                    padding:"8px 12px",
+                    borderRadius:8,
+                    border:`1px solid ${C.redText}40`,
+                    background:`${C.redText}08`,
+                    textDecoration:"none",
+                    transition:"all 0.2s ease",
+                    whiteSpace:"nowrap",
+                    cursor:"pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = `${C.redText}15`;
+                    e.currentTarget.style.borderColor = C.redText;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = `${C.redText}08`;
+                    e.currentTarget.style.borderColor = `${C.redText}40`;
+                  }}
+                  >Show More →</Link>
                 </div>
                 <ResponsiveContainer width="100%" height={topScorers.length * 44}>
                   <BarChart data={topScorers} layout="vertical" margin={{ top:10, right:40, left:0, bottom:10 }}>
@@ -353,29 +361,28 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                 <div style={{ position:"absolute", top:0, right:0, width:140, height:140, borderRadius:"50%", background:`${C.red}12`, transform:"translate(40%,-40%)" }} />
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, position:"relative", zIndex:1 }}>
                   <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.redText, textTransform:"uppercase" }}>⚡ Efficiency Leader</div>
-                  <Link href="/players">
-                    <a style={{
-                      fontSize:12,
-                      fontWeight:700,
-                      color:C.redText,
-                      padding:"8px 12px",
-                      borderRadius:8,
-                      border:`1px solid ${C.redText}40`,
-                      background:`${C.redText}08`,
-                      textDecoration:"none",
-                      transition:"all 0.2s ease",
-                      whiteSpace:"nowrap",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = `${C.redText}15`;
-                      e.currentTarget.style.borderColor = C.redText;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = `${C.redText}08`;
-                      e.currentTarget.style.borderColor = `${C.redText}40`;
-                    }}
-                    >Show More →</a>
-                  </Link>
+                  <Link href="/players" style={{
+                    fontSize:12,
+                    fontWeight:700,
+                    color:C.redText,
+                    padding:"8px 12px",
+                    borderRadius:8,
+                    border:`1px solid ${C.redText}40`,
+                    background:`${C.redText}08`,
+                    textDecoration:"none",
+                    transition:"all 0.2s ease",
+                    whiteSpace:"nowrap",
+                    cursor:"pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = `${C.redText}15`;
+                    e.currentTarget.style.borderColor = C.redText;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = `${C.redText}08`;
+                    e.currentTarget.style.borderColor = `${C.redText}40`;
+                  }}
+                  >Show More →</Link>
                 </div>
                 <div style={{ display:"flex", gap:16, alignItems:"flex-start", position:"relative", zIndex:1 }}>
                   <div style={{ width:60, height:60, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", background:C.base, border:`1px solid ${C.border2}`, flexShrink:0 }}>
@@ -576,6 +583,173 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Scoring Trend Modal */}
+      {showTrendModal && (
+        <div style={{
+          position:"fixed",
+          inset:0,
+          backgroundColor:"rgba(0,0,0,0.5)",
+          display:"flex",
+          alignItems:"center",
+          justifyContent:"center",
+          zIndex:1000,
+          padding:16,
+        }}
+        onClick={(e) => e.target === e.currentTarget && setShowTrendModal(false)}
+        >
+          <div style={{
+            borderRadius:16,
+            padding:32,
+            background:C.surface,
+            border:`1px solid ${C.border}`,
+            maxWidth:"90vw",
+            width:"100%",
+            maxHeight:"90vh",
+            display:"flex",
+            flexDirection:"column",
+            boxShadow:"0 20px 64px rgba(0,0,0,0.3)",
+          }}>
+            {/* Header */}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
+              <div>
+                <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase", marginBottom:4 }}>Scoring Trend</div>
+                <div style={{ fontSize:22, fontWeight:700, color:C.text }}>Last {extendedTrend.length} Games</div>
+              </div>
+              <button
+                onClick={() => setShowTrendModal(false)}
+                style={{
+                  width:40,
+                  height:40,
+                  borderRadius:8,
+                  border:`1px solid ${C.border}`,
+                  background:C.base,
+                  color:C.text,
+                  fontSize:20,
+                  cursor:"pointer",
+                  display:"flex",
+                  alignItems:"center",
+                  justifyContent:"center",
+                  transition:"all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = C.redText;
+                  e.currentTarget.style.borderColor = C.redText;
+                  e.currentTarget.style.color = C.surface;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = C.base;
+                  e.currentTarget.style.borderColor = C.border;
+                  e.currentTarget.style.color = C.text;
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Range selection */}
+            <div style={{ display:"flex", gap:8, marginBottom:24, flexWrap:"wrap" }}>
+              {[10, 20, 30].map(range => (
+                <button
+                  key={range}
+                  onClick={() => setTrendRange(range)}
+                  style={{
+                    padding:"8px 16px",
+                    borderRadius:8,
+                    border:`1px solid ${trendRange === range ? C.redText : C.border}`,
+                    background:trendRange === range ? `${C.redText}15` : C.base,
+                    color:trendRange === range ? C.redText : C.text,
+                    fontSize:13,
+                    fontWeight:700,
+                    cursor:"pointer",
+                    transition:"all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (trendRange !== range) {
+                      e.currentTarget.style.borderColor = C.redText;
+                      e.currentTarget.style.background = `${C.redText}08`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (trendRange !== range) {
+                      e.currentTarget.style.borderColor = C.border;
+                      e.currentTarget.style.background = C.base;
+                    }
+                  }}
+                >
+                  Last {range}
+                </button>
+              ))}
+              <button
+                onClick={() => setTrendRange(games.length)}
+                style={{
+                  padding:"8px 16px",
+                  borderRadius:8,
+                  border:`1px solid ${trendRange === games.length ? C.redText : C.border}`,
+                  background:trendRange === games.length ? `${C.redText}15` : C.base,
+                  color:trendRange === games.length ? C.redText : C.text,
+                  fontSize:13,
+                  fontWeight:700,
+                  cursor:"pointer",
+                  transition:"all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  if (trendRange !== games.length) {
+                    e.currentTarget.style.borderColor = C.redText;
+                    e.currentTarget.style.background = `${C.redText}08`;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (trendRange !== games.length) {
+                    e.currentTarget.style.borderColor = C.border;
+                    e.currentTarget.style.background = C.base;
+                  }
+                }}
+              >
+                All Games
+              </button>
+            </div>
+
+            {/* Chart */}
+            <div style={{ flex:1, minHeight:0, overflow:"auto" }}>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={extendedTrend} margin={{ top:4, right:8, left:0, bottom:0 }}>
+                  <defs>
+                    <linearGradient id="trendFillModal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={C.redBright} stopOpacity={0.25}/>
+                      <stop offset="100%" stopColor={C.red} stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="4 4" stroke={C.border2} vertical={false} />
+                  <XAxis dataKey="idx" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
+                  <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
+                  <Tooltip
+                    {...chartTooltipStyle}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const entries = payload.filter(p => p.name === "AK" || p.name === "OPP");
+                      if (!entries.length) return null;
+                      const game = payload[0]?.payload?.game;
+                      return (
+                        <div style={chartTooltipStyle.contentStyle}>
+                          {game && <div style={{ color: C.textDim, fontSize:10, marginBottom:4 }}>{game}</div>}
+                          {entries.map(p => (
+                            <div key={p.name} style={{ color: p.color }}>{p.name}: {p.value}</div>
+                          ))}
+                        </div>
+                      );
+                    }}
+                  />
+                  <Area type="monotone" dataKey="pts" stroke="none" fill="url(#trendFillModal)" legendType="none" />
+                  <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={3} dot={{ fill:C.redBright, r:3, strokeWidth:0 }} activeDot={{ r:5 }} name="AK" />
+                  <Line type="monotone" dataKey="opp" stroke={C.silver} strokeWidth={2} dot={{ fill:C.silver, r:3, strokeWidth:0 }} activeDot={{ r:5 }} strokeDasharray="5 5" name="OPP" />
+                  <Legend wrapperStyle={{ fontSize:11, color:C.textSub }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       )}
