@@ -1,13 +1,13 @@
 /**
  * tests/statsEngine.test.js
- * Tests for the stats engine in lib/stats.js:
+ * Tests for the stats engine in lib/stats:
  *   calcEff, mergeAggregates, aggregatesToStatsMap, buildStatsMap
  *
  * Previously stats.test.js inlined a copy of computeAggregates instead of
  * importing the real functions. These tests import directly from the source.
  */
 import { describe, it, expect } from "vitest";
-import { calcEff, mergeAggregates, aggregatesToStatsMap, buildStatsMap } from "../lib/stats.js";
+import { calcEff, mergeAggregates, aggregatesToStatsMap, buildStatsMap } from "../lib/stats";
 
 // ─── calcEff ──────────────────────────────────────────────────────────────────
 

@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { z }                    from "zod";
-import { BoxScoreRowSchema }    from "../lib/validators.js";
+import { BoxScoreRowSchema }    from "../lib/validators";
 
 // ─── Valid base row ───────────────────────────────────────────────────────────
 const VALID_ROW = {

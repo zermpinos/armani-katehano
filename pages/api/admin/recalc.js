@@ -10,8 +10,8 @@
  */
 
 import { requireAuth }       from "../../../lib/requireAuth.js";
-import { securityHeaders }   from "../../../lib/security.js";
-import prisma                from "../../../lib/prisma.js";
+import { securityHeaders }   from "../../../lib/security";
+import prisma                from "../../../lib/prisma";
 import { recalcAggregates }  from "../../../lib/stats.prisma.js";
 
 async function handler(req, res) {

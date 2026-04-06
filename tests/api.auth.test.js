@@ -20,13 +20,13 @@ vi.mock("../lib/loginAttempts.js", () => ({
 }));
 
 // Partially mock security.js: keep all real implementations, override verifyPassword only.
-vi.mock("../lib/security.js", async (importOriginal) => {
+vi.mock("../lib/security", async (importOriginal) => {
   const actual = await importOriginal();
   return { ...actual, verifyPassword: vi.fn() };
 });
 
 import { isLockedOut, recordAttempt, clearAttempts } from "../lib/loginAttempts.js";
-import { verifyPassword, signSession }                from "../lib/security.js";
+import { verifyPassword, signSession }                from "../lib/security";
 import handler                                         from "../pages/api/auth.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

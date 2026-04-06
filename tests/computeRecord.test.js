@@ -1,6 +1,6 @@
 /**
  * tests/computeRecord.test.js
- * Tests for computeRecord() in lib/stats.js
+ * Tests for computeRecord() in lib/stats
  *
  * computeRecord drives win/loss tallies, streaks, home/away splits, and ppg
  * on every public page and the team page. It is critical business logic
@@ -20,7 +20,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { computeRecord } from "../lib/stats.js";
+import { computeRecord } from "../lib/stats";
 
 // ─── Fixture helpers ──────────────────────────────────────────────────────────
 

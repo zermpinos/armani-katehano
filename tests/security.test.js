@@ -1,6 +1,6 @@
 /**
  * tests/security.test.js
- * Unit tests for lib/security.js -- verifySession, csrfCheck, buildSessionCookie, clearSessionCookie.
+ * Unit tests for lib/security -- verifySession, csrfCheck, buildSessionCookie, clearSessionCookie.
  */
 import { describe, it, expect, beforeAll } from "vitest";
 
@@ -14,7 +14,7 @@ beforeAll(() => {
 let signSession, verifySession, buildSessionCookie, clearSessionCookie, csrfCheck, SESSION_TTL_S;
 
 beforeAll(async () => {
-  const mod = await import("../lib/security.js");
+  const mod = await import("../lib/security");
   signSession         = mod.signSession;
   verifySession       = mod.verifySession;
   buildSessionCookie  = mod.buildSessionCookie;
