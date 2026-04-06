@@ -13,7 +13,7 @@ vi.mock("../lib/data", () => ({
 }));
 
 import { getBoxScore } from "../lib/data";
-import handler          from "../pages/api/games/[id].js";
+import handler          from "../pages/api/games/[id]";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

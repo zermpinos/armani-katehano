@@ -3,7 +3,7 @@
  * GET /api/admin/leagues-list -> list all leagues
  */
 
-import { requireAuth }               from "../../../lib/requireAuth.js";
+import { requireAuth }               from "../../../lib/requireAuth";
 import { securityHeaders }           from "../../../lib/security";
 import { prodError }                 from "../../../lib/utils";
 import prisma                        from "../../../lib/prisma";

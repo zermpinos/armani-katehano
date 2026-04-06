@@ -7,7 +7,7 @@
  * so it tested stale duplicates instead of production code. Fixed: now imports from source.
  */
 import { describe, it, expect } from "vitest";
-import { parseGreekDate, detectLeagueSlug, parseMinutes } from "../lib/greekDate.js";
+import { parseGreekDate, detectLeagueSlug, parseMinutes } from "../lib/greekDate";
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
 

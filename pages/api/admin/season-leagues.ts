@@ -5,7 +5,7 @@
  * Returns the data the import page needs to populate the league dropdown.
  */
 
-import { requireAuth }               from "../../../lib/requireAuth.js";
+import { requireAuth }               from "../../../lib/requireAuth";
 import { securityHeaders, auditLog } from "../../../lib/security";
 import { prodError }                 from "../../../lib/utils";
 import prisma                        from "../../../lib/prisma";
