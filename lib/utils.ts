@@ -57,6 +57,16 @@ export function fmtDate(isoStr: string | null | undefined) {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+/**
+ * Formats decimal minutes as MM:SS for display.
+ * e.g. 25.98 → "25:59", 30 → "30:00"
+ */
+export function fmtMinutes(dec: number): string {
+  const m = Math.floor(dec);
+  const s = Math.round((dec - m) * 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 export function prodError(err: unknown) {
   return process.env.NODE_ENV === "production"
     ? "Internal server error"
