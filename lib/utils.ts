@@ -16,7 +16,7 @@
  * This is the canonical implementation. Do NOT copy-paste this into page files.
  * Import it: import { fmt } from "../lib/utils";
  */
-export function fmt(name) {
+export function fmt(name: string) {
   if (!name) return "";
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 1) return parts[0];
@@ -32,7 +32,7 @@ export function fmt(name) {
  *
  * The first number is always AK's score, second is opponent's.
  */
-export function parseScore(scoreStr) {
+export function parseScore(scoreStr: string | null | undefined) {
   if (!scoreStr) return null;
   const parts = scoreStr.split(/[–\-]/);
   if (parts.length !== 2) return null;
@@ -50,17 +50,17 @@ export function parseScore(scoreStr) {
  * Returns the original string unchanged if it can't be parsed,
  * so legacy DD/MM/YYYY dates still render rather than crashing.
  */
-export function fmtDate(isoStr) {
+export function fmtDate(isoStr: string | null | undefined) {
   if (!isoStr) return "";
   const d = new Date(isoStr);
   if (isNaN(d.getTime())) return isoStr; // graceful fallback for legacy format
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export function prodError(err) {
+export function prodError(err: unknown) {
   return process.env.NODE_ENV === "production"
     ? "Internal server error"
-    : err.message;
+    : (err as any).message;
 }
 
 // Greek → Latin transliteration table (lowercase; uppercase handled via .toLowerCase() first)
@@ -72,11 +72,11 @@ const GREEK = {
   ϊ:"i", ϋ:"y", ΐ:"i", ΰ:"y",
 };
 
-export function slugify(str) {
+export function slugify(str: string) {
   return str
     .toLowerCase()
     .split("")
-    .map(c => GREEK[c] ?? c)
+    .map((c: string) => GREEK[c as keyof typeof GREEK] ?? c)
     .join("")
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]/g, "");
