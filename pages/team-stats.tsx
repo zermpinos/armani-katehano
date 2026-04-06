@@ -4,7 +4,7 @@ import { SectionHeading, StatTile } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
 import { getAllPublicData } from "../lib/data";
 import { computeRecord } from "../lib/stats";
-import { fmt } from "../lib/utils";
+import { fmt, fmtMinutes } from "../lib/utils";
 import SeasonSelector from "../components/SeasonSelector";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "../components/Charts";
@@ -287,14 +287,14 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
                   />
                   <Tooltip
                     {...chartTooltipStyle}
-                    formatter={(value) => [`${value} min`]}
+                    formatter={(value) => [fmtMinutes(value as number)]}
                     labelFormatter={(_, payload) => payload?.[0]?.payload?.name ?? ""}
                   />
                   <Bar
                     dataKey="mpg"
                     radius={[0,4,4,0]}
                     maxBarSize={Math.min(40, 600 / minutesDist.length)}
-                    label={{ position:"right", fill:C.textDim, fontSize:11, fontWeight:700 }}
+                    label={{ position:"right", fill:C.textDim, fontSize:11, fontWeight:700, formatter:(v: any) => fmtMinutes(v) }}
                     isAnimationActive={true}
                   >
                     {minutesDist.map((entry: any, i: number) => (

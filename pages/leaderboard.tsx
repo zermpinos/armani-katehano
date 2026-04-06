@@ -4,7 +4,7 @@ import { SectionHeading } from "../components/ui";
 import { C } from "../lib/theme";
 import { getAllPublicData, getAllSeasonsStats } from "../lib/data";
 import { buildAllTimeStatsMap } from "../lib/stats";
-import { fmt } from "../lib/utils";
+import { fmt, fmtMinutes } from "../lib/utils";
 import SeasonSelector from "../components/SeasonSelector";
 import ErrorBoundary from "../components/ErrorBoundary";
 
@@ -14,7 +14,7 @@ const MEDALS = [
   { color:C.bronze, label:"🥉", bg:`${C.bronze}15`, border:`${C.bronze}40` },
 ];
 const COLS = [
-  { key:"mpg",   label:"MPG", title:"Minutes Per Game",        dec:1 },
+  { key:"mpg",   label:"MPG", title:"Minutes Per Game",        dec:1, min:true },
   { key:"ppg",   label:"PPG", title:"Points Per Game",         dec:1 },
   { key:"ftPct", label:"FT%", title:"Free Throw %",            dec:1, pct:true },
   { key:"fgPct", label:"FG%", title:"Field Goal %",            dec:1, pct:true },
@@ -118,7 +118,7 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
                     <td style={{ padding:"10px 8px", textAlign:"center", fontSize:11, fontWeight:700, color:C.textDim }}>{p.position.split("/")[0]}</td>
                     {COLS.map(col => {
                       const val = p.stats[col.key];
-                      const display = col.pct ? (val > 0 ? `${val.toFixed(col.dec)}%` : "--") : val?.toFixed(col.dec) ?? "--";
+                      const display = col.pct ? (val > 0 ? `${val.toFixed(col.dec)}%` : "--") : (col as any).min ? (val > 0 ? fmtMinutes(val) : "--") : val?.toFixed(col.dec) ?? "--";
                       return (
                         <td key={col.key} style={{ padding:"10px 8px", textAlign:"center" }}>
                           <span style={{ fontWeight: col.key===sortKey ? 900 : 600, color: col.key===sortKey && idx===0 ? C.redText : col.key===sortKey ? C.text : C.textSub }}>

@@ -3,7 +3,7 @@ import { StatTile, SectionHeading } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
 import { getAllPublicData } from "../lib/data";
 import { computeRecord } from "../lib/stats";
-import { fmt, fmtDate } from "../lib/utils";
+import { fmt, fmtDate, fmtMinutes } from "../lib/utils";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { LineChart, Line, BarChart, Bar, Cell, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 
@@ -194,7 +194,7 @@ export default function HomePage({ players, games, stats }: any) {
                         ["APG", mvp.stats.apg],
                         ["FG%", `${mvp.stats.fgPct}%`],
                         ["EFF", mvp.stats.eff],
-                        ["MPG", mvp.stats.mpg],
+                        ["MPG", mvp.stats.mpg > 0 ? fmtMinutes(mvp.stats.mpg) : "--"],
                       ].map(([l, v]) => (
                         <div key={l} style={{ textAlign:"center", borderRadius:8, padding:"8px 4px", background:C.base, border:`1px solid ${C.border}` }}>
                           <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim }}>{l}</div>

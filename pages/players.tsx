@@ -4,7 +4,7 @@ import { SectionHeading } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
 import { getAllPublicData, getAllSeasonsStats } from "../lib/data";
 import { buildAllTimeStatsMap } from "../lib/stats";
-import { fmt } from "../lib/utils";
+import { fmt, fmtMinutes } from "../lib/utils";
 import SeasonSelector from "../components/SeasonSelector";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
@@ -122,7 +122,7 @@ function PlayerDetail({ player, onClose, activeSeason }: any) {
                 <StatCell label="3P%"  value={s.fg3Pct > 0 ? `${s.fg3Pct}%` : "--"} />
                 <StatCell label="FT"   value={s.ftaPg > 0 ? `${s.ftmPg}/${s.ftaPg}` : "--"} />
                 <StatCell label="FT%"  value={s.ftPct > 0 ? `${s.ftPct}%` : "--"} />
-                <StatCell label="MPG"  value={s.mpg} />
+                <StatCell label="MPG"  value={s.mpg > 0 ? fmtMinutes(s.mpg) : "--"} />
                 <StatCell label="EFF"  value={s.eff} highlight />
               </div>
             </>
