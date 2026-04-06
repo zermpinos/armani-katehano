@@ -1,7 +1,7 @@
 /**
  * tests/allTimeStats.test.js
  *
- * Tests for buildAllTimeStatsMap() in lib/stats.js  (T-05 in the audit).
+ * Tests for buildAllTimeStatsMap() in lib/stats  (T-05 in the audit).
  *
  * buildAllTimeStatsMap() performs weighted averaging across seasons — a subtle
  * calculation that is easy to break at edge cases:
@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { buildAllTimeStatsMap } from "../lib/stats.js";
+import { buildAllTimeStatsMap } from "../lib/stats";
 
 // ─── Fixture helpers ──────────────────────────────────────────────────────────
 

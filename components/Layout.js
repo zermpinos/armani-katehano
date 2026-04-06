@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { C } from "../lib/theme";
-import { SITE_NAME, CURRENT_SEASON, COPYRIGHT_YEAR } from "../lib/constants.js";
+import { SITE_NAME, CURRENT_SEASON, COPYRIGHT_YEAR } from "../lib/constants";
 
 
 const NAV_LINKS = [

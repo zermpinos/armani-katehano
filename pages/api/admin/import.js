@@ -7,11 +7,11 @@
  * Protected by admin session cookie via requireAuth().
  */
 
-import prisma                    from "../../../lib/prisma.js";
+import prisma                    from "../../../lib/prisma";
 import { recalcAggregates }     from "../../../lib/stats.prisma.js";
-import { prodError }            from "../../../lib/utils.js";
+import { prodError }            from "../../../lib/utils";
 import { requireAuth }          from "../../../lib/requireAuth.js";
-import { BoxScoreRowSchema }    from "../../../lib/validators.js";
+import { BoxScoreRowSchema }    from "../../../lib/validators";
 import {
   parseGreekDate,
   detectLeagueSlug,
