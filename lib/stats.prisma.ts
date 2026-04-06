@@ -20,12 +20,12 @@ import { randomUUID } from "crypto";
 import prisma          from "./prisma";
 import { calcEff }     from "./stats";
 
-function calcTsPct(pts, fga, fta) {
+function calcTsPct(pts: number, fga: number, fta: number) {
   const denom = 2 * (fga + 0.44 * fta);
   return denom > 0 ? +((pts / denom) * 100).toFixed(1) : 0;
 }
 
-function pct(made, attempted) {
+function pct(made: number, attempted: number) {
   return attempted > 0 ? +((made / attempted) * 100).toFixed(1) : 0;
 }
 
@@ -36,21 +36,21 @@ function pct(made, attempted) {
  * @param {string} seasonLeagueId
  * @param {object} [tx] - Prisma transaction client. Defaults to global prisma.
  */
-export async function recalcAggregates(seasonLeagueId, tx = prisma) {
+export async function recalcAggregates(seasonLeagueId: string, tx: any = prisma) {
   const games = await tx.game.findMany({
     where:   { seasonLeagueId },
     include: { playerStats: true },
   });
 
-  const allStats  = games.flatMap(g => g.playerStats);
-  const playerIds = [...new Set(allStats.map(r => r.playerId))];
+  const allStats  = games.flatMap((g: any) => g.playerStats);
+  const playerIds = [...new Set(allStats.map((r: any) => r.playerId))] as string[];
 
   // ── Single pass: compute aggregates for all players ──────────────────────
-  const toUpsert = [];  // players with gp > 0
-  const toDelete = [];  // players with only 0-minute rows — remove their aggregates
+  const toUpsert: any[] = [];  // players with gp > 0
+  const toDelete: string[] = [];  // players with only 0-minute rows — remove their aggregates
 
   for (const playerId of playerIds) {
-    const rows = allStats.filter(r => r.playerId === playerId && r.minutes > 0);
+    const rows = allStats.filter((r: any) => r.playerId === playerId && r.minutes > 0);
     const gp   = rows.length;
 
     if (gp === 0) {
@@ -58,8 +58,8 @@ export async function recalcAggregates(seasonLeagueId, tx = prisma) {
       continue;
     }
 
-    const sum = key => rows.reduce((a, r) => a + (r[key] || 0), 0);
-    const avg = key => +(sum(key) / gp).toFixed(2);
+    const sum = (key: string) => rows.reduce((a: number, r: any) => a + ((r as any)[key] || 0), 0);
+    const avg = (key: string) => +(sum(key) / gp).toFixed(2);
 
     const totalPts  = sum("pts");
     const totalFgm  = sum("fgm");
@@ -73,7 +73,7 @@ export async function recalcAggregates(seasonLeagueId, tx = prisma) {
     const totalReb  = sum("reb");
     const totalAst  = sum("ast");
 
-    const effAvg = +(rows.reduce((a, r) => a + calcEff(r), 0) / gp).toFixed(2);
+    const effAvg = +(rows.reduce((a: number, r: any) => a + calcEff(r), 0) / gp).toFixed(2);
 
     toUpsert.push({
       id: randomUUID(),
@@ -151,8 +151,8 @@ export async function recalcAggregates(seasonLeagueId, tx = prisma) {
     }
   }
 
-  const params  = [];
-  const rowsSql = toUpsert.map(row => {
+  const params: any[] = [];
+  const rowsSql = toUpsert.map((row: any) => {
     const start = params.length + 1;
     cols.forEach(col => params.push(row[col]));
     const placeholders = cols.map((_, i) => `$${start + i}`).join(", ");

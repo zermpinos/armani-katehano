@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * tests/security.test.js
  * Unit tests for lib/security — verifySession, csrfCheck, buildSessionCookie, clearSessionCookie.
