@@ -8,7 +8,7 @@ import { useRouter } from "next/router";
 import { C } from "../../../lib/theme";
 import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, useAdminAuth, byJersey } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck';
-import { POSITIONS } from '../../../lib/positions.js';
+import { POSITIONS } from '../../../lib/positions';
 
 export default function RosterPage({ validSlug }: any) {
   // A-02 fix: derive slug from the Next.js router, not window.location.

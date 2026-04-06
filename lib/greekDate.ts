@@ -38,7 +38,7 @@ export const GREEK_MONTHS = {
  *   - unrecognised month names
  *   - out-of-range day/year values
  */
-export function parseGreekDate(str) {
+export function parseGreekDate(str: string | null | undefined): Date | null {
   if (!str) return null;
 
   // Match DD MonthName YYYY anywhere in the string — handles "Σάββατο, 28 Μαρτίου 2026" prefix
@@ -46,7 +46,7 @@ export function parseGreekDate(str) {
   if (!match) return null;
 
   const day   = parseInt(match[1], 10);
-  const month = GREEK_MONTHS[match[2]];
+  const month = GREEK_MONTHS[match[2] as keyof typeof GREEK_MONTHS];
   const year  = parseInt(match[3], 10);
 
   if (!month || isNaN(day) || isNaN(year)) return null;
@@ -69,7 +69,7 @@ export function parseGreekDate(str) {
  *   "https://www.basket.gr/bc6/game/12345"           → "bc6"
  *   "https://www.basket.gr/wintercup/game/12345"     → "wintercup"
  */
-export function detectLeagueSlug(url) {
+export function detectLeagueSlug(url: string | null | undefined): string | null {
   if (!url) return null;
   const known = ['rookie', 'bc6', 'wintercup'];
   const lower = url.toLowerCase();
@@ -86,7 +86,7 @@ export function detectLeagueSlug(url) {
  * "DNP"   → 0
  * null    → 0
  */
-export function parseMinutes(raw) {
+export function parseMinutes(raw: unknown): number {
   if (!raw) return 0;
   const str = String(raw).trim();
   if (str.toUpperCase() === 'DNP') return 0;

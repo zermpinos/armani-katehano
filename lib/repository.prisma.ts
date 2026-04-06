@@ -53,7 +53,7 @@ export async function getPlayers() {
 
 // ─── Games (season-scoped) ────────────────────────────────────────────────────
 
-export async function getGames(seasonName, leagueSlug = null) {
+export async function getGames(seasonName: string, leagueSlug: string | null = null) {
   const where = {
     seasonLeague: {
       season: { name: seasonName },
@@ -107,7 +107,7 @@ export async function getGames(seasonName, leagueSlug = null) {
 
 // ─── Stats (season-scoped) ────────────────────────────────────────────────────
 
-export async function getStats(seasonName, leagueSlug = null) {
+export async function getStats(seasonName: string, leagueSlug: string | null = null) {
   const aggregates = await prisma.playerSeasonAggregate.findMany({
     where: {
       seasonLeague: {
@@ -165,7 +165,7 @@ export async function getAllGames() {
 
 // ─── Box score for a single game (fetched on demand) ─────────────────────────
 
-export async function getBoxScore(gameId) {
+export async function getBoxScore(gameId: string) {
   const stats = await prisma.playerGameStat.findMany({
     where:   { gameId },
     include: { player: { select: { id: true, name: true, number: true } } },
@@ -220,7 +220,7 @@ export async function getAllPublicData(seasonName = null) {
   };
 }
 
-export async function getAllSeasonsStats(seasons) {
+export async function getAllSeasonsStats(seasons: string[]) {
   if (seasons.length === 0) return {};
 
   // Single query for all seasons — avoids N separate DB round-trips.
@@ -233,13 +233,13 @@ export async function getAllSeasonsStats(seasons) {
   });
 
   // Group rows by season name, then process each group with the shared helper.
-  const bySeason = Object.fromEntries(seasons.map(s => [s, []]));
+  const bySeason: Record<string, any[]> = Object.fromEntries(seasons.map((s: string) => [s, []]));
   for (const agg of allAggregates) {
     const name = agg.seasonLeague.season.name;
     if (bySeason[name]) bySeason[name].push(agg);
   }
 
   return Object.fromEntries(
-    seasons.map(s => [s, aggregatesToStatsMap(bySeason[s])])
+    seasons.map((s: string) => [s, aggregatesToStatsMap(bySeason[s])])
   );
 }
