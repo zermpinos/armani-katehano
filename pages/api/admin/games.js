@@ -7,13 +7,13 @@
  */
 
 import { z }                              from "zod";
-import { BoxScoreRowSchema }              from "../../../lib/validators.js";
+import { BoxScoreRowSchema }              from "../../../lib/validators";
 import { requireAuth }                    from "../../../lib/requireAuth.js";
-import { securityHeaders, auditLog }      from "../../../lib/security.js";
-import prisma                             from "../../../lib/prisma.js";
+import { securityHeaders, auditLog }      from "../../../lib/security";
+import prisma                             from "../../../lib/prisma";
 import { recalcAggregates }               from "../../../lib/stats.prisma.js";
-import { prodError, MAX_GAMES_PER_PAGE }  from "../../../lib/utils.js";
-import { calcEff }                        from "../../../lib/stats.js";
+import { prodError, MAX_GAMES_PER_PAGE }  from "../../../lib/utils";
+import { calcEff }                        from "../../../lib/stats";
 
 const GameWriteSchema = z.object({
   seasonLeagueId: z.string().cuid(),

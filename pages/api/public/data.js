@@ -5,9 +5,9 @@
  * Short cache: 60s on CDN, stale-while-revalidate 300s.
  * The public site calls this from getStaticProps / getServerSideProps.
  */
-import { getAllPublicData } from "../../../lib/data.js";
-import { securityHeaders } from "../../../lib/security.js";
-import { prodError }       from "../../../lib/utils.js"; // ← FIX B-02: enables safe error messages in dev + prod
+import { getAllPublicData } from "../../../lib/data";
+import { securityHeaders } from "../../../lib/security";
+import { prodError }       from "../../../lib/utils"; // ← FIX B-02: enables safe error messages in dev + prod
 
 export default async function handler(req, res) {
   // Apply security headers, but allow CDN caching (remove no-store override)

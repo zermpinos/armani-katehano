@@ -5,9 +5,9 @@
 
 import { z }                         from "zod";
 import { requireAuth }               from "../../../lib/requireAuth.js";
-import { securityHeaders, auditLog } from "../../../lib/security.js";
-import prisma                        from "../../../lib/prisma.js";
-import { slugify, prodError }        from "../../../lib/utils.js";
+import { securityHeaders, auditLog } from "../../../lib/security";
+import prisma                        from "../../../lib/prisma";
+import { slugify, prodError }        from "../../../lib/utils";
 
 const LeagueCreateSchema = z.object({
   name:      z.string().min(1).max(100),

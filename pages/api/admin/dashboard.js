@@ -6,9 +6,9 @@
  * Fast: no full box score data, no player details, no season breakdown.
  */
 import { requireAuth } from "../../../lib/requireAuth";
-import { prodError }    from "../../../lib/utils.js";
+import { prodError }    from "../../../lib/utils";
 
-import prisma from "../../../lib/prisma.js";
+import prisma from "../../../lib/prisma";
 
 async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();

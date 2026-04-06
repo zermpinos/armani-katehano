@@ -58,7 +58,7 @@ export function mergeAggregates(prev, agg) {
 
 export function aggregatesToStatsMap(aggregates) {
   // Merge per-player across leagues
-  const merged = {};
+  const merged: Record<string, any> = {};
   for (const agg of aggregates) {
     const pid = agg.playerId;
     if (!merged[pid]) {
@@ -165,7 +165,7 @@ export function computeRecord(games, leagueFilter = null) {
   }
 
   // Streak: sort newest→oldest, walk until result changes
-  const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
+  const sorted = [...filtered].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const streakType = sorted[0].result;
   let streakCount = 0;
   for (const g of sorted) {
@@ -249,7 +249,7 @@ export function buildStatsMap(players, games) {
         };
       })
       .filter(Boolean)
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     statsMap[player.id] = {
       ppg:    avg("pts"),
@@ -326,7 +326,7 @@ export function buildAllTimeStatsMap(allSeasonsStats, players) {
 
     const allGameLogs = entries
       .flatMap(e => e.gameLog || [])
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     statsMap[player.id] = {
       ppg:    wavg("ppg"),
