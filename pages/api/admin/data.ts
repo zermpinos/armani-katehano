@@ -15,6 +15,7 @@ import { requireAuth }                  from "../../../lib/requireAuth";
 import { securityHeaders }             from "../../../lib/security";
 import { prodError, MAX_GAMES_PER_PAGE } from "../../../lib/utils";
 import { calcEff, aggregatesToStatsMap } from "../../../lib/stats";
+import { getAllUpcomingGames }          from "../../../lib/repository.prisma";
 import prisma                          from "../../../lib/prisma";
 import { z }                           from "zod";
 
@@ -32,10 +33,11 @@ async function handler(req: any, res: any) {
   }
 
   try {
-    const [seasons, players, leagues] = await Promise.all([
+    const [seasons, players, leagues, upcomingGames] = await Promise.all([
       prisma.season.findMany({ orderBy: { year: "desc" } }),
       prisma.player.findMany({ orderBy: { number: "asc" } }),
       prisma.league.findMany({ orderBy: { name:  "asc" } }),
+      getAllUpcomingGames(),
     ]);
 
     const currentSeason = seasons[0];
@@ -132,6 +134,7 @@ async function handler(req: any, res: any) {
       })),
       games:    shapedGames,
       stats:    statsMap,
+      upcomingGames,
     });
   } catch (err) {
     return res.status(500).json({ error: prodError(err) });
