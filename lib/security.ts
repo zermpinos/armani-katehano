@@ -25,7 +25,7 @@ export const SESSION_TTL_S  = 8 * 60 * 60; // 8 hours
  * Signs a payload string with HMAC-SHA256.
  * Returns a cookie-safe value: base64url(payload).base64url(sig)
  */
-export function signSession(payload) {
+export function signSession(payload: string) {
   if (!SESSION_SECRET) throw new Error("SESSION_SECRET is not set");
   const data = Buffer.from(payload).toString("base64url");
   const sig  = crypto
@@ -39,7 +39,7 @@ export function signSession(payload) {
  * Verifies and decodes a signed session cookie value.
  * Returns the original payload string, or null if invalid.
  */
-export function verifySession(cookieValue) {
+export function verifySession(cookieValue: string | null | undefined) {
   if (!SESSION_SECRET || !cookieValue) return null;
 
   // Use lastIndexOf so dots inside the base64url payload don't break the split
@@ -76,14 +76,14 @@ export const verifyPayload = verifySession;
  * Extracts the raw session cookie string from a Next.js request object.
  * requireAuth.js calls getSessionToken(req) before passing to verifyPayload().
  */
-export function getSessionToken(req) {
+export function getSessionToken(req: any) {
   return req.cookies?.[COOKIE_NAME] ?? "";
 }
 
 /**
  * Builds the Set-Cookie header string for a new session.
  */
-export function buildSessionCookie(payload) {
+export function buildSessionCookie(payload: string) {
   const value = signSession(payload);
   return [
     `${COOKIE_NAME}=${value}`,
@@ -104,7 +104,7 @@ export function clearSessionCookie() {
 
 // ─── Password verification (S-03) ────────────────────────────────────────────
 
-export async function verifyPassword(plaintext) {
+export async function verifyPassword(plaintext: string) {
   const hash = process.env.ADMIN_PASSWORD;
   if (!hash) {
     console.error("[security] ADMIN_PASSWORD is not set");
@@ -140,7 +140,7 @@ const CSRF_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
  * SameSite=Strict on the session cookie provides the primary CSRF defence;
  * this is a defence-in-depth layer.
  */
-export function csrfCheck(req, { strict = false } = {}) {
+export function csrfCheck(req: any, { strict = false } = {}) {
   if (!CSRF_METHODS.has(req.method)) return true;
 
   const host    = req.headers["host"]    ?? "";
@@ -160,7 +160,7 @@ export function csrfCheck(req, { strict = false } = {}) {
 /**
  * @deprecated Use csrfCheck(). Kept for any remaining callers.
  */
-export const checkCsrf = (req) => csrfCheck(req, { strict: true });
+export const checkCsrf = (req: any) => csrfCheck(req, { strict: true });
 
 // ─── Security headers ─────────────────────────────────────────────────────────
 
@@ -188,7 +188,7 @@ export const MAX_LOGIN_ATTEMPTS = 5;
 // ─── Audit log ────────────────────────────────────────────────────────────────
 
 /** Structured audit log -> Vercel log drain. */
-export function auditLog(event, data = {}) {
+export function auditLog(event: string, data: Record<string, unknown> = {}) {
   console.log(JSON.stringify({
     type:      "[AUDIT]",
     event,
