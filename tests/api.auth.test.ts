@@ -26,9 +26,9 @@ vi.mock("../lib/security", async (importOriginal) => {
   return { ...actual, verifyPassword: vi.fn() };
 });
 
-import { isLockedOut, recordAttempt, clearAttempts } from "../lib/loginAttempts.js";
+import { isLockedOut, recordAttempt, clearAttempts } from "../lib/loginAttempts";
 import { verifyPassword, signSession }                from "../lib/security";
-import handler                                         from "../pages/api/auth.js";
+import handler                                         from "../pages/api/auth";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

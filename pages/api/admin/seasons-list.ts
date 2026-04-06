@@ -3,7 +3,7 @@
  * GET /api/admin/seasons-list -> list all seasons
  */
 
-import { requireAuth }               from "../../../lib/requireAuth.js";
+import { requireAuth }               from "../../../lib/requireAuth";
 import { prodError }    from "../../../lib/utils"; //
 import { securityHeaders }           from "../../../lib/security";
 import prisma                        from "../../../lib/prisma";
