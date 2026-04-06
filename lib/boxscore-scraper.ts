@@ -10,7 +10,7 @@ import * as cheerio from 'cheerio';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function parseShotStat($cell) {
+function parseShotStat($cell: any) {
   const boldText = $cell.find('span.bold').text().trim();
   const full     = $cell.text().trim();
 
@@ -28,14 +28,14 @@ function parseShotStat($cell) {
   return { made, attempted, pct };
 }
 
-function parseNum(text) {
+function parseNum(text: string) {
   text = (text || '').trim();
   if (text === '') return null;
   const n = parseFloat(text);
   return isNaN(n) ? text : n;
 }
 
-function clean(text) {
+function clean(text: string) {
   return (text || '').replace(/\s+/g, ' ').trim();
 }
 
@@ -49,7 +49,7 @@ function clean(text) {
  * @param {string} url   Source URL (used for absolute profile links + origin)
  * @returns {object}     { url, game, teams }
  */
-export function scrapeGame(html, url) {
+export function scrapeGame(html: string, url: string) {
   // The site injects table HTML via inline JS: loadDoc("<table...>", "statistics1")
   const loadDocRe = /loadDoc\("((?:[^"\\]|\\[\s\S])*)",\s*"([\w]+)"\)/g;
   let match;
@@ -65,7 +65,7 @@ export function scrapeGame(html, url) {
   const $ = cheerio.load(html);
   const baseOrigin = new URL(url).origin;
 
-  const result = { url, game: {}, teams: [] };
+  const result: { url: string; game: Record<string, any>; teams: any[] } = { url, game: {}, teams: [] };
 
   // ── Game header ──────────────────────────────────────────────────────────
   const nameDivs = $('.name');
@@ -102,7 +102,7 @@ export function scrapeGame(html, url) {
       };
     });
 
-    const q4home = parsed[3].home;
+    const q4home = parsed[3].home as number;
     if (!result.game.quarterScores || q4home > result.game.quarterScores[3].home) {
       result.game.quarterScores = parsed;
     }
@@ -130,9 +130,9 @@ export function scrapeGame(html, url) {
       .map(th => clean($(th).text()))
       .filter(h => h);
 
-    const players = [];
-    let totals    = null;
-    const coaches = { coach: null, assistants: null };
+    const players: any[] = [];
+    let totals: Record<string, any> | null = null;
+    const coaches: { coach: string | null; assistants: string | null } = { coach: null, assistants: null };
 
     const altPs = $section.find('.alt p.title');
     coaches.coach      = clean(altPs.eq(0).text()).replace(/^Coach\s*/i, '')       || null;
@@ -150,7 +150,7 @@ export function scrapeGame(html, url) {
         headers.forEach((h, idx) => {
           if (!h || !cells[idx]) return;
           const $c = $(cells[idx]);
-          totals[h] = SHOT_COLS.includes(h)
+          (totals as Record<string, any>)[h] = SHOT_COLS.includes(h)
             ? parseShotStat($c)
             : (parseNum($c.text()) ?? clean($c.text()));
         });
@@ -160,7 +160,7 @@ export function scrapeGame(html, url) {
       if (col0 === 'Team/Coaches') continue;
       if (!/^\d+$/.test(col0)) continue;
 
-      const player = {};
+      const player: Record<string, any> = {};
       headers.forEach((h, idx) => {
         if (!h || !cells[idx]) return;
         const $c   = $(cells[idx]);

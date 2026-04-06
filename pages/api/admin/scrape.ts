@@ -8,8 +8,8 @@
  */
 
 import { z }                              from 'zod';
-import { requireAuth }                   from '../../../lib/requireAuth.js';
-import { scrapeGame }                    from '../../../lib/boxscore-scraper.js';
+import { requireAuth }                   from '../../../lib/requireAuth';
+import { scrapeGame }                    from '../../../lib/boxscore-scraper';
 import { securityHeaders }               from '../../../lib/security';
 import { ScrapedGameSchema }             from '../../../lib/validators';
 

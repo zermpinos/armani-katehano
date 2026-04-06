@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * tests/schema.test.js
  * Tests for the BoxScoreRowSchema Zod validations in pages/api/admin/games.js

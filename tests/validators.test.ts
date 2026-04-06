@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * tests/validators.test.js
  * Additional tests for lib/validators -- coercion, boundary values, ScrapedGameSchema.

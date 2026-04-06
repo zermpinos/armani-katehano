@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * tests/api.games.public.test.js
  * Integration tests for pages/api/games/[id].js

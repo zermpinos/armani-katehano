@@ -9,10 +9,10 @@
  * Protected by requireAuth -- same as all other admin endpoints.
  */
 
-import { requireAuth }       from "../../../lib/requireAuth.js";
+import { requireAuth }       from '../../../lib/requireAuth';
 import { securityHeaders }   from "../../../lib/security";
 import prisma                from "../../../lib/prisma";
-import { recalcAggregates }  from "../../../lib/stats.prisma.js";
+import { recalcAggregates }  from '../../../lib/stats.prisma';
 
 async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));

@@ -7,7 +7,7 @@ import crypto from 'crypto';
  * Returns true only if both the env var and the provided slug are
  * non-empty strings that match byte-for-byte.
  */
-export async function validateAdminSlug(slug) {
+export async function validateAdminSlug(slug: string | undefined): Promise<boolean> {
   const expected = process.env.ADMIN_SLUG;
 
   // Guard: if ADMIN_SLUG is not configured, never grant access.
