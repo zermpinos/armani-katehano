@@ -15,7 +15,7 @@ export default function RosterPage({ validSlug }: any) {
   const router = useRouter();
   const slug = router.query.slug || validSlug;
 
-  const { authed, loading: checking, loginError, handleLogin } = useAdminAuth(slug);
+  const { authed, loading: checking, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
 
   const [players, setPlayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -29,9 +29,7 @@ export default function RosterPage({ validSlug }: any) {
   const loadPlayers = async () => {
     setLoading(true);
     try {
-      // A-01 fix: pull players from the central /api/admin/data endpoint,
-      // which is auth-gated by requireAuth and already returns the full player list.
-      const res = await fetch("/api/admin/data");
+      const res = await fetch("/api/admin/players");
       if (res.ok) {
         const d = await res.json();
         setPlayers(d.players ?? []);
@@ -50,6 +48,8 @@ export default function RosterPage({ validSlug }: any) {
   const upd       = (k: any, v: any) => setDraft((d: any) => ({ ...d, [k]: v }));
 
   const save = async () => {
+    if (!draft.name?.trim())        { showToast("Name is required", "error"); return; }
+    if (draft.number === "" || draft.number === undefined) { showToast("Jersey number is required", "error"); return; }
     const isNew = editId === "new";
     const res = await fetch("/api/admin/players", {
       method:  isNew ? "POST" : "PUT",
@@ -95,7 +95,7 @@ export default function RosterPage({ validSlug }: any) {
   );
 
   return (
-    <AdminLayout slug={slug} title="Roster" toast={toast} setToast={setToast}>
+    <AdminLayout slug={slug} title="Roster" toast={toast} setToast={setToast} onLogout={handleLogout}>
       <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontSize: 20, fontWeight: 900, color: C.text }}>Roster</div>
         <Btn onClick={startNew}>+ ADD PLAYER</Btn>
