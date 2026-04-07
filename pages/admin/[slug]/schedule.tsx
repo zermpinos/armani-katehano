@@ -43,7 +43,10 @@ export default function SchedulePage({ validSlug }: any) {
 
   const startNew = () => {
     const now = new Date();
-    const dateStr = now.toISOString().split("T")[0];
+    const day = String(now.getDate()).padStart(2, "0");
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = now.getFullYear();
+    const dateStr = `${day}-${month}-${year}`;
     const timeStr = "20:00";
     setDraft({ opponent: "", date: dateStr, time: timeStr, location: "home", competition: "", notes: "" });
     setEditId("new");
@@ -51,7 +54,11 @@ export default function SchedulePage({ validSlug }: any) {
 
   const startEdit = (g: any) => {
     const iso = g.scheduledFor;
-    const dateStr = iso.split("T")[0];
+    const date = new Date(iso);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    const dateStr = `${day}-${month}-${year}`;
     const timeStr = iso.slice(11, 16);
     setDraft({ ...g, date: dateStr, time: timeStr });
     setEditId(g.id);
@@ -66,8 +73,9 @@ export default function SchedulePage({ validSlug }: any) {
       return;
     }
     const isNew = editId === "new";
-    // Combine date and time into ISO string: "2026-04-09T20:00:00Z"
-    const scheduledFor = `${draft.date}T${draft.time}:00Z`;
+    // Convert DD-MM-YYYY to YYYY-MM-DD and combine with time: "2026-04-09T20:00:00Z"
+    const [day, month, year] = draft.date.split("-");
+    const scheduledFor = `${year}-${month}-${day}T${draft.time}:00Z`;
     const res = await fetch("/api/admin/schedule", {
       method:  isNew ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
@@ -110,24 +118,8 @@ export default function SchedulePage({ validSlug }: any) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: 10, marginBottom: 12 }}>
         <F label="OPPONENT" value={draft.opponent} onChange={(v: any) => updGame("opponent", v)} />
-        <div>
-          <label style={{ fontSize: 10, fontWeight: 900, color: C.textDim, display: "block", marginBottom: 4 }}>DATE</label>
-          <input
-            type="date"
-            value={draft.date || ""}
-            onChange={(e) => updGame("date", e.target.value)}
-            style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontSize: 13, fontFamily: "inherit", cursor: "pointer" }}
-          />
-        </div>
-        <div>
-          <label style={{ fontSize: 10, fontWeight: 900, color: C.textDim, display: "block", marginBottom: 4 }}>TIME (24HR)</label>
-          <input
-            type="time"
-            value={draft.time || ""}
-            onChange={(e) => updGame("time", e.target.value)}
-            style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontSize: 13, fontFamily: "inherit", cursor: "pointer" }}
-          />
-        </div>
+        <F label="DATE (DD-MM-YYYY)" value={draft.date} onChange={(v: any) => updGame("date", v)} placeholder="09-04-2026" />
+        <F label="TIME" value={draft.time} onChange={(v: any) => updGame("time", v)} placeholder="18:45" type="time" />
         <Sel label="HOME/AWAY" value={draft.location} onChange={(v: any) => updGame("location", v)} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
         <F label="COMPETITION" value={draft.competition} onChange={(v: any) => updGame("competition", v)} placeholder="e.g. Super Winter Cup" />
       </div>
