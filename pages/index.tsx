@@ -33,48 +33,63 @@ function formatGameTime(isoStr: string): string {
   return isoStr.slice(11, 16);
 }
 
-// Generate Google Calendar link
-function getGoogleCalendarLink(opponent: string, isoStr: string, venue?: string): string {
-  const gameTime = new Date(isoStr);
-  const endTime = new Date(gameTime.getTime() + 120 * 60000); // 2 hours duration
-
-  const formatGoogleTime = (date: Date) => {
-    return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-  };
-
-  const title = encodeURIComponent(`Armani Katehano vs ${opponent}`);
-  const details = encodeURIComponent(venue ? `Venue: ${venue}` : "Game");
-  const location = encodeURIComponent(venue || "");
-  const dates = `${formatGoogleTime(gameTime)}/${formatGoogleTime(endTime)}`;
-
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${dates}`;
-}
-
-// Generate Apple Calendar (iCal) link
-function getAppleCalendarLink(opponent: string, isoStr: string, venue?: string): string {
-  const gameTime = new Date(isoStr);
-  const endTime = new Date(gameTime.getTime() + 120 * 60000); // 2 hours duration
-
-  const formatICalTime = (date: Date) => {
-    return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-  };
+// Generate and download .ics file with Europe/Athens timezone
+function downloadIcsFile(opponent: string, isoStr: string, venue?: string): void {
+  // isoStr is like "2026-04-09T17:30:00" -- already in Athens local time
+  const dtStart = isoStr.replace(/[-:]/g, "").split(".")[0];
+  // Add 2 hours for end time
+  const [datePart, timePart] = isoStr.split("T");
+  const [hh, mm, ss] = timePart.split(":");
+  const endHH = String(parseInt(hh) + 2).padStart(2, "0");
+  const dtEnd = `${datePart.replace(/-/g, "")}T${endHH}${mm}${ss || "00"}`;
 
   const title = `Armani Katehano vs ${opponent}`;
-  const description = venue ? `Venue: ${venue}` : "";
+  const description = venue ? `Venue: ${venue}` : "Game";
+  const uid = `${dtStart}-${opponent.replace(/\s+/g, "")}@armanikatehano`;
 
-  const ical = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Armani Katehano//EN
-BEGIN:VEVENT
-DTSTART:${formatICalTime(gameTime)}
-DTEND:${formatICalTime(endTime)}
-SUMMARY:${title}
-DESCRIPTION:${description}
-END:VEVENT
-END:VCALENDAR`;
+  const ical = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Armani Katehano//EN",
+    "CALSCALE:GREGORIAN",
+    "BEGIN:VTIMEZONE",
+    "TZID:Europe/Athens",
+    "BEGIN:STANDARD",
+    "DTSTART:19701025T040000",
+    "RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU",
+    "TZOFFSETFROM:+0300",
+    "TZOFFSETTO:+0200",
+    "TZNAME:EET",
+    "END:STANDARD",
+    "BEGIN:DAYLIGHT",
+    "DTSTART:19700329T030000",
+    "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU",
+    "TZOFFSETFROM:+0200",
+    "TZOFFSETTO:+0300",
+    "TZNAME:EEST",
+    "END:DAYLIGHT",
+    "END:VTIMEZONE",
+    "BEGIN:VEVENT",
+    `DTSTART;TZID=Europe/Athens:${dtStart}`,
+    `DTEND;TZID=Europe/Athens:${dtEnd}`,
+    `SUMMARY:${title}`,
+    `DESCRIPTION:${description}`,
+    venue ? `LOCATION:${venue}` : "",
+    `UID:${uid}`,
+    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].filter(Boolean).join("\r\n");
 
-  const encoded = encodeURIComponent(ical);
-  return `data:text/calendar,${encoded}`;
+  const blob = new Blob([ical], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Armani-Katehano-vs-${opponent.replace(/\s+/g, "-")}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 
@@ -507,79 +522,44 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                     }}>
                       {label}
                     </div>
-                    {/* Calendar buttons */}
-                    <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
-                      <div style={{ fontSize:10, fontWeight:600, color:C.textDim, letterSpacing:"0.03em" }}>Add to calendar</div>
-                      <div style={{ display:"flex", gap:6 }}>
-                        <a
-                          href={getGoogleCalendarLink(g.opponent, g.scheduledFor, venue)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Add to Google Calendar"
-                          style={{
-                            display:"flex",
-                            alignItems:"center",
-                            justifyContent:"center",
-                            width:28,
-                            height:28,
-                            borderRadius:6,
-                            border:`1px solid ${C.border}`,
-                            background:C.base,
-                            color:C.text,
-                            fontSize:13,
-                            fontWeight:700,
-                            textDecoration:"none",
-                            transition:"all 0.2s ease",
-                            cursor:"pointer",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = C.redText;
-                            e.currentTarget.style.color = C.surface;
-                            e.currentTarget.style.borderColor = C.redText;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = C.base;
-                            e.currentTarget.style.color = C.text;
-                            e.currentTarget.style.borderColor = C.border;
-                          }}
-                        >
-                          📅
-                        </a>
-                        <a
-                          href={getAppleCalendarLink(g.opponent, g.scheduledFor, venue)}
-                          download={`Armani-Katehano-vs-${g.opponent.replace(/\s+/g, "-")}.ics`}
-                          title="Download .ics file"
-                          style={{
-                            display:"flex",
-                            alignItems:"center",
-                            justifyContent:"center",
-                            width:28,
-                            height:28,
-                            borderRadius:6,
-                            border:`1px solid ${C.border}`,
-                            background:C.base,
-                            color:C.text,
-                            fontSize:13,
-                            fontWeight:700,
-                            textDecoration:"none",
-                            transition:"all 0.2s ease",
-                            cursor:"pointer",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = C.redText;
-                            e.currentTarget.style.color = C.surface;
-                            e.currentTarget.style.borderColor = C.redText;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = C.base;
-                            e.currentTarget.style.color = C.text;
-                            e.currentTarget.style.borderColor = C.border;
-                          }}
-                        >
-                          📋
-                        </a>
-                      </div>
-                    </div>
+                    {/* Download .ics */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); downloadIcsFile(g.opponent, g.scheduledFor, venue); }}
+                      title="Save to calendar (.ics)"
+                      style={{
+                        display:"flex",
+                        alignItems:"center",
+                        gap:6,
+                        padding:"6px 10px",
+                        borderRadius:8,
+                        border:`1px solid ${C.border}`,
+                        background:C.base,
+                        color:C.textSub,
+                        fontSize:11,
+                        fontWeight:700,
+                        cursor:"pointer",
+                        transition:"all 0.2s ease",
+                        fontFamily:"inherit",
+                        whiteSpace:"nowrap",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = C.redText;
+                        e.currentTarget.style.color = C.surface;
+                        e.currentTarget.style.borderColor = C.redText;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = C.base;
+                        e.currentTarget.style.color = C.textSub;
+                        e.currentTarget.style.borderColor = C.border;
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      .ics
+                    </button>
                   </div>
                 </div>
               );
