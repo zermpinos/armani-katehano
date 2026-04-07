@@ -107,6 +107,16 @@ export function AdminLayout({ slug, title, children, toast, setToast, onLogout }
               </a>
             );
           })}
+          {onLogout && (
+            <button onClick={onLogout} style={{
+              marginLeft: 'auto', padding: '6px 12px', fontSize: 10, fontWeight: 900,
+              letterSpacing: '0.1em', textTransform: 'uppercase', background: 'transparent',
+              border: `1px solid ${C.border2}`, borderRadius: 6, color: C.textDim,
+              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+            }}>
+              Sign out
+            </button>
+          )}
         </div>
       </div>
 
@@ -295,24 +305,6 @@ export function Sel({ label, value, onChange, options = [] }: { label: any; valu
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     </label>
-  );
-}
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
-export function Toast({ message, type = 'success', onClose }: { message: any; type?: string; onClose: any }) {
-  if (!message) return null;
-  return (
-    <div style={{
-      position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 50,
-      padding: '12px 18px', borderRadius: 10,
-      background: type === 'error' ? `${C.red}22` : `${C.green}22`,
-      color: type === 'error' ? C.redText : C.green,
-      border: `1px solid ${type === 'error' ? `${C.red}55` : `${C.green}55`}`,
-      display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, fontWeight: 700,
-    }}>
-      <span>{message}</span>
-      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'inherit', fontWeight: 900 }}>×</button>
-    </div>
   );
 }
 

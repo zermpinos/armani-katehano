@@ -4,12 +4,10 @@
  */
 
 import { requireAuth }               from "../../../lib/requireAuth";
-import { prodError }    from "../../../lib/utils"; //
-import { securityHeaders }           from "../../../lib/security";
+import { prodError }                 from "../../../lib/utils";
 import prisma                        from "../../../lib/prisma";
 
 async function handler(req: any, res: any) {
-  Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method !== "GET") return res.status(405).end();
 
   try {
