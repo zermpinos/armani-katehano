@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRouter } from "next/router";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import { C } from "../lib/theme";
@@ -31,10 +32,32 @@ const COLS = [
   { key:"eff",   label:"EFF", title:"Efficiency Rating",       dec:1 },
 ];
 
+// Only columns backed by DB total columns -- no avg*gp approximations
+const TOTAL_COLS = [
+  { key:"gp",        label:"GP",  title:"Games Played",          dec:0 },
+  { key:"pts_total", label:"PTS", title:"Total Points",           dec:0 },
+  { key:"reb_total", label:"REB", title:"Total Rebounds",         dec:0 },
+  { key:"ast_total", label:"AST", title:"Total Assists",          dec:0 },
+  { key:"fgm",       label:"FGM", title:"Field Goals Made",       dec:0 },
+  { key:"fga",       label:"FGA", title:"Field Goals Attempted",  dec:0 },
+  { key:"fgPct",     label:"FG%", title:"Field Goal %",           dec:1, pct:true },
+  { key:"fg3m",      label:"3PM", title:"3-Pointers Made",        dec:0 },
+  { key:"fg3a",      label:"3PA", title:"3-Pointers Attempted",   dec:0 },
+  { key:"fg3Pct",    label:"3P%", title:"3-Point %",              dec:1, pct:true },
+  { key:"ftm",       label:"FTM", title:"Free Throws Made",       dec:0 },
+  { key:"fta",       label:"FTA", title:"Free Throws Attempted",  dec:0 },
+  { key:"ftPct",     label:"FT%", title:"Free Throw %",           dec:1, pct:true },
+  { key:"fg2Pct",    label:"2P%", title:"2-Point %",              dec:1, pct:true },
+];
+
 export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap }: any) {
+  const router = useRouter();
   const [sortKey, setSortKey] = useState("ppg");
   const [sortDir, setSortDir] = useState("desc");
   const [activeSeason, setActiveSeason] = useState(currentSeason);
+  const [viewMode, setViewMode] = useState<"avg" | "tot">("avg");
+
+  const activeCols = viewMode === "avg" ? COLS : TOTAL_COLS;
 
   // Pick stats source based on selected season
   const activeStats = activeSeason === "all-time" ? allTimeStatsMap : statsMap;
@@ -42,6 +65,12 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
   const handleSort = (key: any) => {
     if (key === sortKey) setSortDir(d => d === "desc" ? "asc" : "desc");
     else { setSortKey(key); setSortDir("desc"); }
+  };
+
+  const handleViewMode = (mode: "avg" | "tot") => {
+    setViewMode(mode);
+    setSortKey(mode === "avg" ? "ppg" : "pts_total");
+    setSortDir("desc");
   };
 
   // Merge bio + stats, filter to players who have played
@@ -61,13 +90,28 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
       <SeasonSelector
         seasons={seasons}
         currentSeason={activeSeason}
-        onChange={setActiveSeason}
+        onChange={sid => { setActiveSeason(sid); }}
         showAllTime={true}
-        right="Click column to sort"
+        right={
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+            {(["avg","tot"] as const).map(m => (
+              <button key={m} onClick={() => handleViewMode(m)} style={{
+                padding:"3px 10px", fontSize:10, fontWeight:900, letterSpacing:"0.1em",
+                borderRadius:6, border:`1px solid ${viewMode===m ? `${C.redBright}60` : C.border}`,
+                background: viewMode===m ? `${C.red}25` : "transparent",
+                color: viewMode===m ? C.redText : C.textDim,
+                cursor:"pointer", fontFamily:"inherit",
+              }}>
+                {m.toUpperCase()}
+              </button>
+            ))}
+            <span style={{ fontSize:11, color:C.textDim, marginLeft:4 }}>Click column to sort</span>
+          </div>
+        }
       />
 
       <div style={{ fontSize:12, color:C.textDim, marginBottom:16 }}>
-        Sorted by: <span style={{ color:C.redText, fontWeight:900 }}>{COLS.find(c=>c.key===sortKey)?.title}</span>
+        Sorted by: <span style={{ color:C.redText, fontWeight:900 }}>{activeCols.find(c=>c.key===sortKey)?.title}</span>
         <span style={{ color:C.textDim }}> {sortDir==="desc"?"↓":"↑"}</span>
       </div>
 
@@ -80,7 +124,7 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
                 <th style={{ padding:"10px 14px", textAlign:"left", fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim, width:32 }}>#</th>
                 <th style={{ padding:"10px 14px", textAlign:"left", fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim, minWidth:160 }}>PLAYER</th>
                 <th style={{ padding:"10px 8px", fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim, minWidth:48 }}>POS</th>
-                {COLS.map(col => (
+                {activeCols.map(col => (
                   <th key={col.key} onClick={() => handleSort(col.key)} title={col.title} style={{
                     padding:"10px 8px", minWidth:52, cursor:"pointer", userSelect:"none",
                   }}>
@@ -98,7 +142,15 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
               {sorted.map((p, idx) => {
                 const medal = idx < 3 ? MEDALS[idx] : null;
                 return (
-                  <tr key={p.id} style={{ background: medal ? medal.bg : idx%2===0 ? C.surface : C.surface2, borderBottom:`1px solid ${C.border}` }}>
+                  <tr
+                    key={p.id}
+                    onClick={() => router.push(`/players?player=${p.id}`)}
+                    style={{
+                      background: medal ? medal.bg : idx%2===0 ? C.surface : C.surface2,
+                      borderBottom:`1px solid ${C.border}`,
+                      cursor:"pointer",
+                    }}
+                  >
                     <td style={{ padding:"10px 14px", textAlign:"center" }}>
                       {medal ? <span style={{ fontSize:16 }}>{medal.label}</span>
                               : <span style={{ fontSize:11, fontWeight:900, color:C.textDim }}>{idx+1}</span>}
@@ -116,9 +168,15 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
                       </div>
                     </td>
                     <td style={{ padding:"10px 8px", textAlign:"center", fontSize:11, fontWeight:700, color:C.textDim }}>{p.position.split("/")[0]}</td>
-                    {COLS.map(col => {
+                    {activeCols.map(col => {
                       const val = p.stats[col.key];
-                      const display = col.pct ? (val > 0 ? `${val.toFixed(col.dec)}%` : "--") : (col as any).min ? (val > 0 ? fmtMinutes(val) : "--") : val?.toFixed(col.dec) ?? "--";
+                      const display = (col as any).pct
+                        ? (val > 0 ? `${val.toFixed(col.dec)}%` : "--")
+                        : (col as any).min
+                          ? (val > 0 ? fmtMinutes(val) : "--")
+                          : col.dec === 0
+                            ? (val != null ? String(val) : "--")
+                            : val?.toFixed(col.dec) ?? "--";
                       return (
                         <td key={col.key} style={{ padding:"10px 8px", textAlign:"center" }}>
                           <span style={{ fontWeight: col.key===sortKey ? 900 : 600, color: col.key===sortKey && idx===0 ? C.redText : col.key===sortKey ? C.text : C.textSub }}>
