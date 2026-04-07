@@ -75,7 +75,7 @@ export default function SchedulePage({ validSlug }: any) {
     const isNew = editId === "new";
     // Convert DD-MM-YYYY to YYYY-MM-DD and combine with time: "2026-04-09T20:00:00Z"
     const [day, month, year] = draft.date.split("-");
-    const scheduledFor = `${year}-${month}-${day}T${draft.time}:00Z`;
+    const scheduledFor = `${year}-${month}-${day}T${draft.time}:00`;
     const res = await fetch("/api/admin/schedule", {
       method:  isNew ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
