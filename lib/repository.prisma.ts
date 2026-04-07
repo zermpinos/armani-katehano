@@ -166,14 +166,35 @@ export async function getAllGames() {
 // ─── Box score for a single game (fetched on demand) ─────────────────────────
 
 export async function getBoxScore(gameId: string) {
-  const stats = await prisma.playerGameStat.findMany({
-    where:   { gameId },
-    include: { player: { select: { id: true, name: true, number: true, position: true } } },
-    orderBy: { player: { number: "asc" } },
-  });
+  const stats = await prisma.$queryRaw`
+    SELECT
+      pgs."playerId" as "pid",
+      pgs."minutes" as "min",
+      pgs."pts",
+      pgs."reb",
+      pgs."orb",
+      pgs."drb",
+      pgs."ast",
+      pgs."stl",
+      pgs."blk",
+      pgs."tov",
+      pgs."pf",
+      pgs."fgm",
+      pgs."fga",
+      pgs."fg2m",
+      pgs."fg2a",
+      pgs."fg3m",
+      pgs."fg3a",
+      pgs."ftm",
+      pgs."fta"
+    FROM "PlayerGameStat" pgs
+    WHERE pgs."gameId" = ${gameId} AND pgs."minutes" > 0
+    ORDER BY (SELECT "number" FROM "Player" WHERE "id" = pgs."playerId") ASC
+  ` as any[];
+
   return stats.map(r => ({
-    pid:  r.playerId,
-    min:  r.minutes,
+    pid:  r.pid,
+    min:  r.min,
     pts:  r.pts,
     reb:  r.reb,
     orb:  r.orb,
