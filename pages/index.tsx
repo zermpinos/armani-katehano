@@ -17,8 +17,8 @@ function getCountdownInfo(isoStr: string): { label: string; tier: "today" | "wee
   const gameDay = new Date(gameTime.getFullYear(), gameTime.getMonth(), gameTime.getDate());
   const daysUntil = Math.ceil((gameDay.getTime() - todayStart.getTime()) / 86400000);
 
-  // Format time in Athens timezone (HH:MM)
-  const fmtTime = () => gameTime.toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Athens" });
+  // Format time in 24-hour format (HH:MM)
+  const fmtTime = () => isoStr.slice(11, 16);
 
   if (daysUntil === 0)       return { label: `Today at ${fmtTime()}`, tier: "today" };
   if (daysUntil === 1)       return { label: `Tomorrow at ${fmtTime()}`, tier: "week" };
@@ -26,10 +26,9 @@ function getCountdownInfo(isoStr: string): { label: string; tier: "today" | "wee
   /* future */               return { label: fmtDate(isoStr), tier: "future" };
 }
 
-// Format time prominently in Athens timezone
+// Format time in 24-hour format (HH:MM)
 function formatGameTime(isoStr: string): string {
-  const gameTime = new Date(isoStr);
-  return gameTime.toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Athens" });
+  return isoStr.slice(11, 16);
 }
 
 // Generate Google Calendar link
