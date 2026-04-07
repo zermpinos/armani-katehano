@@ -597,43 +597,47 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
           alignItems:"center",
           justifyContent:"center",
           zIndex:1000,
-          padding:16,
+          padding:"16px",
         }}
         onClick={(e) => e.target === e.currentTarget && setShowTrendModal(false)}
+        className="trend-modal-backdrop"
         >
           <div style={{
             borderRadius:16,
-            padding:32,
+            padding:"clamp(16px, 4vw, 32px)",
             background:C.surface,
             border:`1px solid ${C.border}`,
-            maxWidth:"90vw",
+            maxWidth:"95vw",
             width:"100%",
             maxHeight:"90vh",
             display:"flex",
             flexDirection:"column",
             boxShadow:"0 20px 64px rgba(0,0,0,0.3)",
-          }}>
+          }} className="trend-modal-content">
             {/* Header */}
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:24 }}>
-              <div>
+            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"clamp(16px, 3vw, 24px)", gap:16 }}>
+              <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase", marginBottom:4 }}>Scoring Trend</div>
-                <div style={{ fontSize:22, fontWeight:700, color:C.text }}>Last {extendedTrend.length} Games</div>
+                <div style={{ fontSize:"clamp(18px, 5vw, 22px)", fontWeight:700, color:C.text }}>Last {extendedTrend.length} Games</div>
               </div>
               <button
                 onClick={() => setShowTrendModal(false)}
                 style={{
-                  width:40,
-                  height:40,
+                  width:"clamp(32px, 8vw, 40px)",
+                  height:"clamp(32px, 8vw, 40px)",
+                  minWidth:32,
+                  minHeight:32,
                   borderRadius:8,
                   border:`1px solid ${C.border}`,
                   background:C.base,
                   color:C.text,
-                  fontSize:20,
+                  fontSize:"clamp(16px, 4vw, 20px)",
                   cursor:"pointer",
                   display:"flex",
                   alignItems:"center",
                   justifyContent:"center",
                   transition:"all 0.2s ease",
+                  flexShrink:0,
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = C.redText;
@@ -651,18 +655,18 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
             </div>
 
             {/* Range selection */}
-            <div style={{ display:"flex", gap:8, marginBottom:24, flexWrap:"wrap" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(70px, 1fr))", gap:"8px", marginBottom:"clamp(16px, 3vw, 24px)" }} className="trend-buttons">
               {[10, 20, 30].map(range => (
                 <button
                   key={range}
                   onClick={() => setTrendRange(range)}
                   style={{
-                    padding:"8px 16px",
+                    padding:"clamp(6px, 2vw, 8px) clamp(12px, 3vw, 16px)",
                     borderRadius:8,
                     border:`1px solid ${trendRange === range ? C.redText : C.border}`,
                     background:trendRange === range ? `${C.redText}15` : C.base,
                     color:trendRange === range ? C.redText : C.text,
-                    fontSize:13,
+                    fontSize:"clamp(11px, 2.5vw, 13px)",
                     fontWeight:700,
                     cursor:"pointer",
                     transition:"all 0.2s ease",
@@ -686,12 +690,12 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
               <button
                 onClick={() => setTrendRange(games.length)}
                 style={{
-                  padding:"8px 16px",
+                  padding:"clamp(6px, 2vw, 8px) clamp(12px, 3vw, 16px)",
                   borderRadius:8,
                   border:`1px solid ${trendRange === games.length ? C.redText : C.border}`,
                   background:trendRange === games.length ? `${C.redText}15` : C.base,
                   color:trendRange === games.length ? C.redText : C.text,
-                  fontSize:13,
+                  fontSize:"clamp(11px, 2.5vw, 13px)",
                   fontWeight:700,
                   cursor:"pointer",
                   transition:"all 0.2s ease",
@@ -714,8 +718,8 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
             </div>
 
             {/* Chart */}
-            <div style={{ flex:1, minHeight:0, overflow:"auto" }}>
-              <ResponsiveContainer width="100%" height={400}>
+            <div style={{ flex:1, minHeight:"200px", overflow:"auto", marginRight:"-8px", paddingRight:"8px" }}>
+              <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={extendedTrend} margin={{ top:4, right:8, left:0, bottom:0 }}>
                   <defs>
                     <linearGradient id="trendFillModal" x1="0" y1="0" x2="0" y2="1">
@@ -753,6 +757,22 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
           </div>
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 640px) {
+          .trend-modal-backdrop {
+            align-items: flex-end !important;
+          }
+          .trend-modal-content {
+            borderRadius: 16px 16px 0 0 !important;
+            maxHeight: 85vh !important;
+            maxWidth: 100% !important;
+          }
+          .trend-buttons {
+            gridTemplateColumns: repeat(auto-fit, minmax(60px, 1fr)) !important;
+          }
+        }
+      `}</style>
     </Layout>
   );
 }
