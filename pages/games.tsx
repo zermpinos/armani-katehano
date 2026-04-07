@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, memo } from "react";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import SeasonSelector from "../components/SeasonSelector";
@@ -29,11 +29,14 @@ function formatTopScorer(topScorer: any) {
   return `${fmt(topScorer.name)} ${topScorer.pts} PTS`;
 }
 
-function BoxScore({ game, players, onClose, isLoading }: any) {
-  const rows = (game.boxScore || [])
-    .map((r: any) => ({ ...r, player: players.find((p: any) => p.id === r.pid) }))
-    .filter((r: any) => r.player && r.min > 0)
-    .sort((a: any, b: any) => Number(a.player.number) - Number(b.player.number));
+const BoxScore = memo(function BoxScore({ game, players, onClose, isLoading }: any) {
+  const playerMap = useMemo(() => new Map(players.map((p: any) => [p.id, p])), [players]);
+
+  const rows = useMemo(() => {
+    return (game.boxScore || [])
+      .map((r: any) => ({ ...r, player: playerMap.get(r.pid) }))
+      .filter((r: any) => r.player && r.min > 0);
+  }, [game.boxScore, playerMap]);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -107,7 +110,7 @@ function BoxScore({ game, players, onClose, isLoading }: any) {
       </div>
     </div>
   );
-}
+});
 
 function LeagueFilter({ leagues, selected, onChange }: any) {
   if (leagues.length <= 1) return null;
