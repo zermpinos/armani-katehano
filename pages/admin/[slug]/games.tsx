@@ -14,7 +14,7 @@ export default function GamesPage({ validSlug }: any) {
   const router = useRouter();
   const slug = router.query.slug || validSlug;
 
-  const { authed, loading: checking, loginError, handleLogin } = useAdminAuth(slug);
+  const { authed, loading: checking, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
 
   const [players,       setPlayers]       = useState<any[]>([]);
   const [games,         setGames]         = useState<any[]>([]);
@@ -73,6 +73,9 @@ export default function GamesPage({ validSlug }: any) {
   }));
 
   const save = async () => {
+    if (!draft.opponent?.trim()) { showToast("Opponent is required", "error"); return; }
+    if (!draft.date?.trim())     { showToast("Date is required", "error"); return; }
+    if (!draft.seasonLeagueId)   { showToast("League is required", "error"); return; }
     const isNew    = editId === "new";
     const boxScore = draft.boxScore.map((r: any) => {
       const fg2m = r.fg2m || 0, fg2a = r.fg2a || 0;
@@ -162,9 +165,17 @@ export default function GamesPage({ validSlug }: any) {
   );
 
   return (
-    <AdminLayout slug={slug} title="Games" toast={toast} setToast={setToast}>
+    <AdminLayout slug={slug} title="Games" toast={toast} setToast={setToast} onLogout={handleLogout}>
       <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontSize: 20, fontWeight: 900, color: C.text }}>Game results</div>
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: C.text }}>Game results</div>
+          {games.length > 0 && (
+            <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
+              {games.length} game{games.length !== 1 ? "s" : ""}
+              {games.length >= 200 && " · showing latest 200"}
+            </div>
+          )}
+        </div>
         <Btn onClick={startNew}>+ ADD GAME</Btn>
       </div>
 
@@ -172,6 +183,9 @@ export default function GamesPage({ validSlug }: any) {
         <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Spinner /></div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {games.length === 0 && editId !== "new" && (
+            <div style={{ textAlign: "center", padding: "20px 0", color: C.textDim }}>No games recorded yet</div>
+          )}
           {editId === "new" && gameForm}
           {[...games].sort((a, b) => new Date(b.date ?? b.playedOn).getTime() - new Date(a.date ?? a.playedOn).getTime()).map(g => (
             <div key={g.id}>
