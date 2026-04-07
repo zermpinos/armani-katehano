@@ -148,9 +148,176 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
         <StatTile label="OPP PPG" value={record.oppPpg || "--"} sub="allowed per game" />
       </div>
 
+      <ErrorBoundary label="Stats failed to load">
+      {hasData && (
+        <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:20 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))", gap:20 }}>
+
+            {/* Scoring trend */}
+            {trend.length > 0 && (
+              <div style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
+                <div style={{ marginBottom:12 }}>
+                  <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Scoring Trend</div>
+                  <div style={{ fontSize:18, fontWeight:700, color:C.text }}>Last {trend.length} Games</div>
+                </div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={trend} margin={{ top:4, right:8, left:0, bottom:0 }}>
+                    <defs>
+                      <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={C.redBright} stopOpacity={0.25}/>
+                        <stop offset="100%" stopColor={C.red} stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="4 4" stroke={C.border2} vertical={false} />
+                    <XAxis dataKey="idx" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
+                    <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
+                    <Tooltip
+                      {...chartTooltipStyle}
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const entries = payload.filter(p => p.name === "AK" || p.name === "OPP");
+                        if (!entries.length) return null;
+                        const game = payload[0]?.payload?.game;
+                        return (
+                          <div style={chartTooltipStyle.contentStyle}>
+                            {game && <div style={{ color: C.textDim, fontSize:10, marginBottom:4 }}>{game}</div>}
+                            {entries.map(p => (
+                              <div key={p.name} style={{ color: p.color }}>{p.name}: {p.value}</div>
+                            ))}
+                          </div>
+                        );
+                      }}
+                    />
+                    <Area type="monotone" dataKey="pts" stroke="none" fill="url(#trendFill)" legendType="none" />
+                    <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={3} dot={{ fill:C.redBright, r:3, strokeWidth:0 }} activeDot={{ r:5 }} name="AK" />
+                    <Line type="monotone" dataKey="opp" stroke={C.silver} strokeWidth={2} dot={{ fill:C.silver, r:3, strokeWidth:0 }} activeDot={{ r:5 }} strokeDasharray="5 5" name="OPP" />
+                    <Legend wrapperStyle={{ fontSize:11, color:C.textSub }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Recent results */}
+            {recentGames.length > 0 && (
+              <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
+                <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Recent Results</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                  {recentGames.map(g => (
+                    <div key={g.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                        <span style={{
+                          width:28, height:28, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
+                          fontSize:11, fontWeight:900, flexShrink:0,
+                          background: g.result==="W" ? "rgba(16,185,129,0.12)" : `${C.red}30`,
+                          color: g.result==="W" ? "#6ee7b7" : C.redText,
+                        }}>{g.result}</span>
+                        <div>
+                          <div style={{ fontSize:13, fontWeight:600, color:C.text }}>{g.home ? "vs" : "@"} {g.opponent}</div>
+                          <div style={{ fontSize:11, color:C.textDim }}>{fmtDate(g.date)}</div>
+                        </div>
+                      </div>
+                      <div style={{ textAlign:"right" }}>
+                        <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{g.score}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))", gap:20 }}>
+            {/* Top scorers -- horizontal bars, mobile-friendly, no label overlap */}
+            {topScorers.length > 0 && (
+              <div
+                style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}
+                role="img"
+                aria-label="Top Scorers -- PPG"
+              >
+                <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Top Scorers -- PPG</div>
+                <ResponsiveContainer width="100%" height={topScorers.length * 44}>
+                  <BarChart data={topScorers} layout="vertical" margin={{ top:10, right:40, left:0, bottom:10 }}>
+                    <defs>
+                      <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor={C.red} />
+                        <stop offset="100%" stopColor={C.redBright} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
+                    <XAxis type="number" tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tick={{ fill:C.textSub, fontSize:12, fontWeight:700 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={130}
+                    />
+                    <Tooltip {...chartTooltipStyle} formatter={v => [`${v} PPG`]} />
+                    <Bar
+                      dataKey="ppg"
+                      fill="url(#barGrad)"
+                      radius={[0, 6, 6, 0]}
+                      maxBarSize={Math.min(40, 600 / topScorers.length)}
+                      label={{ position:"right", fill:C.textDim, fontSize:11, fontWeight:700 }}
+                      isAnimationActive={true}
+                    >
+                      {topScorers.map((_, i) => (
+                        <Cell key={i} fill={i === 0 ? C.redBright : `url(#barGrad)`} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Efficiency leader card */}
+            {mvp && mvp.stats.eff > 0 && (
+              <div style={{ borderRadius:12, padding:20, position:"relative", overflow:"hidden", border:`1px solid ${C.redBright}40`, background:C.surface }}>
+                <div style={{ position:"absolute", top:0, right:0, width:140, height:140, borderRadius:"50%", background:`${C.red}12`, transform:"translate(40%,-40%)" }} />
+                <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.redText, marginBottom:16, textTransform:"uppercase" }}>⚡ Efficiency Leader</div>
+                <div style={{ display:"flex", gap:16, alignItems:"flex-start" }}>
+                  <div style={{ width:60, height:60, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", background:C.base, border:`1px solid ${C.border2}`, flexShrink:0 }}>
+                    <span style={{ fontSize:22 }}>🏀</span>
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:15, fontWeight:900, color:C.text }}>{fmt(mvp.name)}</div>
+                    <div style={{ fontSize:11, fontWeight:700, letterSpacing:"0.1em", color:C.textDim, marginTop:2 }}>#{mvp.number} · {mvp.position}</div>
+                    <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginTop:12 }}>
+                      {[
+                        ["PPG", mvp.stats.ppg],
+                        ["RPG", mvp.stats.rpg],
+                        ["APG", mvp.stats.apg],
+                        ["FG%", `${mvp.stats.fgPct}%`],
+                        ["EFF", mvp.stats.eff],
+                        ["MPG", mvp.stats.mpg > 0 ? fmtMinutes(mvp.stats.mpg) : "--"],
+                      ].map(([l, v]) => (
+                        <div key={l} style={{ textAlign:"center", borderRadius:8, padding:"8px 4px", background:C.base, border:`1px solid ${C.border}` }}>
+                          <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim }}>{l}</div>
+                          <div style={{ fontSize:13, fontWeight:900, color:C.text, marginTop:2 }}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      </ErrorBoundary>
+
+      {!hasData && (
+        <div style={{ textAlign:"center", padding:"48px 0", color:C.textDim }}>
+          <div style={{ fontSize:40, marginBottom:12 }}>🏀</div>
+          <div style={{ fontSize:15, fontWeight:700 }}>No data yet</div>
+          <div style={{ fontSize:13, marginTop:4 }}>Add games via the admin panel to see stats here.</div>
+        </div>
+      )}
+
       {/* Upcoming Games */}
       {upcomingGames?.length > 0 && (
-        <div style={{ borderRadius:16, padding:"20px 16px", border:`1px solid ${C.border}`, background:C.surface, marginBottom:24, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
+        <div style={{ borderRadius:16, padding:"20px 16px", border:`1px solid ${C.border}`, background:C.surface, marginBottom:24, marginTop:24, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
           <div style={{ marginBottom:16 }}>
             <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.18em", color:C.textDim, textTransform:"uppercase" }}>Schedule</div>
             <h2 style={{ fontSize:"clamp(16px,5vw,18px)", fontWeight:700, color:C.text, margin:"4px 0 0 0" }}>Upcoming Games</h2>
@@ -309,173 +476,6 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
               );
             })}
           </div>
-        </div>
-      )}
-
-      <ErrorBoundary label="Stats failed to load">
-      {hasData && (
-        <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:20 }}>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))", gap:20 }}>
-
-            {/* Scoring trend */}
-            {trend.length > 0 && (
-              <div style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
-                <div style={{ marginBottom:12 }}>
-                  <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Scoring Trend</div>
-                  <div style={{ fontSize:18, fontWeight:700, color:C.text }}>Last {trend.length} Games</div>
-                </div>
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={trend} margin={{ top:4, right:8, left:0, bottom:0 }}>
-                    <defs>
-                      <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={C.redBright} stopOpacity={0.25}/>
-                        <stop offset="100%" stopColor={C.red} stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="4 4" stroke={C.border2} vertical={false} />
-                    <XAxis dataKey="idx" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
-                    <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
-                    <Tooltip
-                      {...chartTooltipStyle}
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.length) return null;
-                        const entries = payload.filter(p => p.name === "AK" || p.name === "OPP");
-                        if (!entries.length) return null;
-                        const game = payload[0]?.payload?.game;
-                        return (
-                          <div style={chartTooltipStyle.contentStyle}>
-                            {game && <div style={{ color: C.textDim, fontSize:10, marginBottom:4 }}>{game}</div>}
-                            {entries.map(p => (
-                              <div key={p.name} style={{ color: p.color }}>{p.name}: {p.value}</div>
-                            ))}
-                          </div>
-                        );
-                      }}
-                    />
-                    <Area type="monotone" dataKey="pts" stroke="none" fill="url(#trendFill)" legendType="none" />
-                    <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={3} dot={{ fill:C.redBright, r:3, strokeWidth:0 }} activeDot={{ r:5 }} name="AK" />
-                    <Line type="monotone" dataKey="opp" stroke={C.silver} strokeWidth={2} dot={{ fill:C.silver, r:3, strokeWidth:0 }} activeDot={{ r:5 }} strokeDasharray="5 5" name="OPP" />
-                    <Legend wrapperStyle={{ fontSize:11, color:C.textSub }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* Top scorers -- horizontal bars, mobile-friendly, no label overlap */}
-            {topScorers.length > 0 && (
-              <div
-                style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}
-                role="img"
-                aria-label="Top Scorers -- PPG"
-              >
-                <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Top Scorers -- PPG</div>
-                <ResponsiveContainer width="100%" height={topScorers.length * 44}>
-                  <BarChart data={topScorers} layout="vertical" margin={{ top:10, right:40, left:0, bottom:10 }}>
-                    <defs>
-                      <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor={C.red} />
-                        <stop offset="100%" stopColor={C.redBright} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke={C.border} horizontal={false} />
-                    <XAxis type="number" tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      tick={{ fill:C.textSub, fontSize:12, fontWeight:700 }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={130}
-                    />
-                    <Tooltip {...chartTooltipStyle} formatter={v => [`${v} PPG`]} />
-                    <Bar
-                      dataKey="ppg"
-                      fill="url(#barGrad)"
-                      radius={[0, 6, 6, 0]}
-                      maxBarSize={Math.min(40, 600 / topScorers.length)}
-                      label={{ position:"right", fill:C.textDim, fontSize:11, fontWeight:700 }}
-                      isAnimationActive={true}
-                    >
-                      {topScorers.map((_, i) => (
-                        <Cell key={i} fill={i === 0 ? C.redBright : `url(#barGrad)`} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
-
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))", gap:20 }}>
-            {/* Efficiency leader card */}
-            {mvp && mvp.stats.eff > 0 && (
-              <div style={{ borderRadius:12, padding:20, position:"relative", overflow:"hidden", border:`1px solid ${C.redBright}40`, background:C.surface }}>
-                <div style={{ position:"absolute", top:0, right:0, width:140, height:140, borderRadius:"50%", background:`${C.red}12`, transform:"translate(40%,-40%)" }} />
-                <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.redText, marginBottom:16, textTransform:"uppercase" }}>⚡ Efficiency Leader</div>
-                <div style={{ display:"flex", gap:16, alignItems:"flex-start" }}>
-                  <div style={{ width:60, height:60, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", background:C.base, border:`1px solid ${C.border2}`, flexShrink:0 }}>
-                    <span style={{ fontSize:22 }}>🏀</span>
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:15, fontWeight:900, color:C.text }}>{fmt(mvp.name)}</div>
-                    <div style={{ fontSize:11, fontWeight:700, letterSpacing:"0.1em", color:C.textDim, marginTop:2 }}>#{mvp.number} · {mvp.position}</div>
-                    <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginTop:12 }}>
-                      {[
-                        ["PPG", mvp.stats.ppg],
-                        ["RPG", mvp.stats.rpg],
-                        ["APG", mvp.stats.apg],
-                        ["FG%", `${mvp.stats.fgPct}%`],
-                        ["EFF", mvp.stats.eff],
-                        ["MPG", mvp.stats.mpg > 0 ? fmtMinutes(mvp.stats.mpg) : "--"],
-                      ].map(([l, v]) => (
-                        <div key={l} style={{ textAlign:"center", borderRadius:8, padding:"8px 4px", background:C.base, border:`1px solid ${C.border}` }}>
-                          <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim }}>{l}</div>
-                          <div style={{ fontSize:13, fontWeight:900, color:C.text, marginTop:2 }}>{v}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Recent results */}
-            {recentGames.length > 0 && (
-              <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
-                <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Recent Results</div>
-                <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-                  {recentGames.map(g => (
-                    <div key={g.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                        <span style={{
-                          width:28, height:28, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
-                          fontSize:11, fontWeight:900, flexShrink:0,
-                          background: g.result==="W" ? "rgba(16,185,129,0.12)" : `${C.red}30`,
-                          color: g.result==="W" ? "#6ee7b7" : C.redText,
-                        }}>{g.result}</span>
-                        <div>
-                          <div style={{ fontSize:13, fontWeight:600, color:C.text }}>{g.home ? "vs" : "@"} {g.opponent}</div>
-                          <div style={{ fontSize:11, color:C.textDim }}>{fmtDate(g.date)}</div>
-                        </div>
-                      </div>
-                      <div style={{ textAlign:"right" }}>
-                        <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{g.score}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      </ErrorBoundary>
-
-      {!hasData && (
-        <div style={{ textAlign:"center", padding:"48px 0", color:C.textDim }}>
-          <div style={{ fontSize:40, marginBottom:12 }}>🏀</div>
-          <div style={{ fontSize:15, fontWeight:700 }}>No data yet</div>
-          <div style={{ fontSize:13, marginTop:4 }}>Add games via the admin panel to see stats here.</div>
         </div>
       )}
     </Layout>
