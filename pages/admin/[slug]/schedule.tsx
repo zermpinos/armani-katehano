@@ -43,14 +43,17 @@ export default function SchedulePage({ validSlug }: any) {
 
   const startNew = () => {
     const now = new Date();
-    const dateStr = now.toISOString().slice(0, 16);
-    setDraft({ opponent: "", scheduledFor: dateStr, location: "home", competition: "", notes: "" });
+    const dateStr = now.toISOString().split("T")[0];
+    const timeStr = "20:00";
+    setDraft({ opponent: "", date: dateStr, time: timeStr, location: "home", competition: "", notes: "" });
     setEditId("new");
   };
 
   const startEdit = (g: any) => {
-    const dateStr = g.scheduledFor.slice(0, 16);
-    setDraft({ ...g, scheduledFor: dateStr });
+    const iso = g.scheduledFor;
+    const dateStr = iso.split("T")[0];
+    const timeStr = iso.slice(11, 16);
+    setDraft({ ...g, date: dateStr, time: timeStr });
     setEditId(g.id);
   };
 
@@ -58,18 +61,20 @@ export default function SchedulePage({ validSlug }: any) {
   const updGame  = (k: any, v: any) => setDraft((d: any) => ({ ...d, [k]: v }));
 
   const save = async () => {
-    if (!draft.opponent || !draft.scheduledFor) {
-      showToast("Opponent and date are required", "error");
+    if (!draft.opponent || !draft.date || !draft.time) {
+      showToast("Opponent, date, and time are required", "error");
       return;
     }
     const isNew = editId === "new";
+    // Combine date and time into ISO string: "2026-04-09T20:00:00Z"
+    const scheduledFor = `${draft.date}T${draft.time}:00Z`;
     const res = await fetch("/api/admin/schedule", {
       method:  isNew ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...(isNew ? {} : { id: editId }),
         opponent:     draft.opponent,
-        scheduledFor: draft.scheduledFor,
+        scheduledFor: scheduledFor,
         location:     draft.location,
         competition:  draft.competition || null,
         notes:        draft.notes || null,
@@ -106,12 +111,21 @@ export default function SchedulePage({ validSlug }: any) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: 10, marginBottom: 12 }}>
         <F label="OPPONENT" value={draft.opponent} onChange={(v: any) => updGame("opponent", v)} />
         <div>
-          <label style={{ fontSize: 10, fontWeight: 900, color: C.textDim, display: "block", marginBottom: 4 }}>DATE & TIME</label>
+          <label style={{ fontSize: 10, fontWeight: 900, color: C.textDim, display: "block", marginBottom: 4 }}>DATE</label>
           <input
-            type="datetime-local"
-            value={draft.scheduledFor}
-            onChange={(e) => updGame("scheduledFor", e.target.value)}
-            style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontSize: 13, fontFamily: "inherit" }}
+            type="date"
+            value={draft.date || ""}
+            onChange={(e) => updGame("date", e.target.value)}
+            style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontSize: 13, fontFamily: "inherit", cursor: "pointer" }}
+          />
+        </div>
+        <div>
+          <label style={{ fontSize: 10, fontWeight: 900, color: C.textDim, display: "block", marginBottom: 4 }}>TIME (24HR)</label>
+          <input
+            type="time"
+            value={draft.time || ""}
+            onChange={(e) => updGame("time", e.target.value)}
+            style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontSize: 13, fontFamily: "inherit", cursor: "pointer" }}
           />
         </div>
         <Sel label="HOME/AWAY" value={draft.location} onChange={(v: any) => updGame("location", v)} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
