@@ -613,6 +613,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
             display:"flex",
             flexDirection:"column",
             boxShadow:"0 20px 64px rgba(0,0,0,0.3)",
+            minHeight:0,
           }} className="trend-modal-content">
             {/* Header */}
             <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"clamp(16px, 3vw, 24px)", gap:16 }}>
@@ -718,7 +719,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
             </div>
 
             {/* Chart */}
-            <div style={{ flex:1, minHeight:"200px", overflow:"auto", marginRight:"-8px", paddingRight:"8px" }}>
+            <div style={{ height:"clamp(250px, 50vh, 500px)", overflow:"auto", marginRight:"-8px", paddingRight:"8px" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={extendedTrend} margin={{ top:4, right:8, left:0, bottom:0 }}>
                   <defs>
