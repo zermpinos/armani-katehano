@@ -71,36 +71,38 @@ function BoxScore({ game, players, onClose, isLoading }: any) {
             <div style={{ fontSize:14, fontWeight:700 }}>Loading box score...</div>
           </div>
         ) : (
-        <div style={{ overflowX:"auto", padding:"0 0 4px" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, minWidth:700 }}>
-            <thead>
-              <tr style={{ background:C.base, borderBottom:`1px solid ${C.border2}` }}>
-                <th style={{ padding:"8px 12px", textAlign:"left", fontSize:10, fontWeight:900, color:C.textDim, letterSpacing:"0.12em", minWidth:48 }}>#</th>
-                <th style={{ padding:"8px 12px", textAlign:"left", fontSize:10, fontWeight:900, color:C.textDim, letterSpacing:"0.12em", minWidth:150 }}>PLAYER</th>
-                {BOX_COLS.map(c => <th key={c.key} style={{ padding:"8px 8px", fontSize:10, fontWeight:900, color:c.key==="eff"?C.redText:C.textDim, letterSpacing:"0.1em", minWidth:44, textAlign:"center" }}>{c.label}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r: any, i: number) => (
-                <tr key={r.pid} style={{ background: i%2===0 ? C.surface : C.surface2, borderBottom:`1px solid ${C.border}` }}>
-                  <td style={{ padding:"8px 12px", fontWeight:700, color:C.textDim }}>{r.player.number}</td>
-                  <td style={{ padding:"8px 12px" }}>
-                    <div style={{ fontWeight:700, color:C.text, fontSize:13 }}>{fmt(r.player.name)}</div>
-                    <div style={{ fontSize:10, color:C.textDim, letterSpacing:"0.1em" }}>{r.player.position}</div>
-                  </td>
-                  {BOX_COLS.map(c => (
-                    <td key={c.key} style={{ padding:"8px 8px", textAlign:"center", color: c.key==="eff" ? (r[c.key] >= 15 ? C.redText : r[c.key] < 0 ? "#ff4444" : C.textSub) : c.key==="pts" && r.pts >= 15 ? C.redText : C.textSub, fontWeight: c.key==="pts"||c.key==="eff" ? 900 : 400 }}>
-                      {r[c.key] ?? 0}
-                    </td>
+          <>
+            <div style={{ overflowX:"auto", padding:"0 0 4px" }}>
+              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, minWidth:700 }}>
+                <thead>
+                  <tr style={{ background:C.base, borderBottom:`1px solid ${C.border2}` }}>
+                    <th style={{ padding:"8px 12px", textAlign:"left", fontSize:10, fontWeight:900, color:C.textDim, letterSpacing:"0.12em", minWidth:48 }}>#</th>
+                    <th style={{ padding:"8px 12px", textAlign:"left", fontSize:10, fontWeight:900, color:C.textDim, letterSpacing:"0.12em", minWidth:150 }}>PLAYER</th>
+                    {BOX_COLS.map(c => <th key={c.key} style={{ padding:"8px 8px", fontSize:10, fontWeight:900, color:c.key==="eff"?C.redText:C.textDim, letterSpacing:"0.1em", minWidth:44, textAlign:"center" }}>{c.label}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r: any, i: number) => (
+                    <tr key={r.pid} style={{ background: i%2===0 ? C.surface : C.surface2, borderBottom:`1px solid ${C.border}` }}>
+                      <td style={{ padding:"8px 12px", fontWeight:700, color:C.textDim }}>{r.player.number}</td>
+                      <td style={{ padding:"8px 12px" }}>
+                        <div style={{ fontWeight:700, color:C.text, fontSize:13 }}>{fmt(r.player.name)}</div>
+                        <div style={{ fontSize:10, color:C.textDim, letterSpacing:"0.1em" }}>{r.player.position}</div>
+                      </td>
+                      {BOX_COLS.map(c => (
+                        <td key={c.key} style={{ padding:"8px 8px", textAlign:"center", color: c.key==="eff" ? (r[c.key] >= 15 ? C.redText : r[c.key] < 0 ? "#ff4444" : C.textSub) : c.key==="pts" && r.pts >= 15 ? C.redText : C.textSub, fontWeight: c.key==="pts"||c.key==="eff" ? 900 : 400 }}>
+                          {r[c.key] ?? 0}
+                        </td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {!isLoading && rows.length === 0 && (
-          <div style={{ padding:32, textAlign:"center", color:C.textDim, fontSize:13 }}>No box score recorded for this game.</div>
-        )}
+                </tbody>
+              </table>
+            </div>
+            {rows.length === 0 && (
+              <div style={{ padding:32, textAlign:"center", color:C.textDim, fontSize:13 }}>No box score recorded for this game.</div>
+            )}
+          </>
         )}
       </div>
     </div>
