@@ -282,7 +282,7 @@ export default function ImportPage({ validSlug }: any) {
 
             {fetching && (
               <div style={{ display: "flex", alignItems: "center", gap: 10, color: C.textDim, fontSize: 12 }}>
-                <Spinner size={18} /> Scraping game page…
+                <Spinner /> Scraping game page…
               </div>
             )}
           </div>
