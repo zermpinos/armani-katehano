@@ -7,6 +7,25 @@ import { fmt, fmtDate, fmtMinutes } from "../lib/utils";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { LineChart, Line, BarChart, Bar, Cell, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 
+// Countdown badge logic -- determines tier and label for upcoming games
+function getCountdownInfo(isoStr: string): { label: string; tier: "today" | "week" | "future" } {
+  const now = new Date();
+  const gameTime = new Date(isoStr);
+
+  // Normalize to start of day for date comparisons
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const gameDay = new Date(gameTime.getFullYear(), gameTime.getMonth(), gameTime.getDate());
+  const daysUntil = Math.ceil((gameDay.getTime() - todayStart.getTime()) / 86400000);
+
+  // Format time in Athens timezone (HH:MM)
+  const fmtTime = () => gameTime.toLocaleTimeString("el-GR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Athens" });
+
+  if (daysUntil === 0)       return { label: `Today at ${fmtTime()}`, tier: "today" };
+  if (daysUntil === 1)       return { label: `Tomorrow at ${fmtTime()}`, tier: "week" };
+  if (daysUntil <= 6)        return { label: `In ${daysUntil} days`, tier: "week" };
+  /* future */               return { label: fmtDate(isoStr), tier: "future" };
+}
+
 
 export default function HomePage({ players, games, stats, upcomingGames }: any) {
   const playersWithStats = players.map((p: any) => ({
@@ -53,25 +72,6 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
 
   const hasData = games.length > 0 && activePlayers.length > 0;
 
-  // Countdown badge helper
-  const countdownLabel = (isoStr: string): { label: string; tier: "today" | "week" | "future" } => {
-    const now  = new Date();
-    const date = new Date(isoStr);
-    const diffMs = date.getTime() - now.getTime();
-    const diffH  = diffMs / 3600000;
-    const diffD  = Math.floor(diffMs / 86400000);
-
-    const fmtTime = (iso: string) => {
-      const d = new Date(iso);
-      return d.toLocaleTimeString("el-GR", { hour:"2-digit", minute:"2-digit", timeZone:"Europe/Athens" });
-    };
-
-    if (diffH >= 0 && diffH < 24)  return { label: `Today at ${fmtTime(isoStr)}`,    tier: "today"  };
-    if (diffD === 1)                return { label: `Tomorrow at ${fmtTime(isoStr)}`,  tier: "week"   };
-    if (diffD <= 6)                 return { label: `In ${diffD} days`,                tier: "week"   };
-                                    return { label: fmtDate(isoStr),                  tier: "future" };
-  };
-
   return (
     <Layout title="Armani Katehano">
       {/* Hero */}
@@ -100,33 +100,54 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
       </div>
 
       {/* Upcoming Games */}
-      {upcomingGames && upcomingGames.length > 0 && (
-        <div style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, marginBottom:24, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
-          <div style={{ marginBottom:12 }}>
-            <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Schedule</div>
-            <div style={{ fontSize:18, fontWeight:700, color:C.text }}>Upcoming Games</div>
+      {upcomingGames?.length > 0 && (
+        <div style={{ borderRadius:16, padding:"20px 16px", border:`1px solid ${C.border}`, background:C.surface, marginBottom:24, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
+          <div style={{ marginBottom:16 }}>
+            <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.18em", color:C.textDim, textTransform:"uppercase" }}>Schedule</div>
+            <h2 style={{ fontSize:"clamp(16px,5vw,18px)", fontWeight:700, color:C.text, margin:"4px 0 0 0" }}>Upcoming Games</h2>
           </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            {upcomingGames.slice(0,5).map((g: any) => {
-              const { label, tier } = countdownLabel(g.scheduledFor);
-              const accentColor = tier === "today" ? C.gold : tier === "week" ? C.redText : C.textSub;
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {upcomingGames.slice(0, 5).map((g: any) => {
+              const { label, tier } = getCountdownInfo(g.scheduledFor);
+              const isTodaysGame = tier === "today";
+              const isWeek = tier === "week";
+              const accentColor = isTodaysGame ? C.gold : isWeek ? C.redText : C.textSub;
               return (
                 <div key={g.id} style={{
-                  display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8,
-                  padding:"12px 14px", borderRadius:10,
-                  border:`1px solid ${tier === "today" ? `${C.gold}40` : C.border}`,
-                  background: tier === "today" ? `${C.gold}08` : C.base,
+                  display:"flex",
+                  alignItems:"flex-start",
+                  justifyContent:"space-between",
+                  gap:12,
+                  padding:"12px 14px",
+                  borderRadius:10,
+                  border:`1px solid ${isTodaysGame ? `${C.gold}40` : C.border}`,
+                  background: isTodaysGame ? `${C.gold}08` : "transparent",
+                  transition:"all 0.2s ease",
                 }}>
-                  <div>
-                    <div style={{ fontSize:14, fontWeight:700, color:C.text }}>
+                  {/* Left: opponent + competition */}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:"clamp(13px,4vw,14px)", fontWeight:700, color:C.text }}>
                       {g.location === "home" ? "vs" : "@"} {g.opponent}
                     </div>
                     {g.competition && (
-                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{g.competition}</div>
+                      <div style={{ fontSize:11, color:C.textDim, marginTop:2, fontWeight:500 }}>
+                        {g.competition}
+                      </div>
                     )}
                   </div>
-                  <div style={{ textAlign:"right" }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:accentColor }}>{label}</div>
+                  {/* Right: countdown badge */}
+                  <div style={{ textAlign:"right", whiteSpace:"nowrap" }}>
+                    <div style={{
+                      fontSize:11,
+                      fontWeight:700,
+                      color:accentColor,
+                      padding:"4px 8px",
+                      borderRadius:6,
+                      background: isTodaysGame ? `${C.gold}15` : isWeek ? `${C.redText}08` : "transparent",
+                      letterSpacing:"0.02em",
+                    }}>
+                      {label}
+                    </div>
                   </div>
                 </div>
               );
