@@ -469,7 +469,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
 
             {/* Scoring trend */}
             {trend.length > 0 && (
-              <div style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
+              <div style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)", display:"flex", flexDirection:"column", height:"100%" }}>
                 <div style={{ marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
                   <div>
                     <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Scoring Trend</div>
@@ -477,7 +477,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                   </div>
                   <ShowMoreButton className="show-more-btn" onClick={() => setShowTrendModal(true)}>Show More →</ShowMoreButton>
                 </div>
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={trend} margin={{ top:4, right:8, left:0, bottom:0 }}>
                     <defs>
                       <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
