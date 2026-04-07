@@ -151,6 +151,20 @@ async function handler(req: any, res: any) {
           });
         }
         await recalcAggregates(seasonLeagueId, tx);
+
+        // Auto-archive matching upcoming games (best-effort, non-fatal)
+        try {
+          const gameDate = new Date(playedOn);
+          const dayStart = new Date(gameDate); dayStart.setHours(0,0,0,0);
+          const dayEnd   = new Date(gameDate); dayEnd.setHours(23,59,59,999);
+          await tx.upcomingGame.deleteMany({
+            where: {
+              scheduledFor: { gte: dayStart, lte: dayEnd },
+              opponent:     { equals: opponent, mode: "insensitive" },
+            },
+          });
+        } catch (_) { /* non-fatal */ }
+
         return g;
       });
       auditLog("game_created", { ip, gameId: game.id, opponent });
