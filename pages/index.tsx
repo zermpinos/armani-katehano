@@ -40,7 +40,7 @@ function downloadIcsFile(opponent: string, isoStr: string, venue?: string): void
   // Add 2 hours for end time
   const [datePart, timePart] = isoStr.split("T");
   const [hh, mm, ss] = timePart.split(":");
-  const endHH = String(parseInt(hh) + 2).padStart(2, "0");
+  const endHH = String(parseInt(hh) + 1).padStart(2, "0");
   const dtEnd = `${datePart.replace(/-/g, "")}T${endHH}${mm}${ss || "00"}`;
 
   const title = `Armani Katehano vs ${opponent}`;
@@ -558,7 +558,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                         <polyline points="7 10 12 15 17 10"/>
                         <line x1="12" y1="15" x2="12" y2="3"/>
                       </svg>
-                      .ics
+                      <span>Add to calendar</span>
                     </button>
                   </div>
                 </div>
