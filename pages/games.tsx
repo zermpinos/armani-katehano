@@ -29,7 +29,7 @@ function formatTopScorer(topScorer: any) {
   return `${fmt(topScorer.name)} ${topScorer.pts} PTS`;
 }
 
-function BoxScore({ game, players, onClose }: any) {
+function BoxScore({ game, players, onClose, isLoading }: any) {
   const rows = (game.boxScore || [])
     .map((r: any) => ({ ...r, player: players.find((p: any) => p.id === r.pid) }))
     .filter((r: any) => r.player && r.min > 0)
@@ -66,6 +66,11 @@ function BoxScore({ game, players, onClose }: any) {
           </div>
           <button onClick={onClose} style={{ fontSize:28, fontWeight:900, color:C.textDim, background:"none", border:"none", cursor:"pointer" }}>×</button>
         </div>
+        {isLoading ? (
+          <div style={{ padding:48, textAlign:"center", color:C.textDim }}>
+            <div style={{ fontSize:14, fontWeight:700 }}>Loading box score...</div>
+          </div>
+        ) : (
         <div style={{ overflowX:"auto", padding:"0 0 4px" }}>
           <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, minWidth:700 }}>
             <thead>
@@ -93,8 +98,9 @@ function BoxScore({ game, players, onClose }: any) {
             </tbody>
           </table>
         </div>
-        {rows.length === 0 && (
+        {!isLoading && rows.length === 0 && (
           <div style={{ padding:32, textAlign:"center", color:C.textDim, fontSize:13 }}>No box score recorded for this game.</div>
+        )}
         )}
       </div>
     </div>
@@ -177,6 +183,7 @@ export default function GamesPage({ allGames, players, seasons, currentSeason }:
 
   async function handleGameClick(game: any) {
     setLoadingBoxScore(true);
+    setSelected(game); // Show modal immediately with loading state
     try {
       const res = await fetch(`/api/games/${game.id}`);
       const { boxScore } = await res.json();
@@ -283,7 +290,7 @@ export default function GamesPage({ allGames, players, seasons, currentSeason }:
           })}
         </div>
       )}
-      {selected && <BoxScore game={selected} players={players} onClose={() => setSelected(null)} />}
+      {selected && <BoxScore game={selected} players={players} onClose={() => setSelected(null)} isLoading={loadingBoxScore} />}
     </Layout>
   );
 }

@@ -168,7 +168,8 @@ export async function getAllGames() {
 export async function getBoxScore(gameId: string) {
   const stats = await prisma.playerGameStat.findMany({
     where:   { gameId },
-    include: { player: { select: { id: true, name: true, number: true } } },
+    include: { player: { select: { id: true, name: true, number: true, position: true } } },
+    orderBy: { player: { number: "asc" } },
   });
   return stats.map(r => ({
     pid:  r.playerId,
