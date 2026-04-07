@@ -75,6 +75,7 @@ export function AdminLayout({ slug, title, children, toast, setToast, onLogout }
     { href: `/admin/${slug}/games`,   label: 'Games'     },
     { href: `/admin/${slug}/roster`,  label: 'Roster'    },
     { href: `/admin/${slug}/seasons`, label: 'Seasons'   },
+    { href: `/admin/${slug}/schedule`, label: 'Schedule' },
     { href: `/admin/${slug}/import`,  label: 'Import'    },
   ];
 
