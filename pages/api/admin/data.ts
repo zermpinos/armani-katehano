@@ -12,7 +12,6 @@
  */
 
 import { requireAuth }                  from "../../../lib/requireAuth";
-import { securityHeaders }             from "../../../lib/security";
 import { prodError, MAX_GAMES_PER_PAGE } from "../../../lib/utils";
 import { calcEff, aggregatesToStatsMap } from "../../../lib/stats";
 import { getAllUpcomingGames }          from "../../../lib/repository.prisma";
@@ -20,8 +19,6 @@ import prisma                          from "../../../lib/prisma";
 import { z }                           from "zod";
 
 async function handler(req: any, res: any) {
-  Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
-
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }

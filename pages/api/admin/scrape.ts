@@ -10,7 +10,6 @@
 import { z }                              from 'zod';
 import { requireAuth }                   from '../../../lib/requireAuth';
 import { scrapeGame }                    from '../../../lib/boxscore-scraper';
-import { securityHeaders }               from '../../../lib/security';
 import { ScrapedGameSchema }             from '../../../lib/validators';
 
 const ScrapeSchema = z.object({
@@ -18,8 +17,6 @@ const ScrapeSchema = z.object({
 });
 
 export default requireAuth(async function handler(req: any, res: any) {
-  Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
-
   if (req.method !== 'POST')
     return res.status(405).json({ error: 'Method not allowed' });
 

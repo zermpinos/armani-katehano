@@ -5,7 +5,7 @@
 
 import { z }                         from "zod";
 import { requireAuth }               from '../../../lib/requireAuth';
-import { securityHeaders, auditLog } from "../../../lib/security";
+import { auditLog }                  from "../../../lib/security";
 import prisma                        from "../../../lib/prisma";
 import { prodError } from "../../../lib/utils";      // B-02: was missing
 
@@ -16,7 +16,6 @@ const SeasonCreateSchema = z.object({
 });
 
 async function handler(req: any, res: any) {
-  Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
   const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
 
   if (req.method !== "POST") {

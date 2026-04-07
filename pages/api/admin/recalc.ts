@@ -10,13 +10,10 @@
  */
 
 import { requireAuth }       from '../../../lib/requireAuth';
-import { securityHeaders }   from "../../../lib/security";
 import prisma                from "../../../lib/prisma";
 import { recalcAggregates }  from '../../../lib/stats.prisma';
 
 async function handler(req: any, res: any) {
-  Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
-
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
