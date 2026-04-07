@@ -194,6 +194,39 @@ export async function getBoxScore(gameId: string) {
   }));
 }
 
+// ─── Upcoming Games ───────────────────────────────────────────────────────────
+
+export async function getUpcomingGames() {
+  const now = new Date();
+  const rows = await prisma.upcomingGame.findMany({
+    where: { scheduledFor: { gte: now } },
+    orderBy: { scheduledFor: "asc" },
+    take: 10,
+  });
+  return rows.map(g => ({
+    id:           g.id,
+    opponent:     g.opponent,
+    scheduledFor: g.scheduledFor.toISOString(),
+    location:     g.location,
+    competition:  g.competition ?? null,
+    notes:        g.notes ?? null,
+  }));
+}
+
+export async function getAllUpcomingGames() {
+  const rows = await prisma.upcomingGame.findMany({
+    orderBy: { scheduledFor: "asc" },
+  });
+  return rows.map(g => ({
+    id:           g.id,
+    opponent:     g.opponent,
+    scheduledFor: g.scheduledFor.toISOString(),
+    location:     g.location,
+    competition:  g.competition ?? null,
+    notes:        g.notes ?? null,
+  }));
+}
+
 // ─── Batch helpers ────────────────────────────────────────────────────────────
 
 export async function getAllPublicData(seasonName = null) {
@@ -205,9 +238,10 @@ export async function getAllPublicData(seasonName = null) {
 
   const activeSeason = seasonName ?? config.currentSeason;
 
-  const [games, stats] = await Promise.all([
+  const [games, stats, upcomingGames] = await Promise.all([
     getGames(activeSeason),
     getStats(activeSeason),
+    getUpcomingGames(),
   ]);
 
   return {
@@ -217,6 +251,7 @@ export async function getAllPublicData(seasonName = null) {
     players,
     games,
     stats,
+    upcomingGames,
   };
 }
 
