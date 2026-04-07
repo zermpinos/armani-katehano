@@ -8,7 +8,7 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import { LineChart, Line, BarChart, Bar, Cell, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 
 
-export default function HomePage({ players, games, stats }: any) {
+export default function HomePage({ players, games, stats, upcomingGames }: any) {
   const playersWithStats = players.map((p: any) => ({
     ...p,
     stats: stats[p.id] ?? { ppg:0, rpg:0, apg:0, fgPct:0, eff:0, mpg:0, gp:0 },
@@ -53,6 +53,25 @@ export default function HomePage({ players, games, stats }: any) {
 
   const hasData = games.length > 0 && activePlayers.length > 0;
 
+  // Countdown badge helper
+  const countdownLabel = (isoStr: string): { label: string; tier: "today" | "week" | "future" } => {
+    const now  = new Date();
+    const date = new Date(isoStr);
+    const diffMs = date.getTime() - now.getTime();
+    const diffH  = diffMs / 3600000;
+    const diffD  = Math.floor(diffMs / 86400000);
+
+    const fmtTime = (iso: string) => {
+      const d = new Date(iso);
+      return d.toLocaleTimeString("el-GR", { hour:"2-digit", minute:"2-digit", timeZone:"Europe/Athens" });
+    };
+
+    if (diffH >= 0 && diffH < 24)  return { label: `Today at ${fmtTime(isoStr)}`,    tier: "today"  };
+    if (diffD === 1)                return { label: `Tomorrow at ${fmtTime(isoStr)}`,  tier: "week"   };
+    if (diffD <= 6)                 return { label: `In ${diffD} days`,                tier: "week"   };
+                                    return { label: fmtDate(isoStr),                  tier: "future" };
+  };
+
   return (
     <Layout title="Armani Katehano">
       {/* Hero */}
@@ -79,6 +98,42 @@ export default function HomePage({ players, games, stats }: any) {
         <StatTile label="PPG"     value={record.ppg    || "—"} sub="points per game" />
         <StatTile label="OPP PPG" value={record.oppPpg || "—"} sub="allowed per game" />
       </div>
+
+      {/* Upcoming Games */}
+      {upcomingGames && upcomingGames.length > 0 && (
+        <div style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, marginBottom:24, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
+          <div style={{ marginBottom:12 }}>
+            <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Schedule</div>
+            <div style={{ fontSize:18, fontWeight:700, color:C.text }}>Upcoming Games</div>
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {upcomingGames.slice(0,5).map((g: any) => {
+              const { label, tier } = countdownLabel(g.scheduledFor);
+              const accentColor = tier === "today" ? C.gold : tier === "week" ? C.redText : C.textSub;
+              return (
+                <div key={g.id} style={{
+                  display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8,
+                  padding:"12px 14px", borderRadius:10,
+                  border:`1px solid ${tier === "today" ? `${C.gold}40` : C.border}`,
+                  background: tier === "today" ? `${C.gold}08` : C.base,
+                }}>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:700, color:C.text }}>
+                      {g.location === "home" ? "vs" : "@"} {g.opponent}
+                    </div>
+                    {g.competition && (
+                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{g.competition}</div>
+                    )}
+                  </div>
+                  <div style={{ textAlign:"right" }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:accentColor }}>{label}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <ErrorBoundary label="Stats failed to load">
       {hasData && (
@@ -251,6 +306,6 @@ export default function HomePage({ players, games, stats }: any) {
 }
 
 export async function getStaticProps() {
-  const { players, games, stats } = await getAllPublicData();
-  return { props: { players, games, stats }, revalidate: 3600 };
+  const { players, games, stats, upcomingGames } = await getAllPublicData();
+  return { props: { players, games, stats, upcomingGames }, revalidate: 300 };
 }
