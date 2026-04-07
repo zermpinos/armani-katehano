@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useRouter } from "next/router";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import { C } from "../lib/theme";
@@ -8,6 +7,7 @@ import { buildAllTimeStatsMap } from "../lib/stats";
 import { fmt, fmtMinutes } from "../lib/utils";
 import SeasonSelector from "../components/SeasonSelector";
 import ErrorBoundary from "../components/ErrorBoundary";
+import { PlayerDetail } from "../components/PlayerDetail";
 
 const MEDALS = [
   { color:C.gold,   label:"🥇", bg:`${C.gold}18`,   border:`${C.gold}45`   },
@@ -50,12 +50,12 @@ const TOTAL_COLS = [
   { key:"fg2Pct",    label:"2P%", title:"2-Point %",              dec:1, pct:true },
 ];
 
-export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap }: any) {
-  const router = useRouter();
+export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }: any) {
   const [sortKey, setSortKey] = useState("ppg");
   const [sortDir, setSortDir] = useState("desc");
   const [activeSeason, setActiveSeason] = useState(currentSeason);
   const [viewMode, setViewMode] = useState<"avg" | "tot">("avg");
+  const [selected, setSelected] = useState<any>(null);
 
   const activeCols = viewMode === "avg" ? COLS : TOTAL_COLS;
 
@@ -75,7 +75,12 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
 
   // Merge bio + stats, filter to players who have played
   const playersWithStats = players
-    .map((p: any) => ({ ...p, stats: activeStats[p.id] ?? {} }))
+    .map((p: any) => ({
+      ...p,
+      stats:         activeStats[p.id] ?? {},
+      gameLog:       activeStats[p.id]?.gameLog ?? [],
+      seasonHistory: playerSeasonHistory?.[p.id] ?? {},
+    }))
     .filter((p: any) => (p.stats.gp ?? 0) > 0 || activeSeason === "all-time");
 
   const sorted = [...playersWithStats].sort((a, b) => {
@@ -144,7 +149,7 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
                 return (
                   <tr
                     key={p.id}
-                    onClick={() => router.push(`/players?player=${p.id}`)}
+                    onClick={() => setSelected(p)}
                     style={{
                       background: medal ? medal.bg : idx%2===0 ? C.surface : C.surface2,
                       borderBottom:`1px solid ${C.border}`,
@@ -202,6 +207,8 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
           </div>
         ))}
       </div>
+
+      {selected && <PlayerDetail player={selected} onClose={() => setSelected(null)} activeSeason={activeSeason} />}
     </Layout>
   );
 }
@@ -210,5 +217,17 @@ export async function getStaticProps() {
   const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
   const allSeasonsStats = await getAllSeasonsStats(seasons);
   const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
-  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap }, revalidate: 3600 };
+
+  const playerSeasonHistory: Record<string, any> = {};
+  for (const [sid, seasonMap] of Object.entries(allSeasonsStats)) {
+    for (const player of players) {
+      const s = (seasonMap as any)[player.id];
+      if (s && s.gp > 0) {
+        if (!playerSeasonHistory[player.id]) playerSeasonHistory[player.id] = {};
+        playerSeasonHistory[player.id][sid] = s;
+      }
+    }
+  }
+
+  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }, revalidate: 3600 };
 }
