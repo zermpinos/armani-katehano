@@ -327,7 +327,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                       onMouseLeave={(e) => { e.currentTarget.style.background="#4285F410"; e.currentTarget.style.borderColor="#4285F440"; }}
                     >
                       <GoogleCalIcon />
-                      Google Calendar
+                      Google
                     </a>
                     {/* Download .ics */}
                     <button
@@ -347,7 +347,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                         <polyline points="7 10 12 15 17 10"/>
                         <line x1="12" y1="15" x2="12" y2="3"/>
                       </svg>
-                      Download .ics
+                      .ics
                     </button>
                   </div>
                 </div>
@@ -871,14 +871,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
         </div>
       )}
 
-      <style>{`
-        @media (max-width: 640px) {
-          .show-more-btn {
-            display: none !important;
-          }
-        }
-      `}</style>
-    </Layout>
+      </Layout>
   );
 }
 
