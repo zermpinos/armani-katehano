@@ -37,7 +37,7 @@ function formatGameTime(isoStr: string): string {
 function downloadIcsFile(opponent: string, isoStr: string, venue?: string): void {
   // isoStr is like "2026-04-09T17:30:00" — already in Athens local time
   const dtStart = isoStr.replace(/[-:]/g, "").split(".")[0];
-  // Add 2 hours for end time
+  // Add 1 hour for end time
   const [datePart, timePart] = isoStr.split("T");
   const [hh, mm, ss] = timePart.split(":");
   const endHH = String(parseInt(hh) + 1).padStart(2, "0");
@@ -92,10 +92,78 @@ function downloadIcsFile(opponent: string, isoStr: string, venue?: string): void
   URL.revokeObjectURL(url);
 }
 
+// Build a Google Calendar "Add to Calendar" URL for a game
+function buildGoogleCalendarUrl(opponent: string, isoStr: string, venue?: string): string {
+  const dtStart = isoStr.replace(/[-:]/g, "").split(".")[0];
+  const [datePart, timePart] = isoStr.split("T");
+  const [hh, mm] = timePart.split(":");
+  const endHH = String(parseInt(hh) + 1).padStart(2, "0");
+  const dtEnd = `${datePart.replace(/-/g, "")}T${endHH}${mm}00`;
+  const params = new URLSearchParams({
+    action: "Armani Katehano vs " + opponent,
+    text: `Armani Katehano vs ${opponent}`,
+    dates: `${dtStart}/${dtEnd}`,
+    ctz: "Europe/Athens",
+    ...(venue ? { location: venue, details: `Venue: ${venue}` } : {}),
+  });
+  return `https://calendar.google.com/calendar/render?${params}`;
+}
+
+// Ghost "Show More" — no border, no fill; matches "BOX SCORE →" style in games.tsx
+function ShowMoreButton({ href, onClick, children, className }: {
+  href?: string;
+  onClick?: () => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const style: React.CSSProperties = {
+    background: "none",
+    border: "none",
+    fontSize: 11,
+    fontWeight: 700,
+    color: C.textDim,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+    transition: "color 0.15s",
+    padding: "4px 0",
+    textDecoration: "none",
+    display: "inline-block",
+  };
+  const onEnter = (e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.color = C.textSub; };
+  const onLeave = (e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.color = C.textDim; };
+  if (href) {
+    return (
+      <Link href={href} className={className} style={style} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <button className={className} style={style} onClick={onClick} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+      {children}
+    </button>
+  );
+}
+
+// Google Calendar icon SVG
+function GoogleCalIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+      <rect x="3" y="5" width="18" height="16" rx="2" fill="#fff" stroke="#4285F4" strokeWidth="1.5"/>
+      <path d="M3 11h18" stroke="#4285F4" strokeWidth="1.5"/>
+      <rect x="8" y="3" width="2" height="4" rx="1" fill="#4285F4"/>
+      <rect x="14" y="3" width="2" height="4" rx="1" fill="#4285F4"/>
+      <text x="12" y="20" textAnchor="middle" fill="#4285F4" fontSize="8" fontWeight="900" fontFamily="sans-serif">G</text>
+    </svg>
+  );
+}
 
 export default function HomePage({ players, games, stats, upcomingGames }: any) {
   const [trendRange, setTrendRange] = useState(10);
   const [showTrendModal, setShowTrendModal] = useState(false);
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
 
   const playersWithStats = players.map((p: any) => ({
     ...p,
@@ -131,12 +199,13 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
       });
   };
 
-  // Top scorers — fmt() gives "Antonakos G." format correctly
-  const topScorers = [...playersWithStats]
+  // Top scorers — full player objects sorted by PPG
+  const topPlayers = [...playersWithStats]
     .filter(p => p.stats.ppg > 0)
     .sort((a, b) => b.stats.ppg - a.stats.ppg)
-    .slice(0, 5)
-    .map(p => ({ name: fmt(p.name), ppg: p.stats.ppg }));
+    .slice(0, 5);
+
+  const topScorers = topPlayers.map(p => ({ name: fmt(p.name), ppg: p.stats.ppg }));
 
   const trend = generateTrendData(10);
   const extendedTrend = generateTrendData(trendRange);
@@ -174,6 +243,225 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
         <StatTile label="OPP PPG" value={record.oppPpg || "—"} sub="allowed per game" />
       </div>
 
+      {/* Upcoming Games */}
+      {upcomingGames?.length > 0 && (() => {
+        const featured = upcomingGames[0];
+        const rest = upcomingGames.slice(1);
+        const { label: featLabel, tier: featTier } = getCountdownInfo(featured.scheduledFor);
+        const featTime = formatGameTime(featured.scheduledFor);
+        const isToday = featTier === "today";
+        const isWeek  = featTier === "week";
+        const featAccent = isToday ? C.gold : isWeek ? C.redText : C.textSub;
+        const featVenue  = featured.notes;
+
+        return (
+          <div style={{ borderRadius:16, padding:"20px 16px", border:`1px solid ${C.border}`, background:C.surface, marginBottom:24, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
+            {/* Section header */}
+            <div style={{ marginBottom:14 }}>
+              <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.18em", color:C.textDim, textTransform:"uppercase" }}>Schedule</div>
+              <h2 style={{ fontSize:"clamp(16px,5vw,18px)", fontWeight:700, color:C.text, margin:"4px 0 0 0" }}>Upcoming Games</h2>
+            </div>
+
+            {/* ── Featured card: next game ── */}
+            <div style={{
+              borderRadius:14,
+              padding:"18px 20px",
+              border:`1px solid ${isToday ? `${C.gold}55` : isWeek ? `${C.redText}35` : C.border2}`,
+              background: isToday ? `${C.gold}0d` : isWeek ? `${C.redText}08` : C.surface2,
+              marginBottom: rest.length > 0 ? 10 : 0,
+              boxShadow: isToday ? `0 8px 24px ${C.gold}18` : isWeek ? `0 4px 16px ${C.redText}12` : "0 2px 8px rgba(0,0,0,0.18)",
+            }}>
+              {/* Top label */}
+              <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.18em", textTransform:"uppercase", color: isToday ? C.gold : C.redText, marginBottom:12 }}>
+                {isToday ? "⚡ Today" : "Next Game"}
+              </div>
+              {/* Main row: left info | right badge + buttons */}
+              <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:16 }}>
+                {/* Left */}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:"flex", alignItems:"baseline", gap:8, marginBottom:4, flexWrap:"wrap" }}>
+                    <div style={{ fontSize:"clamp(18px,5vw,24px)", fontWeight:900, color:C.text, lineHeight:1.15 }}>
+                      {featured.location === "home" ? "vs" : "@"} {featured.opponent}
+                    </div>
+                    <div style={{ fontSize:"clamp(13px,3vw,15px)", fontWeight:700, color:featAccent }}>{featTime}</div>
+                  </div>
+                  {featured.competition && (
+                    <div style={{ fontSize:12, color:C.textDim, fontWeight:500, marginBottom:4 }}>{featured.competition}</div>
+                  )}
+                  {featVenue && (
+                    <a
+                      href={`https://www.google.com/maps/search/${encodeURIComponent(featVenue)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, color:C.textSub, textDecoration:"none", transition:"color 0.2s", marginTop:2 }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = C.redText)}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = C.textSub)}
+                    >
+                      📍 {featVenue}
+                    </a>
+                  )}
+                </div>
+                {/* Right: badge + calendar buttons side by side */}
+                <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8, flexShrink:0 }}>
+                  <div style={{
+                    fontSize:11, fontWeight:700, color:featAccent,
+                    padding:"3px 10px", borderRadius:20,
+                    background: isToday ? `${C.gold}20` : isWeek ? `${C.redText}12` : `${C.textSub}10`,
+                    letterSpacing:"0.03em", whiteSpace:"nowrap",
+                  }}>
+                    {featLabel}
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                    {/* Google Calendar */}
+                    <a
+                      href={buildGoogleCalendarUrl(featured.opponent, featured.scheduledFor, featVenue)}
+                      target="_blank" rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        display:"inline-flex", alignItems:"center", gap:6,
+                        padding:"7px 12px", borderRadius:8,
+                        border:"1px solid #4285F440", background:"#4285F410", color:"#4285F4",
+                        fontSize:11, fontWeight:700, textDecoration:"none",
+                        cursor:"pointer", transition:"all 0.2s ease", whiteSpace:"nowrap",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background="#4285F420"; e.currentTarget.style.borderColor="#4285F465"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background="#4285F410"; e.currentTarget.style.borderColor="#4285F440"; }}
+                    >
+                      <GoogleCalIcon />
+                      Google Calendar
+                    </a>
+                    {/* Download .ics */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); downloadIcsFile(featured.opponent, featured.scheduledFor, featVenue); }}
+                      style={{
+                        display:"inline-flex", alignItems:"center", gap:6,
+                        padding:"7px 12px", borderRadius:8,
+                        border:`1px solid ${C.border2}`, background:C.base, color:C.textSub,
+                        fontSize:11, fontWeight:700, cursor:"pointer",
+                        transition:"all 0.2s ease", fontFamily:"inherit", whiteSpace:"nowrap",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color=C.text; e.currentTarget.style.borderColor=C.border2; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color=C.textSub; e.currentTarget.style.borderColor=C.border2; }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      Download .ics
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Compact cards: remaining games ── */}
+            {rest.length > 0 && (
+              <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+                {(showAllUpcoming ? rest : rest.slice(0, 3)).map((g: any) => {
+                  const { label, tier } = getCountdownInfo(g.scheduledFor);
+                  const gameTime = formatGameTime(g.scheduledFor);
+                  const accentColor = tier === "today" ? C.gold : tier === "week" ? C.redText : C.textSub;
+                  const venue = g.notes;
+                  return (
+                    <div key={g.id} style={{
+                      display:"flex", alignItems:"center", justifyContent:"space-between", gap:10,
+                      padding:"10px 14px", borderRadius:10,
+                      border:`1px solid ${C.border}`,
+                      background:"transparent",
+                      transition:"background 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = C.surface2; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                    >
+                      {/* Left: info */}
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ display:"flex", alignItems:"baseline", gap:6, flexWrap:"wrap" }}>
+                          <span style={{ fontSize:13, fontWeight:700, color:C.text }}>
+                            {g.location === "home" ? "vs" : "@"} {g.opponent}
+                          </span>
+                          <span style={{ fontSize:11, fontWeight:600, color:accentColor }}>{gameTime}</span>
+                          {g.competition && (
+                            <span style={{ fontSize:11, color:C.textDim }}>· {g.competition}</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{label}</div>
+                      </div>
+                      {/* Right: icon-only buttons */}
+                      <div style={{ display:"flex", alignItems:"center", gap:5, flexShrink:0 }}>
+                        <a
+                          href={buildGoogleCalendarUrl(g.opponent, g.scheduledFor, venue)}
+                          target="_blank" rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title="Add to Google Calendar"
+                          style={{
+                            display:"flex", alignItems:"center", justifyContent:"center",
+                            width:28, height:28, borderRadius:7,
+                            border:`1px solid ${C.border}`,
+                            background:C.base,
+                            textDecoration:"none",
+                            transition:"all 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.borderColor="#4285F4"; e.currentTarget.style.background="#4285F412"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.borderColor=C.border; e.currentTarget.style.background=C.base; }}
+                        >
+                          <GoogleCalIcon />
+                        </a>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); downloadIcsFile(g.opponent, g.scheduledFor, venue); }}
+                          title="Download .ics"
+                          style={{
+                            display:"flex", alignItems:"center", justifyContent:"center",
+                            width:28, height:28, borderRadius:7,
+                            border:`1px solid ${C.border}`,
+                            background:C.base,
+                            color:C.textDim,
+                            cursor:"pointer",
+                            transition:"all 0.15s ease",
+                            fontFamily:"inherit",
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.borderColor=C.border2; e.currentTarget.style.color=C.textSub; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.borderColor=C.border; e.currentTarget.style.color=C.textDim; }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Show More — ghost style, matches "BOX SCORE →" in games.tsx */}
+                {!showAllUpcoming && rest.length > 3 && (
+                  <div style={{ textAlign:"center", paddingTop:4 }}>
+                    <button
+                      onClick={() => setShowAllUpcoming(true)}
+                      style={{
+                        background:"none", border:"none",
+                        fontSize:11, fontWeight:700,
+                        color:C.textDim,
+                        cursor:"pointer",
+                        fontFamily:"inherit",
+                        letterSpacing:"0.1em",
+                        textTransform:"uppercase",
+                        transition:"color 0.15s",
+                        padding:"4px 0",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = C.textSub; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = C.textDim; }}
+                    >
+                      {rest.length - 3} more game{rest.length - 3 !== 1 ? "s" : ""} →
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       <ErrorBoundary label="Stats failed to load">
       {hasData && (
         <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:20 }}>
@@ -187,30 +475,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                     <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Scoring Trend</div>
                     <div style={{ fontSize:18, fontWeight:700, color:C.text }}>Last {trend.length} Games</div>
                   </div>
-                  <button
-                    onClick={() => setShowTrendModal(true)}
-                    className="show-more-btn"
-                    style={{
-                      fontSize:12,
-                      fontWeight:700,
-                      color:C.redText,
-                      padding:"8px 12px",
-                      borderRadius:8,
-                      border:`1px solid ${C.redText}40`,
-                      background:`${C.redText}08`,
-                      cursor:"pointer",
-                      transition:"all 0.2s ease",
-                      whiteSpace:"nowrap",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = `${C.redText}15`;
-                      e.currentTarget.style.borderColor = C.redText;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = `${C.redText}08`;
-                      e.currentTarget.style.borderColor = `${C.redText}40`;
-                    }}
-                  >Show More →</button>
+                  <ShowMoreButton className="show-more-btn" onClick={() => setShowTrendModal(true)}>Show More →</ShowMoreButton>
                 </div>
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={trend} margin={{ top:4, right:8, left:0, bottom:0 }}>
@@ -251,59 +516,80 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
 
             {/* Recent results */}
             {recentGames.length > 0 && (
-              <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
-                  <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Recent Results</div>
-                  <Link href="/games" style={{
-                    fontSize:12,
-                    fontWeight:700,
-                    color:C.redText,
-                    padding:"8px 12px",
-                    borderRadius:8,
-                    border:`1px solid ${C.redText}40`,
-                    background:`${C.redText}08`,
-                    textDecoration:"none",
-                    transition:"all 0.2s ease",
-                    whiteSpace:"nowrap",
-                    cursor:"pointer",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = `${C.redText}15`;
-                    e.currentTarget.style.borderColor = C.redText;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = `${C.redText}08`;
-                    e.currentTarget.style.borderColor = `${C.redText}40`;
-                  }}
-                  >Show More →</Link>
+              <div style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
+                <div style={{ marginBottom:14, display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+                  <div>
+                    <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Recent Results</div>
+                    <div style={{ fontSize:18, fontWeight:700, color:C.text, marginTop:2 }}>Last {recentGames.length} Games</div>
+                  </div>
+                  <ShowMoreButton href="/games" className="show-more-btn">All Games →</ShowMoreButton>
                 </div>
-                <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-                  {recentGames.map(g => (
-                    <div key={g.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+
+                {/* Featured: most recent game */}
+                {(() => {
+                  const g = recentGames[0];
+                  const isWin = g.result === "W";
+                  return (
+                    <div style={{
+                      borderRadius:12, padding:"14px 16px", marginBottom:8,
+                      border:`1px solid ${isWin ? `${C.green}30` : `${C.redText}25`}`,
+                      background: isWin ? "rgba(16,185,129,0.06)" : `${C.red}08`,
+                      display:"flex", alignItems:"center", justifyContent:"space-between", gap:12,
+                    }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:12 }}>
                         <span style={{
-                          width:28, height:28, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
-                          fontSize:11, fontWeight:900, flexShrink:0,
-                          background: g.result==="W" ? "rgba(16,185,129,0.12)" : `${C.red}30`,
-                          color: g.result==="W" ? "#6ee7b7" : C.redText,
+                          width:36, height:36, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
+                          fontSize:13, fontWeight:900, flexShrink:0,
+                          background: isWin ? "rgba(16,185,129,0.15)" : `${C.red}35`,
+                          color: isWin ? "#6ee7b7" : C.redText,
+                          border:`1px solid ${isWin ? "rgba(16,185,129,0.25)" : `${C.redText}30`}`,
                         }}>{g.result}</span>
                         <div>
-                          <div style={{ fontSize:13, fontWeight:600, color:C.text }}>{g.home ? "vs" : "@"} {g.opponent}</div>
-                          <div style={{ fontSize:11, color:C.textDim }}>{fmtDate(g.date)}</div>
+                          <div style={{ fontSize:15, fontWeight:800, color:C.text }}>{g.home ? "vs" : "@"} {g.opponent}</div>
+                          <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{fmtDate(g.date)}</div>
                         </div>
                       </div>
-                      <div style={{ textAlign:"right" }}>
-                        <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{g.score}</div>
+                      <div style={{ textAlign:"right", flexShrink:0 }}>
+                        <div style={{ fontSize:20, fontWeight:900, color: isWin ? C.green : C.redText }}>{g.score}</div>
                       </div>
                     </div>
-                  ))}
+                  );
+                })()}
+
+                {/* Compact: remaining games */}
+                <div style={{ display:"flex", flexDirection:"column" }}>
+                  {recentGames.slice(1).map((g, i) => {
+                    const isWin = g.result === "W";
+                    return (
+                      <div key={g.id} style={{
+                        display:"flex", alignItems:"center", justifyContent:"space-between", gap:10,
+                        padding:"9px 4px",
+                        borderTop: i === 0 ? `1px solid ${C.border}` : `1px solid ${C.border}`,
+                      }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+                          <span style={{
+                            width:24, height:24, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
+                            fontSize:10, fontWeight:900, flexShrink:0,
+                            background: isWin ? "rgba(16,185,129,0.10)" : `${C.red}25`,
+                            color: isWin ? "#6ee7b7" : C.redText,
+                          }}>{g.result}</span>
+                          <div>
+                            <div style={{ fontSize:12, fontWeight:600, color:C.textSub }}>{g.home ? "vs" : "@"} {g.opponent}</div>
+                            <div style={{ fontSize:10, color:C.textDim }}>{fmtDate(g.date)}</div>
+                          </div>
+                        </div>
+                        <div style={{ fontSize:12, fontWeight:700, color:C.textSub }}>{g.score}</div>
+                      </div>
+                    );
+                  })}
                 </div>
+
               </div>
             )}
           </div>
 
           <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))", gap:20 }}>
-            {/* Top scorers — horizontal bars, mobile-friendly, no label overlap */}
+            {/* Top scorers */}
             {topScorers.length > 0 && (
               <div
                 style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}
@@ -312,28 +598,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
               >
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
                   <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Top Scorers — PPG</div>
-                  <Link href="/players" style={{
-                    fontSize:12,
-                    fontWeight:700,
-                    color:C.redText,
-                    padding:"8px 12px",
-                    borderRadius:8,
-                    border:`1px solid ${C.redText}40`,
-                    background:`${C.redText}08`,
-                    textDecoration:"none",
-                    transition:"all 0.2s ease",
-                    whiteSpace:"nowrap",
-                    cursor:"pointer",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = `${C.redText}15`;
-                    e.currentTarget.style.borderColor = C.redText;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = `${C.redText}08`;
-                    e.currentTarget.style.borderColor = `${C.redText}40`;
-                  }}
-                  >Show More →</Link>
+                  <ShowMoreButton href="/players" className="show-more-btn">All Players →</ShowMoreButton>
                 </div>
                 <ResponsiveContainer width="100%" height={topScorers.length * 44}>
                   <BarChart data={topScorers} layout="vertical" margin={{ top:10, right:40, left:0, bottom:10 }}>
@@ -353,7 +618,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                       tickLine={false}
                       width={130}
                     />
-                    <Tooltip {...chartTooltipStyle} formatter={v => [`${v} PPG`]} />
+                    <Tooltip {...chartTooltipStyle} formatter={(v: any) => [`${v} PPG`]} />
                     <Bar
                       dataKey="ppg"
                       fill="url(#barGrad)"
@@ -373,56 +638,51 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
 
             {/* Efficiency leader card */}
             {mvp && mvp.stats.eff > 0 && (
-              <div style={{ borderRadius:12, padding:20, position:"relative", overflow:"hidden", border:`1px solid ${C.redBright}40`, background:C.surface }}>
+              <div style={{ borderRadius:16, padding:20, position:"relative", overflow:"hidden", border:`0.5px solid ${C.redBright}35`, background:C.surface, boxShadow:"0 1px 1px rgba(0,0,0,0.25)" }}>
                 <div style={{ position:"absolute", top:0, right:0, width:140, height:140, borderRadius:"50%", background:`${C.red}12`, transform:"translate(40%,-40%)" }} />
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16, position:"relative", zIndex:1 }}>
-                  <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.redText, textTransform:"uppercase" }}>⚡ Efficiency Leader</div>
-                  <Link href="/players" style={{
-                    fontSize:12,
-                    fontWeight:700,
-                    color:C.redText,
-                    padding:"8px 12px",
-                    borderRadius:8,
-                    border:`1px solid ${C.redText}40`,
-                    background:`${C.redText}08`,
-                    textDecoration:"none",
-                    transition:"all 0.2s ease",
-                    whiteSpace:"nowrap",
-                    cursor:"pointer",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = `${C.redText}15`;
-                    e.currentTarget.style.borderColor = C.redText;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = `${C.redText}08`;
-                    e.currentTarget.style.borderColor = `${C.redText}40`;
-                  }}
-                  >Show More →</Link>
-                </div>
-                <div style={{ display:"flex", gap:16, alignItems:"flex-start", position:"relative", zIndex:1 }}>
-                  <div style={{ width:60, height:60, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", background:C.base, border:`1px solid ${C.border2}`, flexShrink:0 }}>
-                    <span style={{ fontSize:22 }}>🏀</span>
+                {/* Header */}
+                <div style={{ marginBottom:14, position:"relative", zIndex:1, display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+                  <div>
+                    <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.redText, textTransform:"uppercase" }}>⚡ Efficiency Leader</div>
                   </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:15, fontWeight:900, color:C.text }}>{fmt(mvp.name)}</div>
-                    <div style={{ fontSize:11, fontWeight:700, letterSpacing:"0.1em", color:C.textDim, marginTop:2 }}>#{mvp.number} · {mvp.position}</div>
-                    <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginTop:12 }}>
-                      {[
-                        ["PPG", mvp.stats.ppg],
-                        ["RPG", mvp.stats.rpg],
-                        ["APG", mvp.stats.apg],
-                        ["FG%", `${mvp.stats.fgPct}%`],
-                        ["EFF", mvp.stats.eff],
-                        ["MPG", mvp.stats.mpg > 0 ? fmtMinutes(mvp.stats.mpg) : "—"],
-                      ].map(([l, v]) => (
-                        <div key={l} style={{ textAlign:"center", borderRadius:8, padding:"8px 4px", background:C.base, border:`1px solid ${C.border}` }}>
-                          <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim }}>{l}</div>
-                          <div style={{ fontSize:13, fontWeight:900, color:C.text, marginTop:2 }}>{v}</div>
-                        </div>
-                      ))}
+                  <ShowMoreButton href="/players" className="show-more-btn">All Players →</ShowMoreButton>
+                </div>
+                {/* Featured player */}
+                <div style={{
+                  borderRadius:12, padding:"14px 16px", marginBottom:12,
+                  border:`1px solid ${C.redText}25`, background:`${C.red}08`,
+                  display:"flex", alignItems:"center", justifyContent:"space-between", gap:12,
+                  position:"relative", zIndex:1,
+                }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                    <div style={{ width:36, height:36, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", background:`${C.red}20`, border:`1px solid ${C.redText}30`, flexShrink:0, fontSize:16 }}>
+                      🏀
+                    </div>
+                    <div>
+                      <div style={{ fontSize:15, fontWeight:800, color:C.text }}>{fmt(mvp.name)}</div>
+                      <div style={{ fontSize:11, fontWeight:700, color:C.textDim, marginTop:2 }}>#{mvp.number} · {mvp.position}</div>
                     </div>
                   </div>
+                  <div style={{ textAlign:"right", flexShrink:0 }}>
+                    <div style={{ fontSize:22, fontWeight:900, color:C.redText }}>{mvp.stats.eff}</div>
+                    <div style={{ fontSize:10, fontWeight:700, color:C.textDim, letterSpacing:"0.1em" }}>EFF</div>
+                  </div>
+                </div>
+                {/* Stat grid */}
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, position:"relative", zIndex:1 }}>
+                  {[
+                    ["PPG", mvp.stats.ppg],
+                    ["RPG", mvp.stats.rpg],
+                    ["APG", mvp.stats.apg],
+                    ["FG%", `${mvp.stats.fgPct}%`],
+                    ["GP",  mvp.stats.gp],
+                    ["MPG", mvp.stats.mpg > 0 ? fmtMinutes(mvp.stats.mpg) : "—"],
+                  ].map(([l, v]) => (
+                    <div key={l} style={{ textAlign:"center", borderRadius:8, padding:"8px 4px", background:C.base, border:`1px solid ${C.border}` }}>
+                      <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim }}>{l}</div>
+                      <div style={{ fontSize:13, fontWeight:900, color:C.text, marginTop:2 }}>{v}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -436,135 +696,6 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
           <div style={{ fontSize:40, marginBottom:12 }}>🏀</div>
           <div style={{ fontSize:15, fontWeight:700 }}>No data yet</div>
           <div style={{ fontSize:13, marginTop:4 }}>Add games via the admin panel to see stats here.</div>
-        </div>
-      )}
-
-      {/* Upcoming Games */}
-      {upcomingGames?.length > 0 && (
-        <div style={{ borderRadius:16, padding:"20px 16px", border:`1px solid ${C.border}`, background:C.surface, marginBottom:24, marginTop:24, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
-          <div style={{ marginBottom:16 }}>
-            <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.18em", color:C.textDim, textTransform:"uppercase" }}>Schedule</div>
-            <h2 style={{ fontSize:"clamp(16px,5vw,18px)", fontWeight:700, color:C.text, margin:"4px 0 0 0" }}>Upcoming Games</h2>
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {upcomingGames.slice(0, 5).map((g: any) => {
-              const { label, tier } = getCountdownInfo(g.scheduledFor);
-              const gameTime = formatGameTime(g.scheduledFor);
-              const isTodaysGame = tier === "today";
-              const isWeek = tier === "week";
-              const accentColor = isTodaysGame ? C.gold : isWeek ? C.redText : C.textSub;
-              const venue = g.notes; // Use notes field for venue
-
-              return (
-                <div key={g.id} style={{
-                  display:"flex",
-                  alignItems:"flex-start",
-                  justifyContent:"space-between",
-                  gap:12,
-                  padding:"14px 16px",
-                  borderRadius:12,
-                  border:`1px solid ${isTodaysGame ? `${C.gold}40` : C.border}`,
-                  background: isTodaysGame ? `${C.gold}08` : "transparent",
-                  transition:"all 0.2s ease",
-                  cursor:"pointer",
-                  transform:"translateY(0px)",
-                  boxShadow:isTodaysGame ? `0 8px 16px ${C.gold}10` : "0 1px 4px rgba(0,0,0,0.1)",
-                } as any}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow = isTodaysGame ? `0 12px 24px ${C.gold}15` : "0 4px 12px rgba(0,0,0,0.15)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0px)";
-                  e.currentTarget.style.boxShadow = isTodaysGame ? `0 8px 16px ${C.gold}10` : "0 1px 4px rgba(0,0,0,0.1)";
-                }}>
-                  {/* Left: opponent + time + competition */}
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ display:"flex", alignItems:"baseline", gap:8, marginBottom:4 }}>
-                      <div style={{ fontSize:"clamp(14px,4vw,16px)", fontWeight:800, color:C.text }}>
-                        {g.location === "home" ? "vs" : "@"} {g.opponent}
-                      </div>
-                      <div style={{ fontSize:"clamp(12px,3vw,13px)", fontWeight:700, color:accentColor }}>
-                        {gameTime}
-                      </div>
-                    </div>
-                    {g.competition && (
-                      <div style={{ fontSize:11, color:C.textDim, marginBottom:6, fontWeight:500 }}>
-                        {g.competition}
-                      </div>
-                    )}
-                    {venue && (
-                      <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:C.textSub, marginTop:6 }}>
-                        <a
-                          href={`https://www.google.com/maps/search/${encodeURIComponent(venue)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ display:"flex", alignItems:"center", gap:4, color:C.textSub, textDecoration:"none", transition:"color 0.2s" }}
-                          onMouseEnter={(e) => (e.currentTarget.style.color = C.redText)}
-                          onMouseLeave={(e) => (e.currentTarget.style.color = C.textSub)}
-                        >
-                          📍 {venue}
-                        </a>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right: countdown badge + calendar buttons */}
-                  <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8, whiteSpace:"nowrap" }}>
-                    <div style={{
-                      fontSize:11,
-                      fontWeight:700,
-                      color:accentColor,
-                      padding:"6px 10px",
-                      borderRadius:6,
-                      background: isTodaysGame ? `${C.gold}15` : isWeek ? `${C.redText}08` : "transparent",
-                      letterSpacing:"0.02em",
-                    }}>
-                      {label}
-                    </div>
-                    {/* Download .ics */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); downloadIcsFile(g.opponent, g.scheduledFor, venue); }}
-                      title="Save to calendar (.ics)"
-                      style={{
-                        display:"flex",
-                        alignItems:"center",
-                        gap:6,
-                        padding:"6px 10px",
-                        borderRadius:8,
-                        border:`1px solid ${C.border}`,
-                        background:C.base,
-                        color:C.textSub,
-                        fontSize:11,
-                        fontWeight:700,
-                        cursor:"pointer",
-                        transition:"all 0.2s ease",
-                        fontFamily:"inherit",
-                        whiteSpace:"nowrap",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = C.redText;
-                        e.currentTarget.style.color = C.surface;
-                        e.currentTarget.style.borderColor = C.redText;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = C.base;
-                        e.currentTarget.style.color = C.textSub;
-                        e.currentTarget.style.borderColor = C.border;
-                      }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                      </svg>
-                      <span>Add to calendar</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 
