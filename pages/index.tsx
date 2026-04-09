@@ -222,23 +222,16 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
       <div style={{ position:"relative", borderRadius:16, overflow:"hidden", padding:"40px 32px", border:`1px solid ${C.border}`, background:C.surface, marginBottom:24 }}>
         <div style={{ position:"absolute", inset:0, opacity:0.18, backgroundImage:`repeating-linear-gradient(45deg,${C.red} 0,${C.red} 1px,transparent 0,transparent 50%)`, backgroundSize:"20px 20px" }} />
         <div style={{ position:"absolute", top:0, right:0, width:280, height:280, borderRadius:"50%", background:`${C.red}18`, transform:"translate(35%,-35%)" }} />
-        <div style={{ position:"relative", display:"flex", alignItems:"center", justifyContent:"space-between", gap:24 }}>
-          <div>
-            <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.18em", textTransform:"uppercase", color:C.redText, marginBottom:8 }}>2025-26 · Regular Season</div>
-            <h1 style={{ fontSize:"clamp(36px,6vw,64px)", fontWeight:900, lineHeight:1, letterSpacing:"-0.02em", textTransform:"uppercase", color:C.text }}>
-              Armani<br /><span style={{ color:C.redBright }}>Katehano</span>
-            </h1>
-            <p style={{ marginTop:12, fontSize:13, fontWeight:600, color:C.textSub }}>
-              {record.wins}-{record.losses}
-              {record.streak.count > 0 && <> · <span style={{ color:C.redText }}>{record.streak.count}-game {record.streak.type === "W" ? "win" : "loss"} streak</span></>}
-              {" "}· <span style={{ color:C.redText }}>{winPct}%</span> win rate
-            </p>
-          </div>
-          <img
-            src="/logo.png"
-            alt="Armani Katehano"
-            style={{ width:"clamp(72px,16vw,160px)", height:"clamp(72px,16vw,160px)", objectFit:"contain", flexShrink:0, opacity:0.92 }}
-          />
+        <div style={{ position:"relative" }}>
+          <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.18em", textTransform:"uppercase", color:C.redText, marginBottom:8 }}>2025-26 · Regular Season</div>
+          <h1 style={{ fontSize:"clamp(36px,6vw,64px)", fontWeight:900, lineHeight:1, letterSpacing:"-0.02em", textTransform:"uppercase", color:C.text }}>
+            Armani<br /><span style={{ color:C.redBright }}>Katehano</span>
+          </h1>
+          <p style={{ marginTop:12, fontSize:13, fontWeight:600, color:C.textSub }}>
+            {record.wins}-{record.losses}
+            {record.streak.count > 0 && <> · <span style={{ color:C.redText }}>{record.streak.count}-game {record.streak.type === "W" ? "win" : "loss"} streak</span></>}
+            {" "}· <span style={{ color:C.redText }}>{winPct}%</span> win rate
+          </p>
         </div>
       </div>
 
