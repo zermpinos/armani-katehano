@@ -151,6 +151,7 @@ model PlayerSeasonAggregate {
   ptsTotal       Int          @default(0)
   rebTotal       Int          @default(0)
   astTotal       Int          @default(0)
+  stlTotal       Int          @default(0)
   updatedAt      DateTime     @updatedAt
   orbAvg         Float        @default(0)
   drbAvg         Float        @default(0)
