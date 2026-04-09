@@ -41,6 +41,7 @@ export default function Layout({ children, title = SITE_NAME, ogDescription }: L
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={desc} />
+        <link rel="icon" href="/logo.png" />
       </Head>
 
       {/* Navbar */}
