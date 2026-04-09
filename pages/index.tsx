@@ -237,7 +237,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
           <img
             src="/logo.png"
             alt="Armani Katehano"
-            style={{ width:"clamp(200px,12vw,260px)", height:"clamp(200px,12vw,260px)", objectFit:"contain", flexShrink:0, opacity:0.92 }}
+            style={{ width:"clamp(72px,16vw,160px)", height:"clamp(72px,16vw,160px)", objectFit:"contain", flexShrink:0, opacity:0.92 }}
           />
         </div>
       </div>
