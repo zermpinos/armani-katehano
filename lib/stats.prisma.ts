@@ -72,6 +72,7 @@ export async function recalcAggregates(seasonLeagueId: string, tx: any = prisma)
     const totalFta  = sum("fta");
     const totalReb  = sum("reb");
     const totalAst  = sum("ast");
+    const totalStl  = sum("stl");
 
     const effAvg = +(rows.reduce((a: number, r: any) => a + calcEff(r), 0) / gp).toFixed(2);
 
@@ -98,6 +99,7 @@ export async function recalcAggregates(seasonLeagueId: string, tx: any = prisma)
       ptsTotal:  totalPts,
       rebTotal:  totalReb,
       astTotal:  totalAst,
+      stlTotal:  totalStl,
       fgmTotal:  totalFgm,
       fgaTotal:  totalFga,
       fg2mTotal: totalFg2m,
@@ -131,7 +133,7 @@ export async function recalcAggregates(seasonLeagueId: string, tx: any = prisma)
     "ptsAvg",      "rebAvg",         "orbAvg",    "drbAvg",    "astAvg",
     "stlAvg",      "blkAvg",         "toAvg",     "pfAvg",     "minutesAvg",
     "fgPct",       "fg2Pct",         "tpPct",     "ftPct",     "tsPct",
-    "ptsTotal",    "rebTotal",       "astTotal",
+    "ptsTotal",    "rebTotal",       "astTotal",    "stlTotal",
     "fgmTotal",    "fgaTotal",
     "fg2mTotal",   "fg2aTotal",
     "fg3mTotal",   "fg3aTotal",
