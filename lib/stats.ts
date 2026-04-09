@@ -45,6 +45,7 @@ export function mergeAggregates(prev: any, agg: any) {
     ptsTotal:   (prev.ptsTotal  ?? 0) + (agg.ptsTotal  ?? 0),
     rebTotal:   (prev.rebTotal  ?? 0) + (agg.rebTotal  ?? 0),
     astTotal:   (prev.astTotal  ?? 0) + (agg.astTotal  ?? 0),
+    stlTotal:   (prev.stlTotal  ?? 0) + (agg.stlTotal  ?? 0),
   };
 }
 
@@ -116,6 +117,7 @@ export function aggregatesToStatsMap(aggregates: any[]) {
       pts_total: agg.ptsTotal ?? 0,
       reb_total: agg.rebTotal ?? 0,
       ast_total: agg.astTotal ?? 0,
+      stl_total: agg.stlTotal ?? 0,
     };
   }
 
@@ -274,6 +276,7 @@ export function buildStatsMap(players: any[], games: any[]) {
       mpg:    avg("min"),
       eff:    avg("eff"),
       gp:     n,
+      stl_total: sum("stl"),
       gameLog,
     };
   }
@@ -358,6 +361,7 @@ export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
       pts_total: sumRaw("pts_total"),
       reb_total: sumRaw("reb_total"),
       ast_total: sumRaw("ast_total"),
+      stl_total: sumRaw("stl_total"),
       gameLog: allGameLogs,
     };
   }
