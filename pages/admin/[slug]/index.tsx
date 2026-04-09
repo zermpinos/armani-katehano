@@ -22,7 +22,25 @@ export default function AdminDashboard({ validSlug }: any) {
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [toast,   setToast]   = useState(null);
+  const [toast,   setToast]   = useState<{ type: string; msg: string } | null>(null);
+  const [recalcing, setRecalcing] = useState(false);
+
+  const handleRecalc = async () => {
+    setRecalcing(true);
+    try {
+      const res = await fetch("/api/admin/recalc", { method: "POST" });
+      const json = await res.json();
+      if (res.ok) {
+        setToast({ type: "success", msg: `Recalculated ${json.recalculated} league(s)` });
+      } else {
+        setToast({ type: "error", msg: json.error ?? "Recalc failed" });
+      }
+    } catch {
+      setToast({ type: "error", msg: "Recalc failed" });
+    } finally {
+      setRecalcing(false);
+    }
+  };
 
   const loadDashboard = async () => {
     setLoading(true);
@@ -114,6 +132,25 @@ export default function AdminDashboard({ validSlug }: any) {
                 <div style={{ fontSize: 11, color: C.textDim }}>{link.desc}</div>
               </a>
             ))}
+          </div>
+
+          {/* Recalc */}
+          <div style={{ marginBottom: 28 }}>
+            <button
+              onClick={handleRecalc}
+              disabled={recalcing}
+              style={{
+                padding: "10px 18px", fontSize: 12, fontWeight: 900, letterSpacing: "0.08em",
+                borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface,
+                color: recalcing ? C.textDim : C.text, cursor: recalcing ? "not-allowed" : "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {recalcing ? "Recalculating…" : "⟳ Recalc stats"}
+            </button>
+            <span style={{ fontSize: 11, color: C.textDim, marginLeft: 10 }}>
+              Recomputes all player aggregates from raw game data
+            </span>
           </div>
 
           {/* Recent games */}
