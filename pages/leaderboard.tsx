@@ -38,6 +38,7 @@ const TOTAL_COLS = [
   { key:"pts_total", label:"PTS", title:"Total Points",           dec:0 },
   { key:"reb_total", label:"REB", title:"Total Rebounds",         dec:0 },
   { key:"ast_total", label:"AST", title:"Total Assists",          dec:0 },
+  { key:"stl_total", label:"STL", title:"Total Steals",           dec:0 },
   { key:"fgm",       label:"FGM", title:"Field Goals Made",       dec:0 },
   { key:"fga",       label:"FGA", title:"Field Goals Attempted",  dec:0 },
   { key:"fgPct",     label:"FG%", title:"Field Goal %",           dec:1, pct:true },
