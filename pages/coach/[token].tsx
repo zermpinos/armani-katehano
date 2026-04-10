@@ -90,6 +90,14 @@ export default function CoachPage() {
   const [panelLoading,  setPanelLoading]  = useState(false);
   const [saving,        setSaving]        = useState(false);
 
+  // Change password
+  const [showChangePw,   setShowChangePw]   = useState(false);
+  const [currentPw,      setCurrentPw]      = useState("");
+  const [newPw,          setNewPw]          = useState("");
+  const [confirmPw,      setConfirmPw]      = useState("");
+  const [changingPw,     setChangingPw]     = useState(false);
+  const [changePwError,  setChangePwError]  = useState<string | null>(null);
+
   const showToast = (msg: string, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 4000);
@@ -238,6 +246,19 @@ export default function CoachPage() {
     } finally { setSaving(false); }
   };
 
+  const resendEmail = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/coach/roster-announcement", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ upcomingGameId: panelGameId, resend: true }),
+      });
+      if (!res.ok) { const d = await res.json(); showToast(d.error, "error"); return; }
+      showToast("Email resent to all subscribers!");
+    } finally { setSaving(false); }
+  };
+
   const removeAnnouncement = async () => {
     setSaving(true);
     try {
@@ -251,6 +272,29 @@ export default function CoachPage() {
       showToast("Roster announcement removed.");
       closePanel();
     } finally { setSaving(false); }
+  };
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangePwError(null);
+    if (newPw !== confirmPw) { setChangePwError("New passwords don't match."); return; }
+    if (newPw.length < 8)    { setChangePwError("Password must be at least 8 characters."); return; }
+    setChangingPw(true);
+    try {
+      const res = await fetch("/api/coach/change-password", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
+      });
+      if (res.ok) {
+        setCurrentPw(""); setNewPw(""); setConfirmPw("");
+        setShowChangePw(false);
+        showToast("Password updated successfully!");
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setChangePwError(d.error ?? "Failed to change password.");
+      }
+    } finally { setChangingPw(false); }
   };
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -418,6 +462,11 @@ export default function CoachPage() {
                             {saving ? "SAVING…" : announcedGameIds.has(g.id) ? "UPDATE ROSTER" : "PUBLISH ROSTER"}
                           </Btn>
                           {announcedGameIds.has(g.id) && (
+                            <Btn onClick={resendEmail} disabled={saving} variant="ghost">
+                              RESEND EMAIL
+                            </Btn>
+                          )}
+                          {announcedGameIds.has(g.id) && (
                             <Btn onClick={removeAnnouncement} disabled={saving} variant="danger">
                               REMOVE
                             </Btn>
@@ -432,6 +481,49 @@ export default function CoachPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Change Password */}
+      <div style={{ maxWidth: 780, margin: "0 auto", padding: "0 16px 40px" }}>
+        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 24 }}>
+          {!showChangePw ? (
+            <button
+              onClick={() => setShowChangePw(true)}
+              style={{ background: "none", border: "none", fontSize: 11, color: C.textDim, cursor: "pointer", padding: 0, fontFamily: "inherit", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}
+            >
+              Change password
+            </button>
+          ) : (
+            <div style={{ maxWidth: 360 }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: C.text, marginBottom: 14 }}>Change password</div>
+              <form onSubmit={changePassword} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {[
+                  { label: "Current password", value: currentPw,  setter: setCurrentPw },
+                  { label: "New password",      value: newPw,      setter: setNewPw },
+                  { label: "Confirm password",  value: confirmPw,  setter: setConfirmPw },
+                ].map(({ label, value, setter }) => (
+                  <div key={label}>
+                    <label style={{ display: "block", fontSize: 10, fontWeight: 900, letterSpacing: "0.12em", color: C.textDim, textTransform: "uppercase", marginBottom: 4 }}>{label}</label>
+                    <input
+                      type="password"
+                      value={value}
+                      onChange={e => setter(e.target.value)}
+                      required
+                      style={{ width: "100%", padding: "8px 12px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                    />
+                  </div>
+                ))}
+                {changePwError && <div style={{ fontSize: 12, color: C.redText }}>{changePwError}</div>}
+                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                  <Btn variant="green" disabled={changingPw}>
+                    {changingPw ? "SAVING…" : "UPDATE PASSWORD"}
+                  </Btn>
+                  <Btn variant="ghost" onClick={() => { setShowChangePw(false); setChangePwError(null); }}>CANCEL</Btn>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Toast */}
