@@ -13,6 +13,7 @@ export {
   getStats,
   getAllPublicData,
   getAllSeasonsStats,
+  getAllUpcomingGames,
 } from "./repository.prisma";
 
 export {
