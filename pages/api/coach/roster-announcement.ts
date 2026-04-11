@@ -13,6 +13,7 @@ import { requireCoachAuth } from "../../../lib/requireCoachAuth";
 import { auditLog } from "../../../lib/security";
 import prisma from "../../../lib/prisma";
 import { prodError } from "../../../lib/utils";
+import { sendRosterAnnouncement } from "../../../lib/email";
 
 const PlayerSlotSchema = z.object({
   playerId: z.string().cuid(),
@@ -99,6 +100,29 @@ async function handler(req: any, res: any) {
       });
 
       auditLog("coach_roster_published", { ip, upcomingGameId, playerCount: players.length });
+
+      // Fire-and-forget email to all confirmed subscribers
+      prisma.subscriber.findMany({ where: { confirmedAt: { not: null } } })
+        .then(subscribers => {
+          if (subscribers.length === 0) return;
+          return sendRosterAnnouncement({
+            game: {
+              opponent:    game.opponent,
+              scheduledFor: game.scheduledFor.toISOString(),
+              location:    game.location,
+              competition: game.competition ?? null,
+            },
+            players: announcement.players.map(sp => ({
+              name:   sp.player.name,
+              number: sp.player.number,
+              note:   sp.note ?? null,
+            })),
+            message: message ?? null,
+            subscribers: subscribers.map(s => ({ email: s.email, token: s.token })),
+          });
+        })
+        .catch(err => auditLog("roster_email_trigger_error", { error: err.message }));
+
       return res.status(200).json({ ok: true, id: announcement.id });
     } catch (err) {
       auditLog("coach_roster_error", { ip, error: (err as any).message });
