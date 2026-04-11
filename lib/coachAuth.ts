@@ -13,6 +13,7 @@
 import crypto from "crypto";
 import bcrypt  from "bcryptjs";
 import { signSession, verifySession } from "./security";
+import prisma from "./prisma";
 
 const COACH_COOKIE = "__Host-ak_coach";
 export const COACH_SESSION_TTL_S = 8 * 60 * 60; // 8 hours
@@ -45,10 +46,24 @@ export function clearCoachSessionCookie(): string {
 
 // ─── Password ─────────────────────────────────────────────────────────────────
 
+/**
+ * Verifies the coach password.
+ * Priority: DB Setting("coach_password_hash") -> COACH_PASSWORD env var.
+ * This lets the coach change their own password without the site owner knowing.
+ */
 export async function verifyCoachPassword(plaintext: string): Promise<boolean> {
+  // 1. Try DB-stored hash first (set by the coach via self-service)
+  try {
+    const setting = await prisma.setting.findUnique({ where: { key: "coach_password_hash" } });
+    if (setting?.value && (setting.value.startsWith("$2b$") || setting.value.startsWith("$2a$"))) {
+      return bcrypt.compare(plaintext, setting.value);
+    }
+  } catch { /* fall through to env var */ }
+
+  // 2. Fall back to env var (initial setup / bootstrap)
   const hash = process.env.COACH_PASSWORD;
   if (!hash) {
-    console.error("[coachAuth] COACH_PASSWORD is not set");
+    console.error("[coachAuth] COACH_PASSWORD is not set and no DB password found");
     return false;
   }
   if (!hash.startsWith("$2b$") && !hash.startsWith("$2a$")) {
@@ -56,6 +71,18 @@ export async function verifyCoachPassword(plaintext: string): Promise<boolean> {
     return false;
   }
   return bcrypt.compare(plaintext, hash);
+}
+
+/**
+ * Stores a new bcrypt-hashed password in the DB.
+ * Called by the coach self-service endpoint only.
+ */
+export async function setCoachPasswordHash(hash: string): Promise<void> {
+  await prisma.setting.upsert({
+    where:  { key: "coach_password_hash" },
+    update: { value: hash },
+    create: { key: "coach_password_hash", value: hash },
+  });
 }
 
 // ─── Token (URL slug) check ───────────────────────────────────────────────────
