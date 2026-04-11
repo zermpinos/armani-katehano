@@ -100,7 +100,7 @@ function buildGoogleCalendarUrl(opponent: string, isoStr: string, venue?: string
   const endHH = String(parseInt(hh) + 1).padStart(2, "0");
   const dtEnd = `${datePart.replace(/-/g, "")}T${endHH}${mm}00`;
   const params = new URLSearchParams({
-    action: "Armani Katehano vs " + opponent,
+    action: "TEMPLATE",
     text: `Armani Katehano vs ${opponent}`,
     dates: `${dtStart}/${dtEnd}`,
     ctz: "Europe/Athens",
