@@ -10,6 +10,7 @@
  *   NEXT_PUBLIC_APP_URL — your Vercel URL, e.g. https://armani-katehano.vercel.app
  */
 
+import crypto from "crypto";
 import nodemailer from "nodemailer";
 import { auditLog } from "./security";
 import { getVenueUrl } from "./venues";
@@ -304,7 +305,10 @@ export async function sendRosterAnnouncement({
     console.warn("[email] GMAIL_USER or GMAIL_APP_PASSWORD not set — skipping email send");
     return;
   }
-  if (subscribers.length === 0) return;
+  if (subscribers.length === 0) {
+    auditLog("roster_emails_skipped", { reason: "no_confirmed_subscribers", opponent: game.opponent });
+    return;
+  }
 
   const from    = `Armani Katehano <${process.env.GMAIL_USER}>`;
   const appUrl  = process.env.NEXT_PUBLIC_APP_URL ?? "";
@@ -315,17 +319,28 @@ export async function sendRosterAnnouncement({
   let failed = 0;
 
   for (const sub of subscribers) {
+    // SHA-256 of the address — one-way, safe to persist in logs, consistent
+    // enough to correlate against the subscriber table if a delivery needs investigation.
+    const emailHash = crypto.createHash("sha256").update(sub.email).digest("hex");
+
     const unsubscribeUrl = `${appUrl}/unsubscribe?token=${sub.token}`;
     const html = buildHtml(game, players, message, appUrl, unsubscribeUrl);
     const text = buildText(game, players, message, appUrl, unsubscribeUrl);
     try {
       await transport.sendMail({ from, to: sub.email, subject, html, text });
       sent++;
+      auditLog("roster_email_delivered", { emailHash, opponent: game.opponent });
     } catch (err) {
       failed++;
-      auditLog("roster_email_failed", { email: sub.email, error: (err as any).message });
+      auditLog("roster_email_failed", { emailHash, error: (err as any).message, opponent: game.opponent });
     }
   }
 
-  auditLog("roster_emails_sent", { sent, failed, opponent: game.opponent });
+  auditLog("roster_emails_summary", {
+    opponent:     game.opponent,
+    total:        subscribers.length,
+    sent,
+    failed,
+    allDelivered: failed === 0,
+  });
 }
