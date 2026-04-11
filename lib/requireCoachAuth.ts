@@ -10,7 +10,7 @@
  *   4. Session not older than COACH_SESSION_TTL_S
  */
 
-import { securityHeaders, auditLog, csrfCheck } from "./security";
+import { securityHeaders, auditLog, csrfCheck, getClientIp } from "./security";
 import {
   getCoachSessionToken,
   verifyCoachSession,
@@ -21,7 +21,7 @@ export function requireCoachAuth(handler: (req: any, res: any) => any) {
   return async function (req: any, res: any) {
     Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
 
-    const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
+    const ip = getClientIp(req);
 
     // ── CSRF ──────────────────────────────────────────────────────────────────
     if (!csrfCheck(req)) {
