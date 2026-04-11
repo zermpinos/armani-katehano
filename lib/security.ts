@@ -185,6 +185,25 @@ export function securityHeaders() {
 export const LOCKOUT_TTL_S = 60 * 15; // 15 minutes
 export const MAX_LOGIN_ATTEMPTS = 5;
 
+// ─── Client IP extraction ─────────────────────────────────────────────────────
+
+/**
+ * Returns the real client IP from a Next.js request.
+ *
+ * Vercel sets x-real-ip to the connecting client IP before passing the
+ * request to the serverless function — this value cannot be spoofed by
+ * the client. x-forwarded-for is only used as a fallback because its
+ * first entry CAN be injected by an attacker who sends the header before
+ * Vercel appends the real IP at the end of the chain.
+ */
+export function getClientIp(req: any): string {
+  return (
+    (req.headers["x-real-ip"] as string | undefined)?.trim() ||
+    (req.headers["x-forwarded-for"] as string | undefined)?.split(",").pop()?.trim() ||
+    "unknown"
+  );
+}
+
 // ─── Audit log ────────────────────────────────────────────────────────────────
 
 /** Structured audit log → Vercel log drain. */

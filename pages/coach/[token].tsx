@@ -287,9 +287,9 @@ export default function CoachPage() {
         body:    JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
       });
       if (res.ok) {
-        setCurrentPw(""); setNewPw(""); setConfirmPw("");
-        setShowChangePw(false);
-        showToast("Password updated successfully!");
+        // Session was cleared server-side — force re-login with the new password.
+        showToast("Password updated. Please log in again.");
+        setTimeout(() => window.location.reload(), 1500);
       } else {
         const d = await res.json().catch(() => ({}));
         setChangePwError(d.error ?? "Failed to change password.");
