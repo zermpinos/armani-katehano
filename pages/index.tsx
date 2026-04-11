@@ -28,7 +28,6 @@ function getCountdownInfo(isoStr: string): { label: string; tier: "today" | "wee
   /* future */               return { label: fmtDate(isoStr), tier: "future" };
 }
 
-// Format time in 24-hour format (HH:MM)
 function formatGameTime(isoStr: string): string {
   return isoStr.slice(11, 16);
 }
