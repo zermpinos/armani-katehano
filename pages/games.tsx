@@ -179,12 +179,145 @@ function ResultFilter({ selected, onChange }: any) {
   );
 }
 
+const CAL_DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+function CalendarView({ games, onGameClick, loadingBoxScore }: any) {
+  const months = useMemo(() => {
+    const map = new Map<string, any[]>();
+    games.forEach((g: any) => {
+      const [yr, mo] = g.date.split("-");
+      const key = `${yr}-${mo}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(g);
+    });
+    return [...map.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([key, gs]) => ({ key, games: gs }));
+  }, [games]);
+
+  const [monthIdx, setMonthIdx] = useState(() => months.length - 1);
+
+  // Keep index in bounds if games change (e.g. season switch)
+  const safeIdx = Math.min(Math.max(monthIdx, 0), months.length - 1);
+
+  if (months.length === 0) return null;
+
+  const { key, games: monthGames } = months[safeIdx];
+  const [yr, mo] = key.split("-").map(Number);
+  const monthLabel = new Date(yr, mo - 1).toLocaleString("default", { month: "long" });
+  const firstDow = new Date(yr, mo - 1, 1).getDay();
+  const daysInMonth = new Date(yr, mo, 0).getDate();
+
+  const dayMap = new Map<number, any[]>();
+  monthGames.forEach((g: any) => {
+    const d = parseInt(g.date.split("-")[2]);
+    if (!dayMap.has(d)) dayMap.set(d, []);
+    dayMap.get(d)!.push(g);
+  });
+
+  const cells: Array<{ type: "empty"; id: string } | { type: "day"; day: number; gs: any[] }> = [];
+  for (let i = 0; i < firstDow; i++) cells.push({ type: "empty", id: `e${i}` });
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ type: "day", day: d, gs: dayMap.get(d) || [] });
+
+  const canPrev = safeIdx > 0;
+  const canNext = safeIdx < months.length - 1;
+
+  const navBtn = (disabled: boolean, onClick: () => void, label: string) => (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        padding: "6px 14px",
+        borderRadius: 8,
+        border: `1px solid ${disabled ? C.border : C.border2}`,
+        background: "transparent",
+        color: disabled ? C.textDim : C.text,
+        cursor: disabled ? "default" : "pointer",
+        fontSize: 16,
+        fontFamily: "inherit",
+        fontWeight: 900,
+        opacity: disabled ? 0.3 : 1,
+        transition: "all 0.15s",
+        lineHeight: 1,
+      }}
+    >{label}</button>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Month header with nav arrows */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        {navBtn(!canPrev, () => setMonthIdx(safeIdx - 1), "‹")}
+        <div style={{ fontSize: 13, fontWeight: 900, color: C.text, letterSpacing: "0.14em", textTransform: "uppercase", textAlign: "center" }}>
+          {monthLabel} {yr}
+        </div>
+        {navBtn(!canNext, () => setMonthIdx(safeIdx + 1), "›")}
+      </div>
+
+      {/* Day-of-week headers */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+        {CAL_DAYS.map(d => (
+          <div key={d} style={{ textAlign: "center", fontSize: 9, fontWeight: 900, color: C.textDim, letterSpacing: "0.08em", padding: "3px 0" }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+        {cells.map(cell => {
+          if (cell.type === "empty") {
+            return <div key={cell.id} style={{ aspectRatio: "1" }} />;
+          }
+          const { day, gs } = cell;
+          const hasGame = gs.length > 0;
+          const g = gs[0];
+          const isWin = hasGame && g.result === "W";
+          return (
+            <button
+              key={day}
+              onClick={hasGame && !loadingBoxScore ? () => onGameClick(g) : undefined}
+              disabled={!hasGame}
+              style={{
+                aspectRatio: "1",
+                borderRadius: 8,
+                border: `1px solid ${hasGame ? (isWin ? `${C.green}55` : `${C.redText}45`) : C.border}`,
+                background: hasGame ? (isWin ? `${C.green}28` : `${C.red}38`) : C.surface,
+                cursor: hasGame ? "pointer" : "default",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "3px 2px",
+                gap: 2,
+                transition: "border-color 0.15s, background 0.15s",
+                fontFamily: "inherit",
+                minWidth: 0,
+                overflow: "hidden",
+              }}
+              onMouseEnter={e => { if (hasGame) { e.currentTarget.style.borderColor = isWin ? C.green : C.redText; e.currentTarget.style.background = isWin ? `${C.green}40` : `${C.red}50`; } }}
+              onMouseLeave={e => { if (hasGame) { e.currentTarget.style.borderColor = isWin ? `${C.green}55` : `${C.redText}45`; e.currentTarget.style.background = isWin ? `${C.green}28` : `${C.red}38`; } }}
+            >
+              <span style={{ fontSize: 10, fontWeight: hasGame ? 900 : 400, color: hasGame ? C.text : C.textDim, lineHeight: 1 }}>{day}</span>
+              {hasGame && (
+                <>
+                  <span style={{ fontSize: 8, fontWeight: 700, color: isWin ? C.green : C.redText, lineHeight: 1, letterSpacing: "0.04em" }}>{g.home ? "vs" : "@"}</span>
+                  <span style={{ fontSize: 8, fontWeight: 900, color: C.text, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%", padding: "0 3px" }}>{g.opponent}</span>
+                </>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function GamesPage({ allGames, players, seasons, currentSeason }: any) {
   const [selectedSeason, setSelectedSeason] = useState(currentSeason);
   const [selectedLeague, setSelectedLeague] = useState("all");
   const [selectedResult, setSelectedResult] = useState("all");
   const [selected, setSelected] = useState(null);
   const [loadingBoxScore, setLoadingBoxScore] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   async function handleGameClick(game: any) {
     setLoadingBoxScore(true);
@@ -234,7 +367,36 @@ export default function GamesPage({ allGames, players, seasons, currentSeason }:
         currentSeason={selectedSeason}
         onChange={handleSeasonChange}
         showAllTime={false}
-        right={`${filtered.length} Games`}
+        right={
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim }}>{filtered.length} GAMES</span>
+            <div style={{ display: "flex", gap: 2, background: C.surface2, borderRadius: 8, padding: 2, border: `1px solid ${C.border}` }}>
+              {(["list", "calendar"] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  title={mode === "list" ? "List view" : "Calendar view"}
+                  style={{
+                    padding: "4px 9px",
+                    borderRadius: 6,
+                    border: "none",
+                    background: viewMode === mode ? C.red : "transparent",
+                    color: viewMode === mode ? C.text : C.textDim,
+                    cursor: "pointer",
+                    fontSize: 11,
+                    fontFamily: "inherit",
+                    fontWeight: 900,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {mode === "list" ? "≡" : "▦"}
+                </button>
+              ))}
+            </div>
+          </div>
+        }
       />
 
       <LeagueFilter
@@ -250,6 +412,8 @@ export default function GamesPage({ allGames, players, seasons, currentSeason }:
           <div style={{ fontSize:36, marginBottom:12 }}>📋</div>
           <div style={{ fontSize:15, fontWeight:700 }}>No games recorded yet</div>
         </div>
+      ) : viewMode === "calendar" ? (
+        <CalendarView games={filtered} onGameClick={handleGameClick} loadingBoxScore={loadingBoxScore} />
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
           {filtered.map((g: any) => {
