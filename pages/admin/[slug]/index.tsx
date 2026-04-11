@@ -24,6 +24,7 @@ export default function AdminDashboard({ validSlug }: any) {
   const [loading, setLoading] = useState(false);
   const [toast,   setToast]   = useState<{ type: string; msg: string } | null>(null);
   const [recalcing, setRecalcing] = useState(false);
+  const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
 
   const handleRecalc = async () => {
     setRecalcing(true);
@@ -45,10 +46,12 @@ export default function AdminDashboard({ validSlug }: any) {
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/dashboard");
-      if (!res.ok) return;
-      const json = await res.json();
-      setData(json);
+      const [dashRes, subRes] = await Promise.all([
+        fetch("/api/admin/dashboard"),
+        fetch("/api/admin/subscribers"),
+      ]);
+      if (dashRes.ok) setData(await dashRes.json());
+      if (subRes.ok) { const s = await subRes.json(); setSubscriberCount(s.count ?? 0); }
     } finally {
       setLoading(false);
     }
@@ -110,11 +113,12 @@ export default function AdminDashboard({ validSlug }: any) {
           {/* Summary strip */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))", gap: 10, marginBottom: 28 }}>
             {[
-              ["SEASON",  data?.currentSeason ?? "--"],
-              ["RECORD",  `${wins}-${losses}`],
-              ["PPG",     ppg],
-              ["RPG",     rpg],
-              ["APG",     apg],
+              ["SEASON",      data?.currentSeason ?? "--"],
+              ["RECORD",      `${wins}-${losses}`],
+              ["PPG",         ppg],
+              ["RPG",         rpg],
+              ["APG",         apg],
+              ["SUBSCRIBERS", subscriberCount !== null ? String(subscriberCount) : "--"],
             ].map(([label, value]) => (
               <div key={label} style={{ borderRadius: 10, padding: "12px 14px", textAlign: "center", border: `1px solid ${C.border}`, background: C.surface }}>
                 <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 4 }}>{label}</div>
