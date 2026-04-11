@@ -2,7 +2,7 @@ import { useState } from "react";
 import Layout from "../components/Layout";
 import { StatTile, SectionHeading } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
-import { getAllPublicData } from "../lib/data";
+import { getAllPublicData, getUpcomingGamesWithAnnouncements } from "../lib/data";
 import { computeRecord } from "../lib/stats";
 import { fmt, fmtDate, fmtMinutes } from "../lib/utils";
 import ErrorBoundary from "../components/ErrorBoundary";
@@ -147,6 +147,36 @@ function ShowMoreButton({ href, onClick, children, className }: {
   );
 }
 
+// Announced roster panel — shown when visitor toggles "View Roster"
+function RosterPanel({ announcement }: { announcement: any }) {
+  return (
+    <div style={{ paddingTop: 10 }}>
+      <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, textTransform: "uppercase", marginBottom: 8 }}>
+        Announced Roster
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {announcement.players.map((p: any) => (
+          <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: `1px solid ${C.border}` }}>
+            <span style={{ fontSize: 11, fontWeight: 900, color: C.textDim, minWidth: 28, fontVariantNumeric: "tabular-nums" }}>#{p.number}</span>
+            <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{p.name}</span>
+            <span style={{ fontSize: 10, color: C.textDim }}>{p.position}</span>
+            {p.note && (
+              <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.08em", padding: "2px 6px", borderRadius: 4, background: `${C.green}20`, color: C.green, border: `1px solid ${C.green}40`, whiteSpace: "nowrap" }}>
+                {p.note}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+      {announcement.message && (
+        <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 8, background: C.surface2, fontSize: 12, color: C.textSub, fontStyle: "italic", lineHeight: 1.5 }}>
+          "{announcement.message}"
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Google Calendar icon SVG
 function GoogleCalIcon() {
   return (
@@ -164,6 +194,8 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
   const [trendRange, setTrendRange] = useState(10);
   const [showTrendModal, setShowTrendModal] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
+  const [openRosterId, setOpenRosterId] = useState<string | null>(null);
+  const toggleRoster = (id: string) => setOpenRosterId(prev => prev === id ? null : id);
 
   const playersWithStats = players.map((p: any) => ({
     ...p,
@@ -352,6 +384,27 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                   </div>
                 </div>
               </div>
+
+              {/* Roster section */}
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
+                {featured.announcement ? (
+                  <>
+                    <button
+                      onClick={() => toggleRoster(featured.id)}
+                      style={{ background: "none", border: "none", fontSize: 11, fontWeight: 700, color: C.textDim, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.1em", textTransform: "uppercase", padding: "2px 0", display: "flex", alignItems: "center", gap: 6 }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = C.textSub; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = C.textDim; }}
+                    >
+                      {openRosterId === featured.id
+                        ? "Hide Roster ↑"
+                        : `View Roster (${featured.announcement.players.length} players) →`}
+                    </button>
+                    {openRosterId === featured.id && <RosterPanel announcement={featured.announcement} />}
+                  </>
+                ) : (
+                  <div style={{ fontSize: 11, color: C.textDim, letterSpacing: "0.04em" }}>Roster TBA</div>
+                )}
+              </div>
             </div>
 
             {/* ── Compact cards: remaining games ── */}
@@ -362,73 +415,102 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                   const gameTime = formatGameTime(g.scheduledFor);
                   const accentColor = tier === "today" ? C.gold : tier === "week" ? C.redText : C.textSub;
                   const venue = g.notes;
+                  const rosterOpen = openRosterId === g.id;
                   return (
-                    <div key={g.id} style={{
-                      display:"flex", alignItems:"center", justifyContent:"space-between", gap:10,
-                      padding:"10px 14px", borderRadius:10,
-                      border:`1px solid ${C.border}`,
-                      background:"transparent",
-                      transition:"background 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = C.surface2; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                    >
-                      {/* Left: info */}
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ display:"flex", alignItems:"baseline", gap:6, flexWrap:"wrap" }}>
-                          <span style={{ fontSize:13, fontWeight:700, color:C.text }}>
-                            {g.location === "home" ? "vs" : "@"} {g.opponent}
-                          </span>
-                          <span style={{ fontSize:11, fontWeight:600, color:accentColor }}>{gameTime}</span>
-                          {g.competition && (
-                            <span style={{ fontSize:11, color:C.textDim }}>· {g.competition}</span>
-                          )}
+                    <div key={g.id}>
+                      <div style={{
+                        display:"flex", alignItems:"center", justifyContent:"space-between", gap:10,
+                        padding:"10px 14px", borderRadius: rosterOpen ? "10px 10px 0 0" : 10,
+                        border:`1px solid ${rosterOpen ? `${C.green}40` : C.border}`,
+                        background:"transparent",
+                        transition:"background 0.15s ease, border-color 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = C.surface2; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                      >
+                        {/* Left: info */}
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ display:"flex", alignItems:"baseline", gap:6, flexWrap:"wrap" }}>
+                            <span style={{ fontSize:13, fontWeight:700, color:C.text }}>
+                              {g.location === "home" ? "vs" : "@"} {g.opponent}
+                            </span>
+                            <span style={{ fontSize:11, fontWeight:600, color:accentColor }}>{gameTime}</span>
+                            {g.competition && (
+                              <span style={{ fontSize:11, color:C.textDim }}>· {g.competition}</span>
+                            )}
+                          </div>
+                          <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{label}</div>
                         </div>
-                        <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{label}</div>
+                        {/* Right: icon-only buttons + roster toggle */}
+                        <div style={{ display:"flex", alignItems:"center", gap:5, flexShrink:0 }}>
+                          <a
+                            href={buildGoogleCalendarUrl(g.opponent, g.scheduledFor, venue)}
+                            target="_blank" rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Add to Google Calendar"
+                            style={{
+                              display:"flex", alignItems:"center", justifyContent:"center",
+                              width:28, height:28, borderRadius:7,
+                              border:`1px solid ${C.border}`,
+                              background:C.base,
+                              textDecoration:"none",
+                              transition:"all 0.15s ease",
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor="#4285F4"; e.currentTarget.style.background="#4285F412"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.borderColor=C.border; e.currentTarget.style.background=C.base; }}
+                          >
+                            <GoogleCalIcon />
+                          </a>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); downloadIcsFile(g.opponent, g.scheduledFor, venue); }}
+                            title="Download .ics"
+                            style={{
+                              display:"flex", alignItems:"center", justifyContent:"center",
+                              width:28, height:28, borderRadius:7,
+                              border:`1px solid ${C.border}`,
+                              background:C.base,
+                              color:C.textDim,
+                              cursor:"pointer",
+                              transition:"all 0.15s ease",
+                              fontFamily:"inherit",
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor=C.border2; e.currentTarget.style.color=C.textSub; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.borderColor=C.border; e.currentTarget.style.color=C.textDim; }}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                              <polyline points="7 10 12 15 17 10"/>
+                              <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleRoster(g.id); }}
+                            title={g.announcement ? (rosterOpen ? "Hide roster" : "View roster") : "Roster TBA"}
+                            disabled={!g.announcement}
+                            style={{
+                              display:"flex", alignItems:"center", justifyContent:"center",
+                              width:28, height:28, borderRadius:7,
+                              border:`1px solid ${rosterOpen ? `${C.green}60` : C.border}`,
+                              background: rosterOpen ? `${C.green}15` : C.base,
+                              color: g.announcement ? (rosterOpen ? C.green : C.textDim) : C.textDim,
+                              cursor: g.announcement ? "pointer" : "default",
+                              transition:"all 0.15s ease",
+                              fontFamily:"inherit",
+                              fontSize: 10, fontWeight: 900, letterSpacing: "0.05em",
+                              opacity: g.announcement ? 1 : 0.4,
+                            }}
+                            onMouseEnter={(e) => { if (g.announcement && !rosterOpen) { e.currentTarget.style.borderColor=C.border2; e.currentTarget.style.color=C.textSub; } }}
+                            onMouseLeave={(e) => { if (g.announcement && !rosterOpen) { e.currentTarget.style.borderColor=C.border; e.currentTarget.style.color=C.textDim; } }}
+                          >
+                            {g.announcement ? (rosterOpen ? "↑" : `${g.announcement.players.length}`) : "—"}
+                          </button>
+                        </div>
                       </div>
-                      {/* Right: icon-only buttons */}
-                      <div style={{ display:"flex", alignItems:"center", gap:5, flexShrink:0 }}>
-                        <a
-                          href={buildGoogleCalendarUrl(g.opponent, g.scheduledFor, venue)}
-                          target="_blank" rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          title="Add to Google Calendar"
-                          style={{
-                            display:"flex", alignItems:"center", justifyContent:"center",
-                            width:28, height:28, borderRadius:7,
-                            border:`1px solid ${C.border}`,
-                            background:C.base,
-                            textDecoration:"none",
-                            transition:"all 0.15s ease",
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.borderColor="#4285F4"; e.currentTarget.style.background="#4285F412"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.borderColor=C.border; e.currentTarget.style.background=C.base; }}
-                        >
-                          <GoogleCalIcon />
-                        </a>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); downloadIcsFile(g.opponent, g.scheduledFor, venue); }}
-                          title="Download .ics"
-                          style={{
-                            display:"flex", alignItems:"center", justifyContent:"center",
-                            width:28, height:28, borderRadius:7,
-                            border:`1px solid ${C.border}`,
-                            background:C.base,
-                            color:C.textDim,
-                            cursor:"pointer",
-                            transition:"all 0.15s ease",
-                            fontFamily:"inherit",
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.borderColor=C.border2; e.currentTarget.style.color=C.textSub; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.borderColor=C.border; e.currentTarget.style.color=C.textDim; }}
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7 10 12 15 17 10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
-                          </svg>
-                        </button>
-                      </div>
+                      {rosterOpen && g.announcement && (
+                        <div style={{ padding:"10px 14px 12px", border:`1px solid ${C.green}40`, borderTop:"none", borderRadius:"0 0 10px 10px", background:`${C.green}05` }}>
+                          <RosterPanel announcement={g.announcement} />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -878,6 +960,9 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
 }
 
 export async function getStaticProps() {
-  const { players, games, stats, upcomingGames } = await getAllPublicData();
+  const [{ players, games, stats }, upcomingGames] = await Promise.all([
+    getAllPublicData(),
+    getUpcomingGamesWithAnnouncements(),
+  ]);
   return { props: { players, games, stats, upcomingGames }, revalidate: 300 };
 }
