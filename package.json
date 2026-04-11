@@ -23,6 +23,7 @@
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
     "next": "16.1.7",
+    "nodemailer": "^8.0.5",
     "pg": "^8.20.0",
     "prisma": "^7.5.0",
     "react": "19.2.4",
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
+    "@types/nodemailer": "^8.0.0",
     "dotenv": "^17.3.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.7",
