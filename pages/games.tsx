@@ -3,9 +3,170 @@ import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import SeasonSelector from "../components/SeasonSelector";
 import { C } from "../lib/theme";
-import { getAllGames, getPlayers, getSeasons, getConfig } from "../lib/data";
+import { getAllGames, getPlayers, getSeasons, getConfig, getAllUpcomingGames } from "../lib/data";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { fmt } from "../lib/utils";
+
+// ── Upcoming-game helpers (mirrored from index.tsx) ──────────────────────────
+
+function getCountdownInfo(isoStr: string): { label: string; tier: "today" | "week" | "future" } {
+  const now = new Date();
+  const gameTime = new Date(isoStr);
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const gameDay = new Date(gameTime.getFullYear(), gameTime.getMonth(), gameTime.getDate());
+  const daysUntil = Math.ceil((gameDay.getTime() - todayStart.getTime()) / 86400000);
+  const fmtTime = () => isoStr.slice(11, 16);
+  if (daysUntil === 0) return { label: `Today at ${fmtTime()}`, tier: "today" };
+  if (daysUntil === 1) return { label: `Tomorrow at ${fmtTime()}`, tier: "week" };
+  if (daysUntil <= 6)  return { label: `In ${daysUntil} days`, tier: "week" };
+  return { label: isoStr.slice(0, 10), tier: "future" };
+}
+
+function formatGameTime(isoStr: string): string {
+  return isoStr.slice(11, 16);
+}
+
+function downloadIcsFile(opponent: string, isoStr: string, venue?: string): void {
+  const dtStart = isoStr.replace(/[-:]/g, "").split(".")[0];
+  const [datePart, timePart] = isoStr.split("T");
+  const [hh, mm, ss] = timePart.split(":");
+  const endHH = String(parseInt(hh) + 1).padStart(2, "0");
+  const dtEnd = `${datePart.replace(/-/g, "")}T${endHH}${mm}${ss || "00"}`;
+  const title = `Armani Katehano vs ${opponent}`;
+  const description = venue ? `Venue: ${venue}` : "Game";
+  const uid = `${dtStart}-${opponent.replace(/\s+/g, "")}@armanikatehano`;
+  const ical = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Armani Katehano//EN", "CALSCALE:GREGORIAN",
+    "BEGIN:VTIMEZONE", "TZID:Europe/Athens",
+    "BEGIN:STANDARD", "DTSTART:19701025T040000", "RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU",
+    "TZOFFSETFROM:+0300", "TZOFFSETTO:+0200", "TZNAME:EET", "END:STANDARD",
+    "BEGIN:DAYLIGHT", "DTSTART:19700329T030000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU",
+    "TZOFFSETFROM:+0200", "TZOFFSETTO:+0300", "TZNAME:EEST", "END:DAYLIGHT",
+    "END:VTIMEZONE", "BEGIN:VEVENT",
+    `DTSTART;TZID=Europe/Athens:${dtStart}`, `DTEND;TZID=Europe/Athens:${dtEnd}`,
+    `SUMMARY:${title}`, `DESCRIPTION:${description}`,
+    venue ? `LOCATION:${venue}` : "",
+    `UID:${uid}`,
+    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z`,
+    "END:VEVENT", "END:VCALENDAR",
+  ].filter(Boolean).join("\r\n");
+  const blob = new Blob([ical], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Armani-Katehano-vs-${opponent.replace(/\s+/g, "-")}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function buildGoogleCalendarUrl(opponent: string, isoStr: string, venue?: string): string {
+  const dtStart = isoStr.replace(/[-:]/g, "").split(".")[0];
+  const [datePart, timePart] = isoStr.split("T");
+  const [hh, mm] = timePart.split(":");
+  const endHH = String(parseInt(hh) + 1).padStart(2, "0");
+  const dtEnd = `${datePart.replace(/-/g, "")}T${endHH}${mm}00`;
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `Armani Katehano vs ${opponent}`,
+    dates: `${dtStart}/${dtEnd}`,
+    ctz: "Europe/Athens",
+    ...(venue ? { location: venue, details: `Venue: ${venue}` } : {}),
+  });
+  return `https://calendar.google.com/calendar/render?${params}`;
+}
+
+function GoogleCalIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+      <rect x="3" y="5" width="18" height="16" rx="2" fill="#fff" stroke="#4285F4" strokeWidth="1.5"/>
+      <path d="M3 11h18" stroke="#4285F4" strokeWidth="1.5"/>
+      <rect x="8" y="3" width="2" height="4" rx="1" fill="#4285F4"/>
+      <rect x="14" y="3" width="2" height="4" rx="1" fill="#4285F4"/>
+      <text x="12" y="20" textAnchor="middle" fill="#4285F4" fontSize="8" fontWeight="900" fontFamily="sans-serif">G</text>
+    </svg>
+  );
+}
+
+function UpcomingGameModal({ game, onClose }: any) {
+  const { label, tier } = getCountdownInfo(game.scheduledFor);
+  const gameTime = formatGameTime(game.scheduledFor);
+  const venue = game.notes;
+  const accentColor = tier === "today" ? C.gold : tier === "week" ? C.redText : C.textSub;
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  return (
+    <div
+      style={{ position:"fixed", inset:0, zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:16, background:"rgba(0,0,0,0.75)" }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background:C.surface, borderRadius:16, padding:24, maxWidth:360, width:"100%", border:`1px solid ${C.border2}`, boxShadow:"0 8px 32px rgba(0,0,0,0.4)" }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.18em", textTransform:"uppercase", color:accentColor, marginBottom:6 }}>
+              {tier === "today" ? "⚡ Today" : "Upcoming"}
+            </div>
+            <div style={{ fontSize:20, fontWeight:900, color:C.text, lineHeight:1.2 }}>
+              {game.location === "home" ? "vs" : "@"} {game.opponent}
+            </div>
+            {game.competition && (
+              <div style={{ fontSize:12, color:C.textDim, marginTop:4 }}>{game.competition}</div>
+            )}
+          </div>
+          <button onClick={onClose} style={{ background:"none", border:"none", color:C.textDim, fontSize:24, cursor:"pointer", fontWeight:900, padding:"0 0 0 12px", lineHeight:1 }}>×</button>
+        </div>
+
+        {/* Date / time / venue row */}
+        <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:20 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:13, fontWeight:700, color:accentColor }}>{label}</span>
+            <span style={{ fontSize:13, fontWeight:700, color:C.textSub }}>· {gameTime}</span>
+          </div>
+          {venue && (
+            <a
+              href={`https://www.google.com/maps/search/${encodeURIComponent(venue)}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, color:C.textSub, textDecoration:"none" }}
+            >
+              📍 {venue}
+            </a>
+          )}
+        </div>
+
+        {/* Calendar buttons */}
+        <div style={{ display:"flex", gap:8 }}>
+          <a
+            href={buildGoogleCalendarUrl(game.opponent, game.scheduledFor, venue)}
+            target="_blank" rel="noopener noreferrer"
+            style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px 12px", borderRadius:8, border:"1px solid #4285F440", background:"#4285F410", color:"#4285F4", fontSize:12, fontWeight:700, textDecoration:"none" }}
+          >
+            <GoogleCalIcon /> Google
+          </a>
+          <button
+            onClick={() => downloadIcsFile(game.opponent, game.scheduledFor, venue)}
+            style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px 12px", borderRadius:8, border:`1px solid ${C.border2}`, background:C.base, color:C.textSub, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            .ics
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const BOX_COLS = [
   {key:"min",label:"MIN"},
@@ -179,45 +340,61 @@ function ResultFilter({ selected, onChange }: any) {
   );
 }
 
-const CAL_DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const CAL_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
-function CalendarView({ games, onGameClick, loadingBoxScore }: any) {
+function CalendarView({ games, upcomingGames, onGameClick, loadingBoxScore }: any) {
+  const [selectedUpcoming, setSelectedUpcoming] = useState<any>(null);
+
+  // Months are driven by filtered played games only -- upcoming games appear
+  // as overlays within those months but never add new months to the list.
+  // This ensures league/result filters actually change which months are visible.
   const months = useMemo(() => {
-    const map = new Map<string, any[]>();
+    const keys = new Set<string>();
     games.forEach((g: any) => {
       const [yr, mo] = g.date.split("-");
-      const key = `${yr}-${mo}`;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(g);
+      keys.add(`${yr}-${mo}`);
     });
-    return [...map.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([key, gs]) => ({ key, games: gs }));
+    return [...keys].sort();
   }, [games]);
 
-  const [monthIdx, setMonthIdx] = useState(() => months.length - 1);
+  // Default to the month closest to today (only computed once on mount)
+  const initialKey = useMemo(() => {
+    const todayKey = new Date().toISOString().slice(0, 7);
+    return months.find(k => k >= todayKey) || months[months.length - 1] || "";
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally run once -- avoids resetting when filters change
 
-  // Keep index in bounds if games change (e.g. season switch)
-  const safeIdx = Math.min(Math.max(monthIdx, 0), months.length - 1);
+  const [activeKey, setActiveKey] = useState(initialKey);
 
   if (months.length === 0) return null;
 
-  const { key, games: monthGames } = months[safeIdx];
-  const [yr, mo] = key.split("-").map(Number);
+  // Stay on the same month when filters change; fall back to last available
+  const safeKey = months.includes(activeKey) ? activeKey : months[months.length - 1];
+  const safeIdx = months.indexOf(safeKey);
+
+  const [yr, mo] = safeKey.split("-").map(Number);
   const monthLabel = new Date(yr, mo - 1).toLocaleString("default", { month: "long" });
-  const firstDow = new Date(yr, mo - 1, 1).getDay();
+  // Monday-first: Mon=0 ... Sun=6
+  const firstDow = (new Date(yr, mo - 1, 1).getDay() + 6) % 7;
   const daysInMonth = new Date(yr, mo, 0).getDate();
 
-  const dayMap = new Map<number, any[]>();
-  monthGames.forEach((g: any) => {
-    const d = parseInt(g.date.split("-")[2]);
-    if (!dayMap.has(d)) dayMap.set(d, []);
-    dayMap.get(d)!.push(g);
+  // Played games for this month
+  const dayMap = new Map<number, any>();
+  games.forEach((g: any) => {
+    const [gYr, gMo, gDay] = g.date.split("-").map(Number);
+    if (gYr === yr && gMo === mo) dayMap.set(gDay, g);
   });
 
-  const cells: Array<{ type: "empty"; id: string } | { type: "day"; day: number; gs: any[] }> = [];
+  // Upcoming games for this month
+  const upcomingDayMap = new Map<number, any>();
+  (upcomingGames || []).forEach((g: any) => {
+    const [gYr, gMo, gDay] = g.scheduledFor.slice(0, 10).split("-").map(Number);
+    if (gYr === yr && gMo === mo) upcomingDayMap.set(gDay, g);
+  });
+
+  const cells: Array<{ type: "empty"; id: string } | { type: "day"; day: number }> = [];
   for (let i = 0; i < firstDow; i++) cells.push({ type: "empty", id: `e${i}` });
-  for (let d = 1; d <= daysInMonth; d++) cells.push({ type: "day", day: d, gs: dayMap.get(d) || [] });
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ type: "day", day: d });
 
   const canPrev = safeIdx > 0;
   const canNext = safeIdx < months.length - 1;
@@ -244,74 +421,136 @@ function CalendarView({ games, onGameClick, loadingBoxScore }: any) {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Month header with nav arrows */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        {navBtn(!canPrev, () => setMonthIdx(safeIdx - 1), "‹")}
-        <div style={{ fontSize: 13, fontWeight: 900, color: C.text, letterSpacing: "0.14em", textTransform: "uppercase", textAlign: "center" }}>
-          {monthLabel} {yr}
+    <>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Month header with nav arrows */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          {navBtn(!canPrev, () => setActiveKey(months[safeIdx - 1]), "‹")}
+          <div style={{ fontSize: 13, fontWeight: 900, color: C.text, letterSpacing: "0.14em", textTransform: "uppercase", textAlign: "center" }}>
+            {monthLabel} {yr}
+          </div>
+          {navBtn(!canNext, () => setActiveKey(months[safeIdx + 1]), "›")}
         </div>
-        {navBtn(!canNext, () => setMonthIdx(safeIdx + 1), "›")}
+
+        {/* Day-of-week headers */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+          {CAL_DAYS.map(d => (
+            <div key={d} style={{ textAlign: "center", fontSize: 9, fontWeight: 900, color: C.textDim, letterSpacing: "0.08em", padding: "3px 0" }}>{d}</div>
+          ))}
+        </div>
+
+        {/* Calendar grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+          {cells.map(cell => {
+            if (cell.type === "empty") {
+              return <div key={cell.id} style={{ aspectRatio: "1" }} />;
+            }
+            const { day } = cell;
+            const played = dayMap.get(day);
+            const upcoming = upcomingDayMap.get(day);
+
+            // Played game cell
+            if (played) {
+              const isWin = played.result === "W";
+              return (
+                <button
+                  key={day}
+                  onClick={!loadingBoxScore ? () => onGameClick(played) : undefined}
+                  disabled={loadingBoxScore}
+                  style={{
+                    aspectRatio: "1",
+                    borderRadius: 8,
+                    border: `1px solid ${isWin ? `${C.green}55` : `${C.redText}45`}`,
+                    background: isWin ? `${C.green}28` : `${C.red}38`,
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "3px 2px",
+                    gap: 2,
+                    transition: "border-color 0.15s, background 0.15s",
+                    fontFamily: "inherit",
+                    minWidth: 0,
+                    overflow: "hidden",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = isWin ? C.green : C.redText; e.currentTarget.style.background = isWin ? `${C.green}40` : `${C.red}50`; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = isWin ? `${C.green}55` : `${C.redText}45`; e.currentTarget.style.background = isWin ? `${C.green}28` : `${C.red}38`; }}
+                >
+                  <span style={{ fontSize: 10, fontWeight: 900, color: C.text, lineHeight: 1 }}>{day}</span>
+                  <span style={{ fontSize: 8, fontWeight: 700, color: isWin ? C.green : C.redText, lineHeight: 1, letterSpacing: "0.04em" }}>{played.home ? "vs" : "@"}</span>
+                  <span style={{ fontSize: 8, fontWeight: 900, color: C.text, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%", padding: "0 3px" }}>{played.opponent}</span>
+                </button>
+              );
+            }
+
+            // Upcoming game cell -- always gold to avoid confusion with wins/losses
+            if (upcoming) {
+              const { tier } = getCountdownInfo(upcoming.scheduledFor);
+              const isToday = tier === "today";
+              const goldBorder = isToday ? `${C.gold}70` : `${C.gold}40`;
+              const goldBg    = isToday ? `${C.gold}18` : `${C.gold}0d`;
+              return (
+                <button
+                  key={day}
+                  onClick={() => setSelectedUpcoming(upcoming)}
+                  style={{
+                    aspectRatio: "1",
+                    borderRadius: 8,
+                    border: `1px solid ${goldBorder}`,
+                    background: goldBg,
+                    cursor: "pointer",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "3px 2px",
+                    gap: 2,
+                    transition: "border-color 0.15s, background 0.15s",
+                    fontFamily: "inherit",
+                    minWidth: 0,
+                    overflow: "hidden",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = C.gold; e.currentTarget.style.background = `${C.gold}28`; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = goldBorder; e.currentTarget.style.background = goldBg; }}
+                >
+                  <span style={{ fontSize: 10, fontWeight: 900, color: C.gold, lineHeight: 1 }}>{day}</span>
+                  <span style={{ fontSize: 8, fontWeight: 700, color: C.gold, lineHeight: 1, letterSpacing: "0.04em" }}>{upcoming.location === "home" ? "vs" : "@"}</span>
+                  <span style={{ fontSize: 8, fontWeight: 900, color: C.textSub, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%", padding: "0 3px" }}>{upcoming.opponent}</span>
+                  <span style={{ fontSize: 7, color: C.textDim, lineHeight: 1 }}>{formatGameTime(upcoming.scheduledFor)}</span>
+                </button>
+              );
+            }
+
+            // Empty day cell
+            return (
+              <div
+                key={day}
+                style={{
+                  aspectRatio: "1",
+                  borderRadius: 8,
+                  border: `1px solid ${C.border}`,
+                  background: C.surface,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <span style={{ fontSize: 10, fontWeight: 400, color: C.textDim, lineHeight: 1 }}>{day}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Day-of-week headers */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
-        {CAL_DAYS.map(d => (
-          <div key={d} style={{ textAlign: "center", fontSize: 9, fontWeight: 900, color: C.textDim, letterSpacing: "0.08em", padding: "3px 0" }}>{d}</div>
-        ))}
-      </div>
-
-      {/* Calendar grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
-        {cells.map(cell => {
-          if (cell.type === "empty") {
-            return <div key={cell.id} style={{ aspectRatio: "1" }} />;
-          }
-          const { day, gs } = cell;
-          const hasGame = gs.length > 0;
-          const g = gs[0];
-          const isWin = hasGame && g.result === "W";
-          return (
-            <button
-              key={day}
-              onClick={hasGame && !loadingBoxScore ? () => onGameClick(g) : undefined}
-              disabled={!hasGame}
-              style={{
-                aspectRatio: "1",
-                borderRadius: 8,
-                border: `1px solid ${hasGame ? (isWin ? `${C.green}55` : `${C.redText}45`) : C.border}`,
-                background: hasGame ? (isWin ? `${C.green}28` : `${C.red}38`) : C.surface,
-                cursor: hasGame ? "pointer" : "default",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "3px 2px",
-                gap: 2,
-                transition: "border-color 0.15s, background 0.15s",
-                fontFamily: "inherit",
-                minWidth: 0,
-                overflow: "hidden",
-              }}
-              onMouseEnter={e => { if (hasGame) { e.currentTarget.style.borderColor = isWin ? C.green : C.redText; e.currentTarget.style.background = isWin ? `${C.green}40` : `${C.red}50`; } }}
-              onMouseLeave={e => { if (hasGame) { e.currentTarget.style.borderColor = isWin ? `${C.green}55` : `${C.redText}45`; e.currentTarget.style.background = isWin ? `${C.green}28` : `${C.red}38`; } }}
-            >
-              <span style={{ fontSize: 10, fontWeight: hasGame ? 900 : 400, color: hasGame ? C.text : C.textDim, lineHeight: 1 }}>{day}</span>
-              {hasGame && (
-                <>
-                  <span style={{ fontSize: 8, fontWeight: 700, color: isWin ? C.green : C.redText, lineHeight: 1, letterSpacing: "0.04em" }}>{g.home ? "vs" : "@"}</span>
-                  <span style={{ fontSize: 8, fontWeight: 900, color: C.text, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%", padding: "0 3px" }}>{g.opponent}</span>
-                </>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+      {selectedUpcoming && (
+        <UpcomingGameModal game={selectedUpcoming} onClose={() => setSelectedUpcoming(null)} />
+      )}
+    </>
   );
 }
 
-export default function GamesPage({ allGames, players, seasons, currentSeason }: any) {
+export default function GamesPage({ allGames, players, seasons, currentSeason, upcomingGames }: any) {
   const [selectedSeason, setSelectedSeason] = useState(currentSeason);
   const [selectedLeague, setSelectedLeague] = useState("all");
   const [selectedResult, setSelectedResult] = useState("all");
@@ -413,7 +652,7 @@ export default function GamesPage({ allGames, players, seasons, currentSeason }:
           <div style={{ fontSize:15, fontWeight:700 }}>No games recorded yet</div>
         </div>
       ) : viewMode === "calendar" ? (
-        <CalendarView games={filtered} onGameClick={handleGameClick} loadingBoxScore={loadingBoxScore} />
+        <CalendarView games={filtered} upcomingGames={upcomingGames} onGameClick={handleGameClick} loadingBoxScore={loadingBoxScore} />
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
           {filtered.map((g: any) => {
@@ -465,14 +704,15 @@ export default function GamesPage({ allGames, players, seasons, currentSeason }:
 }
 
 export async function getStaticProps() {
-  const [allGames, players, seasons, config] = await Promise.all([
+  const [allGames, players, seasons, config, upcomingGames] = await Promise.all([
     getAllGames(),
     getPlayers(),
     getSeasons(),
     getConfig(),
+    getAllUpcomingGames(),
   ]);
   return {
-    props: { allGames, players, seasons, currentSeason: config.currentSeason },
+    props: { allGames, players, seasons, currentSeason: config.currentSeason, upcomingGames },
     revalidate: 3600,
   };
 }
