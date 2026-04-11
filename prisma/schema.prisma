@@ -23,6 +23,7 @@ model Player {
   gameStats        PlayerGameStat[]
   seasonAggregates PlayerSeasonAggregate[]
   rosterEntries    RosterEntry[]
+  rosterSlots      GameRosterPlayer[]
 }
 
 model Season {
@@ -182,15 +183,48 @@ model LoginAttempt {
 }
 
 model UpcomingGame {
-  id             String    @id @default(cuid())
+  id             String                  @id @default(cuid())
   opponent       String
   scheduledFor   DateTime
-  location       String    @default("home")
+  location       String                  @default("home")
   competition    String?
   notes          String?
   seasonLeagueId String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  announcement   GameRosterAnnouncement?
 
   @@index([scheduledFor])
+}
+
+model GameRosterAnnouncement {
+  id             String             @id @default(cuid())
+  upcomingGameId String             @unique
+  message        String?
+  publishedAt    DateTime           @default(now())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  upcomingGame   UpcomingGame       @relation(fields: [upcomingGameId], references: [id], onDelete: Cascade)
+  players        GameRosterPlayer[]
+}
+
+model GameRosterPlayer {
+  id             String                 @id @default(cuid())
+  announcementId String
+  playerId       String
+  note           String?
+  createdAt      DateTime               @default(now())
+  announcement   GameRosterAnnouncement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  player         Player                 @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, playerId])
+  @@index([announcementId])
+}
+
+model Subscriber {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  token       String    @unique
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
 }

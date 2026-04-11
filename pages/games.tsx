@@ -550,6 +550,8 @@ function CalendarView({ games, upcomingGames, onGameClick, loadingBoxScore }: an
   );
 }
 
+const LIST_PAGE_SIZE = 10;
+
 export default function GamesPage({ allGames, players, seasons, currentSeason, upcomingGames }: any) {
   const [selectedSeason, setSelectedSeason] = useState(currentSeason);
   const [selectedLeague, setSelectedLeague] = useState("all");
@@ -557,6 +559,8 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
   const [selected, setSelected] = useState(null);
   const [loadingBoxScore, setLoadingBoxScore] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [listPage, setListPage] = useState(0);
+  const [selectedUpcomingInList, setSelectedUpcomingInList] = useState<any>(null);
 
   async function handleGameClick(game: any) {
     setLoadingBoxScore(true);
@@ -579,12 +583,18 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
     return [...seen.entries()].map(([slug, name]) => ({ slug, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [allGames, selectedSeason]);
 
-  // Reset league filter when season changes and the current league isn't available
+  // No filters active = scheduled games are visible
+  const noFiltersActive = selectedLeague === "all" && selectedResult === "all";
+
   const handleSeasonChange = (sid: any) => {
     setSelectedSeason(sid);
     setSelectedLeague("all");
     setSelectedResult("all");
+    setListPage(0);
   };
+
+  const handleLeagueChange = (v: string) => { setSelectedLeague(v); setListPage(0); };
+  const handleResultChange = (v: string) => { setSelectedResult(v); setListPage(0); };
 
   const filtered = useMemo(() => {
     return allGames
@@ -593,6 +603,23 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
       .filter((g: any) => selectedResult === "all" || g.result === selectedResult)
       .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [allGames, selectedSeason, selectedLeague, selectedResult]);
+
+  // Combined list: upcoming (when no filters) + played, sorted newest first
+  const listItems = useMemo(() => {
+    const played = filtered.map((g: any) => ({ ...g, _upcoming: false, _sortDate: g.date }));
+    if (!noFiltersActive) return played;
+    const upcoming = (upcomingGames || []).map((g: any) => ({
+      ...g,
+      _upcoming: true,
+      _sortDate: g.scheduledFor.slice(0, 10),
+    }));
+    return [...upcoming, ...played].sort((a: any, b: any) =>
+      new Date(b._sortDate).getTime() - new Date(a._sortDate).getTime()
+    );
+  }, [filtered, upcomingGames, noFiltersActive]);
+
+  const totalPages = Math.ceil(listItems.length / LIST_PAGE_SIZE);
+  const pagedItems = listItems.slice(listPage * LIST_PAGE_SIZE, (listPage + 1) * LIST_PAGE_SIZE);
 
   return (
     <Layout title="Games">
@@ -641,10 +668,10 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
       <LeagueFilter
         leagues={seasonLeagues}
         selected={selectedLeague}
-        onChange={setSelectedLeague}
+        onChange={handleLeagueChange}
       />
 
-      <ResultFilter selected={selectedResult} onChange={setSelectedResult} />
+      <ResultFilter selected={selectedResult} onChange={handleResultChange} />
 
       {filtered.length === 0 ? (
         <div style={{ textAlign:"center", padding:48, color:C.textDim }}>
@@ -652,53 +679,127 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
           <div style={{ fontSize:15, fontWeight:700 }}>No games recorded yet</div>
         </div>
       ) : viewMode === "calendar" ? (
-        <CalendarView games={filtered} upcomingGames={upcomingGames} onGameClick={handleGameClick} loadingBoxScore={loadingBoxScore} />
+        <CalendarView
+          games={filtered}
+          upcomingGames={noFiltersActive ? upcomingGames : []}
+          onGameClick={handleGameClick}
+          loadingBoxScore={loadingBoxScore}
+        />
       ) : (
-        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-          {filtered.map((g: any) => {
-            const topScorer = formatTopScorer(g.topScorer);
+        <>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {pagedItems.map((g: any) => {
+              if (g._upcoming) {
+                const { label, tier } = getCountdownInfo(g.scheduledFor);
+                const accentColor = tier === "today" ? C.gold : tier === "week" ? C.redText : C.textSub;
+                return (
+                  <button
+                    key={`upcoming-${g.id ?? g.scheduledFor}`}
+                    onClick={() => setSelectedUpcomingInList(g)}
+                    style={{
+                      display:"flex", alignItems:"center", justifyContent:"space-between",
+                      padding:"14px 18px", borderRadius:12,
+                      border:`1px solid ${C.gold}30`,
+                      background:`${C.gold}08`, cursor:"pointer", textAlign:"left", fontFamily:"inherit",
+                      transition:"border-color 0.15s, background 0.15s",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor=`${C.gold}60`; e.currentTarget.style.background=`${C.gold}14`; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor=`${C.gold}30`; e.currentTarget.style.background=`${C.gold}08`; }}
+                  >
+                    <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                      <span style={{
+                        width:34, height:34, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
+                        fontSize:14, fontWeight:900, flexShrink:0,
+                        background:`${C.gold}15`, color:C.gold, border:`1px solid ${C.gold}35`,
+                      }}>▸</span>
+                      <div>
+                        <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{g.location === "home" ? "vs" : "@"} {g.opponent}</div>
+                        <div style={{ fontSize:11, color:accentColor, marginTop:2, fontWeight:700 }}>{label}</div>
+                      </div>
+                    </div>
+                    <div style={{ display:"flex", alignItems:"center", gap:24 }}>
+                      <div style={{ textAlign:"right" }}>
+                        <div style={{ fontSize:13, fontWeight:700, color:C.textSub }}>{g.scheduledFor.slice(0, 10)}</div>
+                        {g.competition && <div style={{ fontSize:11, color:C.textDim }}>{g.competition}</div>}
+                      </div>
+                      <div style={{ fontSize:11, color:C.gold, fontWeight:700 }}>UPCOMING -></div>
+                    </div>
+                  </button>
+                );
+              }
 
-            return (
-              <button key={g.id} onClick={() => handleGameClick(g)} disabled={loadingBoxScore} style={{
-                display:"flex", alignItems:"center", justifyContent:"space-between",
-                padding:"14px 18px", borderRadius:12, border:`1px solid ${C.border}`,
-                background:C.surface, cursor:"pointer", textAlign:"left", fontFamily:"inherit",
-                transition:"border-color 0.15s",
-              }}
-              onMouseEnter={e => e.currentTarget.style.borderColor=`${C.redBright}55`}
-              onMouseLeave={e => e.currentTarget.style.borderColor=C.border}
-              >
-                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                  <span style={{
-                    width:34, height:34, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
-                    fontSize:12, fontWeight:900, flexShrink:0,
-                    background: g.result==="W" ? `${C.green}20` : `${C.red}30`,
-                    color: g.result==="W" ? C.green : C.redText,
-                    border: `1px solid ${g.result==="W" ? `${C.green}40` : `${C.redText}30`}`,
-                  }}>{g.result}</span>
-                  <div>
-                    <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{g.home ? "vs" : "@"} {g.opponent}</div>
-                    <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>
-                      {g.date}
-                      {seasonLeagues.length > 1 && selectedLeague === "all" && (
-                        <span style={{ marginLeft:8, color:C.textDim, opacity:0.7 }}>{g.leagueName}</span>
-                      )}
+              const topScorer = formatTopScorer(g.topScorer);
+              return (
+                <button key={g.id} onClick={() => handleGameClick(g)} disabled={loadingBoxScore} style={{
+                  display:"flex", alignItems:"center", justifyContent:"space-between",
+                  padding:"14px 18px", borderRadius:12, border:`1px solid ${C.border}`,
+                  background:C.surface, cursor:"pointer", textAlign:"left", fontFamily:"inherit",
+                  transition:"border-color 0.15s",
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor=`${C.redBright}55`}
+                onMouseLeave={e => e.currentTarget.style.borderColor=C.border}
+                >
+                  <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                    <span style={{
+                      width:34, height:34, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
+                      fontSize:12, fontWeight:900, flexShrink:0,
+                      background: g.result==="W" ? `${C.green}20` : `${C.red}30`,
+                      color: g.result==="W" ? C.green : C.redText,
+                      border: `1px solid ${g.result==="W" ? `${C.green}40` : `${C.redText}30`}`,
+                    }}>{g.result}</span>
+                    <div>
+                      <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{g.home ? "vs" : "@"} {g.opponent}</div>
+                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>
+                        {g.date}
+                        {seasonLeagues.length > 1 && selectedLeague === "all" && (
+                          <span style={{ marginLeft:8, color:C.textDim, opacity:0.7 }}>{g.leagueName}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div style={{ display:"flex", alignItems:"center", gap:24 }}>
-                  <div style={{ textAlign:"right" }}>
-                    <div style={{ fontSize:18, fontWeight:900, color:C.text }}>{g.score}</div>
-                    {topScorer && <div style={{ fontSize:11, color:C.textDim }}>{topScorer}</div>}
+                  <div style={{ display:"flex", alignItems:"center", gap:24 }}>
+                    <div style={{ textAlign:"right" }}>
+                      <div style={{ fontSize:18, fontWeight:900, color:C.text }}>{g.score}</div>
+                      {topScorer && <div style={{ fontSize:11, color:C.textDim }}>{topScorer}</div>}
+                    </div>
+                    <div style={{ fontSize:11, color:C.textDim }}>BOX SCORE -></div>
                   </div>
-                  <div style={{ fontSize:11, color:C.textDim }}>BOX SCORE -></div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {totalPages > 1 && (
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:16, padding:"0 2px" }}>
+              <button
+                onClick={() => setListPage(p => p - 1)}
+                disabled={listPage === 0}
+                style={{
+                  padding:"7px 18px", borderRadius:8, border:`1px solid ${listPage === 0 ? C.border : C.border2}`,
+                  background:"transparent", color: listPage === 0 ? C.textDim : C.text,
+                  cursor: listPage === 0 ? "default" : "pointer", fontSize:16, fontFamily:"inherit",
+                  fontWeight:900, opacity: listPage === 0 ? 0.3 : 1, transition:"all 0.15s", lineHeight:1,
+                }}
+              >‹</button>
+              <span style={{ fontSize:11, fontWeight:700, color:C.textDim, letterSpacing:"0.1em" }}>
+                {listPage * LIST_PAGE_SIZE + 1}-{Math.min((listPage + 1) * LIST_PAGE_SIZE, listItems.length)} of {listItems.length}
+              </span>
+              <button
+                onClick={() => setListPage(p => p + 1)}
+                disabled={listPage >= totalPages - 1}
+                style={{
+                  padding:"7px 18px", borderRadius:8, border:`1px solid ${listPage >= totalPages - 1 ? C.border : C.border2}`,
+                  background:"transparent", color: listPage >= totalPages - 1 ? C.textDim : C.text,
+                  cursor: listPage >= totalPages - 1 ? "default" : "pointer", fontSize:16, fontFamily:"inherit",
+                  fontWeight:900, opacity: listPage >= totalPages - 1 ? 0.3 : 1, transition:"all 0.15s", lineHeight:1,
+                }}
+              >›</button>
+            </div>
+          )}
+        </>
       )}
       {selected && <BoxScore game={selected} players={players} onClose={() => setSelected(null)} isLoading={loadingBoxScore} />}
+      {selectedUpcomingInList && <UpcomingGameModal game={selectedUpcomingInList} onClose={() => setSelectedUpcomingInList(null)} />}
     </Layout>
   );
 }
