@@ -814,6 +814,6 @@ export async function getStaticProps() {
   ]);
   return {
     props: { allGames, players, seasons, currentSeason: config.currentSeason, upcomingGames },
-    revalidate: 3600,
+    revalidate: 300,
   };
 }
