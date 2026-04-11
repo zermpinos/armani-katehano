@@ -176,31 +176,37 @@ function SubscribeForm() {
   };
 
   return (
-    <div style={{ borderRadius: 12, padding: "16px 18px", border: `1px solid ${C.border}`, background: C.surface, marginBottom: 24 }}>
-      <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, textTransform: "uppercase", marginBottom: 4 }}>Stay in the loop</div>
+    <div style={{ borderRadius: 14, padding: "20px 22px", border: `1px solid ${C.border}`, background: C.surface, marginBottom: 24 }}>
+      <div style={{ marginBottom: 6 }}>
+        <div style={{ fontSize: 13, fontWeight: 900, color: C.text, letterSpacing: "0.04em" }}>Roster notifications</div>
+        <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>Get emailed when the game roster is announced</div>
+      </div>
       {status === "done" ? (
-        <div style={{ fontSize: 13, color: C.green, fontWeight: 700 }}>You're subscribed — we'll email you when a roster is announced.</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, padding: "10px 14px", borderRadius: 8, background: `${C.green}14`, border: `1px solid ${C.green}35` }}>
+          <span style={{ fontSize: 16 }}>✓</span>
+          <div style={{ fontSize: 13, color: C.green, fontWeight: 700 }}>You're subscribed! We'll email you before each game.</div>
+        </div>
       ) : (
         <>
-          <div style={{ fontSize: 13, color: C.textSub, marginBottom: 10 }}>Get notified by email when the roster for an upcoming game is announced.</div>
-          <form onSubmit={submit} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <form onSubmit={submit} style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
             <input
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="your@email.com"
               required
-              style={{ flex: 1, minWidth: 200, padding: "7px 12px", fontSize: 13, borderRadius: 7, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none" }}
+              style={{ flex: 1, minWidth: 200, padding: "8px 12px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none" }}
             />
             <button
               type="submit"
               disabled={status === "loading" || !email}
-              style={{ padding: "7px 16px", borderRadius: 7, border: "none", background: C.red, color: C.text, fontSize: 11, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", cursor: status === "loading" || !email ? "not-allowed" : "pointer", opacity: status === "loading" || !email ? 0.5 : 1, fontFamily: "inherit", whiteSpace: "nowrap" }}
+              style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: C.red, color: C.text, fontSize: 11, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", cursor: status === "loading" || !email ? "not-allowed" : "pointer", opacity: status === "loading" || !email ? 0.5 : 1, fontFamily: "inherit", whiteSpace: "nowrap" }}
             >
-              {status === "loading" ? "..." : "Subscribe"}
+              {status === "loading" ? "Subscribing…" : "Notify me"}
             </button>
           </form>
-          {status === "error" && <div style={{ marginTop: 6, fontSize: 12, color: C.redText }}>{errMsg}</div>}
+          {status === "error" && <div style={{ marginTop: 7, fontSize: 12, color: C.redText }}>{errMsg}</div>}
+          <div style={{ marginTop: 8, fontSize: 10, color: C.textDim }}>No spam — roster announcements only. Unsubscribe any time.</div>
         </>
       )}
     </div>

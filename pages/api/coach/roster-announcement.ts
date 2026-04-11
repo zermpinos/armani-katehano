@@ -24,6 +24,7 @@ const WriteSchema = z.object({
   upcomingGameId: z.string().cuid(),
   message:        z.string().max(1000).optional().nullable(),
   players:        z.array(PlayerSlotSchema).min(1).max(20),
+  resend:         z.boolean().optional(),
 });
 
 const DeleteSchema = z.object({
@@ -63,10 +64,34 @@ async function handler(req: any, res: any) {
         error: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; "),
       });
     }
-    const { upcomingGameId, message, players } = parsed.data;
+    const { upcomingGameId, message, players, resend } = parsed.data;
 
     const game = await prisma.upcomingGame.findUnique({ where: { id: upcomingGameId } });
     if (!game) return res.status(404).json({ error: "Upcoming game not found" });
+
+    // ── Resend-only path ──────────────────────────────────────────────────────
+    if (resend) {
+      const existing = await prisma.gameRosterAnnouncement.findUnique({
+        where:   { upcomingGameId },
+        include: { players: { include: { player: { select: { name: true, number: true } } } } },
+      });
+      if (!existing) return res.status(404).json({ error: "No announcement to resend" });
+
+      prisma.subscriber.findMany({ where: { confirmedAt: { not: null } } })
+        .then(subscribers => {
+          if (subscribers.length === 0) return;
+          return sendRosterAnnouncement({
+            game: { opponent: game.opponent, scheduledFor: game.scheduledFor.toISOString(), location: game.location, competition: game.competition ?? null },
+            players: existing.players.map(sp => ({ name: sp.player.name, number: sp.player.number, note: sp.note ?? null })),
+            message: existing.message ?? null,
+            subscribers: subscribers.map(s => ({ email: s.email, token: s.token })),
+          });
+        })
+        .catch(err => auditLog("roster_resend_error", { error: err.message }));
+
+      auditLog("coach_roster_resend", { ip, upcomingGameId });
+      return res.status(200).json({ ok: true });
+    }
 
     try {
       const announcement = await prisma.$transaction(async (tx) => {
