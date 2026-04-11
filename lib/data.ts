@@ -14,6 +14,7 @@ export {
   getAllPublicData,
   getAllSeasonsStats,
   getAllUpcomingGames,
+  getUpcomingGamesWithAnnouncements,
 } from "./repository.prisma";
 
 export {
