@@ -23,7 +23,7 @@ const PlayerSlotSchema = z.object({
 const WriteSchema = z.object({
   upcomingGameId: z.string().cuid(),
   message:        z.string().max(1000).optional().nullable(),
-  players:        z.array(PlayerSlotSchema).min(1).max(20),
+  players:        z.array(PlayerSlotSchema).max(20).optional(),
   resend:         z.boolean().optional(),
 });
 
@@ -69,7 +69,7 @@ async function handler(req: any, res: any) {
     const game = await prisma.upcomingGame.findUnique({ where: { id: upcomingGameId } });
     if (!game) return res.status(404).json({ error: "Upcoming game not found" });
 
-    // ── Resend-only path ──────────────────────────────────────────────────────
+    // ── Resend-only path ─────────────────────────────────────────────────────
     if (resend) {
       const existing = await prisma.gameRosterAnnouncement.findUnique({
         where:   { upcomingGameId },
@@ -91,6 +91,10 @@ async function handler(req: any, res: any) {
 
       auditLog("coach_roster_resend", { ip, upcomingGameId });
       return res.status(200).json({ ok: true });
+    }
+
+    if (!players || players.length === 0) {
+      return res.status(400).json({ error: "players: Select at least one player" });
     }
 
     try {
