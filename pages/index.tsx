@@ -147,6 +147,66 @@ function ShowMoreButton({ href, onClick, children, className }: {
   );
 }
 
+// Email subscription widget
+function SubscribeForm() {
+  const [email,  setEmail]  = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [errMsg, setErrMsg] = useState("");
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok) {
+        setStatus("done");
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setErrMsg(d.error ?? "Something went wrong.");
+        setStatus("error");
+      }
+    } catch {
+      setErrMsg("Network error. Please try again.");
+      setStatus("error");
+    }
+  };
+
+  return (
+    <div style={{ borderRadius: 12, padding: "16px 18px", border: `1px solid ${C.border}`, background: C.surface, marginBottom: 24 }}>
+      <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, textTransform: "uppercase", marginBottom: 4 }}>Stay in the loop</div>
+      {status === "done" ? (
+        <div style={{ fontSize: 13, color: C.green, fontWeight: 700 }}>You're subscribed -- we'll email you when a roster is announced.</div>
+      ) : (
+        <>
+          <div style={{ fontSize: 13, color: C.textSub, marginBottom: 10 }}>Get notified by email when the roster for an upcoming game is announced.</div>
+          <form onSubmit={submit} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              required
+              style={{ flex: 1, minWidth: 200, padding: "7px 12px", fontSize: 13, borderRadius: 7, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none" }}
+            />
+            <button
+              type="submit"
+              disabled={status === "loading" || !email}
+              style={{ padding: "7px 16px", borderRadius: 7, border: "none", background: C.red, color: C.text, fontSize: 11, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", cursor: status === "loading" || !email ? "not-allowed" : "pointer", opacity: status === "loading" || !email ? 0.5 : 1, fontFamily: "inherit", whiteSpace: "nowrap" }}
+            >
+              {status === "loading" ? "..." : "Subscribe"}
+            </button>
+          </form>
+          {status === "error" && <div style={{ marginTop: 6, fontSize: 12, color: C.redText }}>{errMsg}</div>}
+        </>
+      )}
+    </div>
+  );
+}
+
 // Announced roster panel -- shown when visitor toggles "View Roster"
 function RosterPanel({ announcement }: { announcement: any }) {
   return (
@@ -543,6 +603,8 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
           </div>
         );
       })()}
+
+      <SubscribeForm />
 
       <ErrorBoundary label="Stats failed to load">
       {hasData && (
