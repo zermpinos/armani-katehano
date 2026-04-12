@@ -11,12 +11,12 @@
  */
 
 import { isLockedOut, recordAttempt, clearAttempts } from "../../lib/loginAttempts";
-import {getSessionToken, verifyPayload, verifyPassword,buildSessionCookie,clearSessionCookie, securityHeaders,auditLog, csrfCheck,} from "../../lib/security";
+import {getSessionToken, verifyPayload, verifyPassword,buildSessionCookie,clearSessionCookie, securityHeaders,auditLog, csrfCheck, getClientIp,} from "../../lib/security";
 
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
 
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
+  const ip = getClientIp(req);
 
   // ── GET: check existing session ───────────────────────────────────────────
   if (req.method === "GET") {
