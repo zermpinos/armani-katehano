@@ -8,7 +8,7 @@
 
 import { z } from "zod";
 import { requireAuth } from "../../../lib/requireAuth";
-import { auditLog } from "../../../lib/security";
+import { auditLog, getClientIp } from "../../../lib/security";
 import prisma from "../../../lib/prisma";
 import { prodError } from "../../../lib/utils";
 
@@ -29,7 +29,7 @@ const ScheduleDeleteSchema = z.object({
 });
 
 async function handler(req: any, res: any) {
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
+  const ip = getClientIp(req);
 
   // ── LIST ───────────────────────────────────────────────────────────────────
   if (req.method === "GET") {

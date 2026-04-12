@@ -5,7 +5,7 @@
 
 import { z }                         from "zod";
 import { requireAuth }               from '../../../lib/requireAuth';
-import { auditLog }                  from "../../../lib/security";
+import { auditLog, getClientIp }     from "../../../lib/security";
 import prisma                        from "../../../lib/prisma";
 import { prodError } from "../../../lib/utils";      // B-02: was missing
 
@@ -16,7 +16,7 @@ const SeasonCreateSchema = z.object({
 });
 
 async function handler(req: any, res: any) {
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
+  const ip = getClientIp(req);
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
