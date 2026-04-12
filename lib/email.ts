@@ -2,12 +2,6 @@
  * lib/email.ts
  *
  * Nodemailer + Gmail wrapper for roster announcement emails.
- *
- * Env vars required:
- *   GMAIL_USER          -- the Gmail address used to send (e.g. teamak2526@gmail.com)
- *   GMAIL_APP_PASSWORD  -- 16-char Google App Password (not your Gmail login password)
- *                         Generate at: myaccount.google.com -> Security -> App Passwords
- *   NEXT_PUBLIC_APP_URL -- your Vercel URL, e.g. https://armani-katehano.vercel.app
  */
 
 import crypto from "crypto";
@@ -315,26 +309,26 @@ export async function sendRosterAnnouncement({
   const isHome  = game.location === "home";
   const subject = `Roster announced: ${isHome ? "vs" : "@"} ${game.opponent}`;
 
-  let sent   = 0;
-  let failed = 0;
+  // Send all emails in parallel -- much faster than sequential awaits.
+  const results = await Promise.allSettled(
+    subscribers.map(sub => {
+      const emailHash      = crypto.createHash("sha256").update(sub.email).digest("hex");
+      const unsubscribeUrl = `${appUrl}/unsubscribe?token=${sub.token}`;
+      const html = buildHtml(game, players, message, appUrl, unsubscribeUrl);
+      const text = buildText(game, players, message, appUrl, unsubscribeUrl);
+      return transport.sendMail({ from, to: sub.email, subject, html, text })
+        .then(() => {
+          auditLog("roster_email_delivered", { emailHash, opponent: game.opponent });
+        })
+        .catch((err: any) => {
+          auditLog("roster_email_failed", { emailHash, error: err.message, opponent: game.opponent });
+          throw err;
+        });
+    }),
+  );
 
-  for (const sub of subscribers) {
-    // SHA-256 of the address -- one-way, safe to persist in logs, consistent
-    // enough to correlate against the subscriber table if a delivery needs investigation.
-    const emailHash = crypto.createHash("sha256").update(sub.email).digest("hex");
-
-    const unsubscribeUrl = `${appUrl}/unsubscribe?token=${sub.token}`;
-    const html = buildHtml(game, players, message, appUrl, unsubscribeUrl);
-    const text = buildText(game, players, message, appUrl, unsubscribeUrl);
-    try {
-      await transport.sendMail({ from, to: sub.email, subject, html, text });
-      sent++;
-      auditLog("roster_email_delivered", { emailHash, opponent: game.opponent });
-    } catch (err) {
-      failed++;
-      auditLog("roster_email_failed", { emailHash, error: (err as any).message, opponent: game.opponent });
-    }
-  }
+  const sent   = results.filter(r => r.status === "fulfilled").length;
+  const failed = results.filter(r => r.status === "rejected").length;
 
   auditLog("roster_emails_summary", {
     opponent:     game.opponent,
