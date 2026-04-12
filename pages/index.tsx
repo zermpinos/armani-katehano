@@ -8,6 +8,7 @@ import { fmt, fmtDate, fmtMinutes } from "../lib/utils";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { LineChart, Line, BarChart, Bar, Cell, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 import Link from "next/link";
+import { getVenueUrl } from "../lib/venues";
 
 // Countdown badge logic — determines tier and label for upcoming games
 function getCountdownInfo(isoStr: string): { label: string; tier: "today" | "week" | "future" } {
@@ -387,7 +388,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                   )}
                   {featVenue && (
                     <a
-                      href={`https://www.google.com/maps/search/${encodeURIComponent(featVenue)}`}
+                      href={getVenueUrl(featVenue)}
                       target="_blank" rel="noopener noreferrer"
                       style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, color:C.textSub, textDecoration:"none", transition:"color 0.2s", marginTop:2 }}
                       onMouseEnter={(e) => (e.currentTarget.style.color = C.redText)}
