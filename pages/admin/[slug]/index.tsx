@@ -25,6 +25,8 @@ export default function AdminDashboard({ validSlug }: any) {
   const [toast,   setToast]   = useState<{ type: string; msg: string } | null>(null);
   const [recalcing, setRecalcing] = useState(false);
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
+  const [subscribers, setSubscribers] = useState<{ email: string; createdAt: string }[]>([]);
+  const [showSubscribers, setShowSubscribers] = useState(false);
 
   const handleRecalc = async () => {
     setRecalcing(true);
@@ -51,7 +53,7 @@ export default function AdminDashboard({ validSlug }: any) {
         fetch("/api/admin/subscribers"),
       ]);
       if (dashRes.ok) setData(await dashRes.json());
-      if (subRes.ok) { const s = await subRes.json(); setSubscriberCount(s.count ?? 0); }
+      if (subRes.ok) { const s = await subRes.json(); setSubscriberCount(s.count ?? 0); setSubscribers(s.subscribers ?? []); }
     } finally {
       setLoading(false);
     }
@@ -126,6 +128,45 @@ export default function AdminDashboard({ validSlug }: any) {
               </div>
             ))}
           </div>
+
+          {/* Subscriber list */}
+          {subscribers.length > 0 && (
+            <div style={{ marginBottom: 28 }}>
+              <button
+                onClick={() => setShowSubscribers(v => !v)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  background: "none", border: "none", cursor: "pointer",
+                  padding: 0, marginBottom: showSubscribers ? 10 : 0,
+                }}
+              >
+                <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, textTransform: "uppercase" }}>
+                  Subscriber emails
+                </span>
+                <span style={{ fontSize: 10, color: C.textDim }}>{showSubscribers ? "▲" : "▼"}</span>
+              </button>
+              {showSubscribers && (
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+                  {subscribers.map((s, i) => (
+                    <div
+                      key={s.email}
+                      style={{
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                        padding: "9px 14px",
+                        background: i % 2 === 0 ? C.surface : C.surface2,
+                        borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
+                      }}
+                    >
+                      <span style={{ fontSize: 13, color: C.text, fontFamily: "monospace" }}>{s.email}</span>
+                      <span style={{ fontSize: 11, color: C.textDim, whiteSpace: "nowrap", marginLeft: 16 }}>
+                        {s.createdAt?.slice(0, 10)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Quick links */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginBottom: 28 }}>
