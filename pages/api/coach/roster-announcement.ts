@@ -77,17 +77,19 @@ async function handler(req: any, res: any) {
       });
       if (!existing) return res.status(404).json({ error: "No announcement to resend" });
 
-      prisma.subscriber.findMany({ where: { confirmedAt: { not: null } } })
-        .then(subscribers => {
-          if (subscribers.length === 0) return;
-          return sendRosterAnnouncement({
+      try {
+        const subscribers = await prisma.subscriber.findMany({ where: { confirmedAt: { not: null } } });
+        if (subscribers.length > 0) {
+          await sendRosterAnnouncement({
             game: { opponent: game.opponent, scheduledFor: game.scheduledFor.toISOString(), location: game.location, competition: game.competition ?? null, notes: game.notes ?? null },
             players: existing.players.map(sp => ({ name: sp.player.name, number: sp.player.number, note: sp.note ?? null })),
             message: existing.message ?? null,
             subscribers: subscribers.map(s => ({ email: s.email, token: s.token })),
           });
-        })
-        .catch(err => auditLog("roster_resend_error", { error: err.message }));
+        }
+      } catch (err) {
+        auditLog("roster_resend_error", { error: (err as any).message });
+      }
 
       auditLog("coach_roster_resend", { ip, upcomingGameId });
       return res.status(200).json({ ok: true });
@@ -130,17 +132,17 @@ async function handler(req: any, res: any) {
 
       auditLog("coach_roster_published", { ip, upcomingGameId, playerCount: players.length });
 
-      // asynchronous email to all confirmed subscribers
-      prisma.subscriber.findMany({ where: { confirmedAt: { not: null } } })
-        .then(subscribers => {
-          if (subscribers.length === 0) return;
-          return sendRosterAnnouncement({
+      // Send emails to all confirmed subscribers -- awaited so Vercel doesn't kill the function early.
+      try {
+        const subscribers = await prisma.subscriber.findMany({ where: { confirmedAt: { not: null } } });
+        if (subscribers.length > 0) {
+          await sendRosterAnnouncement({
             game: {
-              opponent:    game.opponent,
+              opponent:     game.opponent,
               scheduledFor: game.scheduledFor.toISOString(),
-              location:    game.location,
-              competition: game.competition ?? null,
-              notes:       game.notes ?? null,
+              location:     game.location,
+              competition:  game.competition ?? null,
+              notes:        game.notes ?? null,
             },
             players: announcement.players.map(sp => ({
               name:   sp.player.name,
@@ -150,8 +152,10 @@ async function handler(req: any, res: any) {
             message: message ?? null,
             subscribers: subscribers.map(s => ({ email: s.email, token: s.token })),
           });
-        })
-        .catch(err => auditLog("roster_email_trigger_error", { error: err.message }));
+        }
+      } catch (err) {
+        auditLog("roster_email_trigger_error", { error: (err as any).message });
+      }
 
       return res.status(200).json({ ok: true, id: announcement.id });
     } catch (err) {
