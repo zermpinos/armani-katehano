@@ -81,7 +81,7 @@ async function handler(req: any, res: any) {
         .then(subscribers => {
           if (subscribers.length === 0) return;
           return sendRosterAnnouncement({
-            game: { opponent: game.opponent, scheduledFor: game.scheduledFor.toISOString(), location: game.location, competition: game.competition ?? null },
+            game: { opponent: game.opponent, scheduledFor: game.scheduledFor.toISOString(), location: game.location, competition: game.competition ?? null, notes: game.notes ?? null },
             players: existing.players.map(sp => ({ name: sp.player.name, number: sp.player.number, note: sp.note ?? null })),
             message: existing.message ?? null,
             subscribers: subscribers.map(s => ({ email: s.email, token: s.token })),
@@ -140,6 +140,7 @@ async function handler(req: any, res: any) {
               scheduledFor: game.scheduledFor.toISOString(),
               location:    game.location,
               competition: game.competition ?? null,
+              notes:       game.notes ?? null,
             },
             players: announcement.players.map(sp => ({
               name:   sp.player.name,
