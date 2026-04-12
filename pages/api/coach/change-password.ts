@@ -12,8 +12,8 @@
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { requireCoachAuth } from "../../../lib/requireCoachAuth";
-import { verifyCoachPassword, setCoachPasswordHash } from "../../../lib/coachAuth";
-import { auditLog } from "../../../lib/security";
+import { verifyCoachPassword, setCoachPasswordHash, clearCoachSessionCookie } from "../../../lib/coachAuth";
+import { auditLog, getClientIp } from "../../../lib/security";
 import { prodError } from "../../../lib/utils";
 
 const ChangeSchema = z.object({
@@ -32,7 +32,7 @@ async function handler(req: any, res: any) {
   }
   const { currentPassword, newPassword } = parsed.data;
 
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
+  const ip = getClientIp(req);
 
   try {
     const valid = await verifyCoachPassword(currentPassword);
@@ -45,7 +45,10 @@ async function handler(req: any, res: any) {
     await setCoachPasswordHash(hash);
     auditLog("coach_password_changed", { ip });
 
-    return res.status(200).json({ ok: true });
+    // Expire the current session so any stolen cookie stops working immediately.
+    // The coach will be redirected to login to authenticate with the new password.
+    res.setHeader("Set-Cookie", clearCoachSessionCookie());
+    return res.status(200).json({ ok: true, sessionCleared: true });
   } catch (err) {
     return res.status(500).json({ error: prodError(err) });
   }

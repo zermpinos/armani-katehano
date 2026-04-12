@@ -35,14 +35,11 @@ export default async function handler(req: any, res: any) {
 
   // ── Auth: verify the cron secret ─────────────────────────────────────────
   const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    // If CRON_SECRET is not configured, refuse all calls rather than running unprotected
-    console.error("[cleanup] CRON_SECRET is not set -- endpoint disabled");
-    return res.status(500).json({ error: "Cleanup endpoint is not configured" });
-  }
-  if (cronSecret.length < 32) {
-    console.error("[cleanup] CRON_SECRET is too short (< 32 chars) -- endpoint disabled");
-    return res.status(500).json({ error: "Cleanup endpoint is not configured" });
+  if (!cronSecret || cronSecret.length < 32) {
+    // Log server-side but return the same generic 403 as an auth failure
+    // so misconfiguration is not distinguishable from a wrong token.
+    console.error("[cleanup] CRON_SECRET is not set or too short -- endpoint disabled");
+    return res.status(403).json({ error: "Forbidden" });
   }
 
   const authHeader = req.headers.authorization ?? "";

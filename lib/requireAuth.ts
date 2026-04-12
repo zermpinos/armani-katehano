@@ -9,6 +9,7 @@ import {
   securityHeaders,
   auditLog,
   csrfCheck,
+  getClientIp,
   SESSION_TTL_S, // S-06: imported to enforce TTL server-side
 } from "./security";
 
@@ -17,7 +18,7 @@ export function requireAuth(handler: (req: any, res: any) => any) {
     // Apply security headers to every response
     Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
 
-    const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
+    const ip = getClientIp(req);
 
     // ── CSRF check ────────────────────────────────────────────────────────────
     if (!csrfCheck(req)) {

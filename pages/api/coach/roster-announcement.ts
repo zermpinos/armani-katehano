@@ -10,7 +10,7 @@
 
 import { z } from "zod";
 import { requireCoachAuth } from "../../../lib/requireCoachAuth";
-import { auditLog } from "../../../lib/security";
+import { auditLog, getClientIp } from "../../../lib/security";
 import prisma from "../../../lib/prisma";
 import { prodError } from "../../../lib/utils";
 import { sendRosterAnnouncement } from "../../../lib/email";
@@ -32,7 +32,7 @@ const DeleteSchema = z.object({
 });
 
 async function handler(req: any, res: any) {
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
+  const ip = getClientIp(req);
 
   // ── GET ───────────────────────────────────────────────────────────────────
   if (req.method === "GET") {

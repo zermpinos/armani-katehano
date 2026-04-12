@@ -9,7 +9,7 @@ import { z } from "zod";
 import { randomBytes } from "crypto";
 import prisma from "../../lib/prisma";
 import { prodError } from "../../lib/utils";
-import { securityHeaders } from "../../lib/security";
+import { securityHeaders, getClientIp } from "../../lib/security";
 
 const SUBSCRIBE_LIMIT   = 3;   // max attempts
 const SUBSCRIBE_WINDOW  = 3600; // 1 hour in seconds
@@ -25,7 +25,7 @@ const UnsubscribeSchema = z.object({
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
 
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim() ?? "unknown";
+  const ip = getClientIp(req);
   // Prefix so subscribe attempts don't collide with login attempts in the same table
   const rateLimitKey = `sub_${ip}`;
 
