@@ -6,6 +6,7 @@ import { C } from "../lib/theme";
 import { getAllGames, getPlayers, getSeasons, getConfig, getAllUpcomingGames } from "../lib/data";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { fmt } from "../lib/utils";
+import { getVenueUrl } from "../lib/venues";
 
 // ── Upcoming-game helpers (mirrored from index.tsx) ──────────────────────────
 
@@ -133,7 +134,7 @@ function UpcomingGameModal({ game, onClose }: any) {
           </div>
           {venue && (
             <a
-              href={`https://www.google.com/maps/search/${encodeURIComponent(venue)}`}
+              href={getVenueUrl(venue)}
               target="_blank" rel="noopener noreferrer"
               style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, color:C.textSub, textDecoration:"none" }}
             >

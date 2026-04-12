@@ -12,6 +12,7 @@
 
 import nodemailer from "nodemailer";
 import { auditLog } from "./security";
+import { getVenueUrl } from "./venues";
 
 interface PlayerSlot {
   name:   string;
@@ -24,6 +25,7 @@ interface Game {
   scheduledFor: string; // ISO string
   location:     string;
   competition:  string | null;
+  notes:        string | null;
 }
 
 interface Subscriber {
@@ -69,10 +71,11 @@ function buildHtml(
   appUrl: string,
   unsubscribeUrl: string,
 ): string {
-  const isHome  = game.location === "home";
-  const matchup = `${isHome ? "vs" : "@"} ${esc(game.opponent)}`;
-  const venue   = isHome ? "Home" : "Away";
-  const dateStr = esc(formatDate(game.scheduledFor));
+  const isHome    = game.location === "home";
+  const matchup   = `${isHome ? "vs" : "@"} ${esc(game.opponent)}`;
+  const venueLabel = game.notes ? esc(game.notes) : (isHome ? "Home" : "Away");
+  const venueUrl   = game.notes ? getVenueUrl(game.notes) : null;
+  const dateStr   = esc(formatDate(game.scheduledFor));
 
   const sorted = [...players].sort((a, b) => a.number - b.number);
 
@@ -160,7 +163,7 @@ function buildHtml(
                 <tr>
                   <td style="padding:8px 0;border-top:1px solid #f3f4f6;">
                     <p style="margin:0;font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.1em;">Venue</p>
-                    <p style="margin:4px 0 0;font-size:14px;color:#111827;font-weight:600;">${venue}</p>
+                    <p style="margin:4px 0 0;font-size:14px;color:#111827;font-weight:600;">${venueUrl ? `<a href="${esc(venueUrl)}" style="color:#c92a2a;text-decoration:none;">${venueLabel}</a>` : venueLabel}</p>
                   </td>
                 </tr>
                 ${competitionRow}
@@ -227,10 +230,11 @@ function buildText(
   appUrl: string,
   unsubscribeUrl: string,
 ): string {
-  const isHome  = game.location === "home";
-  const matchup = `${isHome ? "vs" : "@"} ${game.opponent}`;
-  const dateStr = formatDate(game.scheduledFor);
-  const venue   = isHome ? "Home" : "Away";
+  const isHome     = game.location === "home";
+  const matchup    = `${isHome ? "vs" : "@"} ${game.opponent}`;
+  const dateStr    = formatDate(game.scheduledFor);
+  const venueLabel = game.notes ?? (isHome ? "Home" : "Away");
+  const venueUrl   = game.notes ? getVenueUrl(game.notes) : null;
 
   const rosterLines = [...players]
     .sort((a, b) => a.number - b.number)
@@ -256,7 +260,7 @@ function buildText(
     `  ${matchup}`,
     ``,
     `  Date    ${dateStr}`,
-    `  Venue   ${venue}`,
+    `  Venue   ${venueLabel}${venueUrl ? `\n           ${venueUrl}` : ""}`,
     compLine,
     `Roster -- ${players.length} players`,
     `${"─".repeat(36)}`,
