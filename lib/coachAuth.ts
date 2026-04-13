@@ -44,6 +44,39 @@ export function clearCoachSessionCookie(): string {
   return `${COACH_COOKIE}=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
 }
 
+// ─── Session version ──────────────────────────────────────────────────────────
+
+const SESSION_VERSION_KEY = "coach_session_version";
+
+/**
+ * Returns the current coach session version from the DB (default 0).
+ * Embed in the session payload at login; verify on every authenticated request.
+ * Incrementing it (on password change) immediately invalidates all issued sessions.
+ */
+export async function getCoachSessionVersion(): Promise<number> {
+  try {
+    const setting = await prisma.setting.findUnique({ where: { key: SESSION_VERSION_KEY } });
+    return setting ? parseInt(setting.value, 10) || 0 : 0;
+  } catch {
+    // If the DB is unavailable we fail open here -- requireCoachAuth will catch
+    // the same error and reject the request.
+    return 0;
+  }
+}
+
+/**
+ * Increments the session version, invalidating all currently issued coach sessions.
+ * Call this on password change.
+ */
+export async function incrementCoachSessionVersion(): Promise<void> {
+  const current = await getCoachSessionVersion();
+  await prisma.setting.upsert({
+    where:  { key: SESSION_VERSION_KEY },
+    update: { value: String(current + 1) },
+    create: { key: SESSION_VERSION_KEY, value: String(current + 1) },
+  });
+}
+
 // ─── Password ─────────────────────────────────────────────────────────────────
 
 /**

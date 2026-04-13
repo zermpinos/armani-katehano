@@ -15,6 +15,7 @@ import {
   getCoachSessionToken,
   verifyCoachSession,
   verifyCoachPassword,
+  getCoachSessionVersion,
   buildCoachSessionCookie,
   clearCoachSessionCookie,
   COACH_SESSION_TTL_S,
@@ -38,6 +39,10 @@ export default async function handler(req: any, res: any) {
     if (parsed?.role !== "coach") return res.status(401).json({ error: "Unauthorized" });
     if (!parsed?.ts || Date.now() - parsed.ts > COACH_SESSION_TTL_S * 1000) {
       return res.status(401).json({ error: "Session expired" });
+    }
+    const currentVersion = await getCoachSessionVersion();
+    if ((parsed.v ?? 0) !== currentVersion) {
+      return res.status(401).json({ error: "Session revoked. Please log in again." });
     }
     return res.status(200).json({ ok: true });
   }
@@ -75,7 +80,8 @@ export default async function handler(req: any, res: any) {
     }
 
     await clearAttempts(ip);
-    const payload = JSON.stringify({ ts: Date.now(), role: "coach" });
+    const v = await getCoachSessionVersion();
+    const payload = JSON.stringify({ ts: Date.now(), role: "coach", v });
     res.setHeader("Set-Cookie", buildCoachSessionCookie(payload));
     auditLog("coach_login_success", { ip });
     return res.status(200).json({ ok: true });
