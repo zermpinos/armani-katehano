@@ -8,3 +8,7 @@ Sentry.init({
   sendDefaultPii: false, // GDPR Reasons
   tracesSampleRate: 0.1,
 });
+
+process.on("unhandledRejection", (reason) => {
+  Sentry.captureException(reason);
+});
