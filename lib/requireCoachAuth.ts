@@ -14,6 +14,7 @@ import { securityHeaders, auditLog, csrfCheck, getClientIp } from "./security";
 import {
   getCoachSessionToken,
   verifyCoachSession,
+  getCoachSessionVersion,
   COACH_SESSION_TTL_S,
 } from "./coachAuth";
 
@@ -52,6 +53,14 @@ export function requireCoachAuth(handler: (req: any, res: any) => any) {
     if (!parsed?.ts || Date.now() - parsed.ts > COACH_SESSION_TTL_S * 1000) {
       auditLog("coach_expired_session", { ip, ts: parsed?.ts });
       return res.status(401).json({ error: "Session expired" });
+    }
+
+    // Session version check: invalidates all sessions issued before the last
+    // password change. parsed.v defaults to 0 for sessions issued pre-feature.
+    const currentVersion = await getCoachSessionVersion();
+    if ((parsed.v ?? 0) !== currentVersion) {
+      auditLog("coach_session_revoked", { ip, sessionV: parsed.v, currentV: currentVersion });
+      return res.status(401).json({ error: "Session revoked. Please log in again." });
     }
 
     return handler(req, res);
