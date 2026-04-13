@@ -12,7 +12,7 @@
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { requireCoachAuth } from "../../../lib/requireCoachAuth";
-import { verifyCoachPassword, setCoachPasswordHash, clearCoachSessionCookie } from "../../../lib/coachAuth";
+import { verifyCoachPassword, setCoachPasswordHash, incrementCoachSessionVersion, clearCoachSessionCookie } from "../../../lib/coachAuth";
 import { auditLog, getClientIp } from "../../../lib/security";
 import { prodError } from "../../../lib/utils";
 
@@ -43,10 +43,11 @@ async function handler(req: any, res: any) {
 
     const hash = await bcrypt.hash(newPassword, 12);
     await setCoachPasswordHash(hash);
+    // Increment version — invalidates every issued session across all devices,
+    // not just the current one. The coach must log in again with the new password.
+    await incrementCoachSessionVersion();
     auditLog("coach_password_changed", { ip });
 
-    // Expire the current session so any stolen cookie stops working immediately.
-    // The coach will be redirected to login to authenticate with the new password.
     res.setHeader("Set-Cookie", clearCoachSessionCookie());
     return res.status(200).json({ ok: true, sessionCleared: true });
   } catch (err) {
