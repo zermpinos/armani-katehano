@@ -43,16 +43,3 @@ export async function clearAttempts(ip: string) {
   await prisma.loginAttempt.deleteMany({ where: { ip } });
 }
 
-/**
- * Returns seconds remaining in the lockout window for this IP.
- */
-export async function getLockoutTTL(ip: string) {
-  const since = new Date(Date.now() - LOCKOUT_TTL_S * 1000);
-  const oldest = await prisma.loginAttempt.findFirst({
-    where: { ip, attemptedAt: { gte: since } },
-    orderBy: { attemptedAt: "asc" },
-  });
-  if (!oldest) return 0;
-  const expiresAt = new Date(oldest.attemptedAt.getTime() + LOCKOUT_TTL_S * 1000);
-  return Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
-}

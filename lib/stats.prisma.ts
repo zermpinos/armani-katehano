@@ -18,6 +18,7 @@
  */
 import { randomUUID } from "crypto";
 import prisma          from "./prisma";
+import { Prisma }      from "./generated/prisma/client";
 import { calcEff }     from "./stats";
 
 function calcTsPct(pts: number, fga: number, fta: number) {
@@ -153,24 +154,27 @@ export async function recalcAggregates(seasonLeagueId: string, tx: any = prisma)
     }
   }
 
-  const params: any[] = [];
-  const rowsSql = toUpsert.map((row: any) => {
-    const start = params.length + 1;
-    cols.forEach(col => params.push(row[col]));
-    const placeholders = cols.map((_, i) => `$${start + i}`).join(", ");
-    return `(${placeholders})`;
-  });
+  // Column list: all identifiers are hardcoded constants -- safe to use Prisma.raw()
+  const colList = Prisma.join(cols.map(c => Prisma.raw(`"${c}"`)));
 
-  // Update every column on conflict except the composite primary key
-  const updateCols = cols
-    .filter(c => c !== "id" && c !== "playerId" && c !== "seasonLeagueId")
-    .map(c => `"${c}" = EXCLUDED."${c}"`)
-    .join(", ");
+  // Value rows: each data value is safely parameterised by Prisma.sql / Prisma.join
+  const valuePlaceholders = Prisma.join(
+    toUpsert.map((row: any) =>
+      Prisma.sql`(${Prisma.join(cols.map(col => row[col]))})`
+    )
+  );
 
-  await tx.$executeRawUnsafe(`
-    INSERT INTO "PlayerSeasonAggregate" (${cols.map(c => `"${c}"`).join(", ")})
-    VALUES ${rowsSql.join(", ")}
+  // Update set: column names are hardcoded constants -- safe to use Prisma.raw()
+  const updateSet = Prisma.join(
+    cols
+      .filter(c => c !== "id" && c !== "playerId" && c !== "seasonLeagueId")
+      .map(c => Prisma.raw(`"${c}" = EXCLUDED."${c}"`))
+  );
+
+  await tx.$executeRaw`
+    INSERT INTO "PlayerSeasonAggregate" (${colList})
+    VALUES ${valuePlaceholders}
     ON CONFLICT ("playerId", "seasonLeagueId")
-    DO UPDATE SET ${updateCols}
-  `, ...params);
+    DO UPDATE SET ${updateSet}
+  `;
 }

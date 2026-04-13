@@ -15,6 +15,9 @@ import prisma from "../../../lib/prisma";
 import { prodError } from "../../../lib/utils";
 import { sendRosterAnnouncement } from "../../../lib/email";
 
+const BLAST_LIMIT  = 10;   // max email blasts per IP per hour
+const BLAST_WINDOW = 3600; // 1 hour in seconds
+
 const PlayerSlotSchema = z.object({
   playerId: z.string().cuid(),
   note:     z.string().max(200).optional().nullable(),
@@ -58,6 +61,19 @@ async function handler(req: any, res: any) {
 
   // ── POST: create / replace ────────────────────────────────────────────────
   if (req.method === "POST") {
+    // Rate-limit email blasts: max 10 per IP per hour
+    const blastKey = `blast_${ip}`;
+    const blastSince = new Date(Date.now() - BLAST_WINDOW * 1000);
+    const blastCount = await prisma.loginAttempt.count({
+      where: { ip: blastKey, attemptedAt: { gte: blastSince } },
+    });
+    if (blastCount >= BLAST_LIMIT) {
+      auditLog("roster_blast_rate_limited", { ip });
+      return res.status(429).json({ error: "Too many announcements. Try again later." });
+    }
+    prisma.loginAttempt.create({ data: { ip: blastKey } })
+      .catch(err => console.error("[roster-announcement] rate-limit record failed:", err));
+
     const parsed = WriteSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       return res.status(400).json({
