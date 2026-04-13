@@ -72,7 +72,7 @@ async function handler(req: any, res: any) {
       return res.status(429).json({ error: "Too many announcements. Try again later." });
     }
     prisma.loginAttempt.create({ data: { ip: blastKey } })
-      .catch(err => console.error("[roster-announcement] rate-limit record failed:", err));
+      .catch((err: unknown) => console.error("[roster-announcement] rate-limit record failed:", err));
 
     const parsed = WriteSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
