@@ -17,7 +17,7 @@ import bcrypt  from "bcryptjs";
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const COOKIE_NAME    = "__Host-ak_session";
-export const SESSION_TTL_S  = 8 * 60 * 60; // 8 hours
+export const SESSION_TTL_S  = 4 * 60 * 60; // 4 hours
 
 // ─── Session cookie helpers ───────────────────────────────────────────────────
 

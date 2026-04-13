@@ -16,7 +16,7 @@ import { signSession, verifySession } from "./security";
 import prisma from "./prisma";
 
 const COACH_COOKIE = "__Host-ak_coach";
-export const COACH_SESSION_TTL_S = 8 * 60 * 60; // 8 hours
+export const COACH_SESSION_TTL_S = 4 * 60 * 60; // 4 hours
 
 // ─── Cookie helpers (reuse security.ts signing so SESSION_SECRET is shared) ───
 

@@ -6,8 +6,12 @@
  * The public site calls this from getStaticProps / getServerSideProps.
  */
 import { getAllPublicData } from "../../../lib/data";
-import { securityHeaders } from "../../../lib/security";
-import { prodError }       from "../../../lib/utils"; // ← FIX B-02: enables safe error messages in dev + prod
+import { securityHeaders, getClientIp } from "../../../lib/security";
+import { prodError }       from "../../../lib/utils";
+import prisma              from "../../../lib/prisma";
+
+const PUBLIC_DATA_LIMIT  = 30;  // max requests per IP per minute
+const PUBLIC_DATA_WINDOW = 60;  // 1 minute in seconds
 
 export default async function handler(req: any, res: any) {
   // Apply security headers, but allow CDN caching (remove no-store override)
@@ -18,15 +22,26 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // IP-based rate limit -- prevents DB pool exhaustion from bots or cache-busting
+  const ip = getClientIp(req);
+  const rateLimitKey = `pub_${ip}`;
+  const since = new Date(Date.now() - PUBLIC_DATA_WINDOW * 1000);
+  const attempts = await prisma.loginAttempt.count({
+    where: { ip: rateLimitKey, attemptedAt: { gte: since } },
+  });
+  if (attempts >= PUBLIC_DATA_LIMIT) {
+    return res.status(429).json({ error: "Too many requests. Try again later." });
+  }
+  prisma.loginAttempt.create({ data: { ip: rateLimitKey } })
+    .catch(err => console.error("[public/data] rate-limit record failed:", err));
+
   try {
     const data = await getAllPublicData();
     // 60s CDN cache, 300s stale-while-revalidate
     res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
     return res.status(200).json(data);
   } catch (err) {
-    console.error("[public/data]", err); // ← log full error server-side
-    // prodError: returns err.message in development, "Internal server error" in production
-    // Safe for a public endpoint -- no stack traces or DB details leak to clients
+    console.error("[public/data]", err);
     return res.status(500).json({ error: prodError(err) });
   }
 }
