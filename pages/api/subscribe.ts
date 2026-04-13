@@ -11,8 +11,9 @@ import prisma from "../../lib/prisma";
 import { prodError } from "../../lib/utils";
 import { securityHeaders, getClientIp } from "../../lib/security";
 
-const SUBSCRIBE_LIMIT   = 3;   // max attempts
-const SUBSCRIBE_WINDOW  = 3600; // 1 hour in seconds
+const SUBSCRIBE_LIMIT        = 3;       // max attempts per IP per hour
+const SUBSCRIBE_WINDOW       = 3600;    // 1 hour in seconds
+const EMAIL_COOLDOWN_WINDOW  = 86400;   // 24 hours in seconds
 
 const SubscribeSchema = z.object({
   email: z.string().email().max(254).transform(v => v.toLowerCase().trim()),
@@ -47,7 +48,22 @@ export default async function handler(req: any, res: any) {
     const { email } = parsed.data;
 
     // Record attempt before processing (fire-and-forget)
-    prisma.loginAttempt.create({ data: { ip: rateLimitKey } }).catch(() => {});
+    prisma.loginAttempt.create({ data: { ip: rateLimitKey } })
+      .catch(err => console.error("[subscribe] rate-limit record failed:", err));
+
+    // Per-email cooldown: reject if the same address attempted within the last 24 h.
+    // Prevents IP-rotating attackers from flooding a victim's inbox.
+    const emailKey = `subemail_${email}`;
+    const emailSince = new Date(Date.now() - EMAIL_COOLDOWN_WINDOW * 1000);
+    const emailAttempts = await prisma.loginAttempt.count({
+      where: { ip: emailKey, attemptedAt: { gte: emailSince } },
+    });
+    if (emailAttempts >= 1) {
+      // Return 200 so we don't reveal whether the address is known
+      return res.status(200).json({ ok: true });
+    }
+    prisma.loginAttempt.create({ data: { ip: emailKey } })
+      .catch(err => console.error("[subscribe] email cooldown record failed:", err));
 
     try {
       const existing = await prisma.subscriber.findUnique({ where: { email } });
