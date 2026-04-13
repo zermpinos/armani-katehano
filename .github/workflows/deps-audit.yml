@@ -1,0 +1,32 @@
+name: Dependency Audit
+
+on:
+  push:
+    branches: [main]
+    paths: [package-lock.json]
+  pull_request:
+    branches: [main]
+    paths: [package-lock.json]
+  # Run weekly even if deps haven't changed — new CVEs appear constantly.
+  schedule:
+    - cron: "0 9 * * 1" # Monday 09:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # --omit=dev: only flag vulnerabilities in production deps.
+      # Remove --omit=dev if you also want to audit devDependencies.
+      - run: npm audit --omit=dev
