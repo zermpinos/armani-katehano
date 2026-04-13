@@ -1,0 +1,32 @@
+﻿2026-04-13T12:07:27.5102651Z Current runner version: '2.333.1'
+2026-04-13T12:07:27.5137342Z ##[group]Runner Image Provisioner
+2026-04-13T12:07:27.5138700Z Hosted Compute Agent
+2026-04-13T12:07:27.5139669Z Version: 20260213.493
+2026-04-13T12:07:27.5141324Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+2026-04-13T12:07:27.5142698Z Build Date: 2026-02-13T00:28:41Z
+2026-04-13T12:07:27.5143897Z Worker ID: {4f2b9c05-ff8e-4a4b-9857-a8a657b0e367}
+2026-04-13T12:07:27.5145268Z Azure Region: northcentralus
+2026-04-13T12:07:27.5146302Z ##[endgroup]
+2026-04-13T12:07:27.5148333Z ##[group]Operating System
+2026-04-13T12:07:27.5149518Z Ubuntu
+2026-04-13T12:07:27.5150789Z 24.04.4
+2026-04-13T12:07:27.5151661Z LTS
+2026-04-13T12:07:27.5152636Z ##[endgroup]
+2026-04-13T12:07:27.5153519Z ##[group]Runner Image
+2026-04-13T12:07:27.5154501Z Image: ubuntu-24.04
+2026-04-13T12:07:27.5155673Z Version: 20260406.80.1
+2026-04-13T12:07:27.5157490Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260406.80/images/ubuntu/Ubuntu2404-Readme.md
+2026-04-13T12:07:27.5160953Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260406.80
+2026-04-13T12:07:27.5162709Z ##[endgroup]
+2026-04-13T12:07:27.5164883Z ##[group]GITHUB_TOKEN Permissions
+2026-04-13T12:07:27.5167777Z Contents: read
+2026-04-13T12:07:27.5168730Z Metadata: read
+2026-04-13T12:07:27.5169630Z Packages: read
+2026-04-13T12:07:27.5170880Z ##[endgroup]
+2026-04-13T12:07:27.5173813Z Secret source: Actions
+2026-04-13T12:07:27.5175275Z Prepare workflow directory
+2026-04-13T12:07:27.5652546Z Prepare all required actions
+2026-04-13T12:07:27.5709504Z Getting action download info
+2026-04-13T12:07:27.9881097Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-04-13T12:07:28.0901626Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-04-13T12:07:28.2804530Z Complete job name: Lint, Typecheck, Test & Build
