@@ -1,0 +1,71 @@
+﻿2026-04-13T12:07:55.7527305Z ##[group]Run npm run lint
+2026-04-13T12:07:55.7527801Z [36;1mnpm run lint[0m
+2026-04-13T12:07:55.7549689Z shell: /usr/bin/bash -e {0}
+2026-04-13T12:07:55.7549947Z ##[endgroup]
+2026-04-13T12:07:55.8711528Z 
+2026-04-13T12:07:55.8712478Z > armani-katehano@1.0.0 lint
+2026-04-13T12:07:55.8713230Z > eslint .
+2026-04-13T12:07:55.8713585Z 
+2026-04-13T12:08:05.5307970Z 
+2026-04-13T12:08:05.5309165Z /home/runner/work/armani-katehano/armani-katehano/components/Layout.tsx
+2026-04-13T12:08:05.5349965Z ##[error]   18:13  error    'React' is not defined                                                                                                                                                                                                                                                                   no-undef
+2026-04-13T12:08:05.5373530Z ##[warning]   60:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+2026-04-13T12:08:05.5381192Z ##[warning]  141:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+2026-04-13T12:08:05.5384038Z 
+2026-04-13T12:08:05.5384639Z /home/runner/work/armani-katehano/armani-katehano/components/PlayerDetail.tsx
+2026-04-13T12:08:05.5389350Z ##[warning]  81:34  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+2026-04-13T12:08:05.5392845Z 
+2026-04-13T12:08:05.5393496Z /home/runner/work/armani-katehano/armani-katehano/components/SeasonSelector.tsx
+2026-04-13T12:08:05.5394808Z ##[error]  20:11  error  'React' is not defined  no-undef
+2026-04-13T12:08:05.5396387Z 
+2026-04-13T12:08:05.5396974Z /home/runner/work/armani-katehano/armani-katehano/components/ui/index.tsx
+2026-04-13T12:08:05.5398311Z ##[error]   7:11  error  'React' is not defined  no-undef
+2026-04-13T12:08:05.5400497Z ##[error]  24:11  error  'React' is not defined  no-undef
+2026-04-13T12:08:05.5402451Z ##[error]  46:10  error  'React' is not defined  no-undef
+2026-04-13T12:08:05.5404283Z ##[error]  47:9   error  'React' is not defined  no-undef
+2026-04-13T12:08:05.5406057Z ##[error]  67:13  error  'React' is not defined  no-undef
+2026-04-13T12:08:05.5407221Z 
+2026-04-13T12:08:05.5407794Z /home/runner/work/armani-katehano/armani-katehano/pages/coach/[token].tsx
+2026-04-13T12:08:05.5410764Z ##[warning]  182:6   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+2026-04-13T12:08:05.5413983Z ##[error]  277:36  error    'React' is not defined                                                                                       no-undef
+2026-04-13T12:08:05.5415503Z 
+2026-04-13T12:08:05.5416026Z /home/runner/work/armani-katehano/armani-katehano/pages/index.tsx
+2026-04-13T12:08:05.5417432Z ##[error]  116:13  error  'React' is not defined                                           no-undef
+2026-04-13T12:08:05.5419803Z ##[error]  119:16  error  'React' is not defined                                           no-undef
+2026-04-13T12:08:05.5422652Z ##[error]  134:23  error  'React' is not defined                                           no-undef
+2026-04-13T12:08:05.5424975Z ##[error]  135:23  error  'React' is not defined                                           no-undef
+2026-04-13T12:08:05.5427251Z ##[error]  156:28  error  'React' is not defined                                           no-undef
+2026-04-13T12:08:05.5430606Z ##[error]  187:77  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+2026-04-13T12:08:05.5433188Z ##[error]  187:95  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+2026-04-13T12:08:05.5435701Z ##[error]  239:11  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+2026-04-13T12:08:05.5438290Z ##[error]  239:34  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+2026-04-13T12:08:05.5439810Z 
+2026-04-13T12:08:05.5440859Z /home/runner/work/armani-katehano/armani-katehano/pages/players.tsx
+2026-04-13T12:08:05.5445284Z ##[warning]  27:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+2026-04-13T12:08:05.5448195Z 
+2026-04-13T12:08:05.5448719Z /home/runner/work/armani-katehano/armani-katehano/pages/unsubscribe.tsx
+2026-04-13T12:08:05.5450020Z   25:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+2026-04-13T12:08:05.5451093Z 
+2026-04-13T12:08:05.5453009Z Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+2026-04-13T12:08:05.5454965Z * Update external systems with the latest state from React.
+2026-04-13T12:08:05.5456342Z * Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+2026-04-13T12:08:05.5457165Z 
+2026-04-13T12:08:05.5458669Z Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+2026-04-13T12:08:05.5459999Z 
+2026-04-13T12:08:05.5460969Z /home/runner/work/armani-katehano/armani-katehano/pages/unsubscribe.tsx:25:7
+2026-04-13T12:08:05.5462086Z   23 |     const token = router.query.token;
+2026-04-13T12:08:05.5462730Z   24 |     if (!token || typeof token !== "string") {
+2026-04-13T12:08:05.5463334Z > 25 |       setStatus("error");
+2026-04-13T12:08:05.5463982Z      |       ^^^^^^^^^ Avoid calling setState() directly within an effect
+2026-04-13T12:08:05.5464558Z   26 |       return;
+2026-04-13T12:08:05.5464933Z   27 |     }
+2026-04-13T12:08:05.5465346Z   28 |  react-hooks/set-state-in-effect
+2026-04-13T12:08:05.5472709Z ##[error]  66:97  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react/no-unescaped-entities
+2026-04-13T12:08:05.5483466Z ##[error]  68:24  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react/no-unescaped-entities
+2026-04-13T12:08:05.5495869Z ##[error]  71:15  error  Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @next/next/no-html-link-for-pages
+2026-04-13T12:08:05.5507548Z ##[error]  85:23  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react/no-unescaped-entities
+2026-04-13T12:08:05.5519878Z ##[error]  87:15  error  Do not use an `<a>` element to navigate to `/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @next/next/no-html-link-for-pages
+2026-04-13T12:08:05.5525161Z 
+2026-04-13T12:08:05.5525754Z ✖ 28 problems (23 errors, 5 warnings)
+2026-04-13T12:08:05.5526125Z 
+2026-04-13T12:08:05.6026742Z ##[error]Process completed with exit code 1.

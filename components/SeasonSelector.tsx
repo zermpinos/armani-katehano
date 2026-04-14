@@ -10,6 +10,7 @@
  *   right          node       optional element aligned to the right of the tab strip
  */
 
+import React from "react";
 import { C } from "../lib/theme";
 
 interface SeasonSelectorProps {

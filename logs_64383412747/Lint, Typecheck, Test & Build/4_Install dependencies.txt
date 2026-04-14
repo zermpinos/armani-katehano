@@ -1,0 +1,22 @@
+﻿2026-04-13T12:07:30.0978164Z ##[group]Run npm ci
+2026-04-13T12:07:30.0978475Z [36;1mnpm ci[0m
+2026-04-13T12:07:30.1012595Z shell: /usr/bin/bash -e {0}
+2026-04-13T12:07:30.1012894Z ##[endgroup]
+2026-04-13T12:07:31.0327292Z npm warn EBADENGINE Unsupported engine {
+2026-04-13T12:07:31.0328778Z npm warn EBADENGINE   package: '@prisma/streams-local@0.1.2',
+2026-04-13T12:07:31.0330527Z npm warn EBADENGINE   required: { bun: '>=1.3.6', node: '>=22.0.0' },
+2026-04-13T12:07:31.0332026Z npm warn EBADENGINE   current: { node: 'v20.20.2', npm: '10.8.2' }
+2026-04-13T12:07:31.0333082Z npm warn EBADENGINE }
+2026-04-13T12:07:33.1828878Z npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+2026-04-13T12:07:55.6070917Z 
+2026-04-13T12:07:55.6084465Z added 727 packages, and audited 728 packages in 25s
+2026-04-13T12:07:55.6130470Z 
+2026-04-13T12:07:55.6150811Z 200 packages are looking for funding
+2026-04-13T12:07:55.6151361Z   run `npm fund` for details
+2026-04-13T12:07:55.7063934Z 
+2026-04-13T12:07:55.7064773Z 3 moderate severity vulnerabilities
+2026-04-13T12:07:55.7080732Z 
+2026-04-13T12:07:55.7091223Z To address all issues (including breaking changes), run:
+2026-04-13T12:07:55.7095914Z   npm audit fix --force
+2026-04-13T12:07:55.7096366Z 
+2026-04-13T12:07:55.7096782Z Run `npm audit` for details.
