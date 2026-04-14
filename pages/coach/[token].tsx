@@ -179,6 +179,9 @@ export default function CoachPage() {
       loadData();
       loadPlayers();
     }
+    // loadData and loadPlayers only call state setters and fetch -- they don't
+    // close over any reactive value that would require them to be deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed]);
 
   // ── Roster panel ──────────────────────────────────────────────────────────

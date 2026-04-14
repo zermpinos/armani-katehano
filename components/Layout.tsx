@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { C } from "../lib/theme";
@@ -57,10 +58,12 @@ export default function Layout({ children, title = SITE_NAME, ogDescription }: L
 
             {/* Brand */}
             <Link href="/" style={{ display:"flex", alignItems:"center", gap:12 }}>
-              <img
+              <Image
                 src="/logo.png"
                 alt="Armani Katehano"
-                style={{ width:40, height:40, objectFit:"contain", flexShrink:0 }}
+                width={40}
+                height={40}
+                style={{ objectFit:"contain", flexShrink:0 }}
               />
               <div className="brand-text">
                 <div style={{ fontWeight:900, fontSize:13, letterSpacing:"0.1em", textTransform:"uppercase", lineHeight:1, color:C.text }}>Armani Katehano</div>
@@ -138,7 +141,7 @@ export default function Layout({ children, title = SITE_NAME, ogDescription }: L
 
           {/* Left: copyright */}
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <img src="/logo.png" alt="AK" style={{ width:20, height:20, objectFit:"contain", opacity:0.5 }} />
+            <Image src="/logo.png" alt="AK" width={20} height={20} style={{ objectFit:"contain", opacity:0.5 }} />
             <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.12em", color:C.text, textTransform:"uppercase" }}>© {COPYRIGHT_YEAR} {SITE_NAME} · {CURRENT_SEASON}</div>
           </div>
 
