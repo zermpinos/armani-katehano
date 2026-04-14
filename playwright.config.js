@@ -8,6 +8,11 @@ loadEnv({ path: ".env" });
 
 import { defineConfig, devices } from "@playwright/test";
 
+// When PLAYWRIGHT_BASE_URL is set (e.g. in CI against a Vercel preview),
+// target that URL directly and skip spinning up a local dev server.
+const BASE_URL  = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+const isRemote  = !!process.env.PLAYWRIGHT_BASE_URL;
+
 export default defineConfig({
   testDir:         "./e2e",
   globalSetup:     "./e2e/global-setup.js",
@@ -18,7 +23,7 @@ export default defineConfig({
   reporter:        "list",
 
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: BASE_URL,
     trace:   "on-first-retry",
     // Neon DB cold-starts can take ~10 s; give pages 30 s to fully render.
     // actionTimeout is left at the Playwright default (30 s) -- no override.
@@ -29,11 +34,9 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
 
-  // Auto-start the dev server if it's not already running.
-  // Set reuseExistingServer:true locally so you can run `npm run dev` yourself.
-  // SESSION_SECRET is required by requireAuth; fall back to a local test value
-  // so admin routes work without a full Vercel env setup.
-  webServer: {
+  // Auto-start the dev server only for local runs.
+  // When targeting a remote URL the server is already up -- skip webServer.
+  webServer: isRemote ? undefined : {
     command:             "npm run dev",
     port:                3000,
     reuseExistingServer: !process.env.CI,
