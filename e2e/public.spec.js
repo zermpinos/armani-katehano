@@ -24,9 +24,10 @@ test.describe("Homepage (/)", () => {
 
   test("renders navigation links", async ({ page }) => {
     await page.goto("/");
-    // Layout nav should have links to main sections
-    await expect(page.getByRole("link", { name: /games/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /leaderboard/i })).toBeVisible();
+    // Layout nav should have links to main sections -- use exact match to avoid
+    // matching homepage body links like "All Games ->" alongside the nav link.
+    await expect(page.getByRole("link", { name: "Games", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Leaderboard", exact: true })).toBeVisible();
   });
 
   test("renders the hero / record section without crashing", async ({ page }) => {
@@ -131,7 +132,7 @@ test.describe("404 page", () => {
 test.describe("Navigation", () => {
   test("clicking Games nav link navigates to /games", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: /games/i }).click();
+    await page.getByRole("link", { name: "Games", exact: true }).click();
     await expect(page).toHaveURL(/\/games/);
   });
 
