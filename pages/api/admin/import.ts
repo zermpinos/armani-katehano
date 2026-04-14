@@ -181,7 +181,7 @@ export default requireAuth(async function handler(req: any, res: any) {
         });
       }
 
-      await recalcAggregates(seasonLeagueId, tx);
+      await recalcAggregates(seasonLeagueId!, tx);
     });
 
     // Revalidate all public ISR pages so they reflect the new game immediately

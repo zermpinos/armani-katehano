@@ -49,7 +49,7 @@ export default async function handler(req: any, res: any) {
 
     // Record attempt before processing (asynchronous)
     prisma.loginAttempt.create({ data: { ip: rateLimitKey } })
-      .catch(err => console.error("[subscribe] rate-limit record failed:", err));
+      .catch((err: unknown) => console.error("[subscribe] rate-limit record failed:", err));
 
     // Per-email cooldown: reject if the same address attempted within the last 24 h.
     // Prevents IP-rotating attackers from flooding a victim's inbox.
@@ -63,7 +63,7 @@ export default async function handler(req: any, res: any) {
       return res.status(200).json({ ok: true });
     }
     prisma.loginAttempt.create({ data: { ip: emailKey } })
-      .catch(err => console.error("[subscribe] email cooldown record failed:", err));
+      .catch((err: unknown) => console.error("[subscribe] email cooldown record failed:", err));
 
     try {
       const existing = await prisma.subscriber.findUnique({ where: { email } });

@@ -33,7 +33,7 @@ export default async function handler(req: any, res: any) {
     return res.status(429).json({ error: "Too many requests. Try again later." });
   }
   prisma.loginAttempt.create({ data: { ip: rateLimitKey } })
-    .catch(err => console.error("[public/data] rate-limit record failed:", err));
+    .catch((err: unknown) => console.error("[public/data] rate-limit record failed:", err));
 
   try {
     const data = await getAllPublicData();
