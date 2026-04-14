@@ -83,11 +83,12 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      # Use dummy values so the build works on fork PRs where secrets
-      # are unavailable. CI build validates compilation, not connectivity.
+      # Build prerenders getStaticProps pages (ISR), which requires a
+      # real database connection. Uses repo secrets -- this means fork PRs
+      # cannot run the build job, but that's acceptable for a private repo.
       - name: Build
         run: npm run build
         env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
-          SESSION_SECRET: ci-placeholder-secret
-          NEXT_PUBLIC_SENTRY_DSN: ""
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
