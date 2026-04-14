@@ -3,6 +3,12 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig = {
   reactStrictMode: true,
 
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "res.cloudinary.com" },
+    ],
+  },
+
   // Security headers (also in vercel.json -- belt-and-suspenders)
   async headers() {
     return [
