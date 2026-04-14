@@ -32,6 +32,11 @@ jobs:
         run: npm run test:e2e
         env:
           PLAYWRIGHT_BASE_URL: ${{ github.event.deployment_status.environment_url }}
+          # Required: bypasses Vercel Deployment Protection so Playwright can
+          # reach the preview URL without hitting "Login - Vercel".
+          # Generate this in Vercel -> Project Settings -> Deployment Protection
+          # -> "Protection Bypass for Automation", then save as a GitHub secret.
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           # Admin tests self-skip when these aren't set -- add them as repo
           # secrets if you want the authenticated flow tested in CI.
           ADMIN_SLUG: ${{ secrets.ADMIN_SLUG }}
