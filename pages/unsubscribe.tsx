@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import Link from "next/link";
 import { C } from "../lib/theme";
 
 export default function UnsubscribePage() {
@@ -22,6 +23,7 @@ export default function UnsubscribePage() {
 
     const token = router.query.token;
     if (!token || typeof token !== "string") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus("error");
       return;
     }
@@ -63,17 +65,17 @@ export default function UnsubscribePage() {
 
           {status === "done" && (
             <>
-              <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>You've been unsubscribed</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>You&apos;ve been unsubscribed</div>
               <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.6 }}>
-                You won't receive any more roster notifications.<br />
+                You won&apos;t receive any more roster notifications.<br />
                 You can re-subscribe any time from the homepage.
               </div>
-              <a
+              <Link
                 href="/"
                 style={{ display: "inline-block", marginTop: 20, padding: "8px 20px", borderRadius: 8, background: C.red, color: C.text, fontSize: 12, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", textDecoration: "none" }}
               >
                 Back to site
-              </a>
+              </Link>
             </>
           )}
 
@@ -82,14 +84,14 @@ export default function UnsubscribePage() {
               <div style={{ fontSize: 18, fontWeight: 900, color: C.redText, marginBottom: 8 }}>Link invalid or expired</div>
               <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.6 }}>
                 This unsubscribe link may have already been used or is no longer valid.
-                If you're still receiving emails, contact us.
+                If you&apos;re still receiving emails, contact us.
               </div>
-              <a
+              <Link
                 href="/"
                 style={{ display: "inline-block", marginTop: 20, padding: "8px 20px", borderRadius: 8, background: C.surface2, color: C.text, fontSize: 12, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", textDecoration: "none", border: `1px solid ${C.border2}` }}
               >
                 Back to site
-              </a>
+              </Link>
             </>
           )}
         </div>
