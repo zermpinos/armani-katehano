@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import Layout from "../components/Layout";
 import { StatTile, SectionHeading } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
@@ -184,7 +184,7 @@ function SubscribeForm() {
       {status === "done" ? (
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, padding: "10px 14px", borderRadius: 8, background: `${C.green}14`, border: `1px solid ${C.green}35` }}>
           <span style={{ fontSize: 16 }}>✓</span>
-          <div style={{ fontSize: 13, color: C.green, fontWeight: 700 }}>You're subscribed! We'll email you before each game.</div>
+          <div style={{ fontSize: 13, color: C.green, fontWeight: 700 }}>You&apos;re subscribed! We&apos;ll email you before each game.</div>
         </div>
       ) : (
         <>
@@ -236,7 +236,7 @@ function RosterPanel({ announcement }: { announcement: any }) {
       </div>
       {announcement.message && (
         <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 8, background: C.surface2, fontSize: 12, color: C.textSub, fontStyle: "italic", lineHeight: 1.5 }}>
-          "{announcement.message}"
+          &ldquo;{announcement.message}&rdquo;
         </div>
       )}
     </div>
