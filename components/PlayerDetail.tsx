@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Image from "next/image";
 import { C, chartTooltipStyle } from "../lib/theme";
 import { fmtMinutes } from "../lib/utils";
 import { LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "./Charts";
@@ -77,8 +78,8 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
 
         {/* Header */}
         <div style={{ padding:24, display:"flex", gap:20, alignItems:"center", background:C.base, borderBottom:`1px solid ${C.border}` }}>
-          <div style={{ width:72, height:72, borderRadius:14, overflow:"hidden", flexShrink:0, background:C.surface, border:`1px solid ${C.border2}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:32 }}>
-            {playerImg(player) ? <img src={playerImg(player)} alt={player.name} style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"top" }} /> : "🏀"}
+          <div style={{ width:72, height:72, borderRadius:14, overflow:"hidden", flexShrink:0, background:C.surface, border:`1px solid ${C.border2}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:32, position:"relative" }}>
+            {playerImg(player) ? <Image src={playerImg(player)} alt={player.name} fill style={{ objectFit:"cover", objectPosition:"top" }} /> : "🏀"}
           </div>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontSize:22, fontWeight:900, color:C.text }}>{player.name}</div>

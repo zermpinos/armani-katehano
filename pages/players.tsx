@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Image from "next/image";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import { C } from "../lib/theme";
@@ -24,7 +25,7 @@ function PlayerCard({ player, onClick }: any) {
     }}>
       <div style={{ height:170, display:"flex", alignItems:"flex-end", justifyContent:"center", background:C.base, position:"relative" }}>
         {playerImg(player)
-          ? <img src={playerImg(player)} alt={player.name} style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", objectPosition:"top", borderRadius:0 }} />
+          ? <Image src={playerImg(player)} alt={player.name} fill style={{ objectFit:"cover", objectPosition:"top" }} />
           : <span style={{ fontSize:52, lineHeight:1, paddingBottom:12, zIndex:1, position:"relative" }}>🏀</span>
         }
         {/* gradient overlay */}
