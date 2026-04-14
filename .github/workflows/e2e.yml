@@ -1,15 +1,23 @@
 name: E2E Tests (Vercel Preview)
 
-# Fires whenever Vercel reports a deployment status change.
-# We filter to state == 'success' so tests only run after a successful deploy.
-# github.event.deployment_status.environment_url contains the exact preview URL.
 on:
   deployment_status:
+
+concurrency:
+  # One E2E run per deployment — cancel stale if a new deploy lands.
+  group: e2e-${{ github.event.deployment_status.environment_url }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # Needed for deployment_status context
+  deployments: read
 
 jobs:
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.event.deployment_status.state == 'success'
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -25,20 +33,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Cache Playwright browser binaries (~150 MB) between runs.
+      - name: Get Playwright version
+        id: pw-version
+        run: echo "version=$(npx playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
+
       - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      # Even on cache hit we need OS-level deps (they aren't cached).
+      - name: Install Playwright OS dependencies
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       - name: Run E2E tests
         run: npm run test:e2e
         env:
           PLAYWRIGHT_BASE_URL: ${{ github.event.deployment_status.environment_url }}
-          # Required: bypasses Vercel Deployment Protection so Playwright can
-          # reach the preview URL without hitting "Login – Vercel".
-          # Generate this in Vercel → Project Settings → Deployment Protection
-          # → "Protection Bypass for Automation", then save as a GitHub secret.
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-          # Admin tests self-skip when these aren't set — add them as repo
-          # secrets if you want the authenticated flow tested in CI.
           ADMIN_SLUG: ${{ secrets.ADMIN_SLUG }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
 
@@ -46,6 +66,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          # Include run ID to avoid name collisions when multiple deploys
+          # trigger this workflow close together.
+          name: playwright-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: playwright-report/
           retention-days: 7
