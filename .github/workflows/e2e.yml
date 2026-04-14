@@ -1,0 +1,44 @@
+name: E2E Tests (Vercel Preview)
+
+# Fires whenever Vercel reports a deployment status change.
+# We filter to state == 'success' so tests only run after a successful deploy.
+# github.event.deployment_status.environment_url contains the exact preview URL.
+on:
+  deployment_status:
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    if: github.event.deployment_status.state == 'success'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ github.event.deployment_status.environment_url }}
+          # Admin tests self-skip when these aren't set -- add them as repo
+          # secrets if you want the authenticated flow tested in CI.
+          ADMIN_SLUG: ${{ secrets.ADMIN_SLUG }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
