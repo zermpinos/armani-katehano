@@ -28,6 +28,13 @@ export default defineConfig({
     // Neon DB cold-starts can take ~10 s; give pages 30 s to fully render.
     // actionTimeout is left at the Playwright default (30 s) — no override.
     navigationTimeout: 30_000,
+    // Bypass Vercel Deployment Protection when running against a preview URL.
+    // The secret is set in Vercel project settings → "Protection Bypass for
+    // Automation", then stored as the VERCEL_AUTOMATION_BYPASS_SECRET GitHub
+    // Actions secret. Without this header every request gets "Login – Vercel".
+    ...(isRemote && process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+      ? { extraHTTPHeaders: { "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET } }
+      : {}),
   },
 
   projects: [
