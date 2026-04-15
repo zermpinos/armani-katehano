@@ -12,7 +12,7 @@ const RAW_PLAYERS = [
   { id: "p2",  number: 3,  name: "Stathis Christofilopoulos", position: "SG"       },
   { id: "p3",  number: 5,  name: "Webmaster",      position: "C"        },
   { id: "p4",  number: 6,  name: "Nikos Tsiardakas",          position: "PG/SG"    },
-  { id: "p5",  number: 8,  name: "Spiros Papaspirou",         position: "PG"       },
+  { id: "p5",  number: 8,  name: "Spyros Papaspyrou",         position: "PG"       },
   { id: "p6",  number: 9,  name: "Dimitris Alevizos",         position: "SG"       },
   { id: "p7",  number: 10, name: "Loukas Margaritis",         position: "C"        },
   { id: "p8",  number: 11, name: "Giorgos Antonakos",         position: "PG"       },
