@@ -313,5 +313,5 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
 
 export async function getStaticProps() {
   const { seasons, currentSeason, players, games } = await getAllPublicData(null);
-  return { props: { players, games, seasons, currentSeason }, revalidate: 3600 };
+  return { props: { players, games, seasons, currentSeason }, revalidate: 86400 };
 }
