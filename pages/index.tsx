@@ -6,6 +6,7 @@ import { getAllPublicData, getUpcomingGamesWithAnnouncements } from "../lib/data
 import { computeRecord } from "../lib/stats";
 import { fmt, fmtDate, fmtMinutes } from "../lib/utils";
 import ErrorBoundary from "../components/ErrorBoundary";
+import { PlayerDetail } from "../components/PlayerDetail";
 import { LineChart, Line, BarChart, Bar, Cell, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 import Link from "next/link";
 import { getVenueUrl } from "../lib/venues";
@@ -214,7 +215,7 @@ function SubscribeForm() {
 }
 
 // Announced roster panel — shown when visitor toggles "View Roster"
-function RosterPanel({ announcement }: { announcement: any }) {
+function RosterPanel({ announcement, onPlayerClick }: { announcement: any; onPlayerClick?: (id: string) => void }) {
   return (
     <div style={{ paddingTop: 10 }}>
       <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, textTransform: "uppercase", marginBottom: 8 }}>
@@ -224,7 +225,20 @@ function RosterPanel({ announcement }: { announcement: any }) {
         {announcement.players.map((p: any) => (
           <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: `1px solid ${C.border}` }}>
             <span style={{ fontSize: 11, fontWeight: 900, color: C.textDim, minWidth: 28, fontVariantNumeric: "tabular-nums" }}>#{p.number}</span>
-            <span style={{ fontSize: 13, color: C.text, flex: 1 }}>{p.name}</span>
+            <button
+              type="button"
+              onClick={() => onPlayerClick?.(p.id)}
+              disabled={!onPlayerClick}
+              style={{
+                flex: 1, textAlign: "left", background: "none", border: "none", padding: 0,
+                fontFamily: "inherit", fontSize: 13, color: C.text,
+                cursor: onPlayerClick ? "pointer" : "default", transition: "color 0.15s",
+              }}
+              onMouseEnter={(e) => { if (onPlayerClick) (e.currentTarget as HTMLElement).style.color = C.redText; }}
+              onMouseLeave={(e) => { if (onPlayerClick) (e.currentTarget as HTMLElement).style.color = C.text; }}
+            >
+              {p.name}
+            </button>
             <span style={{ fontSize: 10, color: C.textDim }}>{p.position}</span>
             {p.note && (
               <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.08em", padding: "2px 6px", borderRadius: 4, background: `${C.green}20`, color: C.green, border: `1px solid ${C.green}40`, whiteSpace: "nowrap" }}>
@@ -256,17 +270,23 @@ function GoogleCalIcon() {
   );
 }
 
-export default function HomePage({ players, games, stats, upcomingGames }: any) {
+export default function HomePage({ players, games, stats, upcomingGames, currentSeason }: any) {
   const [trendRange, setTrendRange] = useState(10);
   const [showTrendModal, setShowTrendModal] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [openRosterId, setOpenRosterId] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const toggleRoster = (id: string) => setOpenRosterId(prev => prev === id ? null : id);
 
   const playersWithStats = players.map((p: any) => ({
     ...p,
     stats: stats[p.id] ?? { ppg:0, rpg:0, apg:0, fgPct:0, eff:0, mpg:0, gp:0 },
   }));
+
+  const openPlayerById = (id: string) => {
+    const match = playersWithStats.find((pp: any) => pp.id === id);
+    if (match) setSelectedPlayer(match);
+  };
 
   const record = computeRecord(games);
 
@@ -465,7 +485,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                         ? "Hide Roster ↑"
                         : `View Roster (${featured.announcement.players.length} players) →`}
                     </button>
-                    {openRosterId === featured.id && <RosterPanel announcement={featured.announcement} />}
+                    {openRosterId === featured.id && <RosterPanel announcement={featured.announcement} onPlayerClick={openPlayerById} />}
                   </>
                 ) : (
                   <div style={{ fontSize: 11, color: C.textDim, letterSpacing: "0.04em" }}>Roster TBA</div>
@@ -574,7 +594,7 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
                       </div>
                       {rosterOpen && g.announcement && (
                         <div style={{ padding:"10px 14px 12px", border:`1px solid ${C.green}40`, borderTop:"none", borderRadius:"0 0 10px 10px", background:`${C.green}05` }}>
-                          <RosterPanel announcement={g.announcement} />
+                          <RosterPanel announcement={g.announcement} onPlayerClick={openPlayerById} />
                         </div>
                       )}
                     </div>
@@ -1023,14 +1043,15 @@ export default function HomePage({ players, games, stats, upcomingGames }: any) 
         </div>
       )}
 
+      {selectedPlayer && <PlayerDetail player={selectedPlayer} onClose={() => setSelectedPlayer(null)} activeSeason={currentSeason ?? null} />}
       </Layout>
   );
 }
 
 export async function getStaticProps() {
-  const [{ players, games, stats }, upcomingGames] = await Promise.all([
+  const [{ players, games, stats, currentSeason }, upcomingGames] = await Promise.all([
     getAllPublicData(),
     getUpcomingGamesWithAnnouncements(),
   ]);
-  return { props: { players, games, stats, upcomingGames }, revalidate: 86400 };
+  return { props: { players, games, stats, upcomingGames, currentSeason }, revalidate: 86400 };
 }
