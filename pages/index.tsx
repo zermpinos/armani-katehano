@@ -1032,5 +1032,5 @@ export async function getStaticProps() {
     getAllPublicData(),
     getUpcomingGamesWithAnnouncements(),
   ]);
-  return { props: { players, games, stats, upcomingGames }, revalidate: 300 };
+  return { props: { players, games, stats, upcomingGames }, revalidate: 86400 };
 }
