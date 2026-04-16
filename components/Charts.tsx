@@ -6,7 +6,7 @@ export {
   LineChart, BarChart, RadarChart,
   Line, Bar, Area, Cell, Radar,
   LabelList,
-  PolarGrid, PolarAngleAxis,
+  PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
