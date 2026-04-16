@@ -285,7 +285,7 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
                                   <td style={{ padding:"5px 7px", textAlign:"center", color:C.textDim, fontWeight:700 }}>{i+1}</td>
                                   <td style={{ padding:"5px 7px", color:C.textDim, whiteSpace:"nowrap" }}>{g.date ? g.date.slice(5) : "—"}</td>
                                   <td style={{ padding:"5px 7px", color:C.textSub, maxWidth:90, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{g.opponent || "—"}</td>
-                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.textDim }}>{g.min || "—"}</td>
+                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.textDim }}>{g.min > 0 ? fmtMinutes(g.min) : "—"}</td>
                                   <td style={{ padding:"5px 7px", textAlign:"center", fontWeight:900, color:C.redText }}>{g.pts}</td>
                                   <td style={{ padding:"5px 7px", textAlign:"center", color:C.text }}>{g.reb}</td>
                                   <td style={{ padding:"5px 7px", textAlign:"center", color:C.text }}>{g.ast}</td>
