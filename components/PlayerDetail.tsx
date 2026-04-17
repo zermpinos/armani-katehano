@@ -95,7 +95,7 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
 
         <div style={{ padding:24 }}>
           {/* Season averages */}
-          {s.ppg > 0 && (
+          {s.gp > 0 && (
             <>
               <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:12, textTransform:"uppercase" }}>Season Averages</div>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:24 }}>
@@ -151,7 +151,7 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
           )}
 
           {/* Charts */}
-          {s.ppg > 0 && (
+          {s.gp > 0 && (
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:16 }}>
               <div>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
