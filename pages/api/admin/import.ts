@@ -152,6 +152,14 @@ export default requireAuth(async function handler(req: any, res: any) {
     return res.status(400).json({ error: "Invalid box score data", details: validationErrors });
   }
 
+  // ── Validate box score pts sum matches teamScore ──────────────────────────
+  const boxSum = validatedBoxScore.reduce((acc: number, row: any) => acc + (row.pts ?? 0), 0);
+  if (boxSum !== akScore) {
+    return res.status(422).json({
+      error: `Box score points (${boxSum}) do not match teamScore (${akScore}). Diff: ${boxSum - akScore}`,
+    });
+  }
+
   // ── Write to DB ───────────────────────────────────────────────────────────
   try {
     let gameId;
