@@ -369,6 +369,42 @@ export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
   return statsMap;
 }
 
+// ─── computeTeamAverages ──────────────────────────────────────────────────────
+// Derives team-level per-game averages from a games array (already filtered to
+// the desired scope). Box score rows with min === 0 (DNPs) are excluded, matching
+// the same gate used by recalcAggregates / PlayerSeasonAggregate.
+// Single source of truth — used by pages/team-stats.tsx so those tiles never
+// drift from the player aggregate numbers on pages/leaderboard.tsx.
+
+export function computeTeamAverages(games: any[]) {
+  const gp = games.length;
+  if (gp === 0) {
+    return { rpg:0, apg:0, spg:0, bpg:0, tpg:0, fgPct:0, fg3Pct:0, ftPct:0, atRatio:0 };
+  }
+
+  const rows = games.flatMap((g: any) => g.boxScore || []).filter((r: any) => r.min > 0);
+  const sum  = (key: string) => rows.reduce((a: number, r: any) => a + (r[key] || 0), 0);
+  const pct  = (m: string, a: string) => {
+    const t = sum(a);
+    return t > 0 ? +(sum(m) / t * 100).toFixed(1) : 0;
+  };
+
+  const astTotal = sum("ast");
+  const tovTotal = sum("tov");
+
+  return {
+    rpg:     +(sum("reb") / gp).toFixed(1),
+    apg:     +(sum("ast") / gp).toFixed(1),
+    spg:     +(sum("stl") / gp).toFixed(1),
+    bpg:     +(sum("blk") / gp).toFixed(1),
+    tpg:     +(sum("tov") / gp).toFixed(1),
+    fgPct:   pct("fgm",  "fga"),
+    fg3Pct:  pct("fg3m", "fg3a"),
+    ftPct:   pct("ftm",  "fta"),
+    atRatio: tovTotal > 0 ? +(astTotal / tovTotal).toFixed(2) : 0,
+  };
+}
+
 // ─── recalcPlayerAverages ─────────────────────────────────────────────────────
 // Kept for backward compat — wraps buildStatsMap, returns updated players array.
 // New code should call buildStatsMap directly.

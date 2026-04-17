@@ -3,7 +3,7 @@ import Layout from "../components/Layout";
 import { SectionHeading, StatTile } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
 import { getAllPublicData } from "../lib/data";
-import { computeRecord } from "../lib/stats";
+import { computeRecord, computeTeamAverages } from "../lib/stats";
 import { fmt, fmtMinutes } from "../lib/utils";
 import SeasonSelector from "../components/SeasonSelector";
 import ErrorBoundary from "../components/ErrorBoundary";
@@ -45,17 +45,7 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
   // for the "all" tab (where no game has g.league === "all").
   const rec = useMemo(() => computeRecord(filteredGames), [filteredGames]);
 
-  const allRows = filteredGames.flatMap((g: any) => g.boxScore || []).filter((r: any) => r.min > 0);
-  const sum    = (key: any) => allRows.reduce((a: number, r: any) => a + (r[key] || 0), 0);
-  const avg    = (key: any, n = gp) => n > 0 ? +(sum(key) / n).toFixed(1) : 0;
-  const pct    = (m: any, a: any) => { const t = sum(a); return t > 0 ? +(sum(m) / t * 100).toFixed(1) : 0; };
-
-  const teamAvg = {
-    rpg:    avg("reb"), apg: avg("ast"),
-    spg:    avg("stl"), bpg: avg("blk"), tpg: avg("tov"),
-    fgPct:  pct("fgm","fga"), fg3Pct: pct("fg3m","fg3a"), ftPct: pct("ftm","fta"),
-    atRatio: sum("tov") > 0 ? +(sum("ast") / sum("tov")).toFixed(2) : 0,
-  };
+  const teamAvg = useMemo(() => computeTeamAverages(filteredGames), [filteredGames]);
 
   // Offensive / Defensive Rating — game-level floats, averaged across filtered games
   const ratedGames  = filteredGames.filter((g: any) => g.offRating != null);
