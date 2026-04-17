@@ -3,10 +3,12 @@ import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import SeasonSelector from "../components/SeasonSelector";
 import { C } from "../lib/theme";
-import { getAllGames, getPlayers, getSeasons, getConfig, getAllUpcomingGames } from "../lib/data";
+import { getAllGames, getPlayers, getSeasons, getConfig, getAllUpcomingGames, getAllSeasonsStats } from "../lib/data";
+import { buildAllTimeStatsMap } from "../lib/stats";
 import ErrorBoundary from "../components/ErrorBoundary";
-import { fmt } from "../lib/utils";
+import { fmt, fmtMinutes } from "../lib/utils";
 import { getVenueUrl } from "../lib/venues";
+import { PlayerDetail } from "../components/PlayerDetail";
 
 // ── Upcoming-game helpers (mirrored from index.tsx) ──────────────────────────
 
@@ -191,7 +193,7 @@ function formatTopScorer(topScorer: any) {
   return `${fmt(topScorer.name)} ${topScorer.pts} PTS`;
 }
 
-const BoxScore = memo(function BoxScore({ game, players, onClose, isLoading }: any) {
+const BoxScore = memo(function BoxScore({ game, players, onClose, isLoading, onPlayerClick }: any) {
   const playerMap = useMemo(() => new Map(players.map((p: any) => [p.id, p])), [players]);
 
   const rows = useMemo(() => {
@@ -251,12 +253,30 @@ const BoxScore = memo(function BoxScore({ game, players, onClose, isLoading }: a
                     <tr key={r.pid} style={{ background: i%2===0 ? C.surface : C.surface2, borderBottom:`1px solid ${C.border}` }}>
                       <td style={{ padding:"8px 12px", fontWeight:700, color:C.textDim }}>{r.player.number}</td>
                       <td style={{ padding:"8px 12px" }}>
-                        <div style={{ fontWeight:700, color:C.text, fontSize:13 }}>{fmt(r.player.name)}</div>
-                        <div style={{ fontSize:10, color:C.textDim, letterSpacing:"0.1em" }}>{r.player.position}</div>
+                        {onPlayerClick ? (
+                          <button
+                            onClick={() => onPlayerClick(r.pid)}
+                            style={{
+                              background:"none", border:"none", padding:0, textAlign:"left",
+                              cursor:"pointer", fontFamily:"inherit", color:"inherit",
+                              transition:"color 0.15s",
+                            }}
+                            onMouseEnter={e => { (e.currentTarget.querySelector("span") as HTMLElement).style.color = C.redText; }}
+                            onMouseLeave={e => { (e.currentTarget.querySelector("span") as HTMLElement).style.color = C.text; }}
+                          >
+                            <span style={{ fontWeight:700, color:C.text, fontSize:13, display:"block", transition:"color 0.15s" }}>{fmt(r.player.name)}</span>
+                            <span style={{ fontSize:10, color:C.textDim, letterSpacing:"0.1em", display:"block" }}>{r.player.position}</span>
+                          </button>
+                        ) : (
+                          <>
+                            <div style={{ fontWeight:700, color:C.text, fontSize:13 }}>{fmt(r.player.name)}</div>
+                            <div style={{ fontSize:10, color:C.textDim, letterSpacing:"0.1em" }}>{r.player.position}</div>
+                          </>
+                        )}
                       </td>
                       {BOX_COLS.map(c => (
                         <td key={c.key} style={{ padding:"8px 8px", textAlign:"center", color: c.key==="eff" ? (r[c.key] >= 15 ? C.redText : r[c.key] < 0 ? "#ff4444" : C.textSub) : c.key==="pts" && r.pts >= 15 ? C.redText : C.textSub, fontWeight: c.key==="pts"||c.key==="eff" ? 900 : 400 }}>
-                          {r[c.key] ?? 0}
+                          {c.key === "min" ? (r.min > 0 ? fmtMinutes(r.min) : "—") : (r[c.key] ?? 0)}
                         </td>
                       ))}
                     </tr>
@@ -553,7 +573,7 @@ function CalendarView({ games, upcomingGames, onGameClick, loadingBoxScore }: an
 
 const LIST_PAGE_SIZE = 10;
 
-export default function GamesPage({ allGames, players, seasons, currentSeason, upcomingGames }: any) {
+export default function GamesPage({ allGames, players, seasons, currentSeason, upcomingGames, allTimeStatsMap, playerSeasonHistory }: any) {
   const [selectedSeason, setSelectedSeason] = useState(currentSeason);
   const [selectedLeague, setSelectedLeague] = useState("all");
   const [selectedResult, setSelectedResult] = useState("all");
@@ -562,6 +582,19 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [listPage, setListPage] = useState(0);
   const [selectedUpcomingInList, setSelectedUpcomingInList] = useState<any>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
+
+  const playersWithStats = useMemo(() => players.map((p: any) => ({
+    ...p,
+    stats:         allTimeStatsMap?.[p.id] ?? { ppg:0,rpg:0,orpg:0,drpg:0,apg:0,spg:0,bpg:0,tpg:0,fpg:0,fgPct:0,fg2Pct:0,fg3Pct:0,ftPct:0,ftmPg:0,ftaPg:0,mpg:0,eff:0,gp:0 },
+    gameLog:       allTimeStatsMap?.[p.id]?.gameLog ?? [],
+    seasonHistory: playerSeasonHistory?.[p.id] ?? {},
+  })), [players, allTimeStatsMap, playerSeasonHistory]);
+
+  const openPlayerById = (id: string) => {
+    const match = playersWithStats.find((pp: any) => pp.id === id);
+    if (match) setSelectedPlayer(match);
+  };
 
   async function handleGameClick(game: any) {
     setLoadingBoxScore(true);
@@ -799,8 +832,9 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
           )}
         </>
       )}
-      {selected && <BoxScore game={selected} players={players} onClose={() => setSelected(null)} isLoading={loadingBoxScore} />}
+      {selected && <BoxScore game={selected} players={players} onClose={() => setSelected(null)} isLoading={loadingBoxScore} onPlayerClick={openPlayerById} />}
       {selectedUpcomingInList && <UpcomingGameModal game={selectedUpcomingInList} onClose={() => setSelectedUpcomingInList(null)} />}
+      {selectedPlayer && <PlayerDetail player={selectedPlayer} onClose={() => setSelectedPlayer(null)} activeSeason="all-time" />}
     </Layout>
   );
 }
@@ -813,8 +847,23 @@ export async function getStaticProps() {
     getConfig(),
     getAllUpcomingGames(),
   ]);
+
+  const allSeasonsStats = await getAllSeasonsStats(seasons);
+  const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
+
+  const playerSeasonHistory: Record<string, any> = {};
+  for (const [sid, seasonMap] of Object.entries(allSeasonsStats)) {
+    for (const player of players) {
+      const s = (seasonMap as any)[player.id];
+      if (s && s.gp > 0) {
+        if (!playerSeasonHistory[player.id]) playerSeasonHistory[player.id] = {};
+        playerSeasonHistory[player.id][sid] = s;
+      }
+    }
+  }
+
   return {
-    props: { allGames, players, seasons, currentSeason: config.currentSeason, upcomingGames },
+    props: { allGames, players, seasons, currentSeason: config.currentSeason, upcomingGames, allTimeStatsMap, playerSeasonHistory },
     revalidate: 86400,
   };
 }
