@@ -45,22 +45,30 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: "Password is required" });
     }
 
-    // Brute-force lockout
+    // Brute-force lockout — per-IP
     const locked = await isLockedOut(ip);
     if (locked) {
       auditLog("login_locked", { ip });
       return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
     }
 
+    // Brute-force lockout — per-account (H-2): 25 attempts across any IP, 1-hour window
+    const ACCOUNT_KEY = "account_admin";
+    const accountLocked = await isLockedOut(ACCOUNT_KEY, 25, 3600);
+    if (accountLocked) {
+      auditLog("login_account_locked", { ip });
+      return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
+    }
+
     // S-03: bcrypt comparison via verifyPassword()
     const valid = await verifyPassword(password);
     if (!valid) {
-      await recordAttempt(ip);
+      await Promise.all([recordAttempt(ip), recordAttempt(ACCOUNT_KEY)]);
       auditLog("login_failed", { ip });
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    await clearAttempts(ip);
+    await Promise.all([clearAttempts(ip), clearAttempts(ACCOUNT_KEY)]);
     const payload = JSON.stringify({ ts: Date.now(), role: "admin" });
     res.setHeader("Set-Cookie", buildSessionCookie(payload));
     auditLog("login_success", { ip, slug });
