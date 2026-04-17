@@ -17,10 +17,11 @@ vi.hoisted(() => {
 const { mockPrisma } = vi.hoisted(() => {
   const mp = {
     game: {
-      findMany: vi.fn(),
-      create:   vi.fn(),
-      update:   vi.fn(),
-      delete:   vi.fn(),
+      findMany:           vi.fn(),
+      create:             vi.fn(),
+      update:             vi.fn(),
+      delete:             vi.fn(),
+      findUniqueOrThrow:  vi.fn(),
     },
     playerGameStat: {
       createMany: vi.fn(),
@@ -111,6 +112,7 @@ beforeEach(() => {
   mockPrisma.game.create.mockResolvedValue(MOCK_GAME);
   mockPrisma.game.update.mockResolvedValue(MOCK_GAME);
   mockPrisma.game.delete.mockResolvedValue(MOCK_GAME);
+  mockPrisma.game.findUniqueOrThrow.mockResolvedValue({ seasonLeagueId: VALID_SEASON_LEAGUE });
   mockPrisma.playerGameStat.createMany.mockResolvedValue({ count: 0 });
   mockPrisma.playerGameStat.deleteMany.mockResolvedValue({ count: 0 });
   mockPrisma.$transaction.mockImplementation(async (fn) => fn(mockPrisma));
@@ -293,20 +295,13 @@ describe("PUT /api/admin/games", () => {
 // ─── DELETE /api/admin/games ──────────────────────────────────────────────────
 
 describe("DELETE /api/admin/games", () => {
-  const DELETE_BODY = { gameId: VALID_CUID, seasonLeagueId: VALID_SEASON_LEAGUE };
+  const DELETE_BODY = { gameId: VALID_CUID };
 
   it("returns 400 when gameId is missing", async () => {
     const req = authedReq({
       method: "DELETE",
       body:   { seasonLeagueId: VALID_SEASON_LEAGUE },
     });
-    const res = mockRes();
-    await handler(req, res);
-    expect(res.statusCode).toBe(400);
-  });
-
-  it("returns 400 when seasonLeagueId is missing", async () => {
-    const req = authedReq({ method: "DELETE", body: { gameId: VALID_CUID } });
     const res = mockRes();
     await handler(req, res);
     expect(res.statusCode).toBe(400);
