@@ -106,17 +106,17 @@ describe("BoxScoreRowSchema -- fg2m + fg3m = fgm refinement", () => {
 });
 
 describe("BoxScoreRowSchema -- rebound refinement", () => {
-  it("rejects orb + drb > reb + 1", () => {
+  it("rejects orb + drb != reb", () => {
     const r = valid({ reb: 5, orb: 3, drb: 4 });
     expect(r.success).toBe(false);
-    expect(r.error.flatten().formErrors).toContain("orb+drb cannot exceed reb");
+    expect(r.error.flatten().formErrors).toContain("orb+drb must equal reb");
   });
 
   it("accepts orb + drb = reb exactly", () => {
     expect(valid({ reb: 5, orb: 2, drb: 3 }).success).toBe(true);
   });
 
-  it("accepts orb + drb = reb + 1 (rounding tolerance)", () => {
-    expect(valid({ reb: 5, orb: 3, drb: 3 }).success).toBe(true);
+  it("rejects orb + drb = reb + 1", () => {
+    expect(valid({ reb: 5, orb: 3, drb: 3 }).success).toBe(false);
   });
 });
