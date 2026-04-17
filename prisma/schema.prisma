@@ -219,11 +219,12 @@ model GameRosterPlayer {
 }
 
 model Subscriber {
-  id          String    @id @default(cuid())
-  email       String    @unique
-  token       String    @unique
-  confirmedAt DateTime?
-  createdAt   DateTime  @default(now())
+  id            String    @id @default(cuid())
+  email         String    @unique
+  token         String    @unique
+  confirmedAt   DateTime?
+  lastEmailedAt DateTime?
+  createdAt     DateTime  @default(now())
 }
 
 model Setting {

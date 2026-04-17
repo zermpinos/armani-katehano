@@ -8,6 +8,7 @@ import crypto from "crypto";
 import nodemailer from "nodemailer";
 import { auditLog } from "./security";
 import { getVenueUrl } from "./venues";
+import prisma from "./prisma";
 
 interface PlayerSlot {
   name:   string;
@@ -24,6 +25,7 @@ interface Game {
 }
 
 interface Subscriber {
+  id:    string;
   email: string;
   token: string;
 }
@@ -387,6 +389,10 @@ export async function sendRosterAnnouncement({
       return transport.sendMail({ from, to: sub.email, subject, html, text })
         .then(() => {
           auditLog("roster_email_delivered", { emailHash, opponent: game.opponent });
+          return prisma.subscriber.update({
+            where: { id: sub.id },
+            data:  { lastEmailedAt: new Date() },
+          });
         })
         .catch((err: any) => {
           auditLog("roster_email_failed", { emailHash, error: err.message, opponent: game.opponent });
