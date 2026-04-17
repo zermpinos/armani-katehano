@@ -138,6 +138,15 @@ async function handler(req: any, res: any) {
     }
     const { seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, sourceUrl, youtubeUrl, boxScore } = parsed.data;
 
+    if (boxScore?.length) {
+      const boxSum = boxScore.reduce((acc, r) => acc + (r.pts ?? 0), 0);
+      if (boxSum !== teamScore) {
+        return res.status(422).json({
+          error: `Box score points (${boxSum}) do not match teamScore (${teamScore}). Diff: ${boxSum - teamScore}`,
+        });
+      }
+    }
+
     try {
       const game = await prisma.$transaction(async (tx) => {
         const g = await tx.game.create({
@@ -180,6 +189,15 @@ async function handler(req: any, res: any) {
       return res.status(400).json({ error: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ") });
     }
     const { gameId, opponent, location, teamScore, opponentScore, result, playedOn, notes, sourceUrl, youtubeUrl, boxScore } = parsed.data;
+
+    if (boxScore?.length) {
+      const boxSum = boxScore.reduce((acc, r) => acc + (r.pts ?? 0), 0);
+      if (boxSum !== teamScore) {
+        return res.status(422).json({
+          error: `Box score points (${boxSum}) do not match teamScore (${teamScore}). Diff: ${boxSum - teamScore}`,
+        });
+      }
+    }
 
     try {
       await prisma.$transaction(async (tx) => {
