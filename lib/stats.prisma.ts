@@ -79,7 +79,7 @@ export function computePlayerAggregates(rows: any[]): Record<string, any> | null
     minutesAvg: avg("minutes"),
     fgPct:     pct(totalFgm,  totalFga),
     fg2Pct:    pct(totalFg2m, totalFg2a),
-    tpPct:     pct(totalFg3m, totalFg3a),  // DB column name; app layer exposes this as fg3Pct
+    fg3Pct:    pct(totalFg3m, totalFg3a),
     ftPct:     pct(totalFtm,  totalFta),
     tsPct:     calcTsPct(totalPts, totalFga, totalFta),
     ptsTotal:  totalPts,
@@ -148,7 +148,7 @@ export async function recalcAggregates(seasonLeagueId: string, tx: any = prisma)
     "playerId",    "seasonLeagueId", "gp",
     "ptsAvg",      "rebAvg",         "orbAvg",    "drbAvg",    "astAvg",
     "stlAvg",      "blkAvg",         "toAvg",     "pfAvg",     "minutesAvg",
-    "fgPct",       "fg2Pct",         "tpPct",     "ftPct",     "tsPct",
+    "fgPct",       "fg2Pct",         "fg3Pct",    "ftPct",     "tsPct",
     "ptsTotal",    "rebTotal",       "astTotal",    "stlTotal",
     "fgmTotal",    "fgaTotal",
     "fg2mTotal",   "fg2aTotal",
