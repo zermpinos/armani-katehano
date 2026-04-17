@@ -21,7 +21,7 @@ const GameWriteSchema = z.object({
   location:       z.enum(["home", "away"]).default("away"),
   teamScore:      z.coerce.number().int().min(0).max(300),
   opponentScore:  z.coerce.number().int().min(0).max(300),
-  result:         z.enum(["W", "L"]),
+  result:         z.enum(["W", "L", "T"]),
   playedOn:       z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
   notes:          z.string().max(1000).optional().nullable(),
   sourceUrl:      z.string().url().max(500).optional().nullable(),

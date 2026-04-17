@@ -135,7 +135,7 @@ export default function GamesPage({ validSlug }: any) {
         <F label="OPPONENT"    value={draft.opponent}       onChange={(v: any) => updGame("opponent", v)} />
         <Sel label="LEAGUE"    value={draft.seasonLeagueId || ""} onChange={(v: any) => updGame("seasonLeagueId", v)} options={leagueOptions} />
         <Sel label="HOME/AWAY" value={draft.home ? "home" : "away"} onChange={(v: any) => updGame("home", v === "home")} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
-        <Sel label="RESULT"    value={draft.result}         onChange={(v: any) => updGame("result", v)}         options={[{ value: "W", label: "Win" }, { value: "L", label: "Loss" }]} />
+        <Sel label="RESULT"    value={draft.result}         onChange={(v: any) => updGame("result", v)}         options={[{ value: "W", label: "Win" }, { value: "L", label: "Loss" }, { value: "T", label: "Tie" }]} />
         <F label="OUR SCORE"   value={draft.teamScore}      onChange={(v: any) => updGame("teamScore", v)}      type="number" />
         <F label="OPP SCORE"   value={draft.opponentScore}  onChange={(v: any) => updGame("opponentScore", v)}  type="number" />
       </div>
