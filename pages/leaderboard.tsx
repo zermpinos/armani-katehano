@@ -17,10 +17,10 @@ const MEDALS = [
 const COLS = [
   { key:"mpg",   label:"MPG", title:"Minutes Per Game",        dec:1, min:true },
   { key:"ppg",   label:"PPG", title:"Points Per Game",         dec:1 },
-  { key:"ftPct", label:"FT%", title:"Free Throw %",            dec:1, pct:true },
-  { key:"fgPct", label:"FG%", title:"Field Goal %",            dec:1, pct:true },
-  { key:"fg2Pct",label:"2P%", title:"2-Point %",               dec:1, pct:true },
-  { key:"fg3Pct",label:"3P%", title:"3-Point %",               dec:1, pct:true },
+  { key:"ftPct", label:"FT%", title:"Free Throw %",            dec:1, pct:true, denom:"fta" },
+  { key:"fgPct", label:"FG%", title:"Field Goal %",            dec:1, pct:true, denom:"fga" },
+  { key:"fg2Pct",label:"2P%", title:"2-Point %",               dec:1, pct:true, denom:"fg2a" },
+  { key:"fg3Pct",label:"3P%", title:"3-Point %",               dec:1, pct:true, denom:"fg3a" },
   { key:"apg",   label:"APG", title:"Assists Per Game",        dec:1 },
   { key:"rpg",   label:"RPG", title:"Rebounds Per Game",       dec:1 },
   { key:"orpg",  label:"ORB", title:"Off. Rebounds Per Game",  dec:1 },
@@ -41,14 +41,14 @@ const TOTAL_COLS = [
   { key:"stl_total", label:"STL", title:"Total Steals",           dec:0 },
   { key:"fgm",       label:"FGM", title:"Field Goals Made",       dec:0 },
   { key:"fga",       label:"FGA", title:"Field Goals Attempted",  dec:0 },
-  { key:"fgPct",     label:"FG%", title:"Field Goal %",           dec:1, pct:true },
+  { key:"fgPct",     label:"FG%", title:"Field Goal %",           dec:1, pct:true, denom:"fga" },
   { key:"fg3m",      label:"3PM", title:"3-Pointers Made",        dec:0 },
   { key:"fg3a",      label:"3PA", title:"3-Pointers Attempted",   dec:0 },
-  { key:"fg3Pct",    label:"3P%", title:"3-Point %",              dec:1, pct:true },
+  { key:"fg3Pct",    label:"3P%", title:"3-Point %",              dec:1, pct:true, denom:"fg3a" },
   { key:"ftm",       label:"FTM", title:"Free Throws Made",       dec:0 },
   { key:"fta",       label:"FTA", title:"Free Throws Attempted",  dec:0 },
-  { key:"ftPct",     label:"FT%", title:"Free Throw %",           dec:1, pct:true },
-  { key:"fg2Pct",    label:"2P%", title:"2-Point %",              dec:1, pct:true },
+  { key:"ftPct",     label:"FT%", title:"Free Throw %",           dec:1, pct:true, denom:"fta" },
+  { key:"fg2Pct",    label:"2P%", title:"2-Point %",              dec:1, pct:true, denom:"fg2a" },
 ];
 
 export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }: any) {
@@ -177,7 +177,7 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
                     {activeCols.map(col => {
                       const val = p.stats[col.key];
                       const display = (col as any).pct
-                        ? (val > 0 ? `${val.toFixed(col.dec)}%` : "—")
+                        ? ((col as any).denom ? p.stats[(col as any).denom] > 0 : val > 0) ? `${val.toFixed(col.dec)}%` : "—"
                         : (col as any).min
                           ? (val > 0 ? fmtMinutes(val) : "—")
                           : col.dec === 0
