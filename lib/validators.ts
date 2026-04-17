@@ -38,7 +38,7 @@ export const BoxScoreRowSchema = z.object({
   .refine(r => r.ftm  <= r.fta,               { message: "ftm cannot exceed fta" })
   .refine(r => r.fg2m + r.fg3m === r.fgm,     { message: "fg2m + fg3m must equal fgm" })
   .refine(r => r.fg3m <= r.fgm,               { message: "fg3m cannot exceed fgm" })
-  .refine(r => r.orb  + r.drb <= r.reb + 1,   { message: "orb+drb cannot exceed reb" });
+  .refine(r => r.orb  + r.drb === r.reb,       { message: "orb+drb must equal reb" });
 
 /**
  * Validates the shape of data returned by the box-score scraper before it enters
