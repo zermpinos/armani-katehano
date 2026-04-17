@@ -19,6 +19,7 @@ export {
 
 export {
   computeRecord,
+  computeTeamAverages,
   buildStatsMap,
   buildAllTimeStatsMap,
   recalcPlayerAverages,

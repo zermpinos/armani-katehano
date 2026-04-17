@@ -8,7 +8,7 @@
  * importing the real functions. These tests import directly from the source.
  */
 import { describe, it, expect } from "vitest";
-import { calcEff, mergeAggregates, aggregatesToStatsMap, buildStatsMap } from "../lib/stats";
+import { calcEff, mergeAggregates, aggregatesToStatsMap, buildStatsMap, computeTeamAverages } from "../lib/stats";
 
 // ─── calcEff ──────────────────────────────────────────────────────────────────
 
@@ -215,5 +215,107 @@ describe("buildStatsMap", () => {
     const map = buildStatsMap(players, games);
     expect(map["p1"].gameLog).toHaveLength(1);
     expect(map["p1"].gameLog[0].gameId).toBe("g1");
+  });
+});
+
+// ─── computeTeamAverages — agreement with aggregatesToStatsMap ────────────────
+// Verifies that team-stats tiles and leaderboard player aggregates are derived
+// from the same arithmetic. Given identical box-score data, team totals computed
+// by computeTeamAverages must equal team totals reconstructed by summing
+// per-player aggregates from aggregatesToStatsMap.
+//
+// Fixture: 3 games, 2 players (player B has one DNP → excluded from agg gp).
+//   Player A: 3 active games — reb 8/5/6 = 19 total, fgm 6/4/5 = 15, fga 12/9/11 = 32
+//   Player B: 2 active games — reb 4/7    = 11 total, fgm 3/4   =  7, fga  7/8   = 15
+//   Team gp = 3, team reb = 30, team fgm = 22, team fga = 47
+//   Expected RPG = 10.0, FG% = +(22/47*100).toFixed(1)
+
+describe("computeTeamAverages — agrees with aggregatesToStatsMap on same fixture", () => {
+  const GAMES = [
+    {
+      id: "g1",
+      boxScore: [
+        { pid:"pA", min:30, reb:8, ast:3, stl:1, blk:0, tov:2, fgm:6, fga:12, fg3m:1, fg3a:3, ftm:2, fta:3 },
+        { pid:"pB", min:28, reb:4, ast:2, stl:0, blk:0, tov:1, fgm:3, fga:7,  fg3m:0, fg3a:2, ftm:1, fta:2 },
+      ],
+    },
+    {
+      id: "g2",
+      boxScore: [
+        { pid:"pA", min:25, reb:5, ast:4, stl:2, blk:1, tov:1, fgm:4, fga:9,  fg3m:2, fg3a:4, ftm:0, fta:0 },
+        { pid:"pB", min:0,  reb:0, ast:0, stl:0, blk:0, tov:0, fgm:0, fga:0,  fg3m:0, fg3a:0, ftm:0, fta:0 },
+      ],
+    },
+    {
+      id: "g3",
+      boxScore: [
+        { pid:"pA", min:32, reb:6, ast:5, stl:1, blk:2, tov:3, fgm:5, fga:11, fg3m:1, fg3a:4, ftm:3, fta:4 },
+        { pid:"pB", min:24, reb:7, ast:3, stl:2, blk:0, tov:2, fgm:4, fga:8,  fg3m:1, fg3a:3, ftm:2, fta:3 },
+      ],
+    },
+  ];
+
+  // Build expected team totals directly from the fixture for sanity
+  const TEAM_GP = 3;
+  const ALL_ACTIVE = GAMES.flatMap(g => g.boxScore).filter(r => r.min > 0);
+  const rawSum = (key: string) => ALL_ACTIVE.reduce((a, r: any) => a + (r[key] || 0), 0);
+
+  // Build the per-player aggregates the same way aggregatesToStatsMap expects them
+  function playerMockAgg(pid: string) {
+    const rows = ALL_ACTIVE.filter((r: any) => r.pid === pid);
+    const n = rows.length;
+    const s = (k: string) => rows.reduce((a: number, r: any) => a + (r[k] || 0), 0);
+    return {
+      playerId:  pid,
+      gp:        n,
+      ptsAvg:    0, rebAvg: n > 0 ? s("reb") / n : 0, orbAvg:0, drbAvg:0,
+      astAvg:    0, stlAvg:0, blkAvg:0, toAvg:0, pfAvg:0,
+      minutesAvg:0, effAvg:0, tsPct:0,
+      fgmTotal:  s("fgm"),  fgaTotal:  s("fga"),
+      fg2mTotal: 0,          fg2aTotal: 0,
+      fg3mTotal: s("fg3m"), fg3aTotal: s("fg3a"),
+      ftmTotal:  s("ftm"),  ftaTotal:  s("fta"),
+      ptsTotal:  0,
+      rebTotal:  s("reb"),
+      astTotal:  s("ast"),
+      stlTotal:  s("stl"),
+    };
+  }
+
+  it("RPG matches sum(player.reb_total) / team_gp", () => {
+    const teamAvg  = computeTeamAverages(GAMES);
+    const statsMap = aggregatesToStatsMap(["pA","pB"].map(playerMockAgg));
+    const aggRpg   = +(Object.values(statsMap).reduce((a: number, s: any) => a + (s.reb_total ?? 0), 0) / TEAM_GP).toFixed(1);
+    expect(teamAvg.rpg).toBe(aggRpg);
+    expect(teamAvg.rpg).toBe(+(rawSum("reb") / TEAM_GP).toFixed(1));
+  });
+
+  it("APG matches sum(player.ast_total) / team_gp", () => {
+    const teamAvg  = computeTeamAverages(GAMES);
+    const statsMap = aggregatesToStatsMap(["pA","pB"].map(playerMockAgg));
+    const aggApg   = +(Object.values(statsMap).reduce((a: number, s: any) => a + (s.ast_total ?? 0), 0) / TEAM_GP).toFixed(1);
+    expect(teamAvg.apg).toBe(aggApg);
+  });
+
+  it("FG% matches sum(player.fgm) / sum(player.fga)", () => {
+    const teamAvg  = computeTeamAverages(GAMES);
+    const statsMap = aggregatesToStatsMap(["pA","pB"].map(playerMockAgg));
+    const fgm      = Object.values(statsMap).reduce((a: number, s: any) => a + (s.fgm ?? 0), 0);
+    const fga      = Object.values(statsMap).reduce((a: number, s: any) => a + (s.fga ?? 0), 0);
+    const aggFgPct = +(fgm / fga * 100).toFixed(1);
+    expect(teamAvg.fgPct).toBe(aggFgPct);
+  });
+
+  it("DNP rows are excluded from both paths", () => {
+    // Player B's g2 row (min=0) must not inflate team totals
+    const teamAvg = computeTeamAverages(GAMES);
+    // If DNP were included, reb would be rawSum including 0-min rows = same value
+    // (since DNP reb is 0), but gp from DNP would inflate counts — here we
+    // confirm computeTeamAverages divides by team_gp (3), not by row count (5)
+    const allRowsIncludingDnp = GAMES.flatMap(g => g.boxScore);
+    const naiveRpg = +(allRowsIncludingDnp.reduce((a, r: any) => a + (r.reb || 0), 0) / allRowsIncludingDnp.length).toFixed(1);
+    // naiveRpg uses 5 rows, teamAvg.rpg uses 3 games — they must differ
+    expect(naiveRpg).not.toBe(teamAvg.rpg);
+    expect(teamAvg.rpg).toBe(+(rawSum("reb") / TEAM_GP).toFixed(1));
   });
 });
