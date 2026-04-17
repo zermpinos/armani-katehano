@@ -2,7 +2,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { C, chartTooltipStyle } from "../lib/theme";
 import { fmtMinutes } from "../lib/utils";
-import { LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "./Charts";
+import { LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "./Charts";
 
 const playerImg = (player: any) => player.photoUrl || null;
 
@@ -185,6 +185,7 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
                     <RadarChart data={radarData} margin={{ top:10, right:20, bottom:10, left:20 }}>
                       <PolarGrid stroke={C.border2} />
                       <PolarAngleAxis dataKey="stat" tick={{ fill:C.textSub, fontSize:10, fontWeight:700 }} />
+                      <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
                       <Radar dataKey="value" stroke={C.redBright} fill={C.red} fillOpacity={0.15} strokeWidth={2} />
                     </RadarChart>
                   </ResponsiveContainer>
