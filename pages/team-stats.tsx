@@ -48,12 +48,13 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
   const teamAvg = useMemo(() => computeTeamAverages(filteredGames), [filteredGames]);
 
   // Offensive / Defensive Rating -- game-level floats, averaged across filtered games
-  const ratedGames  = filteredGames.filter((g: any) => g.offRating != null);
-  const offRtgAvg   = ratedGames.length > 0
-    ? +(ratedGames.reduce((a: number, g: any) => a + g.offRating, 0) / ratedGames.length).toFixed(1)
+  const offRatedGames = filteredGames.filter((g: any) => g.offRating != null);
+  const defRatedGames = filteredGames.filter((g: any) => g.defRating != null);
+  const offRtgAvg   = offRatedGames.length > 0
+    ? +(offRatedGames.reduce((a: number, g: any) => a + g.offRating, 0) / offRatedGames.length).toFixed(1)
     : null;
-  const defRtgAvg   = ratedGames.length > 0
-    ? +(ratedGames.reduce((a: number, g: any) => a + g.defRating, 0) / ratedGames.length).toFixed(1)
+  const defRtgAvg   = defRatedGames.length > 0
+    ? +(defRatedGames.reduce((a: number, g: any) => a + g.defRating, 0) / defRatedGames.length).toFixed(1)
     : null;
 
   const playerPpg = players.map((p: any) => {
