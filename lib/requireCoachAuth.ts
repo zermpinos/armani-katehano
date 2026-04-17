@@ -25,7 +25,7 @@ export function requireCoachAuth(handler: (req: any, res: any) => any) {
     const ip = getClientIp(req);
 
     // ── CSRF ──────────────────────────────────────────────────────────────────
-    if (!csrfCheck(req)) {
+    if (!csrfCheck(req, { strict: true })) {
       auditLog("coach_csrf_blocked", { ip, path: req.url, method: req.method });
       return res.status(403).json({ error: "Forbidden" });
     }

@@ -134,8 +134,7 @@ const CSRF_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
  * For mutating methods, checks Origin then Referer against the Host header.
  *
  * strict=true  — rejects requests with no Origin and no Referer (login endpoint).
- * strict=false — allows requests with no Origin and no Referer (scraper/curl access
- *                to admin mutations). Default.
+ * strict=false — allows requests with no Origin and no Referer (e.g. server-to-server). Default.
  *
  * SameSite=Strict on the session cookie provides the primary CSRF defence;
  * this is a defence-in-depth layer.
