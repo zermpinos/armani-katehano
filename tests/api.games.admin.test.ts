@@ -229,7 +229,7 @@ describe("POST /api/admin/games", () => {
   it("returns 400 for invalid result value", async () => {
     const req = authedReq({
       method: "POST",
-      body:   { ...VALID_GAME_BODY, result: "D" }, // D is not W or L
+      body:   { ...VALID_GAME_BODY, result: "D" }, // D is not W, L, or T
     });
     const res = mockRes();
     await handler(req, res);
