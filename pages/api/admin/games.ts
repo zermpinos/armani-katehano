@@ -29,13 +29,12 @@ const GameWriteSchema = z.object({
   boxScore:       z.array(BoxScoreRowSchema).max(20).optional(),
 });
 
-const GameUpdateSchema = GameWriteSchema.extend({
+const GameUpdateSchema = GameWriteSchema.omit({ seasonLeagueId: true }).extend({
   gameId: z.string().cuid(),
 });
 
 const GameDeleteSchema = z.object({
-  gameId:         z.string().cuid(),
-  seasonLeagueId: z.string().cuid(),
+  gameId: z.string().cuid(),
 });
 
 /** Maps a validated box score row into the shape Prisma expects. */
@@ -180,10 +179,11 @@ async function handler(req: any, res: any) {
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ") });
     }
-    const { gameId, seasonLeagueId, opponent, location, teamScore, opponentScore, result, playedOn, notes, sourceUrl, youtubeUrl, boxScore } = parsed.data;
+    const { gameId, opponent, location, teamScore, opponentScore, result, playedOn, notes, sourceUrl, youtubeUrl, boxScore } = parsed.data;
 
     try {
       await prisma.$transaction(async (tx) => {
+        const existing = await tx.game.findUniqueOrThrow({ where: { id: gameId }, select: { seasonLeagueId: true } });
         await tx.game.update({
           where: { id: gameId },
           data:  { opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null, sourceUrl: sourceUrl ?? null, youtubeUrl: youtubeUrl ?? null },
@@ -194,7 +194,7 @@ async function handler(req: any, res: any) {
             data: boxScore.map(r => toDbRow(r, gameId)),
           });
         }
-        await recalcAggregates(seasonLeagueId, tx);
+        await recalcAggregates(existing.seasonLeagueId, tx);
       });
       auditLog("game_updated", { ip, gameId, opponent });
       return res.status(200).json({ ok: true });
@@ -210,12 +210,13 @@ async function handler(req: any, res: any) {
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ") });
     }
-    const { gameId, seasonLeagueId } = parsed.data;
+    const { gameId } = parsed.data;
 
     try {
       await prisma.$transaction(async (tx) => {
+        const existing = await tx.game.findUniqueOrThrow({ where: { id: gameId }, select: { seasonLeagueId: true } });
         await tx.game.delete({ where: { id: gameId } });
-        await recalcAggregates(seasonLeagueId, tx);
+        await recalcAggregates(existing.seasonLeagueId, tx);
       });
       auditLog("game_deleted", { ip, gameId });
       return res.status(200).json({ ok: true });
