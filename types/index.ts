@@ -39,7 +39,7 @@ export interface GameRow {
   opponent: string;
   location: string | null;
   score: string;          // e.g. "72-58"
-  result: "W" | "L";
+  result: "W" | "L" | "T";
   home: boolean;
   league: string;
   season: string;
