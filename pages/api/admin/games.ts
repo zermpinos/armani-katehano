@@ -30,7 +30,8 @@ const GameWriteSchema = z.object({
 });
 
 const GameUpdateSchema = GameWriteSchema.omit({ seasonLeagueId: true }).extend({
-  gameId: z.string().cuid(),
+  gameId:         z.string().cuid(),
+  seasonLeagueId: z.string().cuid().optional(),
 });
 
 const GameDeleteSchema = z.object({
@@ -188,7 +189,7 @@ async function handler(req: any, res: any) {
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ") });
     }
-    const { gameId, opponent, location, teamScore, opponentScore, result, playedOn, notes, sourceUrl, youtubeUrl, boxScore } = parsed.data;
+    const { gameId, opponent, location, teamScore, opponentScore, result, playedOn, notes, sourceUrl, youtubeUrl, boxScore, seasonLeagueId: newLeagueId } = parsed.data;
 
     if (boxScore?.length) {
       const boxSum = boxScore.reduce((acc, r) => acc + (r.pts ?? 0), 0);
@@ -202,9 +203,17 @@ async function handler(req: any, res: any) {
     try {
       await prisma.$transaction(async (tx) => {
         const existing = await tx.game.findUniqueOrThrow({ where: { id: gameId }, select: { seasonLeagueId: true } });
+        const leagueChanged = newLeagueId !== undefined && newLeagueId !== existing.seasonLeagueId;
         await tx.game.update({
           where: { id: gameId },
-          data:  { opponent, location, teamScore, opponentScore, result, playedOn: new Date(playedOn), notes: notes ?? null, sourceUrl: sourceUrl ?? null, youtubeUrl: youtubeUrl ?? null },
+          data:  {
+            opponent, location, teamScore, opponentScore, result,
+            playedOn: new Date(playedOn),
+            notes: notes ?? null,
+            sourceUrl: sourceUrl ?? null,
+            youtubeUrl: youtubeUrl ?? null,
+            ...(leagueChanged ? { seasonLeagueId: newLeagueId } : {}),
+          },
         });
         await tx.playerGameStat.deleteMany({ where: { gameId } });
         if (boxScore?.length) {
@@ -213,6 +222,9 @@ async function handler(req: any, res: any) {
           });
         }
         await recalcAggregates(existing.seasonLeagueId, tx);
+        if (leagueChanged) {
+          await recalcAggregates(newLeagueId!, tx);
+        }
       });
       auditLog("game_updated", { ip, gameId, opponent });
       return res.status(200).json({ ok: true });
