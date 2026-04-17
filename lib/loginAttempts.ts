@@ -3,8 +3,17 @@
  * Neon-backed brute-force protection — replaces Upstash Redis lockout.
  */
 
+import { createHash } from "crypto";
 import prisma from "./prisma";
 import { LOCKOUT_TTL_S, MAX_LOGIN_ATTEMPTS } from "./security";
+
+/**
+ * Hash any rate-limit key to a fixed 64-char hex string so arbitrary-length
+ * inputs (e.g. subemail_<email>) never overflow the VarChar(64) ip column.
+ */
+export function rlKey(key: string): string {
+  return createHash("sha256").update(key).digest("hex");
+}
 
 export async function isLockedOut(
   key: string,
@@ -13,7 +22,7 @@ export async function isLockedOut(
 ) {
   const since = new Date(Date.now() - windowSeconds * 1000);
   const count = await prisma.loginAttempt.count({
-    where: { ip: key, attemptedAt: { gte: since } },
+    where: { ip: rlKey(key), attemptedAt: { gte: since } },
   });
   return count >= maxAttempts;
 }
@@ -24,11 +33,11 @@ export async function pruneStaleAttempts() {
 }
 
 export async function recordAttempt(key: string) {
-  await prisma.loginAttempt.create({ data: { ip: key } });
+  await prisma.loginAttempt.create({ data: { ip: rlKey(key) } });
   pruneStaleAttempts().catch(err => console.error("[loginAttempts] prune failed", err));
 }
 
 export async function clearAttempts(key: string) {
-  await prisma.loginAttempt.deleteMany({ where: { ip: key } });
+  await prisma.loginAttempt.deleteMany({ where: { ip: rlKey(key) } });
 }
 

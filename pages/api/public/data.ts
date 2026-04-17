@@ -7,6 +7,7 @@
  */
 import { getAllPublicData } from "../../../lib/data";
 import { securityHeaders, getClientIp } from "../../../lib/security";
+import { rlKey } from "../../../lib/loginAttempts";
 import { prodError }       from "../../../lib/utils";
 import prisma              from "../../../lib/prisma";
 
@@ -24,7 +25,7 @@ export default async function handler(req: any, res: any) {
 
   // IP-based rate limit — prevents DB pool exhaustion from bots or cache-busting
   const ip = getClientIp(req);
-  const rateLimitKey = `pub_${ip}`;
+  const rateLimitKey = rlKey(`pub_${ip}`);
   const since = new Date(Date.now() - PUBLIC_DATA_WINDOW * 1000);
   const attempts = await prisma.loginAttempt.count({
     where: { ip: rateLimitKey, attemptedAt: { gte: since } },
