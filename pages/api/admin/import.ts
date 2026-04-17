@@ -73,22 +73,27 @@ export default requireAuth(async function handler(req: any, res: any) {
   const leagueSlug = detectLeagueSlug(sourceUrl);       // ← from lib/greekDate.js
   let seasonLeagueId: string | null = null;
 
-  if (leagueSlug) {
-    const league = await prisma.league.findFirst({ where: { slug: leagueSlug } });
-    if (league) {
-      const sl = await prisma.seasonLeague.findFirst({
-        where:   { leagueId: league.id },
-        orderBy: { createdAt: "desc" },
-      });
-      if (sl) seasonLeagueId = sl.id;
-    }
+  if (!leagueSlug) {
+    return res.status(422).json({ error: "Could not detect a league from the source URL -- import aborted" });
   }
 
-  if (!seasonLeagueId) {
-    const sl = await prisma.seasonLeague.findFirst({ orderBy: { createdAt: "desc" } });
-    if (!sl) return res.status(422).json({ error: "No SeasonLeague found -- create one first" });
-    seasonLeagueId = sl.id;
+  const league = await prisma.league.findFirst({ where: { slug: leagueSlug } });
+  if (!league) {
+    return res.status(422).json({ error: `No league found for slug "${leagueSlug}" -- create it first` });
   }
+
+  const now = new Date();
+  const sl = await prisma.seasonLeague.findFirst({
+    where: {
+      leagueId: league.id,
+      season: { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+    },
+    orderBy: { season: { startDate: "desc" } },
+  });
+  if (!sl) {
+    return res.status(422).json({ error: `No active SeasonLeague found for league "${leagueSlug}" -- ensure the current season is configured` });
+  }
+  seasonLeagueId = sl.id;
 
   // ── Resolve player IDs by jersey number ───────────────────────────────────
   const allPlayers = await prisma.player.findMany({ where: { isActive: true } });
