@@ -292,7 +292,7 @@ export function buildStatsMap(players: any[], games: any[]) {
  * allSeasonsStats: { [seasonId]: { [pid]: SeasonStats } }
  * players: PlayerBio[]  (needed for the full player id list)
  *
- * Returns: { [pid]: SeasonStats }  -- weighted averages across all seasons
+ * Returns: { [pid]: SeasonStats }  -- raw-sum averages across all seasons
  */
 export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
   const statsMap: Record<string, any> = {};
@@ -336,12 +336,12 @@ export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     statsMap[player.id] = {
-      ppg:    wavg("ppg"),
-      rpg:    wavg("rpg"),
+      ppg:    totalGp > 0 ? +(sumRaw("pts_total") / totalGp).toFixed(1) : 0,
+      rpg:    totalGp > 0 ? +(sumRaw("reb_total") / totalGp).toFixed(1) : 0,
       orpg:   wavg("orpg"),
       drpg:   wavg("drpg"),
-      apg:    wavg("apg"),
-      spg:    wavg("spg"),
+      apg:    totalGp > 0 ? +(sumRaw("ast_total") / totalGp).toFixed(1) : 0,
+      spg:    totalGp > 0 ? +(sumRaw("stl_total") / totalGp).toFixed(1) : 0,
       bpg:    wavg("bpg"),
       tpg:    wavg("tpg"),
       fpg:    wavg("fpg"),

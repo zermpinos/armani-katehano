@@ -17,13 +17,19 @@ import { buildAllTimeStatsMap } from "../lib/stats";
 
 // ─── Fixture helpers ──────────────────────────────────────────────────────────
 
-/** Minimal SeasonStats object matching the shape buildStatsMap returns. */
-function seasonStats(gp, ppg, rpg = 0, apg = 0, fgPct = 0) {
+/** Minimal SeasonStats object matching the shape aggregatesToStatsMap returns. */
+function seasonStats(gp, ppg, rpg = 0, apg = 0, fgPct = 0, spg = 0) {
   return {
-    gp, ppg, rpg, apg,
-    orpg: 0, drpg: 0, spg: 0, bpg: 0, tpg: 0, fpg: 0,
+    gp, ppg, rpg, apg, spg,
+    orpg: 0, drpg: 0, bpg: 0, tpg: 0, fpg: 0,
     fg2Pct: 0, fg3Pct: 0, ftPct: fgPct, mpg: 0, eff: 0,
     fgPct,
+    // Raw totals -- required so buildAllTimeStatsMap sums once and divides
+    pts_total: Math.round(gp * ppg),
+    reb_total: Math.round(gp * rpg),
+    ast_total: Math.round(gp * apg),
+    stl_total: Math.round(gp * spg),
+    fgm: 0, fga: 0, fg2m: 0, fg2a: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0,
     gameLog: [],
   };
 }
