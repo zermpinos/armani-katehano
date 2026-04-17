@@ -63,7 +63,7 @@ export default requireAuth(async function handler(req: any, res: any) {
   }
 
   const oppTeamName = isHome ? game.awayTeam : game.homeTeam;
-  const result      = akScore > oppScore ? "W" : "L";
+  const result      = akScore > oppScore ? "W" : akScore < oppScore ? "L" : "T";
   const playedOn    = parseGreekDate(game.date) as Date;       // ← from lib/greekDate.js
 
   const offRating   = Number.isFinite(Number(game.offRating)) ? Number(game.offRating) : null;

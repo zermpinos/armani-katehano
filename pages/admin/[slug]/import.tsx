@@ -63,7 +63,7 @@ export default function ImportPage({ validSlug }: any) {
     const akScore     = isHome ? game.finalScore.home  : game.finalScore.away;
     const oppScore    = isHome ? game.finalScore.away  : game.finalScore.home;
     const oppTeamName = isHome ? game.awayTeam         : game.homeTeam;
-    const result      = akScore > oppScore ? "W" : "L";
+    const result      = akScore > oppScore ? "W" : akScore < oppScore ? "L" : "T";
     const parsedDate  = parseGreekDate(game.date);
     const date        = parsedDate ? parsedDate.toISOString().slice(0, 10) : "";
     const leagueSlug  = detectLeagueSlug(sourceUrl);
@@ -304,7 +304,7 @@ export default function ImportPage({ validSlug }: any) {
                 <F label="OPPONENT"   value={draft.opponent}      onChange={(v: any) => updDraft("opponent", v)} />
                 <Sel label="LEAGUE"   value={draft.seasonLeagueId || ""} onChange={(v: any) => updDraft("seasonLeagueId", v)} options={leagueOptions} />
                 <Sel label="HOME/AWAY" value={draft.home ? "home" : "away"} onChange={(v: any) => updDraft("home", v === "home")} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
-                <Sel label="RESULT"   value={draft.result}        onChange={(v: any) => updDraft("result", v)}        options={[{ value: "W", label: "Win" }, { value: "L", label: "Loss" }]} />
+                <Sel label="RESULT"   value={draft.result}        onChange={(v: any) => updDraft("result", v)}        options={[{ value: "W", label: "Win" }, { value: "L", label: "Loss" }, { value: "T", label: "Tie" }]} />
                 <F label="OUR SCORE"  value={draft.teamScore}     onChange={(v: any) => updDraft("teamScore", v)}     type="number" />
                 <F label="OPP SCORE"  value={draft.opponentScore} onChange={(v: any) => updDraft("opponentScore", v)} type="number" />
               </div>
