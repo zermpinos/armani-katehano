@@ -92,7 +92,8 @@ export function parseMinutes(raw: unknown): number {
   if (str.toUpperCase() === 'DNP') return 0;
   if (str.includes(':')) {
     const [m, sec] = str.split(':').map(Number);
-    return +(m + sec / 60).toFixed(2);
+    const result = m + sec / 60;
+    return isNaN(result) ? 0 : +(result).toFixed(2);
   }
   const n = parseFloat(str);
   return isNaN(n) ? 0 : n;
