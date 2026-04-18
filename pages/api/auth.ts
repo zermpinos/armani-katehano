@@ -11,7 +11,7 @@
  */
 
 import { isLockedOut, recordAttempt, clearAttempts } from "../../lib/loginAttempts";
-import {getSessionToken, verifyPayload, verifyPassword,buildSessionCookie,clearSessionCookie, securityHeaders,auditLog, csrfCheck, getClientIp,} from "../../lib/security";
+import { getSessionToken, verifyPayload, verifyCredentials, getAdminUser, verifyTotp, buildSessionCookie, clearSessionCookie, securityHeaders, auditLog, csrfCheck, getClientIp } from "../../lib/security";
 
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
@@ -28,8 +28,12 @@ export default async function handler(req: any, res: any) {
 
   // ── DELETE: logout ────────────────────────────────────────────────────────
   if (req.method === "DELETE") {
+    const token   = getSessionToken(req);
+    const payload = verifyPayload(token);
+    let logoutUser: string | undefined;
+    try { logoutUser = payload ? JSON.parse(payload).user : undefined; } catch { /* ignore */ }
     res.setHeader("Set-Cookie", clearSessionCookie());
-    auditLog("logout", { ip });
+    auditLog("logout", { ip, username: logoutUser });
     return res.status(200).json({ ok: true });
   }
 
@@ -40,7 +44,10 @@ export default async function handler(req: any, res: any) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    const { password, slug } = req.body ?? {};
+    const { username, password, totpToken, slug } = req.body ?? {};
+    if (!username || typeof username !== "string") {
+      return res.status(400).json({ error: "Username is required" });
+    }
     if (!password || typeof password !== "string") {
       return res.status(400).json({ error: "Password is required" });
     }
@@ -52,26 +59,34 @@ export default async function handler(req: any, res: any) {
       return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
     }
 
-    // Brute-force lockout — per-account (H-2): 25 attempts across any IP, 1-hour window
-    const ACCOUNT_KEY = "account_admin";
+    // Brute-force lockout — per-account: 25 attempts across any IP, 1-hour window
+    const ACCOUNT_KEY = `account_${username}`;
     const accountLocked = await isLockedOut(ACCOUNT_KEY, 25, 3600);
     if (accountLocked) {
-      auditLog("login_account_locked", { ip });
+      auditLog("login_account_locked", { ip, username });
       return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
     }
 
-    // S-03: bcrypt comparison via verifyPassword()
-    const valid = await verifyPassword(password);
+    const valid = await verifyCredentials(username, password);
     if (!valid) {
       await Promise.all([recordAttempt(ip), recordAttempt(ACCOUNT_KEY)]);
-      auditLog("login_failed", { ip });
+      auditLog("login_failed", { ip, username });
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    // TOTP check — required if the user has a totpSecret configured
+    const userRecord = getAdminUser(username);
+    if (userRecord?.totpSecret) {
+      if (!totpToken || typeof totpToken !== "string" || !verifyTotp(userRecord.totpSecret, totpToken)) {
+        auditLog("login_totp_failed", { ip, username });
+        return res.status(401).json({ error: "Invalid authenticator code" });
+      }
+    }
+
     await Promise.all([clearAttempts(ip), clearAttempts(ACCOUNT_KEY)]);
-    const payload = JSON.stringify({ ts: Date.now(), role: "admin" });
+    const payload = JSON.stringify({ ts: Date.now(), role: "admin", user: username });
     res.setHeader("Set-Cookie", buildSessionCookie(payload));
-    auditLog("login_success", { ip, slug });
+    auditLog("login_success", { ip, slug, username });
     return res.status(200).json({ ok: true });
   }
 
