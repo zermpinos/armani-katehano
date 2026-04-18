@@ -9,7 +9,8 @@ import { z } from "zod";
 import { randomBytes } from "crypto";
 import prisma from "../../lib/prisma";
 import { prodError } from "../../lib/utils";
-import { securityHeaders, getClientIp } from "../../lib/security";
+import { securityHeaders, getClientIp, csrfCheck, auditLog } from "../../lib/security";
+import { sendConfirmationEmail } from "../../lib/email";
 
 const SUBSCRIBE_LIMIT        = 3;       // max attempts per IP per hour
 const SUBSCRIBE_WINDOW       = 3600;    // 1 hour in seconds
@@ -32,6 +33,10 @@ export default async function handler(req: any, res: any) {
 
   // ── SUBSCRIBE ──────────────────────────────────────────────────────────────
   if (req.method === "POST") {
+    if (!csrfCheck(req, { strict: true })) {
+      auditLog("subscribe_csrf_blocked", { ip, path: req.url });
+      return res.status(403).json({ error: "Forbidden" });
+    }
     // Rate-limit: max 3 subscribe attempts per IP per hour
     const since = new Date(Date.now() - SUBSCRIBE_WINDOW * 1000);
     const attempts = await prisma.loginAttempt.count({
@@ -74,8 +79,12 @@ export default async function handler(req: any, res: any) {
 
       const token = randomBytes(32).toString("hex");
       await prisma.subscriber.create({
-        data: { email, token, confirmedAt: new Date() },
+        data: { email, token, confirmedAt: null },
       });
+
+      const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const confirmUrl = `${appUrl}/api/confirm?token=${token}`;
+      await sendConfirmationEmail({ email, confirmUrl });
 
       return res.status(201).json({ ok: true });
     } catch (err) {
