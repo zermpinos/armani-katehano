@@ -15,7 +15,8 @@ const nextConfig = {
       {
         source: "/(.*)",
         headers: [
-          { key: "X-Content-Type-Options",   value: "nosniff"    },
+          { key: "Content-Security-Policy",   value: "default-src 'self'; script-src 'self' https://*.sentry-cdn.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://res.cloudinary.com; connect-src 'self' https://*.sentry.io; frame-ancestors 'none'; base-uri 'none'; form-action 'self';" },
+          { key: "X-Content-Type-Options",    value: "nosniff"    },
           { key: "X-Frame-Options",           value: "DENY"       },
           { key: "Referrer-Policy",           value: "no-referrer"},
           { key: "X-XSS-Protection",          value: "0"          },
