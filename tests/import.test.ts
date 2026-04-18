@@ -129,4 +129,10 @@ describe("parseMinutes", () => {
   it("returns 0 for DNP", () => {
     expect(parseMinutes("DNP")).toBe(0);
   });
+
+  it("returns 0 (not NaN) for malformed colon inputs", () => {
+    expect(parseMinutes("28:")).toBe(28);
+    expect(parseMinutes("28:xx")).toBe(0);
+    expect(parseMinutes("abc:00")).toBe(0);
+  });
 });
