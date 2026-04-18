@@ -185,7 +185,7 @@ function SubscribeForm() {
       {status === "done" ? (
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, padding: "10px 14px", borderRadius: 8, background: `${C.green}14`, border: `1px solid ${C.green}35` }}>
           <span style={{ fontSize: 16 }}>✓</span>
-          <div style={{ fontSize: 13, color: C.green, fontWeight: 700 }}>You&apos;re subscribed! We&apos;ll email you before each game.</div>
+          <div style={{ fontSize: 13, color: C.green, fontWeight: 700 }}>Check your email and click the confirmation link to complete your subscription.</div>
         </div>
       ) : (
         <>
