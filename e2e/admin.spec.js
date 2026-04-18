@@ -157,8 +157,9 @@ test.describe("Admin panel › API protection", () => {
     expect(res.status()).toBe(401);
   });
 
-  test("POST /api/admin/games returns 401 without a session cookie", async ({ request }) => {
+  test("POST /api/admin/games returns 403 without a session cookie", async ({ request }) => {
     const res = await request.post("/api/admin/games", { data: { opponent: "Test" } });
-    expect(res.status()).toBe(401);
+    // CSRF check fires before session check: bare API POST has no Origin header -> 403
+    expect(res.status()).toBe(403);
   });
 });
