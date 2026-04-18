@@ -15,8 +15,9 @@
  */
 import { test, expect } from "@playwright/test";
 
-const ADMIN_SLUG     = process.env.ADMIN_SLUG         ?? null;
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? null;
+const ADMIN_SLUG     = process.env.ADMIN_SLUG          ?? null;
+const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD  ?? null;
+const ADMIN_USERNAME = process.env.E2E_ADMIN_USERNAME  ?? "admin";
 
 // ── Login form structure ───────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ test.describe("Admin panel › Login form", () => {
     await page.goto(`/admin/${ADMIN_SLUG}/`);
     await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
 
+    await page.getByPlaceholder("Enter username").fill("admin");
     await page.locator("input[type='password']").fill("definitely-wrong-password");
     await page.getByRole("button", { name: "SIGN IN" }).click();
 
@@ -86,6 +88,7 @@ test.describe("Admin panel › Login form", () => {
     await page.goto(`/admin/${ADMIN_SLUG}/`);
     await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
 
+    await page.getByPlaceholder("Enter username").fill("admin");
     await page.locator("input[type='password']").fill("any");
     await page.getByRole("button", { name: "SIGN IN" }).click();
 
@@ -102,6 +105,7 @@ test.describe("Admin panel › Authenticated dashboard", () => {
     await page.goto(`/admin/${ADMIN_SLUG}/`);
     await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
 
+    await page.getByPlaceholder("Enter username").fill(ADMIN_USERNAME);
     await page.locator("input[type='password']").fill(ADMIN_PASSWORD);
     await page.getByRole("button", { name: "SIGN IN" }).click();
 
@@ -116,6 +120,7 @@ test.describe("Admin panel › Authenticated dashboard", () => {
 
     await page.goto(`/admin/${ADMIN_SLUG}/`);
     await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
+    await page.getByPlaceholder("Enter username").fill(ADMIN_USERNAME);
     await page.locator("input[type='password']").fill(ADMIN_PASSWORD);
     await page.getByRole("button", { name: "SIGN IN" }).click();
     await expect(page.getByText("AK Admin")).toBeVisible({ timeout: 10_000 });
@@ -136,6 +141,7 @@ test.describe("Admin panel › Authenticated dashboard", () => {
     // Login first
     await page.goto(`/admin/${ADMIN_SLUG}/`);
     await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
+    await page.getByPlaceholder("Enter username").fill(ADMIN_USERNAME);
     await page.locator("input[type='password']").fill(ADMIN_PASSWORD);
     await page.getByRole("button", { name: "SIGN IN" }).click();
     await expect(page.getByText("AK Admin")).toBeVisible({ timeout: 10_000 });
