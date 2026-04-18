@@ -59,12 +59,16 @@ export function mergeAggregates(prev: any, agg: any) {
 
 export function aggregatesToStatsMap(aggregates: any[]) {
   // Merge per-player across leagues
-  const merged: Record<string, any> = {};
+  // Object.create(null) prevents prototype pollution when pid is from DB data
+  const merged: Record<string, any> = Object.create(null);
   for (const agg of aggregates) {
     const pid = agg.playerId;
+    // eslint-disable-next-line security/detect-object-injection
     if (!merged[pid]) {
+      // eslint-disable-next-line security/detect-object-injection
       merged[pid] = { ...agg };
     } else {
+      // eslint-disable-next-line security/detect-object-injection
       merged[pid] = mergeAggregates(merged[pid], agg);
     }
   }
