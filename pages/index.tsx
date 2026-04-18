@@ -207,7 +207,9 @@ function SubscribeForm() {
             </button>
           </form>
           {status === "error" && <div style={{ marginTop: 7, fontSize: 12, color: C.redText }}>{errMsg}</div>}
-          <div style={{ marginTop: 8, fontSize: 10, color: C.textDim }}>No spam -- roster announcements only. Unsubscribe any time.</div>
+          <div style={{ marginTop: 8, fontSize: 10, color: C.textDim }}>
+            Your email is used solely for roster announcements. It is never shared with third parties and is deleted immediately when you unsubscribe. Unconfirmed addresses are removed after 24 hours.
+          </div>
         </>
       )}
     </div>
