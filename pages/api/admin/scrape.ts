@@ -101,10 +101,9 @@ export default requireAuth(async function handler(req: any, res: any) {
     response = await fetch(fetchUrl.toString(), {
       redirect: 'manual',
       headers: {
-        'Host':            urlObj.hostname,
-        'User-Agent':      'BoxScoreScraper/1.0',
-        'Accept':          'text/html,application/xhtml+xml',
-        'Accept-Language': 'el,en;q=0.9',
+        'Host':       urlObj.hostname,
+        'User-Agent': 'BoxScoreScraper/1.0',
+        'Accept':     'text/html,application/xhtml+xml',
       },
     });
   } catch (err) {
