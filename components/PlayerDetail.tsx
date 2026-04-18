@@ -46,6 +46,7 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
     .map((g: any, i: number) => ({ ...g, label: `G${i + 1}` }));
 
   const activeStat = STAT_OPTIONS.find(o => o.key === selStat);
+  const hasStats = s.gp > 0;
 
   const radarData = [
     { stat:"Scoring",    value: Math.min(100, Math.round((s.ppg / 20) * 100)) },
@@ -95,7 +96,7 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
 
         <div style={{ padding:24 }}>
           {/* Season averages */}
-          {s.gp > 0 && (
+          {hasStats && (
             <>
               <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:12, textTransform:"uppercase" }}>Season Averages</div>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:24 }}>
@@ -151,7 +152,7 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
           )}
 
           {/* Charts */}
-          {s.gp > 0 && (
+          {hasStats && (
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:16 }}>
               <div>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
@@ -306,7 +307,7 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
             </div>
           )}
 
-          {s.ppg === 0 && (
+          {!hasStats && (
             <div style={{ textAlign:"center", padding:"24px 0", color:C.textDim }}>
               <div style={{ fontSize:13 }}>No stats recorded yet for this player.</div>
             </div>

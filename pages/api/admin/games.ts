@@ -121,7 +121,6 @@ async function handler(req: any, res: any) {
             fg3a:     s.fg3a,
             ftm:      s.ftm,
             fta:      s.fta,
-            // Q-05: was inlined as s.pts + s.reb + ... -- now uses shared calcEff()
             eff:      calcEff(s),
           })),
         })),
