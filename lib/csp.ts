@@ -1,7 +1,5 @@
-import crypto from "crypto";
-
 export function generateNonce(): string {
-  return Buffer.from(crypto.randomUUID()).toString("base64");
+  return Buffer.from(globalThis.crypto.randomUUID()).toString("base64");
 }
 
 export function buildCsp(nonce: string): string {
