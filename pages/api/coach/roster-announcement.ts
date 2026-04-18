@@ -11,6 +11,7 @@
 import { z } from "zod";
 import { requireCoachAuth } from "../../../lib/requireCoachAuth";
 import { auditLog, getClientIp } from "../../../lib/security";
+import { rlKey } from "../../../lib/loginAttempts";
 import prisma from "../../../lib/prisma";
 import { prodError } from "../../../lib/utils";
 import { sendRosterAnnouncement } from "../../../lib/email";
@@ -62,7 +63,7 @@ async function handler(req: any, res: any) {
   // ── POST: create / replace ────────────────────────────────────────────────
   if (req.method === "POST") {
     // Rate-limit email blasts: max 10 per IP per hour
-    const blastKey = `blast_${ip}`;
+    const blastKey = rlKey(`blast_${ip}`);
     const blastSince = new Date(Date.now() - BLAST_WINDOW * 1000);
     const blastCount = await prisma.loginAttempt.count({
       where: { ip: blastKey, attemptedAt: { gte: blastSince } },
