@@ -377,7 +377,8 @@ export async function sendRosterAnnouncement({
   const from    = `Armani Katehano <${process.env.GMAIL_USER}>`;
   const appUrl  = process.env.NEXT_PUBLIC_APP_URL ?? "";
   const isHome  = game.location === "home";
-  const subject = `Roster announced: ${isHome ? "vs" : "@"} ${game.opponent}`;
+  const safeOpponent = game.opponent.slice(0, 100).replace(/[\r\n]/g, " ");
+  const subject = `Roster announced: ${isHome ? "vs" : "@"} ${safeOpponent}`;
 
   // Send all emails in parallel — much faster than sequential awaits.
   const results = await Promise.allSettled(
