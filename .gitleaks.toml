@@ -1,0 +1,12 @@
+title = "armani-katehano gitleaks config"
+
+[allowlist]
+  description = "Known test fixtures and CI placeholders — not real secrets"
+  # Test files use fake strings to exercise HMAC/session logic
+  paths = [
+    '''tests/'''
+  ]
+  # CI unit-test job uses an explicit placeholder value (not a real secret)
+  regexes = [
+    '''ci-placeholder-secret'''
+  ]
