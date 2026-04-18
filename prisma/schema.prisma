@@ -142,10 +142,7 @@ model PlayerSeasonAggregate {
   toAvg          Float        @default(0)
   pfAvg          Float        @default(0)
   fgPct          Float        @default(0)
-  /// Three-point field goal percentage. Named tpPct at the DB level for historical reasons.
-  /// App-layer convention: always exposed as fg3Pct. Do NOT read this field directly in
-  /// new code -- compute fg3Pct from fg3mTotal/fg3aTotal instead (accurate across leagues).
-  tpPct          Float        @default(0)
+  fg3Pct         Float        @default(0)
   ftPct          Float        @default(0)
   tsPct          Float        @default(0)
   minutesAvg     Float        @default(0)
