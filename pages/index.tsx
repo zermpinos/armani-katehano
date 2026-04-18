@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import Layout from "../components/Layout";
 import { StatTile, SectionHeading } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
@@ -145,6 +146,54 @@ function ShowMoreButton({ href, onClick, children, className }: {
     <button className={className} style={style} onClick={onClick} onMouseEnter={onEnter} onMouseLeave={onLeave}>
       {children}
     </button>
+  );
+}
+
+function ConfirmToast() {
+  const router = useRouter();
+  const [visible, setVisible] = useState(false);
+  const [type, setType]       = useState<"success" | "expired">("success");
+
+  useEffect(() => {
+    const { confirmed } = router.query;
+    if (!confirmed) return;
+    setType(confirmed === "1" ? "success" : "expired");
+    setVisible(true);
+    const t = setTimeout(() => setVisible(false), 5000);
+    // Strip the param from the URL so a refresh doesn't re-show it
+    router.replace("/", undefined, { shallow: true });
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.query.confirmed]);
+
+  if (!visible) return null;
+
+  const isSuccess = type === "success";
+  const bg        = isSuccess ? `${C.green}18`   : `#f59e0b18`;
+  const border    = isSuccess ? `${C.green}40`   : `#f59e0b40`;
+  const color     = isSuccess ? C.green           : "#d97706";
+  const icon      = isSuccess ? "✓"               : "⚠";
+  const message   = isSuccess
+    ? "Email confirmed -- welcome to the team!"
+    : "This confirmation link has expired or was already used. Please subscribe again.";
+
+  return (
+    <div style={{
+      position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)",
+      zIndex: 9999, maxWidth: 420, width: "calc(100% - 32px)",
+      display: "flex", alignItems: "flex-start", gap: 10,
+      padding: "12px 16px", borderRadius: 10,
+      background: bg, border: `1px solid ${border}`,
+      boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
+    }}>
+      <span style={{ fontSize: 15, color, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+      <span style={{ fontSize: 13, color, fontWeight: 700, flex: 1, lineHeight: 1.45 }}>{message}</span>
+      <button
+        onClick={() => setVisible(false)}
+        style={{ background: "none", border: "none", cursor: "pointer", color, fontSize: 16, lineHeight: 1, padding: 0, flexShrink: 0, opacity: 0.7 }}
+        aria-label="Dismiss"
+      >×</button>
+    </div>
   );
 }
 
@@ -338,6 +387,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 
   return (
     <Layout title="Armani Katehano">
+      <ConfirmToast />
       {/* Hero */}
       <div style={{ position:"relative", borderRadius:16, overflow:"hidden", padding:"40px 32px", border:`1px solid ${C.border}`, background:C.surface, marginBottom:24 }}>
         <div style={{ position:"absolute", inset:0, opacity:0.18, backgroundImage:`repeating-linear-gradient(45deg,${C.red} 0,${C.red} 1px,transparent 0,transparent 50%)`, backgroundSize:"20px 20px" }} />
