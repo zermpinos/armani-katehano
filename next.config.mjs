@@ -9,7 +9,6 @@ const nextConfig = {
     ],
   },
 
-  // Security headers (also in vercel.json — belt-and-suspenders)
   async headers() {
     return [
       {
@@ -21,6 +20,7 @@ const nextConfig = {
           { key: "Referrer-Policy",           value: "no-referrer"},
           { key: "X-XSS-Protection",          value: "0"          },
           { key: "Permissions-Policy",        value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
         ],
       },
       {
@@ -40,6 +40,12 @@ const nextConfig = {
         source: "/api/admin/(.*)",
         headers: [
           { key: "Cache-Control", value: "no-store" },
+        ],
+      },
+      {
+        source: "/api/public/(.*)",
+        headers: [
+          { key: "Cache-Control", value: "public, s-maxage=60, stale-while-revalidate=300" },
         ],
       },
     ];
