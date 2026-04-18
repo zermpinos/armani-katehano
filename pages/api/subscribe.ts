@@ -69,9 +69,6 @@ export default async function handler(req: any, res: any) {
       // Return 200 so we don't reveal whether the address is known
       return res.status(200).json({ ok: true });
     }
-    prisma.loginAttempt.create({ data: { ip: emailKey } })
-      .catch((err: unknown) => console.error("[subscribe] email cooldown record failed:", err));
-
     // Purge stale records (asynchronous, runs on each subscribe attempt)
     const unconfirmedCutoff = new Date(Date.now() - UNCONFIRMED_TTL * 1000);
     const retentionCutoff   = new Date(Date.now() - CONFIRMED_RETENTION * 1000);
@@ -100,9 +97,21 @@ export default async function handler(req: any, res: any) {
         data: { email, token, confirmedAt: null },
       });
 
-      const appUrl    = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? "";
       const confirmUrl = `${appUrl}/api/confirm?token=${token}`;
-      await sendConfirmationEmail({ email, confirmUrl });
+
+      try {
+        await sendConfirmationEmail({ email, confirmUrl });
+      } catch (emailErr) {
+        // Roll back the subscriber row so the user can retry cleanly.
+        await prisma.subscriber.delete({ where: { token } }).catch(() => {});
+        throw emailErr;
+      }
+
+      // Only stamp the cooldown after a successful email send so a delivery
+      // failure doesn't silently block the user from retrying.
+      prisma.loginAttempt.create({ data: { ip: emailKey } })
+        .catch((err: unknown) => console.error("[subscribe] email cooldown record failed:", err));
 
       return res.status(201).json({ ok: true });
     } catch (err) {
