@@ -13,6 +13,7 @@
 
 import crypto from "crypto";
 import bcrypt  from "bcryptjs";
+import { TOTP, Secret } from "otpauth";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SESSION_SECRET = process.env.SESSION_SECRET;
@@ -111,17 +112,79 @@ export async function verifyPassword(plaintext: string) {
     return false;
   }
   if (!hash.startsWith("$2b$") && !hash.startsWith("$2a$")) {
-    console.error(
-      "[security] ADMIN_PASSWORD is not a bcrypt hash."  );
+    console.error("[security] ADMIN_PASSWORD is not a bcrypt hash.");
     return false;
   }
   return bcrypt.compare(plaintext, hash);
 }
 
 /**
- * @deprecated Use verifyPassword() -- kept so any legacy callers don't break.
+ * Multi-user credential check.
+ * Reads ADMIN_USERS (JSON array of { username, passwordHash }) when set.
+ * Falls back to ADMIN_PASSWORD with username "admin" for single-user deployments.
  */
+export async function verifyCredentials(username: string, plaintext: string): Promise<boolean> {
+  const usersJson = process.env.ADMIN_USERS;
+  if (usersJson) {
+    let users: { username: string; passwordHash: string }[];
+    try {
+      users = JSON.parse(usersJson);
+    } catch {
+      console.error("[security] ADMIN_USERS is not valid JSON");
+      return false;
+    }
+    const user = users.find(u => u.username === username);
+    if (!user) return false;
+    if (!user.passwordHash.startsWith("$2b$") && !user.passwordHash.startsWith("$2a$")) {
+      console.error(`[security] passwordHash for "${username}" is not a bcrypt hash`);
+      return false;
+    }
+    return bcrypt.compare(plaintext, user.passwordHash);
+  }
+  // Single-user fallback: ADMIN_PASSWORD, username must be "admin"
+  if (username !== "admin") return false;
+  return verifyPassword(plaintext);
+}
+
+/** @deprecated Use verifyPassword() -- kept so any legacy callers don't break. */
 export const safePasswordCompare = verifyPassword;
+
+// ─── Admin user lookup ────────────────────────────────────────────────────────
+
+export type AdminUser = { username: string; passwordHash: string; totpSecret?: string };
+
+export function getAdminUser(username: string): AdminUser | null {
+  const usersJson = process.env.ADMIN_USERS;
+  if (usersJson) {
+    try {
+      const users: AdminUser[] = JSON.parse(usersJson);
+      return users.find(u => u.username === username) ?? null;
+    } catch { return null; }
+  }
+  // Single-user fallback
+  if (username !== "admin") return null;
+  const hash = process.env.ADMIN_PASSWORD;
+  return hash ? { username: "admin", passwordHash: hash } : null;
+}
+
+// ─── TOTP verification ────────────────────────────────────────────────────────
+
+export function verifyTotp(secret: string, token: string): boolean {
+  try {
+    const totp = new TOTP({ secret: Secret.fromBase32(secret), digits: 6, period: 30 });
+    return totp.validate({ token, window: 1 }) !== null;
+  } catch { return false; }
+}
+
+/**
+ * Generates a new TOTP secret and the otpauth:// URI to scan into an authenticator app.
+ * Run once per user: node -e "require('./lib/security').generateTotpSetup('username')"
+ */
+export function generateTotpSetup(username: string): { secret: string; uri: string } {
+  const secret = new Secret({ size: 20 });
+  const totp = new TOTP({ label: `AKAdmin:${username}`, issuer: "AKAdmin", secret, digits: 6, period: 30 });
+  return { secret: secret.base32, uri: totp.toString() };
+}
 
 // ─── CSRF check ───────────────────────────────────────────────────────────────
 
