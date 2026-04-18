@@ -16,6 +16,15 @@ import { prodError }                     from '../../../lib/utils';
 
 // ─── SSRF guard ───────────────────────────────────────────────────────────────
 
+function isAllowedHostname(hostname: string): boolean {
+  return (
+    hostname === 'basketcity.sportstats.gr' ||
+    hostname.endsWith('.basketcity.sportstats.gr') ||
+    hostname === 'basketaki.com' ||
+    hostname.endsWith('.basketaki.com')
+  );
+}
+
 function isPrivateIp(ip: string): boolean {
   // IPv4 private / reserved ranges
   if (
@@ -41,38 +50,6 @@ function isPrivateIp(ip: string): boolean {
   return false;
 }
 
-/**
- * Returns true only if the URL:
- *  - uses http: or https:
- *  - is not localhost / .localhost
- *  - resolves to no private/reserved IPs
- */
-async function isSafeUrl(rawUrl: string): Promise<boolean> {
-  let parsed: URL;
-  try { parsed = new URL(rawUrl); } catch { return false; }
-
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
-
-  const hostname = parsed.hostname;
-
-  if (hostname === 'localhost' || hostname.endsWith('.localhost')) return false;
-
-  // Check IP literal before DNS
-  if (isPrivateIp(hostname)) return false;
-
-  // Resolve hostname → all A/AAAA records and verify every address
-  const [v4, v6] = await Promise.all([
-    dns.promises.resolve4(hostname).catch(() => [] as string[]),
-    dns.promises.resolve6(hostname).catch(() => [] as string[]),
-  ]);
-  const addresses = [...v4, ...v6];
-
-  // If the hostname didn't resolve at all, let fetch fail naturally (not an SSRF risk)
-  if (addresses.length === 0) return true;
-
-  return !addresses.some(isPrivateIp);
-}
-
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const ScrapeSchema = z.object({
@@ -89,16 +66,43 @@ export default requireAuth(async function handler(req: any, res: any) {
 
   const { url } = parsed.data;
 
-  // SSRF guard: reject private / internal addresses
-  const safe = await isSafeUrl(url);
-  if (!safe)
+  // SSRF guard — three-layer defence:
+  //   1. Allowlist: only basket.gr / *.basket.gr permitted
+  //   2. Resolve once and check the IP (eliminates DNS rebinding TOCTOU)
+  //   3. Redirect following disabled (prevents redirect-pivot to internal hosts)
+  let urlObj: URL;
+  try { urlObj = new URL(url); } catch {
     return res.status(400).json({ error: 'URL not allowed' });
+  }
+
+  if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:')
+    return res.status(400).json({ error: 'URL not allowed' });
+
+  if (!isAllowedHostname(urlObj.hostname))
+    return res.status(400).json({ error: 'URL not allowed' });
+
+  let address: string;
+  let family: number;
+  try {
+    ({ address, family } = await dns.promises.lookup(urlObj.hostname));
+  } catch {
+    return res.status(400).json({ error: 'URL not allowed' });
+  }
+
+  if (isPrivateIp(address))
+    return res.status(400).json({ error: 'URL not allowed' });
+
+  // Connect to the resolved IP directly so Node does not re-resolve
+  const fetchUrl = new URL(url);
+  fetchUrl.hostname = family === 6 ? `[${address}]` : address;
 
   let response;
   try {
-    response = await fetch(url, {
+    response = await fetch(fetchUrl.toString(), {
+      redirect: 'manual',
       headers: {
-        'User-Agent':      'Mozilla/5.0 (compatible; BoxScoreScraper/1.0)',
+        'Host':            urlObj.hostname,
+        'User-Agent':      'BoxScoreScraper/1.0',
         'Accept':          'text/html,application/xhtml+xml',
         'Accept-Language': 'el,en;q=0.9',
       },
@@ -106,6 +110,9 @@ export default requireAuth(async function handler(req: any, res: any) {
   } catch (err) {
     return res.status(502).json({ error: prodError(err) });
   }
+
+  if (response.status >= 300 && response.status < 400)
+    return res.status(502).json({ error: 'Upstream redirected — refusing to follow.' });
 
   if (!response.ok)
     return res.status(502).json({ error: `Upstream returned ${response.status}` });
