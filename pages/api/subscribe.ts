@@ -10,6 +10,7 @@ import { randomBytes } from "crypto";
 import prisma from "../../lib/prisma";
 import { prodError } from "../../lib/utils";
 import { securityHeaders, getClientIp, csrfCheck, auditLog } from "../../lib/security";
+import { rlKey } from "../../lib/loginAttempts";
 import { sendConfirmationEmail } from "../../lib/email";
 
 const SUBSCRIBE_LIMIT        = 3;       // max attempts per IP per hour
@@ -30,8 +31,7 @@ export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
 
   const ip = getClientIp(req);
-  // Prefix so subscribe attempts don't collide with login attempts in the same table
-  const rateLimitKey = `sub_${ip}`;
+  const rateLimitKey = rlKey(`sub_${ip}`);
 
   // ── SUBSCRIBE ──────────────────────────────────────────────────────────────
   if (req.method === "POST") {
@@ -60,7 +60,7 @@ export default async function handler(req: any, res: any) {
 
     // Per-email cooldown: reject if the same address attempted within the last 24 h.
     // Prevents IP-rotating attackers from flooding a victim's inbox.
-    const emailKey = `subemail_${email}`;
+    const emailKey = rlKey(`subemail_${email}`);
     const emailSince = new Date(Date.now() - EMAIL_COOLDOWN_WINDOW * 1000);
     const emailAttempts = await prisma.loginAttempt.count({
       where: { ip: emailKey, attemptedAt: { gte: emailSince } },
