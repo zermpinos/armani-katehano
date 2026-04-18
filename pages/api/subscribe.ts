@@ -15,7 +15,8 @@ import { sendConfirmationEmail } from "../../lib/email";
 const SUBSCRIBE_LIMIT        = 3;       // max attempts per IP per hour
 const SUBSCRIBE_WINDOW       = 3600;    // 1 hour in seconds
 const EMAIL_COOLDOWN_WINDOW  = 86400;   // 24 hours in seconds
-const UNCONFIRMED_TTL        = 86400;   // 1 day in seconds
+const UNCONFIRMED_TTL        = 86400;         // 1 day in seconds
+const CONFIRMED_RETENTION    = 365 * 86400;   // 1 year in seconds
 
 const SubscribeSchema = z.object({
   email: z.string().email().max(254).transform(v => v.toLowerCase().trim()),
@@ -71,10 +72,20 @@ export default async function handler(req: any, res: any) {
     prisma.loginAttempt.create({ data: { ip: emailKey } })
       .catch((err: unknown) => console.error("[subscribe] email cooldown record failed:", err));
 
-    // Purge stale unconfirmed records (fire-and-forget, runs on each subscribe attempt)
-    const purgeBefore = new Date(Date.now() - UNCONFIRMED_TTL * 1000);
+    // Purge stale records (fire-and-forget, runs on each subscribe attempt)
+    const unconfirmedCutoff = new Date(Date.now() - UNCONFIRMED_TTL * 1000);
+    const retentionCutoff   = new Date(Date.now() - CONFIRMED_RETENTION * 1000);
     prisma.subscriber.deleteMany({
-      where: { confirmedAt: null, createdAt: { lt: purgeBefore } },
+      where: {
+        OR: [
+          // Unconfirmed for more than 1 day
+          { confirmedAt: null, createdAt: { lt: unconfirmedCutoff } },
+          // Confirmed but no roster email in over 1 year
+          { confirmedAt: { not: null }, lastEmailedAt: { lt: retentionCutoff } },
+          // Confirmed, never emailed, confirmed over 1 year ago
+          { confirmedAt: { not: null, lt: retentionCutoff }, lastEmailedAt: null },
+        ],
+      },
     }).catch((err: unknown) => console.error("[subscribe] purge failed:", err));
 
     try {

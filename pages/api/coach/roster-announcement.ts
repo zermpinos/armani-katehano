@@ -100,7 +100,7 @@ async function handler(req: any, res: any) {
             game: { opponent: game.opponent, scheduledFor: game.scheduledFor.toISOString(), location: game.location, competition: game.competition ?? null, notes: game.notes ?? null },
             players: existing.players.map(sp => ({ name: sp.player.name, number: sp.player.number, note: sp.note ?? null })),
             message: existing.message ?? null,
-            subscribers: subscribers.map(s => ({ email: s.email, token: s.token })),
+            subscribers: subscribers.map(s => ({ id: s.id, email: s.email, token: s.token })),
           });
         }
       } catch (err) {
@@ -166,7 +166,7 @@ async function handler(req: any, res: any) {
               note:   sp.note ?? null,
             })),
             message: message ?? null,
-            subscribers: subscribers.map(s => ({ email: s.email, token: s.token })),
+            subscribers: subscribers.map(s => ({ id: s.id, email: s.email, token: s.token })),
           });
         }
       } catch (err) {
