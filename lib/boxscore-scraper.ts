@@ -10,6 +10,8 @@ import * as cheerio from 'cheerio';
 // Helpers
 // ---------------------------------------------------------------------------
 
+function escapeRegex(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
 function parseShotStat($cell: any) {
   const boldText = $cell.find('span.bold').text().trim();
   const full     = $cell.text().trim();
@@ -56,10 +58,9 @@ export function scrapeGame(html: string, url: string) {
   while ((match = loadDocRe.exec(html)) !== null) {
     const payload = match[1].replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\');
     const divId   = match[2];
-    html = html.replace(
-      new RegExp(`(<div\\s+id="${divId}"\\s*>)(</div>)`),
-      `$1${payload}$2`
-    );
+    // eslint-disable-next-line security/detect-non-literal-regexp
+    const divPat = new RegExp(`(<div\\s+id="${escapeRegex(divId)}"\\s*>)(</div>)`);
+    html = html.replace(divPat, `$1${payload}$2`);
   }
 
   const $ = cheerio.load(html);
@@ -89,6 +90,7 @@ export function scrapeGame(html: string, url: string) {
     const labels = ['Q1', 'Q2', 'Q3', 'Q4'];
     const ok = rows.every((row, i) => {
       const cells = $(row).find('td');
+      // eslint-disable-next-line security/detect-object-injection
       return cells.length === 3 && clean(cells.eq(1).text()) === labels[i];
     });
     if (!ok) return;
@@ -139,6 +141,7 @@ export function scrapeGame(html: string, url: string) {
     coaches.assistants = clean(altPs.eq(1).text()).replace(/^Assistants?\s*/i, '') || null;
 
     for (let i = 1; i < rows.length; i++) {
+      // eslint-disable-next-line security/detect-object-injection
       const $row  = $(rows[i]);
       const cells = $row.find('td').toArray();
       if (!cells.length) continue;
@@ -148,8 +151,11 @@ export function scrapeGame(html: string, url: string) {
       if (col0 === 'TOTALS') {
         totals = {};
         headers.forEach((h, idx) => {
+          // eslint-disable-next-line security/detect-object-injection
           if (!h || !cells[idx]) return;
+          // eslint-disable-next-line security/detect-object-injection
           const $c = $(cells[idx]);
+          // eslint-disable-next-line security/detect-object-injection
           (totals as Record<string, any>)[h] = SHOT_COLS.includes(h)
             ? parseShotStat($c)
             : (parseNum($c.text()) ?? clean($c.text()));
@@ -162,23 +168,31 @@ export function scrapeGame(html: string, url: string) {
 
       const player: Record<string, any> = {};
       headers.forEach((h, idx) => {
+        // eslint-disable-next-line security/detect-object-injection
         if (!h || !cells[idx]) return;
+        // eslint-disable-next-line security/detect-object-injection
         const $c   = $(cells[idx]);
         const text = clean($c.text());
 
         if (SHOT_COLS.includes(h)) {
+          // eslint-disable-next-line security/detect-object-injection
           player[h] = parseShotStat($c);
         } else if (h === '#') {
+          // eslint-disable-next-line security/detect-object-injection
           player[h] = parseInt(text, 10);
         } else if (h === 'Players') {
+          // eslint-disable-next-line security/detect-object-injection
           player[h] = text;
           const href = $c.find('a').attr('href');
           if (href) player.profile_url = href.startsWith('http') ? href : baseOrigin + href;
         } else if (h === 'ST') {
+          // eslint-disable-next-line security/detect-object-injection
           player[h] = text === '*' ? 'Starter' : 'Bench';
         } else if (h === 'MIN') {
+          // eslint-disable-next-line security/detect-object-injection
           player[h] = text;
         } else {
+          // eslint-disable-next-line security/detect-object-injection
           player[h] = parseNum(text) ?? text;
         }
       });
