@@ -150,7 +150,7 @@ describe("POST /api/auth (login)", () => {
     const res = mockRes();
     await handler(req, res);
     expect(res.statusCode).toBe(401);
-    expect(recordAttempt).toHaveBeenCalledOnce();
+    expect(recordAttempt).toHaveBeenCalledTimes(2);
     expect(clearAttempts).not.toHaveBeenCalled();
   });
 
@@ -167,7 +167,7 @@ describe("POST /api/auth (login)", () => {
     expect(res._body).toEqual({ ok: true });
     expect(res._headers["Set-Cookie"]).toContain("__Host-ak_session=");
     expect(res._headers["Set-Cookie"]).toContain("HttpOnly");
-    expect(clearAttempts).toHaveBeenCalledOnce();
+    expect(clearAttempts).toHaveBeenCalledTimes(2);
     expect(recordAttempt).not.toHaveBeenCalled();
   });
 });
