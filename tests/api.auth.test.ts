@@ -127,6 +127,24 @@ describe("POST /api/auth (login)", () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it("returns 429 on per-account lockout even from a previously unseen IP", async () => {
+    // IP check passes (false); account key "account_admin" triggers lockout (true)
+    isLockedOut.mockImplementation(async (key) => key === "account_admin");
+    const req = mockReq({
+      method:  "POST",
+      headers: {
+        host:              "example.com",
+        origin:            "https://example.com",
+        "x-forwarded-for": "5.6.7.8",
+      },
+      body: { password: "any" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(429);
+    expect(res._body.error).toMatch(/across all clients/i);
+  });
+
   it("returns 429 when IP is locked out", async () => {
     isLockedOut.mockResolvedValue(true);
     const req = mockReq({

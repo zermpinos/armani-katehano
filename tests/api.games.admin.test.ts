@@ -43,7 +43,7 @@ vi.mock("../lib/stats.prisma.js", () => ({
   recalcAggregates: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { signSession }      from "../lib/security";
+import { signSession, SESSION_TTL_S } from "../lib/security";
 import { recalcAggregates } from "../lib/stats.prisma";
 import handler               from "../pages/api/admin/games";
 
@@ -140,8 +140,8 @@ describe("requireAuth middleware", () => {
     expect(res.statusCode).toBe(401);
   });
 
-  it("returns 401 with an expired session (ts > 8 hours ago)", async () => {
-    const old = JSON.stringify({ ts: Date.now() - 9 * 60 * 60 * 1000, role: "admin" });
+  it("returns 401 with an expired session (ts > SESSION_TTL_S ago)", async () => {
+    const old = JSON.stringify({ ts: Date.now() - (SESSION_TTL_S + 60) * 1000, role: "admin" });
     const req = mockReq({
       method:  "GET",
       cookies: { "__Host-ak_session": signSession(old) },
@@ -150,6 +150,17 @@ describe("requireAuth middleware", () => {
     await handler(req, res);
     expect(res.statusCode).toBe(401);
     expect(res._body.error).toMatch(/expired/i);
+  });
+
+  it("returns 200 with a session 1 second inside the TTL boundary", async () => {
+    const fresh = JSON.stringify({ ts: Date.now() - (SESSION_TTL_S - 1) * 1000, role: "admin" });
+    const req = mockReq({
+      method:  "GET",
+      cookies: { "__Host-ak_session": signSession(fresh) },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(200);
   });
 
   it("returns 403 when Origin mismatches Host on POST", async () => {
