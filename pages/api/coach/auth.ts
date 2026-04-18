@@ -66,20 +66,29 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: "Password is required" });
     }
 
+    // Brute-force lockout -- per-IP
     const locked = await isLockedOut(ip);
     if (locked) {
       auditLog("coach_login_locked", { ip });
       return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
     }
 
+    // Brute-force lockout -- per-account (H-2): 25 attempts across any IP, 1-hour window
+    const ACCOUNT_KEY = "account_coach";
+    const accountLocked = await isLockedOut(ACCOUNT_KEY, 25, 3600);
+    if (accountLocked) {
+      auditLog("coach_login_account_locked", { ip });
+      return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
+    }
+
     const valid = await verifyCoachPassword(password);
     if (!valid) {
-      await recordAttempt(ip);
+      await Promise.all([recordAttempt(ip), recordAttempt(ACCOUNT_KEY)]);
       auditLog("coach_login_failed", { ip });
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    await clearAttempts(ip);
+    await Promise.all([clearAttempts(ip), clearAttempts(ACCOUNT_KEY)]);
     const v = await getCoachSessionVersion();
     const payload = JSON.stringify({ ts: Date.now(), role: "coach", v });
     res.setHeader("Set-Cookie", buildCoachSessionCookie(payload));
