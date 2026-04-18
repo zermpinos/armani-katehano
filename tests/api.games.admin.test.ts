@@ -72,7 +72,7 @@ function authCookie() {
 
 function authedReq(overrides = {}) {
   return mockReq({
-    headers: { host: "example.com" },
+    headers: { host: "example.com", origin: "https://example.com" },
     cookies: { "__Host-ak_session": authCookie() },
     ...overrides,
   });
