@@ -11,8 +11,9 @@ import { test, expect } from "@playwright/test";
 test.describe("Unsubscribe page (/unsubscribe)", () => {
   test("strips the token from the URL immediately after reading it (M-5 regression)", async ({ page }) => {
     await page.goto("/unsubscribe?token=supersecrettoken123");
-    await page.waitForLoadState("networkidle");
-    // Token must not survive in the address bar after React hydration
+    // Wait for React to hydrate and call history.replaceState -- the terminal state
+    // appearing means the component has run its effect (and stripped the token).
+    await expect(page.getByText(/unsubscribed|invalid|expired/i)).toBeVisible({ timeout: 10_000 });
     expect(page.url()).not.toContain("token=");
     expect(page.url()).toMatch(/\/unsubscribe$/);
   });
@@ -32,17 +33,15 @@ test.describe("Unsubscribe page (/unsubscribe)", () => {
 
   test("shows a terminal state (done or error) after processing an invalid token", async ({ page }) => {
     await page.goto("/unsubscribe?token=definitelynotavalidtoken");
-    await page.waitForLoadState("networkidle");
-    // Either the API returns 4xx (error state) or 200 (done) -- never stuck on pending
-    const body = await page.textContent("body");
-    expect(body).toMatch(/unsubscribed|invalid|expired/i);
+    // Never stuck on "pending" -- must resolve to done or error
+    await expect(page.getByText(/unsubscribed|invalid|expired/i)).toBeVisible({ timeout: 10_000 });
   });
 
   test("no JS errors on load", async ({ page }) => {
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
     await page.goto("/unsubscribe?token=testtoken");
-    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(/unsubscribed|invalid|expired/i)).toBeVisible({ timeout: 10_000 });
     expect(errors).toHaveLength(0);
   });
 });
