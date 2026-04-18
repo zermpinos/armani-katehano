@@ -62,7 +62,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           # Include run ID to avoid name collisions when multiple deploys
           # trigger this workflow close together.
