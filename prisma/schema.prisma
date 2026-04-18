@@ -173,7 +173,7 @@ model PlayerSeasonAggregate {
 
 model LoginAttempt {
   id          String   @id @default(cuid())
-  ip          String   @db.VarChar(45)
+  ip          String   @db.VarChar(64)
   attemptedAt DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([ip, attemptedAt])
