@@ -20,14 +20,14 @@ vi.mock("../lib/loginAttempts.js", () => ({
   clearAttempts: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Partially mock security.js: keep all real implementations, override verifyPassword only.
+// Partially mock security.js: keep all real implementations, override verifyCredentials, getAdminUser, verifyTotp.
 vi.mock("../lib/security", async (importOriginal) => {
   const actual = await importOriginal();
-  return { ...actual, verifyPassword: vi.fn() };
+  return { ...actual, verifyCredentials: vi.fn(), getAdminUser: vi.fn(), verifyTotp: vi.fn() };
 });
 
 import { isLockedOut, recordAttempt, clearAttempts } from "../lib/loginAttempts";
-import { verifyPassword, signSession }                from "../lib/security";
+import { verifyCredentials, getAdminUser, verifyTotp, signSession } from "../lib/security";
 import handler                                         from "../pages/api/auth";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -58,7 +58,9 @@ function validSessionCookie() {
 beforeEach(() => {
   vi.clearAllMocks();
   isLockedOut.mockResolvedValue(false);
-  verifyPassword.mockResolvedValue(false);
+  verifyCredentials.mockResolvedValue(false);
+  getAdminUser.mockReturnValue(null); // no totpSecret by default
+  verifyTotp.mockReturnValue(true);
 });
 
 describe("GET /api/auth", () => {
@@ -93,22 +95,33 @@ describe("GET /api/auth", () => {
 
 describe("POST /api/auth (login)", () => {
   it("returns 403 when CSRF check fails (strict mode -- no Origin/Referer)", async () => {
-    // strict=true means no Origin and no Referer -> rejected
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com" },
-      body:    { password: "secret" },
+      body:    { username: "admin", password: "secret" },
     });
     const res = mockRes();
     await handler(req, res);
     expect(res.statusCode).toBe(403);
   });
 
+  it("returns 400 when username is missing", async () => {
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { password: "secret" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(400);
+    expect(res._body.error).toMatch(/username/i);
+  });
+
   it("returns 400 when password is missing", async () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    {},
+      body:    { username: "admin" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -120,7 +133,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { password: 123 },
+      body:    { username: "admin", password: 123 },
     });
     const res = mockRes();
     await handler(req, res);
@@ -137,7 +150,7 @@ describe("POST /api/auth (login)", () => {
         origin:            "https://example.com",
         "x-forwarded-for": "5.6.7.8",
       },
-      body: { password: "any" },
+      body: { username: "admin", password: "any" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -150,7 +163,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { password: "any" },
+      body:    { username: "admin", password: "any" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -158,12 +171,12 @@ describe("POST /api/auth (login)", () => {
     expect(res._body).toHaveProperty("retryAfter");
   });
 
-  it("returns 401 and records attempt on wrong password", async () => {
-    verifyPassword.mockResolvedValue(false);
+  it("returns 401 and records attempt on wrong credentials", async () => {
+    verifyCredentials.mockResolvedValue(false);
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { password: "wrong" },
+      body:    { username: "admin", password: "wrong" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -172,12 +185,13 @@ describe("POST /api/auth (login)", () => {
     expect(clearAttempts).not.toHaveBeenCalled();
   });
 
-  it("returns 200 and sets session cookie on correct password", async () => {
-    verifyPassword.mockResolvedValue(true);
+  it("returns 200 and sets session cookie on correct credentials (no TOTP configured)", async () => {
+    verifyCredentials.mockResolvedValue(true);
+    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$..." }); // no totpSecret
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { password: "correct" },
+      body:    { username: "admin", password: "correct" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -187,6 +201,51 @@ describe("POST /api/auth (login)", () => {
     expect(res._headers["Set-Cookie"]).toContain("HttpOnly");
     expect(clearAttempts).toHaveBeenCalledTimes(2);
     expect(recordAttempt).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 when TOTP is configured but code is missing", async () => {
+    verifyCredentials.mockResolvedValue(true);
+    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$...", totpSecret: "BASE32SECRET" });
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { username: "admin", password: "correct" }, // no totpToken
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(401);
+    expect(res._body.error).toMatch(/authenticator/i);
+  });
+
+  it("returns 401 when TOTP code is wrong", async () => {
+    verifyCredentials.mockResolvedValue(true);
+    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$...", totpSecret: "BASE32SECRET" });
+    verifyTotp.mockReturnValue(false);
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { username: "admin", password: "correct", totpToken: "000000" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(401);
+    expect(res._body.error).toMatch(/authenticator/i);
+  });
+
+  it("returns 200 when credentials and TOTP are both correct", async () => {
+    verifyCredentials.mockResolvedValue(true);
+    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$...", totpSecret: "BASE32SECRET" });
+    verifyTotp.mockReturnValue(true);
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { username: "admin", password: "correct", totpToken: "123456" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(200);
+    expect(res._body).toEqual({ ok: true });
+    expect(clearAttempts).toHaveBeenCalledTimes(2);
   });
 });
 

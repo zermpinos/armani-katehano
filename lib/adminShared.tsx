@@ -38,12 +38,12 @@ export function useAdminAuth(slug: any) {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleLogin = useCallback(async (password: any) => {
+  const handleLogin = useCallback(async (username: string, password: string, totpToken: string) => {
     setError(null);
     const res = await fetch('/api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password, slug }),
+      body: JSON.stringify({ username, password, totpToken, slug }),
     });
     if (res.ok) {
       setAuthed(true);
@@ -228,15 +228,20 @@ export function Spinner() {
 
 // ─── LoginForm ────────────────────────────────────────────────────────────────
 export function LoginForm({ onLogin, error }: { onLogin: any; error: any }) {
-  const [password, setPassword] = useState('');
-  const [loading,  setLoading]  = useState(false);
+  const [username,   setUsername]   = useState('');
+  const [password,   setPassword]   = useState('');
+  const [totpToken,  setTotpToken]  = useState('');
+  const [loading,    setLoading]    = useState(false);
 
   const submit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
-    await onLogin(password);
+    await onLogin(username, password, totpToken);
     setLoading(false);
   };
+
+  const inputStyle = { width: '100%', padding: '9px 12px', fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: 'inherit', outline: 'none' };
+  const labelStyle = { display: 'block', fontSize: 10, fontWeight: 900, letterSpacing: '0.15em', marginBottom: 5, color: C.textDim, textTransform: 'uppercase' as const };
 
   return (
     <div style={{ width: '100%', maxWidth: 360, borderRadius: 20, padding: 32, border: `1px solid ${C.border}`, background: C.surface }}>
@@ -247,13 +252,20 @@ export function LoginForm({ onLogin, error }: { onLogin: any; error: any }) {
       </div>
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
-          <label style={{ display: 'block', fontSize: 10, fontWeight: 900, letterSpacing: '0.15em', marginBottom: 5, color: C.textDim, textTransform: 'uppercase' }}>Password</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password"
-            style={{ width: '100%', padding: '9px 12px', fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: 'inherit', outline: 'none' }} />
+          <label style={labelStyle}>Username</label>
+          <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter username" autoComplete="username" style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Password</label>
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" autoComplete="current-password" style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Authenticator code</label>
+          <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} value={totpToken} onChange={e => setTotpToken(e.target.value.replace(/\D/g, ''))} placeholder="6-digit code" autoComplete="one-time-code" style={inputStyle} />
         </div>
         {error && <div style={{ fontSize: 12, color: C.redText }}>{error}</div>}
-        <button type="submit" disabled={loading || !password}
-          style={{ padding: '12px', fontWeight: 900, fontSize: 14, letterSpacing: '0.12em', textTransform: 'uppercase', borderRadius: 10, border: 'none', background: C.red, color: C.text, cursor: 'pointer', fontFamily: 'inherit', opacity: loading || !password ? 0.5 : 1 }}>
+        <button type="submit" disabled={loading || !username || !password}
+          style={{ padding: '12px', fontWeight: 900, fontSize: 14, letterSpacing: '0.12em', textTransform: 'uppercase', borderRadius: 10, border: 'none', background: C.red, color: C.text, cursor: 'pointer', fontFamily: 'inherit', opacity: loading || !username || !password ? 0.5 : 1 }}>
           {loading ? 'VERIFYING...' : 'SIGN IN'}
         </button>
       </form>

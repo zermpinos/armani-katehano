@@ -35,10 +35,7 @@ export function requireAuth(handler: (req: any, res: any) => any) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // S-06: Enforce TTL server-side. The cookie has Max-Age=SESSION_TTL_S but
-    // browser expiry can be bypassed by replaying an extracted cookie value.
-    // verifyPayload() only checks the HMAC signature -- it does not inspect ts.
-    // We parse the payload here and reject anything older than SESSION_TTL_S.
+    // S-06: Enforce TTL server-side (cookie replay defence).
     let parsed;
     try {
       parsed = JSON.parse(payload);
@@ -46,12 +43,13 @@ export function requireAuth(handler: (req: any, res: any) => any) {
       auditLog("invalid_session_payload", { ip, path: req.url });
       return res.status(401).json({ error: "Invalid session" });
     }
-    
+
     if (!parsed?.ts || Date.now() - parsed.ts > SESSION_TTL_S * 1000) {
-      auditLog("expired_session", { ip, path: req.url, ts: parsed?.ts });
+      auditLog("expired_session", { ip, path: req.url, ts: parsed?.ts, user: parsed?.user });
       return res.status(401).json({ error: "Session expired" });
     }
-    
+
+    req.adminUser = parsed.user ?? "admin";
     return handler(req, res);
   };
 }
