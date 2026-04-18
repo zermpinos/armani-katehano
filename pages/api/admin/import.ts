@@ -190,7 +190,7 @@ export default requireAuth(async function handler(req: any, res: any) {
 
       if (validatedBoxScore.length) {
         await tx.playerGameStat.createMany({
-          data: validatedBoxScore.map((row: any) => ({ ...row, gameId: g.id, plusMinus: 0 })),
+          data: validatedBoxScore.map((row: any) => ({ ...row, gameId: g.id })),
         });
       }
 
