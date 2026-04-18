@@ -7,8 +7,6 @@
  * reimplementation. This makes the admin panel consistent with the public site
  * and gives the import page everything it needs to resolve and display stats.
  *
- * R-01 fix: tpPct (DB column name) is mapped to fg3Pct (application convention)
- * at the shaping boundary here, so all consumers above this layer use fg3Pct.
  */
 
 import { requireAuth }                  from "../../../lib/requireAuth";

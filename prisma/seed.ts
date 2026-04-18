@@ -330,7 +330,7 @@ async function main() {
           minutesAvg: avg("minutes"),
           fgPct:      pct(totalFgm,  totalFga),
           fg2Pct:     pct(sum("fg2m"), sum("fg2a")),
-          tpPct:      pct(totalFg3m, totalFg3a),
+          fg3Pct:     pct(totalFg3m, totalFg3a),
           ftPct:      pct(totalFtm,  totalFta),
           tsPct:      tsPctVal,
           ptsTotal:   totalPts,
