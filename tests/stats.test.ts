@@ -59,13 +59,13 @@ describe("computePlayerAggregates — shooting percentages", () => {
     expect(agg.fgPct).toBe(50.0);   // 6/12
   });
 
-  it("calculates tpPct (3PT%) correctly", () => {
+  it("calculates fg3Pct (3PT%) correctly", () => {
     const rows = [
       { minutes:32, pts:12, reb:2, ast:4, stl:1, blk:0, tov:2, pf:1,
         fgm:4, fga:10, fg2m:2, fg2a:4, fg3m:2, fg3a:6, ftm:2, fta:2, orb:0, drb:2 },
     ];
     const agg = computePlayerAggregates(rows);
-    expect(agg.tpPct).toBe(33.3);   // 2/6
+    expect(agg.fg3Pct).toBe(33.3);  // 2/6
   });
 
   it("returns 0 for fgPct when fga is 0", () => {
