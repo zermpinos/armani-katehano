@@ -30,7 +30,7 @@ export function getCsrfToken(): string {
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
 
-export function apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
+export function apiFetch(url: string, init: Record<string, any> = {}): Promise<Response> {
   const method = ((init.method as string | undefined) ?? "GET").toUpperCase();
   if (MUTATING_METHODS.has(method)) {
     const token = getCsrfToken();

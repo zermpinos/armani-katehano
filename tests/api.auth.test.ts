@@ -200,8 +200,9 @@ describe("POST /api/auth (login)", () => {
     await handler(req, res);
     expect(res.statusCode).toBe(200);
     expect(res._body).toEqual({ ok: true });
-    expect(res._headers["Set-Cookie"]).toContain("__Host-ak_session=");
-    expect(res._headers["Set-Cookie"]).toContain("HttpOnly");
+    const loginCookies = [res._headers["Set-Cookie"]].flat().join(" ");
+    expect(loginCookies).toContain("__Host-ak_session=");
+    expect(loginCookies).toContain("HttpOnly");
     expect(clearAttempts).toHaveBeenCalledTimes(2);
     expect(recordAttempt).not.toHaveBeenCalled();
   });
@@ -304,7 +305,7 @@ describe("DELETE /api/auth (logout)", () => {
     await handler(req, res);
     expect(res.statusCode).toBe(200);
     expect(res._body).toEqual({ ok: true });
-    expect(res._headers["Set-Cookie"]).toContain("Max-Age=0");
+    expect([res._headers["Set-Cookie"]].flat().join(" ")).toContain("Max-Age=0");
   });
 });
 
