@@ -8,13 +8,18 @@ const playerImg = (player: any) => player.photoUrl || null;
 
 export function StatCell({ label, value, highlight = false }: any) {
   return (
-    <div style={{
-      display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-      borderRadius:10, padding:"10px 4px", border:`1px solid ${highlight ? `${C.redBright}45` : C.border}`,
-      background: highlight ? `${C.red}20` : C.surface2,
-    }}>
-      <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim }}>{label}</div>
-      <div style={{ fontSize:16, fontWeight:900, color: highlight ? C.redText : C.text, marginTop:2 }}>{value}</div>
+    <div
+      className={[
+        "flex flex-col items-center justify-center rounded-[10px] py-[10px] px-1 border",
+        highlight
+          ? "border-[#c0392b45] bg-[#8b1a1a20]"
+          : "border-ak-border bg-ak-surface2",
+      ].join(" ")}
+    >
+      <div className="text-[10px] font-black tracking-[0.12em] text-ak-text-dim">{label}</div>
+      <div className={["text-[16px] font-black mt-0.5", highlight ? "text-ak-red-text" : "text-ak-text"].join(" ")}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -33,12 +38,12 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
   const [logView,   setLogView]   = useState("chart");
 
   const STAT_OPTIONS = [
-    { key:"pts", label:"PTS", color:C.redBright },
-    { key:"reb", label:"REB", color:C.textSub },
-    { key:"ast", label:"AST", color:"#5ba4cf" },
-    { key:"stl", label:"STL", color:C.green },
-    { key:"blk", label:"BLK", color:"#a29bfe" },
-    { key:"eff", label:"EFF", color:"#fdcb6e" },
+    { key:"pts", label:"PTS", color:C.redBright, activeClass:"border-[#c0392b80] bg-[#c0392b20] text-[#c0392b]" },
+    { key:"reb", label:"REB", color:C.textSub,   activeClass:"border-[#a8a8ac80] bg-[#a8a8ac20] text-[#a8a8ac]" },
+    { key:"ast", label:"AST", color:"#5ba4cf",   activeClass:"border-[#5ba4cf80] bg-[#5ba4cf20] text-[#5ba4cf]" },
+    { key:"stl", label:"STL", color:C.green,     activeClass:"border-[#4caf7d80] bg-[#4caf7d20] text-[#4caf7d]" },
+    { key:"blk", label:"BLK", color:"#a29bfe",   activeClass:"border-[#a29bfe80] bg-[#a29bfe20] text-[#a29bfe]" },
+    { key:"eff", label:"EFF", color:"#fdcb6e",   activeClass:"border-[#fdcb6e80] bg-[#fdcb6e20] text-[#fdcb6e]" },
   ];
 
   const filtered = gameLog
@@ -57,49 +62,65 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
     { stat:"Efficiency", value: Math.min(100, Math.round((s.eff / 20) * 100)) },
   ];
 
-  const filterBtnStyle = (active: any) => ({
-    padding:"3px 10px", fontSize:10, fontWeight:900, letterSpacing:"0.1em",
-    borderRadius:6, border:`1px solid ${active ? `${C.redBright}60` : C.border}`,
-    background: active ? `${C.red}25` : "transparent",
-    color: active ? C.redText : C.textDim,
-    cursor:"pointer", fontFamily:"inherit",
-  });
+  // Filter button: boolean active state
+  const filterBtn = (active: boolean) => [
+    "py-[3px] px-[10px] text-[10px] font-black tracking-[0.1em] rounded-md border cursor-pointer font-sans",
+    active
+      ? "border-[#c0392b60] bg-[#8b1a1a25] text-ak-red-text"
+      : "border-ak-border bg-transparent text-ak-text-dim",
+  ].join(" ");
 
-  const statBtnStyle = (key: any, color: any) => ({
-    padding:"3px 10px", fontSize:10, fontWeight:900, letterSpacing:"0.1em",
-    borderRadius:6, border:`1px solid ${selStat === key ? `${color}80` : C.border}`,
-    background: selStat === key ? `${color}20` : "transparent",
-    color: selStat === key ? color : C.textDim,
-    cursor:"pointer", fontFamily:"inherit",
-  });
+  // View toggle (chart/table): same shape as filterBtn
+  const viewBtn = (v: string) => [
+    "py-[2px] px-[9px] text-[10px] font-black tracking-[0.08em] rounded-[5px] border cursor-pointer font-sans uppercase",
+    logView === v
+      ? "border-[#c0392b60] bg-[#8b1a1a25] text-ak-red-text"
+      : "border-ak-border bg-transparent text-ak-text-dim",
+  ].join(" ");
 
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:100, overflowY:"auto", padding:"80px 16px 32px", background:"rgba(10,10,10,0.88)", backdropFilter:"blur(6px)" }} onClick={onClose}>
-      <div style={{ maxWidth:680, margin:"0 auto", borderRadius:16, overflow:"hidden", border:`1px solid ${C.border2}`, background:C.surface }} onClick={e => e.stopPropagation()}>
-
+    <div
+      className="fixed inset-0 z-[100] overflow-y-auto pt-[80px] pb-8 px-4 bg-[rgba(10,10,10,0.88)] backdrop-blur-[6px]"
+      onClick={onClose}
+    >
+      <div
+        className="max-w-[680px] mx-auto rounded-2xl overflow-hidden border border-ak-border2 bg-ak-surface"
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
-        <div style={{ padding:24, display:"flex", gap:20, alignItems:"center", background:C.base, borderBottom:`1px solid ${C.border}` }}>
-          <div style={{ width:72, height:72, borderRadius:14, overflow:"hidden", flexShrink:0, background:C.surface, border:`1px solid ${C.border2}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:32, position:"relative" }}>
-            {playerImg(player) ? <Image src={playerImg(player)} alt={player.name} fill style={{ objectFit:"cover", objectPosition:"top" }} /> : "🏀"}
+        <div className="p-6 flex gap-5 items-center bg-ak-base border-b border-ak-border">
+          <div className="w-[72px] h-[72px] rounded-[14px] overflow-hidden shrink-0 bg-ak-surface border border-ak-border2 flex items-center justify-center text-[32px] relative">
+            {playerImg(player)
+              ? <Image src={playerImg(player)} alt={player.name} fill className="object-cover object-top" />
+              : "🏀"}
           </div>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:22, fontWeight:900, color:C.text }}>{player.name}</div>
-            <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginTop:8 }}>
-              <span style={{ fontSize:11, fontWeight:900, letterSpacing:"0.12em", borderRadius:99, padding:"3px 12px", color:C.redText, background:`${C.red}20`, border:`1px solid ${C.redBright}40` }}>#{player.number}</span>
-              <span style={{ fontSize:11, fontWeight:700, color:C.textSub }}>{player.position}</span>
-              {player.height && <span style={{ fontSize:11, color:C.textDim }}>{player.height}</span>}
-              {player.age && <span style={{ fontSize:11, color:C.textDim }}>Age {player.age}</span>}
+          <div className="flex-1 min-w-0">
+            <div className="text-[22px] font-black text-ak-text">{player.name}</div>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <span className="text-[11px] font-black tracking-[0.12em] rounded-full py-[3px] px-3 text-ak-red-text bg-[#8b1a1a20] border border-[#c0392b40]">
+                #{player.number}
+              </span>
+              <span className="text-[11px] font-bold text-ak-text-sub">{player.position}</span>
+              {player.height && <span className="text-[11px] text-ak-text-dim">{player.height}</span>}
+              {player.age && <span className="text-[11px] text-ak-text-dim">Age {player.age}</span>}
             </div>
           </div>
-          <button onClick={onClose} style={{ fontSize:28, fontWeight:900, color:C.textDim, background:"none", border:"none", cursor:"pointer", alignSelf:"flex-start" }}>×</button>
+          <button
+            onClick={onClose}
+            className="text-[28px] font-black text-ak-text-dim bg-transparent border-0 cursor-pointer self-start"
+          >
+            ×
+          </button>
         </div>
 
-        <div style={{ padding:24 }}>
+        <div className="p-6">
           {/* Season averages */}
           {hasStats && (
             <>
-              <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:12, textTransform:"uppercase" }}>Season Averages</div>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:24 }}>
+              <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim mb-3 uppercase">
+                Season Averages
+              </div>
+              <div className="grid grid-cols-4 gap-2 mb-6">
                 <StatCell label="PPG" value={s.ppg} highlight />
                 <StatCell label="RPG" value={s.rpg} />
                 <StatCell label="ORB" value={s.orpg ?? 0} />
@@ -120,30 +141,42 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
             </>
           )}
 
-          {/* Season-by-season breakdown (all-time view only) */}
+          {/* Season-by-season breakdown */}
           {activeSeason === "all-time" && player.seasonHistory && Object.keys(player.seasonHistory).length > 1 && (
-            <div style={{ marginBottom:24 }}>
-              <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:12, textTransform:"uppercase" }}>Season by Season</div>
-              <div style={{ borderRadius:10, border:`1px solid ${C.border}`, overflow:"hidden" }}>
-                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
+            <div className="mb-6">
+              <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim mb-3 uppercase">
+                Season by Season
+              </div>
+              <div className="rounded-[10px] border border-ak-border overflow-hidden">
+                <table className="w-full border-collapse text-[11px]">
                   <thead>
-                    <tr style={{ background:C.base }}>
+                    <tr className="bg-ak-base">
                       {["Season","GP","PPG","RPG","APG","FG%","EFF"].map(h => (
-                        <th key={h} style={{ padding:"6px 10px", textAlign: h === "Season" ? "left" : "center", fontWeight:900, letterSpacing:"0.1em", color:C.textDim, borderBottom:`1px solid ${C.border}` }}>{h}</th>
+                        <th
+                          key={h}
+                          className={[
+                            "py-[6px] px-[10px] font-black tracking-[0.1em] text-ak-text-dim border-b border-ak-border",
+                            h === "Season" ? "text-left" : "text-center",
+                          ].join(" ")}
+                        >
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.entries(player.seasonHistory as Record<string, any>).sort((a,b) => b[0].localeCompare(a[0])).map(([sid, ss], i) => (
-                      <tr key={sid} style={{ background: i % 2 === 0 ? C.surface : C.base }}>
-                        <td style={{ padding:"6px 10px", fontWeight:700, color:C.textSub }}>{sid.replace(/-/g,"-")}</td>
-                        <td style={{ padding:"6px 10px", textAlign:"center", color:C.textDim }}>{ss.gp}</td>
-                        <td style={{ padding:"6px 10px", textAlign:"center", fontWeight:900, color:C.redText }}>{ss.ppg}</td>
-                        <td style={{ padding:"6px 10px", textAlign:"center", color:C.text }}>{ss.rpg}</td>
-                        <td style={{ padding:"6px 10px", textAlign:"center", color:C.text }}>{ss.apg}</td>
-                        <td style={{ padding:"6px 10px", textAlign:"center", color:C.text }}>{ss.fgPct > 0 ? `${ss.fgPct}%` : "--"}</td>
-                        <td style={{ padding:"6px 10px", textAlign:"center", fontWeight:900, color:C.gold }}>{ss.eff}</td>
-                      </tr>
+                    {Object.entries(player.seasonHistory as Record<string, any>)
+                      .sort((a, b) => b[0].localeCompare(a[0]))
+                      .map(([sid, ss], i) => (
+                        <tr key={sid} className={i % 2 === 0 ? "bg-ak-surface" : "bg-ak-base"}>
+                          <td className="py-[6px] px-[10px] font-bold text-ak-text-sub">{sid.replace(/-/g,"-")}</td>
+                          <td className="py-[6px] px-[10px] text-center text-ak-text-dim">{ss.gp}</td>
+                          <td className="py-[6px] px-[10px] text-center font-black text-ak-red-text">{ss.ppg}</td>
+                          <td className="py-[6px] px-[10px] text-center text-ak-text">{ss.rpg}</td>
+                          <td className="py-[6px] px-[10px] text-center text-ak-text">{ss.apg}</td>
+                          <td className="py-[6px] px-[10px] text-center text-ak-text">{ss.fgPct > 0 ? `${ss.fgPct}%` : "--"}</td>
+                          <td className="py-[6px] px-[10px] text-center font-black text-ak-gold">{ss.eff}</td>
+                        </tr>
                     ))}
                   </tbody>
                 </table>
@@ -153,35 +186,30 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
 
           {/* Charts */}
           {hasStats && (
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:16 }}>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4">
+              {/* Radar */}
               <div>
-                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-                  <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Skill Profile</div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim uppercase">Skill Profile</div>
                   <button
                     onClick={() => setShowInfo(v => !v)}
-                    style={{
-                      width:16, height:16, borderRadius:"50%", border:`1px solid ${C.border2}`,
-                      background: showInfo ? `${C.red}25` : "transparent",
-                      color: showInfo ? C.redText : C.textDim,
-                      fontSize:10, fontWeight:900, cursor:"pointer",
-                      display:"flex", alignItems:"center", justifyContent:"center",
-                      lineHeight:1, padding:0, fontFamily:"inherit",
-                    }}
+                    className={[
+                      "w-4 h-4 rounded-full border border-ak-border2 text-[10px] font-black cursor-pointer flex items-center justify-center leading-none p-0 font-sans",
+                      showInfo ? "bg-[#8b1a1a25] text-ak-red-text" : "bg-transparent text-ak-text-dim",
+                    ].join(" ")}
                     title="How is this calculated?"
-                  >ⓘ</button>
+                  >
+                    ⓘ
+                  </button>
                 </div>
 
                 {showInfo && (
-                  <div style={{
-                    marginBottom:8, padding:"8px 12px", borderRadius:8,
-                    border:`1px solid ${C.border}`, background:C.base,
-                    fontSize:11, color:C.textSub, lineHeight:1.6,
-                  }}>
+                  <div className="mb-2 py-2 px-3 rounded-lg border border-ak-border bg-ak-base text-[11px] text-ak-text-sub leading-relaxed">
                     Each axis is scored 0-100 against a ceiling set for this level of gameplay: 20 PPG · 10 RPG · 6 APG · 5 STL+BLK · FG% direct · 20 EFF
                   </div>
                 )}
 
-                <div style={{ borderRadius:12, border:`1px solid ${C.border}`, padding:8, background:C.base }}>
+                <div className="rounded-xl border border-ak-border p-2 bg-ak-base">
                   <ResponsiveContainer width="100%" height={200}>
                     <RadarChart data={radarData} margin={{ top:10, right:20, bottom:10, left:20 }}>
                       <PolarGrid stroke={C.border2} />
@@ -193,53 +221,62 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
                 </div>
               </div>
 
+              {/* Game log */}
               {gameLog.length > 0 && (
                 <div>
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6, flexWrap:"wrap", gap:6 }}>
-                    <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>
+                  <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1.5">
+                    <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim uppercase">
                       Game Log {filtered.length > 0 ? `(${filtered.length})` : ""}
                     </div>
-                    <div style={{ display:"flex", gap:4 }}>
+                    <div className="flex gap-1">
                       {["chart","table"].map(v => (
-                        <button key={v} onClick={() => setLogView(v)} style={{
-                          padding:"2px 9px", fontSize:10, fontWeight:900, letterSpacing:"0.08em", borderRadius:5,
-                          border:`1px solid ${logView === v ? `${C.redBright}60` : C.border}`,
-                          background: logView === v ? `${C.red}25` : "transparent",
-                          color: logView === v ? C.redText : C.textDim,
-                          cursor:"pointer", fontFamily:"inherit", textTransform:"uppercase",
-                        }}>{v}</button>
+                        <button key={v} onClick={() => setLogView(v)} className={viewBtn(v)}>{v}</button>
                       ))}
                     </div>
                   </div>
 
                   {seasons.length > 2 && (
-                    <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:6 }}>
+                    <div className="flex gap-1 flex-wrap mb-1.5">
                       {seasons.map(s => (
-                        <button key={s} style={filterBtnStyle(selSeason === s)} onClick={() => setSelSeason(s)}>{s}</button>
+                        <button key={s} className={filterBtn(selSeason === s)} onClick={() => setSelSeason(s)}>{s}</button>
                       ))}
                     </div>
                   )}
 
                   {leagues.length > 2 && (
-                    <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:6 }}>
+                    <div className="flex gap-1 flex-wrap mb-1.5">
                       {leagues.map(l => (
-                        <button key={l} style={filterBtnStyle(selLeague === l)} onClick={() => setSelLeague(l)}>
+                        <button key={l} className={filterBtn(selLeague === l)} onClick={() => setSelLeague(l)}>
                           {l === "rookie" ? "Rookie" : l === "bc6" ? "BC6" : l === "wintercup" ? "Winter Cup" : l}
                         </button>
                       ))}
                     </div>
                   )}
 
-                  <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:6 }}>
+                  {/* Stat selector -- per-stat active colours from build-time lookup map */}
+                  <div className="flex gap-1 flex-wrap mb-1.5">
                     {STAT_OPTIONS.map(o => (
-                      <button key={o.key} style={statBtnStyle(o.key, o.color)} onClick={() => setSelStat(o.key)}>{o.label}</button>
+                      <button
+                        key={o.key}
+                        onClick={() => setSelStat(o.key)}
+                        className={[
+                          "py-[3px] px-[10px] text-[10px] font-black tracking-[0.1em] rounded-md border cursor-pointer font-sans",
+                          selStat === o.key
+                            ? o.activeClass
+                            : "border-ak-border bg-transparent text-ak-text-dim",
+                        ].join(" ")}
+                      >
+                        {o.label}
+                      </button>
                     ))}
                   </div>
 
                   {logView === "chart" ? (
-                    <div style={{ borderRadius:12, border:`1px solid ${C.border}`, padding:8, background:C.base }}>
+                    <div className="rounded-xl border border-ak-border p-2 bg-ak-base">
                       {filtered.length === 0 ? (
-                        <div style={{ height:200, display:"flex", alignItems:"center", justifyContent:"center", color:C.textDim, fontSize:12 }}>No games match this filter</div>
+                        <div className="h-[200px] flex items-center justify-center text-ak-text-dim text-xs">
+                          No games match this filter
+                        </div>
                       ) : (
                         <ResponsiveContainer width="100%" height={200}>
                           <LineChart data={filtered} margin={{ top:8, right:4, left:-24, bottom:0 }}>
@@ -267,33 +304,49 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
                       )}
                     </div>
                   ) : (
-                    <div style={{ borderRadius:12, border:`1px solid ${C.border}`, background:C.base, overflow:"hidden" }}>
+                    <div className="rounded-xl border border-ak-border bg-ak-base overflow-hidden">
                       {filtered.length === 0 ? (
-                        <div style={{ height:80, display:"flex", alignItems:"center", justifyContent:"center", color:C.textDim, fontSize:12 }}>No games match this filter</div>
+                        <div className="h-20 flex items-center justify-center text-ak-text-dim text-xs">
+                          No games match this filter
+                        </div>
                       ) : (
-                        <div style={{ overflowY:"auto", maxHeight:260 }}>
-                          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11 }}>
-                            <thead style={{ position:"sticky", top:0, background:C.surface2, zIndex:1 }}>
+                        <div className="overflow-y-auto max-h-[260px]">
+                          <table className="w-full border-collapse text-[11px]">
+                            <thead className="sticky top-0 bg-ak-surface2 z-[1]">
                               <tr>
                                 {["#","Date","vs","MIN","PTS","REB","AST","STL","BLK","FT","EFF"].map(h => (
-                                  <th key={h} style={{ padding:"5px 7px", textAlign: h === "vs" || h === "Date" ? "left" : "center", fontWeight:900, letterSpacing:"0.08em", color:C.textDim, borderBottom:`1px solid ${C.border}`, whiteSpace:"nowrap" }}>{h}</th>
+                                  <th
+                                    key={h}
+                                    className={[
+                                      "py-[5px] px-[7px] font-black tracking-[0.08em] text-ak-text-dim border-b border-ak-border whitespace-nowrap",
+                                      h === "vs" || h === "Date" ? "text-left" : "text-center",
+                                    ].join(" ")}
+                                  >
+                                    {h}
+                                  </th>
                                 ))}
                               </tr>
                             </thead>
                             <tbody>
                               {filtered.map((g: any, i: number) => (
-                                <tr key={g.gameId || i} style={{ background: i % 2 === 0 ? C.base : "transparent", borderBottom:`1px solid ${C.border}` }}>
-                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.textDim, fontWeight:700 }}>{i+1}</td>
-                                  <td style={{ padding:"5px 7px", color:C.textDim, whiteSpace:"nowrap" }}>{g.date ? g.date.slice(5) : "--"}</td>
-                                  <td style={{ padding:"5px 7px", color:C.textSub, maxWidth:90, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{g.opponent || "--"}</td>
-                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.textDim }}>{g.min > 0 ? fmtMinutes(g.min) : "--"}</td>
-                                  <td style={{ padding:"5px 7px", textAlign:"center", fontWeight:900, color:C.redText }}>{g.pts}</td>
-                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.text }}>{g.reb}</td>
-                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.text }}>{g.ast}</td>
-                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.text }}>{g.stl}</td>
-                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.text }}>{g.blk}</td>
-                                  <td style={{ padding:"5px 7px", textAlign:"center", color:C.text, whiteSpace:"nowrap" }}>{g.fta > 0 ? `${g.ftm}/${g.fta}` : "--"}</td>
-                                  <td style={{ padding:"5px 7px", textAlign:"center", fontWeight:900, color:C.gold }}>{g.eff}</td>
+                                <tr
+                                  key={g.gameId || i}
+                                  className={[
+                                    "border-b border-ak-border",
+                                    i % 2 === 0 ? "bg-ak-base" : "bg-transparent",
+                                  ].join(" ")}
+                                >
+                                  <td className="py-[5px] px-[7px] text-center text-ak-text-dim font-bold">{i+1}</td>
+                                  <td className="py-[5px] px-[7px] text-ak-text-dim whitespace-nowrap">{g.date ? g.date.slice(5) : "--"}</td>
+                                  <td className="py-[5px] px-[7px] text-ak-text-sub max-w-[90px] overflow-hidden text-ellipsis whitespace-nowrap">{g.opponent || "--"}</td>
+                                  <td className="py-[5px] px-[7px] text-center text-ak-text-dim">{g.min > 0 ? fmtMinutes(g.min) : "--"}</td>
+                                  <td className="py-[5px] px-[7px] text-center font-black text-ak-red-text">{g.pts}</td>
+                                  <td className="py-[5px] px-[7px] text-center text-ak-text">{g.reb}</td>
+                                  <td className="py-[5px] px-[7px] text-center text-ak-text">{g.ast}</td>
+                                  <td className="py-[5px] px-[7px] text-center text-ak-text">{g.stl}</td>
+                                  <td className="py-[5px] px-[7px] text-center text-ak-text">{g.blk}</td>
+                                  <td className="py-[5px] px-[7px] text-center text-ak-text whitespace-nowrap">{g.fta > 0 ? `${g.ftm}/${g.fta}` : "--"}</td>
+                                  <td className="py-[5px] px-[7px] text-center font-black text-ak-gold">{g.eff}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -308,8 +361,8 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
           )}
 
           {!hasStats && (
-            <div style={{ textAlign:"center", padding:"24px 0", color:C.textDim }}>
-              <div style={{ fontSize:13 }}>No stats recorded yet for this player.</div>
+            <div className="text-center py-6 text-ak-text-dim">
+              <div className="text-[13px]">No stats recorded yet for this player.</div>
             </div>
           )}
         </div>
