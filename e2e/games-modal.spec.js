@@ -69,8 +69,8 @@ test.describe("Games page box score modal", () => {
 
     await card.click();
 
-    // Modal backdrop appears (fixed overlay)
-    await expect(page.locator("div[style*='position:fixed'], div[style*='position: fixed']").first())
+    // Modal backdrop appears (fixed overlay -- uses Tailwind `fixed` class, not inline style)
+    await expect(page.locator("div.fixed").first())
       .toBeVisible({ timeout: 8000 });
   });
 
