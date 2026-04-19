@@ -1,7 +1,6 @@
 import { useState } from "react";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
-import { C } from "../lib/theme";
 import { getAllPublicData, getAllSeasonsStats } from "../lib/data";
 import { buildAllTimeStatsMap } from "../lib/stats";
 import { fmt, fmtMinutes } from "../lib/utils";
@@ -10,10 +9,11 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import { PlayerDetail } from "../components/PlayerDetail";
 
 const MEDALS = [
-  { color:C.gold,   label:"🥇", bg:`${C.gold}18`,   border:`${C.gold}45`   },
-  { color:C.silver, label:"🥈", bg:`${C.silver}15`, border:`${C.silver}40` },
-  { color:C.bronze, label:"🥉", bg:`${C.bronze}15`, border:`${C.bronze}40` },
+  { label: "🥇", textCls: "text-ak-gold",   rowBgCls: "bg-[#c9a84c18]", borderCls: "border-[#c9a84c45]", numBgCls: "bg-[#c9a84c30]", numBorderCls: "border-[#c9a84c55]" },
+  { label: "🥈", textCls: "text-ak-silver", rowBgCls: "bg-[#9ba3af15]", borderCls: "border-[#9ba3af40]", numBgCls: "bg-[#9ba3af30]", numBorderCls: "border-[#9ba3af55]" },
+  { label: "🥉", textCls: "text-ak-bronze", rowBgCls: "bg-[#b8733315]", borderCls: "border-[#b8733340]", numBgCls: "bg-[#b8733330]", numBorderCls: "border-[#b8733355]" },
 ];
+
 const COLS = [
   { key:"mpg",   label:"MPG", title:"Minutes Per Game",        dec:1, min:true },
   { key:"ppg",   label:"PPG", title:"Points Per Game",         dec:1 },
@@ -99,112 +99,112 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
         onChange={sid => { setActiveSeason(sid); }}
         showAllTime={true}
         right={
-          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <div className="flex items-center gap-1.5">
             {(["avg","tot"] as const).map(m => (
-              <button key={m} onClick={() => handleViewMode(m)} style={{
-                padding:"3px 10px", fontSize:10, fontWeight:900, letterSpacing:"0.1em",
-                borderRadius:6, border:`1px solid ${viewMode===m ? `${C.redBright}60` : C.border}`,
-                background: viewMode===m ? `${C.red}25` : "transparent",
-                color: viewMode===m ? C.redText : C.textDim,
-                cursor:"pointer", fontFamily:"inherit",
-              }}>
+              <button
+                key={m}
+                onClick={() => handleViewMode(m)}
+                className={`px-[10px] py-[3px] text-[10px] font-black tracking-[0.1em] rounded-md cursor-pointer border transition-all duration-150 ${
+                  viewMode === m
+                    ? "border-[#c0392b60] bg-[#8b1a1a25] text-ak-red-text"
+                    : "border-ak-border bg-transparent text-ak-text-dim"
+                }`}
+              >
                 {m.toUpperCase()}
               </button>
             ))}
-            <span style={{ fontSize:11, color:C.textDim, marginLeft:4 }}>Click column to sort</span>
+            <span className="text-[11px] text-ak-text-dim ml-1">Click column to sort</span>
           </div>
         }
       />
 
-      <div style={{ fontSize:12, color:C.textDim, marginBottom:16 }}>
-        Sorted by: <span style={{ color:C.redText, fontWeight:900 }}>{activeCols.find(c=>c.key===sortKey)?.title}</span>
-        <span style={{ color:C.textDim }}> {sortDir==="desc"?"↓":"↑"}</span>
+      <div className="text-xs text-ak-text-dim mb-4">
+        Sorted by: <span className="text-ak-red-text font-black">{activeCols.find(c=>c.key===sortKey)?.title}</span>
+        <span className="text-ak-text-dim"> {sortDir==="desc"?"↓":"↑"}</span>
       </div>
 
       <ErrorBoundary label="Leaderboard table failed to load">
-      <div style={{ borderRadius:12, border:`1px solid ${C.border}`, overflow:"hidden" }}>
-        <div style={{ overflowX:"auto" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
-            <thead>
-              <tr style={{ background:C.base, borderBottom:`1px solid ${C.border2}` }}>
-                <th style={{ padding:"10px 14px", textAlign:"left", fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim, width:32 }}>#</th>
-                <th style={{ padding:"10px 14px", textAlign:"left", fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim, minWidth:160 }}>PLAYER</th>
-                <th style={{ padding:"10px 8px", fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim, minWidth:48 }}>POS</th>
-                {activeCols.map(col => (
-                  <th key={col.key} onClick={() => handleSort(col.key)} title={col.title} style={{
-                    padding:"10px 8px", minWidth:52, cursor:"pointer", userSelect:"none",
-                  }}>
-                    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
-                      <span style={{ fontSize:10, fontWeight:900, letterSpacing:"0.1em", color: sortKey===col.key ? C.redText : C.textDim }}>
-                        {col.label} {sortKey===col.key ? (sortDir==="desc"?"↓":"↑") : ""}
-                      </span>
-                      {sortKey===col.key && <div style={{ height:2, width:16, borderRadius:1, background:C.redBright }} />}
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((p, idx) => {
-                const medal = idx < 3 ? MEDALS[idx] : null;
-                return (
-                  <tr
-                    key={p.id}
-                    onClick={() => setSelected(p)}
-                    style={{
-                      background: medal ? medal.bg : idx%2===0 ? C.surface : C.surface2,
-                      borderBottom:`1px solid ${C.border}`,
-                      cursor:"pointer",
-                    }}
-                  >
-                    <td style={{ padding:"10px 14px", textAlign:"center" }}>
-                      {medal ? <span style={{ fontSize:16 }}>{medal.label}</span>
-                              : <span style={{ fontSize:11, fontWeight:900, color:C.textDim }}>{idx+1}</span>}
-                    </td>
-                    <td style={{ padding:"10px 14px" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                        <div style={{
-                          width:26, height:26, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center",
-                          fontSize:10, fontWeight:900, flexShrink:0,
-                          background: medal ? `${medal.color}30` : C.border,
-                          color: medal ? medal.color : C.textSub,
-                          border: medal ? `1px solid ${medal.color}55` : "none",
-                        }}>{p.number}</div>
-                        <span style={{ fontWeight:900, color: medal ? medal.color : C.text }}>{fmt(p.name)}</span>
+        <div className="rounded-xl border border-ak-border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-[13px]">
+              <thead>
+                <tr className="bg-ak-base border-b border-ak-border2">
+                  <th className="px-[14px] py-[10px] text-left text-[10px] font-black tracking-[0.12em] text-ak-text-dim w-8">#</th>
+                  <th className="px-[14px] py-[10px] text-left text-[10px] font-black tracking-[0.12em] text-ak-text-dim min-w-[160px]">PLAYER</th>
+                  <th className="px-2 py-[10px] text-[10px] font-black tracking-[0.12em] text-ak-text-dim min-w-[48px]">POS</th>
+                  {activeCols.map(col => (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSort(col.key)}
+                      title={col.title}
+                      className="px-2 py-[10px] min-w-[52px] cursor-pointer select-none"
+                    >
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className={`text-[10px] font-black tracking-[0.1em] ${sortKey===col.key ? "text-ak-red-text" : "text-ak-text-dim"}`}>
+                          {col.label} {sortKey===col.key ? (sortDir==="desc"?"↓":"↑") : ""}
+                        </span>
+                        {sortKey===col.key && <div className="h-0.5 w-4 rounded-full bg-ak-red-bright" />}
                       </div>
-                    </td>
-                    <td style={{ padding:"10px 8px", textAlign:"center", fontSize:11, fontWeight:700, color:C.textDim }}>{p.position.split("/")[0]}</td>
-                    {activeCols.map(col => {
-                      const val = p.stats[col.key];
-                      const display = (col as any).pct
-                        ? ((col as any).denom ? p.stats[(col as any).denom] > 0 : val > 0) ? `${val.toFixed(col.dec)}%` : "--"
-                        : (col as any).min
-                          ? (val > 0 ? fmtMinutes(val) : "--")
-                          : col.dec === 0
-                            ? (val != null ? String(val) : "--")
-                            : val?.toFixed(col.dec) ?? "--";
-                      return (
-                        <td key={col.key} style={{ padding:"10px 8px", textAlign:"center" }}>
-                          <span style={{ fontWeight: col.key===sortKey ? 900 : 600, color: col.key===sortKey && idx===0 ? C.redText : col.key===sortKey ? C.text : C.textSub }}>
-                            {display}
-                          </span>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((p, idx) => {
+                  const medal = idx < 3 ? MEDALS[idx] : null;
+                  return (
+                    <tr
+                      key={p.id}
+                      onClick={() => setSelected(p)}
+                      className={`border-b border-ak-border cursor-pointer ${medal ? medal.rowBgCls : idx%2===0 ? "bg-ak-surface" : "bg-ak-surface2"}`}
+                    >
+                      <td className="px-[14px] py-[10px] text-center">
+                        {medal
+                          ? <span className="text-base">{medal.label}</span>
+                          : <span className="text-[11px] font-black text-ak-text-dim">{idx+1}</span>}
+                      </td>
+                      <td className="px-[14px] py-[10px]">
+                        <div className="flex items-center gap-[10px]">
+                          <div className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-[10px] font-black shrink-0 ${
+                            medal
+                              ? `${medal.numBgCls} ${medal.textCls} border ${medal.numBorderCls}`
+                              : "bg-ak-border text-ak-text-sub"
+                          }`}>{p.number}</div>
+                          <span className={`font-black ${medal ? medal.textCls : "text-ak-text"}`}>{fmt(p.name)}</span>
+                        </div>
+                      </td>
+                      <td className="px-2 py-[10px] text-center text-[11px] font-bold text-ak-text-dim">{p.position.split("/")[0]}</td>
+                      {activeCols.map(col => {
+                        const val = p.stats[col.key];
+                        const display = (col as any).pct
+                          ? ((col as any).denom ? p.stats[(col as any).denom] > 0 : val > 0) ? `${val.toFixed(col.dec)}%` : "--"
+                          : (col as any).min
+                            ? (val > 0 ? fmtMinutes(val) : "--")
+                            : col.dec === 0
+                              ? (val != null ? String(val) : "--")
+                              : val?.toFixed(col.dec) ?? "--";
+                        return (
+                          <td key={col.key} className="px-2 py-[10px] text-center">
+                            <span className={`${col.key===sortKey ? "font-black" : "font-semibold"} ${col.key===sortKey && idx===0 ? "text-ak-red-text" : col.key===sortKey ? "text-ak-text" : "text-ak-text-sub"}`}>
+                              {display}
+                            </span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-
       </ErrorBoundary>
-      <div style={{ display:"flex", gap:20, flexWrap:"wrap", marginTop:16 }}>
+
+      <div className="flex gap-5 flex-wrap mt-4">
         {MEDALS.map((m,i) => (
-          <div key={i} style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <div key={i} className="flex items-center gap-1.5">
             <span>{m.label}</span>
-            <span style={{ fontSize:12, fontWeight:700, color:m.color }}>{["1st","2nd","3rd"][i]} place</span>
+            <span className={`text-xs font-bold ${m.textCls}`}>{["1st","2nd","3rd"][i]} place</span>
           </div>
         ))}
       </div>
