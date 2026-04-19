@@ -22,7 +22,7 @@
     "@vercel/analytics": "^2.0.1",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
-    "next": "16.2.3",
+    "next": "16.2.4",
     "nodemailer": "^8.0.5",
     "otpauth": "^9.5.0",
     "pg": "^8.20.0",
