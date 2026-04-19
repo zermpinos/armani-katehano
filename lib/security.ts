@@ -78,6 +78,7 @@ export const verifyPayload = verifySession;
  * requireAuth.js calls getSessionToken(req) before passing to verifyPayload().
  */
 export function getSessionToken(req: any) {
+  // eslint-disable-next-line security/detect-object-injection
   return req.cookies?.[COOKIE_NAME] ?? "";
 }
 
