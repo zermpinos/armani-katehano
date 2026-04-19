@@ -12,5 +12,6 @@ export const VENUE_MAP: Record<string, string> = {
 
 /** Returns the resolved Maps URL for a venue name. */
 export function getVenueUrl(venue: string): string {
-  return VENUE_MAP[venue] ?? `https://www.google.com/maps/search/${encodeURIComponent(venue)}`;
+  // eslint-disable-next-line security/detect-object-injection
+  return Object.hasOwn(VENUE_MAP, venue) ? VENUE_MAP[venue] : `https://www.google.com/maps/search/${encodeURIComponent(venue)}`;
 }
