@@ -147,6 +147,27 @@ function LoginForm({ onLogin, error }: { onLogin: (pw: string, captchaToken?: st
   );
 }
 
+// ─── Double-submit CSRF helpers ───────────────────────────────────────────────
+
+function getCsrfToken(): string {
+  if (typeof document === "undefined") return "";
+  const match = document.cookie.match(/(?:^|;\s*)__Host-ak_csrf=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
+const COACH_MUTATING = new Set(["POST", "PUT", "DELETE", "PATCH"]);
+
+function coachFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const method = ((init.method as string | undefined) ?? "GET").toUpperCase();
+  if (COACH_MUTATING.has(method)) {
+    const token = getCsrfToken();
+    if (token) {
+      init = { ...init, headers: { ...init.headers, "X-CSRF-Token": token } };
+    }
+  }
+  return fetch(url, init);
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function CoachPage() {
@@ -191,7 +212,7 @@ export default function CoachPage() {
 
   const handleLogin = useCallback(async (password: string, captchaToken?: string | null) => {
     setLoginError(null);
-    const res = await fetch("/api/coach/auth", {
+    const res = await coachFetch("/api/coach/auth", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ password, captchaToken }),
@@ -211,7 +232,7 @@ export default function CoachPage() {
   }, []);
 
   const handleLogout = useCallback(() => {
-    fetch("/api/coach/auth", { method: "DELETE" }).finally(() => setAuthed(false));
+    coachFetch("/api/coach/auth", { method: "DELETE" }).finally(() => setAuthed(false));
   }, []);
 
   // ── Data loading ──────────────────────────────────────────────────────────
@@ -318,7 +339,7 @@ export default function CoachPage() {
 
     setSaving(true);
     try {
-      const res = await fetch("/api/coach/roster-announcement", {
+      const res = await coachFetch("/api/coach/roster-announcement", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ upcomingGameId: panelGameId, message: rosterMsg || null, players }),
@@ -333,7 +354,7 @@ export default function CoachPage() {
   const resendEmail = async () => {
     setSaving(true);
     try {
-      const res = await fetch("/api/coach/roster-announcement", {
+      const res = await coachFetch("/api/coach/roster-announcement", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ upcomingGameId: panelGameId, resend: true }),
@@ -346,7 +367,7 @@ export default function CoachPage() {
   const removeAnnouncement = async () => {
     setSaving(true);
     try {
-      const res = await fetch("/api/coach/roster-announcement", {
+      const res = await coachFetch("/api/coach/roster-announcement", {
         method:  "DELETE",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ upcomingGameId: panelGameId }),
@@ -365,7 +386,7 @@ export default function CoachPage() {
     if (newPw.length < 8)    { setChangePwError("Password must be at least 8 characters."); return; }
     setChangingPw(true);
     try {
-      const res = await fetch("/api/coach/change-password", {
+      const res = await coachFetch("/api/coach/change-password", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),

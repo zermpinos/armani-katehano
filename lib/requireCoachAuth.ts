@@ -10,7 +10,7 @@
  *   4. Session not older than COACH_SESSION_TTL_S
  */
 
-import { securityHeaders, auditLog, csrfCheck, getClientIp } from "./security";
+import { securityHeaders, auditLog, csrfCheck, csrfTokenCheck, getClientIp } from "./security";
 import {
   getCoachSessionToken,
   verifyCoachSession,
@@ -27,6 +27,10 @@ export function requireCoachAuth(handler: (req: any, res: any) => any) {
     // ── CSRF ──────────────────────────────────────────────────────────────────
     if (!csrfCheck(req, { strict: true })) {
       auditLog("coach_csrf_blocked", { ip, path: req.url, method: req.method });
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    if (!csrfTokenCheck(req)) {
+      auditLog("coach_csrf_token_blocked", { ip, path: req.url, method: req.method });
       return res.status(403).json({ error: "Forbidden" });
     }
 

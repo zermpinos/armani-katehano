@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, useAdminAuth, byJersey } from "../../../lib/adminShared";
+import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, useAdminAuth, byJersey, apiFetch } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck';
 import { POSITIONS } from '../../../lib/positions';
 
@@ -50,7 +50,7 @@ export default function RosterPage({ validSlug }: any) {
     if (!draft.name?.trim())        { showToast("Name is required", "error"); return; }
     if (draft.number === "" || draft.number === undefined) { showToast("Jersey number is required", "error"); return; }
     const isNew = editId === "new";
-    const res = await fetch("/api/admin/players", {
+    const res = await apiFetch("/api/admin/players", {
       method:  isNew ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify(isNew ? draft : { playerId: editId, ...draft }),
