@@ -2,7 +2,6 @@ import { useState } from "react";
 import Image from "next/image";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
-import { C } from "../lib/theme";
 import { getAllPublicData, getAllSeasonsStats } from "../lib/data";
 import { buildAllTimeStatsMap } from "../lib/stats";
 import { fmt } from "../lib/utils";
@@ -12,50 +11,46 @@ import { PlayerDetail } from "../components/PlayerDetail";
 const playerImg = (player: any) => player.photoUrl || null;
 
 function PlayerCard({ player, onClick }: any) {
-  const [hov, setHov] = useState(false);
   const s = player.stats;
   const hasStats = s.gp > 0;
   return (
-    <button onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} style={{
-      borderRadius:12, overflow:"hidden", textAlign:"left", width:"100%", cursor:"pointer",
-      border:`1px solid ${hov ? `${C.redBright}55` : C.border}`,
-      background:C.surface, boxShadow: hov ? `0 8px 32px ${C.red}30` : "none",
-      transition:"all 0.2s", fontFamily:"inherit",
-      opacity: hasStats ? 1 : 0.55,
-    }}>
-      <div style={{ height:170, display:"flex", alignItems:"flex-end", justifyContent:"center", background:C.base, position:"relative" }}>
+    <button
+      onClick={onClick}
+      className={`group rounded-xl overflow-hidden text-left w-full cursor-pointer border border-ak-border bg-ak-surface transition-all duration-200 hover:border-[#c0392b55] hover:shadow-[0_8px_32px_#8b1a1a30] ${hasStats ? "opacity-100" : "opacity-55"}`}
+    >
+      <div className="h-[170px] flex items-end justify-center bg-ak-base relative">
         {playerImg(player)
-          ? <Image src={playerImg(player)} alt={player.name} fill style={{ objectFit:"cover", objectPosition:"top" }} />
-          : <span style={{ fontSize:52, lineHeight:1, paddingBottom:12, zIndex:1, position:"relative" }}>🏀</span>
+          ? <Image src={playerImg(player)} alt={player.name} fill className="object-cover object-top" />
+          : <span className="text-[52px] leading-none pb-3 z-[1] relative">🏀</span>
         }
         {/* gradient overlay */}
-        <div style={{ position:"absolute", bottom:0, left:0, right:0, height:64, background:"linear-gradient(to bottom, transparent, rgba(28,28,30,0.9))", zIndex:1, pointerEvents:"none" }} />
-        <div style={{ position:"absolute", top:10, right:10, width:26, height:26, borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, background:C.red, color:C.text, zIndex:2 }}>{player.number}</div>
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-[rgba(28,28,30,0.9)] z-[1] pointer-events-none" />
+        <div className="absolute top-[10px] right-[10px] w-[26px] h-[26px] rounded-md flex items-center justify-center text-[11px] font-black bg-ak-red text-ak-text z-[2]">{player.number}</div>
         {hasStats && (
-          <div style={{ position:"absolute", bottom:8, left:10, fontSize:10, fontWeight:900, letterSpacing:"0.1em", color:C.textSub, background:"rgba(28,28,30,0.7)", borderRadius:6, padding:"2px 7px", zIndex:2 }}>{s.gp} GP</div>
+          <div className="absolute bottom-2 left-[10px] text-[10px] font-black tracking-[0.1em] text-ak-text-sub bg-[rgba(28,28,30,0.7)] rounded-md px-[7px] py-0.5 z-[2]">{s.gp} GP</div>
         )}
       </div>
-      <div style={{ padding:14 }}>
-        <div style={{ fontSize:13, fontWeight:900, color: hov ? C.redText : C.text, transition:"color 0.2s", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{fmt(player.name)}</div>
-        <div style={{ marginTop:6 }}>
-          <span style={{ fontSize:10, fontWeight:900, letterSpacing:"0.12em", borderRadius:99, padding:"2px 8px", color:C.textSub, background:C.surface2, border:`1px solid ${C.border2}` }}>{player.position}</span>
+      <div className="p-[14px]">
+        <div className="text-[13px] font-black overflow-hidden text-ellipsis whitespace-nowrap transition-colors duration-200 text-ak-text group-hover:text-ak-red-text">{fmt(player.name)}</div>
+        <div className="mt-1.5">
+          <span className="text-[10px] font-black tracking-[0.12em] rounded-full px-2 py-0.5 text-ak-text-sub bg-ak-surface2 border border-ak-border2">{player.position}</span>
         </div>
-        <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${C.border}` }}>
+        <div className="mt-3 pt-3 border-t border-ak-border">
           {hasStats ? (
-            <div style={{ display:"flex", gap:0 }}>
+            <div className="flex">
               {[["PPG",s.ppg],["RPG",s.rpg],["APG",s.apg],["EFF",s.eff]].map(([l,v]) => (
-                <div key={l} style={{ flex:1, textAlign:"center" }}>
-                  <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim }}>{l}</div>
-                  <div style={{ fontSize:14, fontWeight:900, color: l === "EFF" ? C.gold : C.text, marginTop:2 }}>{v}</div>
+                <div key={l} className="flex-1 text-center">
+                  <div className="text-[10px] font-black tracking-[0.12em] text-ak-text-dim">{l}</div>
+                  <div className={`text-sm font-black mt-0.5 ${l === "EFF" ? "text-ak-gold" : "text-ak-text"}`}>{v}</div>
                 </div>
               ))}
             </div>
           ) : (
-            <div style={{ textAlign:"center", fontSize:10, fontWeight:700, letterSpacing:"0.1em", color:C.textDim, padding:"4px 0" }}>NO STATS YET</div>
+            <div className="text-center text-[10px] font-bold tracking-[0.1em] text-ak-text-dim py-1">NO STATS YET</div>
           )}
         </div>
       </div>
-      <div style={{ height:2, background:C.redBright, transform: hov ? "scaleX(1)" : "scaleX(0)", transformOrigin:"left", transition:"transform 0.3s" }} />
+      <div className="h-0.5 bg-ak-red-bright transition-transform duration-300 origin-left scale-x-0 group-hover:scale-x-100" />
     </button>
   );
 }
@@ -89,20 +84,16 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
         showAllTime={true}
         right={`${players.length} Players`}
       />
-      <div style={{ marginBottom:16 }}>
+      <div className="mb-4">
         <input
           type="text"
           placeholder="Search players..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{
-            width:"100%", maxWidth:260, padding:"7px 14px", borderRadius:8,
-            border:`1px solid ${C.border2}`, background:C.surface2, color:C.text,
-            fontSize:12, fontFamily:"inherit", outline:"none",
-          }}
+          className="w-full max-w-[260px] py-[7px] px-[14px] rounded-lg border border-ak-border2 bg-ak-surface2 text-ak-text text-xs outline-none"
         />
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(185px,1fr))", gap:14 }}>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-[14px]">
         {displayed.map(p => <PlayerCard key={p.id} player={p} onClick={() => setSelected(p)} />)}
       </div>
       {selected && <PlayerDetail player={selected} onClose={() => setSelected(null)} activeSeason={activeSeason} />}
