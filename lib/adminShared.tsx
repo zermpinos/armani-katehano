@@ -9,7 +9,7 @@
  *   Helpers:    byJersey, fmt
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { C } from './theme';
 import { fmt as _fmt } from './utils';
@@ -38,15 +38,16 @@ export function useAdminAuth(slug: any) {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleLogin = useCallback(async (username: string, password: string, totpToken: string) => {
+  const handleLogin = useCallback(async (username: string, password: string, totpToken: string, captchaToken?: string | null) => {
     setError(null);
     const res = await fetch('/api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, totpToken, slug }),
+      body: JSON.stringify({ username, password, totpToken, slug, captchaToken }),
     });
     if (res.ok) {
       setAuthed(true);
+      return { failed: false };
     } else {
       const body = await res.json().catch(() => ({}));
       if (res.status === 429) {
@@ -54,6 +55,7 @@ export function useAdminAuth(slug: any) {
       } else {
         setError(body.error ?? 'Invalid credentials.');
       }
+      return { failed: true, requiresCaptcha: body.requiresCaptcha ?? false };
     }
   }, [slug]);
 
@@ -226,17 +228,71 @@ export function Spinner() {
   );
 }
 
+// ─── TurnstileWidget ─────────────────────────────────────────────────────────
+export function TurnstileWidget({ onVerified, onExpired }: { onVerified: (token: string) => void; onExpired: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const widgetId = useRef<string | null>(null);
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+
+  useEffect(() => {
+    const render = () => {
+      const ts = (window as any).turnstile;
+      if (containerRef.current && ts && !widgetId.current) {
+        widgetId.current = ts.render(containerRef.current, {
+          sitekey: siteKey,
+          callback: onVerified,
+          "expired-callback": onExpired,
+          theme: "dark",
+        });
+      }
+    };
+
+    if ((window as any).turnstile) {
+      render();
+    } else {
+      const existing = document.getElementById("cf-turnstile-script");
+      if (!existing) {
+        const script = document.createElement("script");
+        script.id = "cf-turnstile-script";
+        script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+        script.async = true;
+        script.defer = true;
+        script.onload = render;
+        document.head.appendChild(script);
+      } else {
+        existing.addEventListener("load", render);
+      }
+    }
+
+    return () => {
+      if (widgetId.current && (window as any).turnstile) {
+        (window as any).turnstile.remove(widgetId.current);
+        widgetId.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteKey]);
+
+  return <div ref={containerRef} style={{ margin: "4px 0" }} />;
+}
+
 // ─── LoginForm ────────────────────────────────────────────────────────────────
 export function LoginForm({ onLogin, error }: { onLogin: any; error: any }) {
-  const [username,   setUsername]   = useState('');
-  const [password,   setPassword]   = useState('');
-  const [totpToken,  setTotpToken]  = useState('');
-  const [loading,    setLoading]    = useState(false);
+  const [username,      setUsername]      = useState('');
+  const [password,      setPassword]      = useState('');
+  const [totpToken,     setTotpToken]     = useState('');
+  const [loading,       setLoading]       = useState(false);
+  const [failCount,     setFailCount]     = useState(0);
+  const [captchaToken,  setCaptchaToken]  = useState<string | null>(null);
+
+  const needsCaptcha = failCount >= 3;
 
   const submit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
-    await onLogin(username, password, totpToken);
+    const result = await onLogin(username, password, totpToken, captchaToken);
+    if (result?.failed) setFailCount(c => c + 1);
+    if (result?.requiresCaptcha) setCaptchaToken(null);
     setLoading(false);
   };
 
@@ -263,9 +319,15 @@ export function LoginForm({ onLogin, error }: { onLogin: any; error: any }) {
           <label style={labelStyle}>Authenticator code</label>
           <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} value={totpToken} onChange={e => setTotpToken(e.target.value.replace(/\D/g, ''))} placeholder="6-digit code" autoComplete="one-time-code" style={inputStyle} />
         </div>
+        {needsCaptcha && (
+          <TurnstileWidget
+            onVerified={setCaptchaToken}
+            onExpired={() => setCaptchaToken(null)}
+          />
+        )}
         {error && <div style={{ fontSize: 12, color: C.redText }}>{error}</div>}
-        <button type="submit" disabled={loading || !username || !password}
-          style={{ padding: '12px', fontWeight: 900, fontSize: 14, letterSpacing: '0.12em', textTransform: 'uppercase', borderRadius: 10, border: 'none', background: C.red, color: C.text, cursor: 'pointer', fontFamily: 'inherit', opacity: loading || !username || !password ? 0.5 : 1 }}>
+        <button type="submit" disabled={loading || !username || !password || (needsCaptcha && !captchaToken)}
+          style={{ padding: '12px', fontWeight: 900, fontSize: 14, letterSpacing: '0.12em', textTransform: 'uppercase', borderRadius: 10, border: 'none', background: C.red, color: C.text, cursor: 'pointer', fontFamily: 'inherit', opacity: loading || !username || !password || (needsCaptcha && !captchaToken) ? 0.5 : 1 }}>
           {loading ? 'VERIFYING...' : 'SIGN IN'}
         </button>
       </form>
