@@ -9,6 +9,9 @@ import SeasonSelector from "../components/SeasonSelector";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "../components/Charts";
 
+const TAB_BASE = "px-4 py-[6px] text-[11px] font-black tracking-[0.12em] uppercase rounded-lg cursor-pointer border transition-all duration-150";
+const TAB_ACTIVE   = "border-ak-red bg-ak-red text-ak-text";
+const TAB_INACTIVE = "border-ak-border bg-transparent text-ak-text-dim";
 
 export default function TeamPage({ players, games, seasons, currentSeason }: any) {
   const [league, setLeague] = useState("all");
@@ -90,31 +93,13 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
     .filter(Boolean)
     .sort((a: any, b: any) => b.mpg - a.mpg);
 
-  // Dynamic height: 36px per player row
-  const chartHeight = Math.max(200, minutesDist.length * 36 + 20);
-
-  const tabStyle = (key: any) => ({
-    padding: "6px 16px",
-    fontSize: 11,
-    fontWeight: 900,
-    letterSpacing: "0.12em",
-    textTransform: "uppercase",
-    borderRadius: 8,
-    border: `1px solid ${league === key ? C.red : C.border}`,
-    background: league === key ? C.red : "transparent",
-    color: league === key ? C.text : C.textDim,
-    cursor: "pointer",
-    fontFamily: "inherit",
-    transition: "all 0.15s",
-  });
-
   if (games.length === 0) {
     return (
       <Layout title="Team Stats">
         <SectionHeading label="2025–26 Season" title="Team Stats" />
-        <div style={{ textAlign:"center", padding:48, color:C.textDim }}>
-          <div style={{ fontSize:36, marginBottom:12 }}>📊</div>
-          <div style={{ fontSize:15, fontWeight:700 }}>No data yet</div>
+        <div className="text-center p-12 text-ak-text-dim">
+          <div className="text-4xl mb-3">📊</div>
+          <div className="text-[15px] font-bold">No data yet</div>
         </div>
       </Layout>
     );
@@ -127,22 +112,26 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
       <SeasonSelector seasons={seasons} currentSeason={currentSeason} onChange={handleSeasonChange} showAllTime={false} right={`${gp} Games Played`} />
 
       {/* League tabs — derived from games data, always reflects actual DB state */}
-      <div style={{ display:"flex", gap:8, marginBottom:24, flexWrap:"wrap" }}>
+      <div className="flex gap-2 mb-6 flex-wrap">
         {leagueTabs.map(t => (
-          <button key={t.key} style={tabStyle(t.key)} onClick={() => setLeague(t.key)}>
+          <button
+            key={t.key}
+            className={`${TAB_BASE} ${league === t.key ? TAB_ACTIVE : TAB_INACTIVE}`}
+            onClick={() => setLeague(t.key)}
+          >
             {t.label}
           </button>
         ))}
       </div>
 
       {gp === 0 ? (
-        <div style={{ textAlign:"center", padding:48, color:C.textDim, borderRadius:12, border:`1px solid ${C.border}`, background:C.surface }}>
-          <div style={{ fontSize:13, fontWeight:700 }}>No {leagueTabs.find(t => t.key === league)?.label ?? league} games recorded yet</div>
+        <div className="text-center p-12 text-ak-text-dim rounded-xl border border-ak-border bg-ak-surface">
+          <div className="text-[13px] font-bold">No {leagueTabs.find(t => t.key === league)?.label ?? league} games recorded yet</div>
         </div>
       ) : (
         <>
           {/* Key averages */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:12, marginBottom:24 }}>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-3 mb-6">
             <StatTile label="PPG"     value={rec.ppg}             sub="" highlight />
             <StatTile label="OPP PPG" value={rec.oppPpg}          sub="" />
             <StatTile label="RPG"     value={teamAvg.rpg}         sub="" />
@@ -158,30 +147,27 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
             <StatTile label="FT%"     value={`${teamAvg.ftPct}%`}  sub="" />
           </div>
 
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))", gap:20, marginBottom:20 }}>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-5 mb-5">
             {/* Record breakdown */}
-            <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
-              <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Record Breakdown</div>
+            <div className="rounded-xl p-5 border border-ak-border bg-ak-surface">
+              <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim mb-4 uppercase">Record Breakdown</div>
               {([
                 ["Overall", rec.wins,     rec.losses],
                 ["Home",    rec.homeWins, rec.homeLosses],
                 ["Away",    rec.awayWins, rec.awayLosses],
               ] as [string, number, number][]).map(([label, w, l]) => (
-                <div key={label} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-                  <span style={{ fontSize:13, fontWeight:700, color:C.textSub }}>{label}</span>
-                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                    <span style={{ fontSize:16, fontWeight:900, color:C.text }}>{w}–{l}</span>
-                    <span style={{ fontSize:11, color:C.textDim }}>{w+l > 0 ? `${(w/(w+l)*100).toFixed(0)}%` : "—"}</span>
+                <div key={label} className="flex items-center justify-between mb-3">
+                  <span className="text-[13px] font-bold text-ak-text-sub">{label}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-black text-ak-text">{w}–{l}</span>
+                    <span className="text-[11px] text-ak-text-dim">{w+l > 0 ? `${(w/(w+l)*100).toFixed(0)}%` : "—"}</span>
                   </div>
                 </div>
               ))}
-              <div style={{ marginTop:16, paddingTop:12, borderTop:`1px solid ${C.border}` }}>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                  <span style={{ fontSize:13, fontWeight:700, color:C.textSub }}>Current Streak</span>
-                  <span style={{
-                    fontSize:14, fontWeight:900,
-                    color: rec.streak.count === 0 ? C.textDim : rec.streak.type === "W" ? C.green : C.redText,
-                  }}>
+              <div className="mt-4 pt-3 border-t border-ak-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-bold text-ak-text-sub">Current Streak</span>
+                  <span className={`text-sm font-black ${rec.streak.count === 0 ? "text-ak-text-dim" : rec.streak.type === "W" ? "text-ak-green" : "text-ak-red-text"}`}>
                     {rec.streak.count === 0 ? "—" : `${rec.streak.count}${rec.streak.type}`}
                   </span>
                 </div>
@@ -189,20 +175,21 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
             </div>
 
             {/* Shooting */}
-            <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
-              <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Shooting Splits</div>
+            <div className="rounded-xl p-5 border border-ak-border bg-ak-surface">
+              <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim mb-4 uppercase">Shooting Splits</div>
               {([
                 ["Field Goals",  teamAvg.fgPct],
                 ["3-Pointers",   teamAvg.fg3Pct],
                 ["Free Throws",  teamAvg.ftPct],
               ] as [string, number][]).map(([label, val]) => (
-                <div key={label} style={{ marginBottom:12 }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-                    <span style={{ fontSize:12, fontWeight:700, color:C.textSub }}>{label}</span>
-                    <span style={{ fontSize:13, fontWeight:900, color:C.text }}>{val}%</span>
+                <div key={label} className="mb-3">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-xs font-bold text-ak-text-sub">{label}</span>
+                    <span className="text-[13px] font-black text-ak-text">{val}%</span>
                   </div>
-                  <div style={{ height:4, borderRadius:2, background:C.border }}>
-                    <div style={{ height:"100%", borderRadius:2, background:C.redBright, width:`${Math.min(100,val)}%`, transition:"width 0.4s" }} />
+                  <div className="h-1 rounded-sm bg-ak-border">
+                    {/* runtime float — unavoidable inline style */}
+                    <div className="h-full rounded-sm bg-ak-red-bright transition-[width] duration-[400ms]" style={{ width: `${Math.min(100, val)}%` }} />
                   </div>
                 </div>
               ))}
@@ -210,36 +197,36 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
           </div>
 
           {/* Top Scorers + Efficiency Leaders */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))", gap:20, marginBottom:20 }}>
-            <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
-              <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Top Scorers — PPG</div>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-5 mb-5">
+            <div className="rounded-xl p-5 border border-ak-border bg-ak-surface">
+              <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim mb-4 uppercase">Top Scorers — PPG</div>
               {playerPpg.length === 0
-                ? <div style={{ fontSize:12, color:C.textDim }}>No data</div>
+                ? <div className="text-xs text-ak-text-dim">No data</div>
                 : playerPpg.map((p: any, i: number) => (
-                  <div key={p.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <span style={{ fontSize:10, fontWeight:900, width:16, color:i===0?C.redText:C.textDim }}>{i+1}</span>
-                      <span style={{ fontSize:13, fontWeight:700, color:C.text }}>{fmt(p.name)}</span>
-                      <span style={{ fontSize:10, color:C.textDim }}>{p.gp}G</span>
+                  <div key={p.id} className="flex items-center justify-between mb-[10px]">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-black w-4 ${i===0 ? "text-ak-red-text" : "text-ak-text-dim"}`}>{i+1}</span>
+                      <span className="text-[13px] font-bold text-ak-text">{fmt(p.name)}</span>
+                      <span className="text-[10px] text-ak-text-dim">{p.gp}G</span>
                     </div>
-                    <span style={{ fontSize:16, fontWeight:900, color:i===0?C.redText:C.text }}>{p.ppg}</span>
+                    <span className={`text-base font-black ${i===0 ? "text-ak-red-text" : "text-ak-text"}`}>{p.ppg}</span>
                   </div>
                 ))
               }
             </div>
 
-            <div style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}>
-              <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Efficiency Leaders</div>
+            <div className="rounded-xl p-5 border border-ak-border bg-ak-surface">
+              <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim mb-4 uppercase">Efficiency Leaders</div>
               {playerEff.length === 0
-                ? <div style={{ fontSize:12, color:C.textDim }}>No data</div>
+                ? <div className="text-xs text-ak-text-dim">No data</div>
                 : playerEff.map((p: any, i: number) => (
-                  <div key={p.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <span style={{ fontSize:10, fontWeight:900, width:16, color:i===0?C.redText:C.textDim }}>{i+1}</span>
-                      <span style={{ fontSize:13, fontWeight:700, color:C.text }}>{fmt(p.name)}</span>
-                      <span style={{ fontSize:10, color:C.textDim }}>{p.gp}G</span>
+                  <div key={p.id} className="flex items-center justify-between mb-[10px]">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-black w-4 ${i===0 ? "text-ak-red-text" : "text-ak-text-dim"}`}>{i+1}</span>
+                      <span className="text-[13px] font-bold text-ak-text">{fmt(p.name)}</span>
+                      <span className="text-[10px] text-ak-text-dim">{p.gp}G</span>
                     </div>
-                    <span style={{ fontSize:16, fontWeight:900, color:i===0?C.redText:C.text }}>{p.eff}</span>
+                    <span className={`text-base font-black ${i===0 ? "text-ak-red-text" : "text-ak-text"}`}>{p.eff}</span>
                   </div>
                 ))
               }
@@ -249,11 +236,11 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
           {/* Minutes distribution — horizontal bar chart, mobile-friendly */}
           {minutesDist.length > 0 && (
             <div
-              style={{ borderRadius:12, padding:20, border:`1px solid ${C.border}`, background:C.surface }}
+              className="rounded-xl p-5 border border-ak-border bg-ak-surface"
               role="img"
               aria-label="Minutes Distribution Chart (MPG)"
             >
-              <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, marginBottom:16, textTransform:"uppercase" }}>Minutes Distribution (MPG)</div>
+              <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim mb-4 uppercase">Minutes Distribution (MPG)</div>
               <ResponsiveContainer width="100%" height={minutesDist.length * 40}>
                 <BarChart
                   data={minutesDist}
