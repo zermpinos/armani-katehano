@@ -11,7 +11,8 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.hoisted(() => {
-  process.env.SESSION_SECRET = "test-secret-coach-revocation";
+  process.env.SESSION_SECRET       = "test-secret-coach-revocation";
+  process.env.COACH_SESSION_SECRET = "test-coach-secret-revocation-xx";
 });
 
 vi.mock("../lib/prisma", () => ({ default: {} }));
@@ -21,9 +22,13 @@ vi.mock("../lib/coachAuth", async (importOriginal) => {
   return { ...actual, getCoachSessionVersion: vi.fn() };
 });
 
-import { signSession }             from "../lib/security";
-import { getCoachSessionVersion }  from "../lib/coachAuth";
+import { getCoachSessionVersion,
+         buildCoachSessionCookie } from "../lib/coachAuth";
 import { requireCoachAuth }        from "../lib/requireCoachAuth";
+
+function signCoach(payload: string): string {
+  return buildCoachSessionCookie(payload).split(";")[0].split("=").slice(1).join("=");
+}
 
 // Minimal handler protected by requireCoachAuth
 const protectedHandler = requireCoachAuth(async (_req, res) => {
@@ -64,7 +69,7 @@ describe("coach session-version revocation", () => {
 
   it("returns 401 'Session revoked' when cookie version is behind the current DB version", async () => {
     getCoachSessionVersion.mockResolvedValue(1);
-    const stale = signSession(JSON.stringify({ ts: Date.now(), role: "coach", v: 0 }));
+    const stale = signCoach(JSON.stringify({ ts: Date.now(), role: "coach", v: 0 }));
     const res = mockRes();
     await protectedHandler(coachReq(stale), res);
     expect(res.statusCode).toBe(401);
@@ -73,7 +78,7 @@ describe("coach session-version revocation", () => {
 
   it("returns 200 when session version matches the current DB version", async () => {
     getCoachSessionVersion.mockResolvedValue(2);
-    const current = signSession(JSON.stringify({ ts: Date.now(), role: "coach", v: 2 }));
+    const current = signCoach(JSON.stringify({ ts: Date.now(), role: "coach", v: 2 }));
     const res = mockRes();
     await protectedHandler(coachReq(current), res);
     expect(res.statusCode).toBe(200);
@@ -83,7 +88,7 @@ describe("coach session-version revocation", () => {
   it("treats a legacy session (no v field, defaults to 0) as revoked when DB version > 0", async () => {
     getCoachSessionVersion.mockResolvedValue(1);
     // Session issued before the version field was introduced
-    const legacy = signSession(JSON.stringify({ ts: Date.now(), role: "coach" }));
+    const legacy = signCoach(JSON.stringify({ ts: Date.now(), role: "coach" }));
     const res = mockRes();
     await protectedHandler(coachReq(legacy), res);
     expect(res.statusCode).toBe(401);
@@ -92,7 +97,7 @@ describe("coach session-version revocation", () => {
 
   it("accepts a legacy session (no v) when DB version is still 0 (no password change yet)", async () => {
     getCoachSessionVersion.mockResolvedValue(0);
-    const legacy = signSession(JSON.stringify({ ts: Date.now(), role: "coach" }));
+    const legacy = signCoach(JSON.stringify({ ts: Date.now(), role: "coach" }));
     const res = mockRes();
     await protectedHandler(coachReq(legacy), res);
     expect(res.statusCode).toBe(200);
