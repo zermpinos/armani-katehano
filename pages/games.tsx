@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, memo } from "react";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
 import SeasonSelector from "../components/SeasonSelector";
-import { C } from "../lib/theme";
 import { getAllGames, getPlayers, getSeasons, getConfig, getAllUpcomingGames, getAllSeasonsStats } from "../lib/data";
 import { buildAllTimeStatsMap } from "../lib/stats";
 import ErrorBoundary from "../components/ErrorBoundary";
@@ -82,7 +81,7 @@ function buildGoogleCalendarUrl(opponent: string, isoStr: string, venue?: string
 
 function GoogleCalIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
       <rect x="3" y="5" width="18" height="16" rx="2" fill="#fff" stroke="#4285F4" strokeWidth="1.5"/>
       <path d="M3 11h18" stroke="#4285F4" strokeWidth="1.5"/>
       <rect x="8" y="3" width="2" height="4" rx="1" fill="#4285F4"/>
@@ -96,7 +95,7 @@ function UpcomingGameModal({ game, onClose }: any) {
   const { label, tier } = getCountdownInfo(game.scheduledFor);
   const gameTime = formatGameTime(game.scheduledFor);
   const venue = game.notes;
-  const accentColor = tier === "today" ? C.gold : tier === "week" ? C.redText : C.textSub;
+  const accentCls = tier === "today" ? "text-ak-gold" : tier === "week" ? "text-ak-red-text" : "text-ak-text-sub";
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -105,40 +104,40 @@ function UpcomingGameModal({ game, onClose }: any) {
 
   return (
     <div
-      style={{ position:"fixed", inset:0, zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:16, background:"rgba(0,0,0,0.75)" }}
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/75"
       onClick={onClose}
     >
       <div
-        style={{ background:C.surface, borderRadius:16, padding:24, maxWidth:360, width:"100%", border:`1px solid ${C.border2}`, boxShadow:"0 8px 32px rgba(0,0,0,0.4)" }}
+        className="bg-ak-surface rounded-2xl p-6 max-w-[360px] w-full border border-ak-border2 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.18em", textTransform:"uppercase", color:accentColor, marginBottom:6 }}>
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1 min-w-0">
+            <div className={`text-[10px] font-black tracking-[0.18em] uppercase mb-1.5 ${accentCls}`}>
               {tier === "today" ? "⚡ Today" : "Upcoming"}
             </div>
-            <div style={{ fontSize:20, fontWeight:900, color:C.text, lineHeight:1.2 }}>
+            <div className="text-xl font-black text-ak-text leading-tight">
               {game.location === "home" ? "vs" : "@"} {game.opponent}
             </div>
             {game.competition && (
-              <div style={{ fontSize:12, color:C.textDim, marginTop:4 }}>{game.competition}</div>
+              <div className="text-xs text-ak-text-dim mt-1">{game.competition}</div>
             )}
           </div>
-          <button onClick={onClose} style={{ background:"none", border:"none", color:C.textDim, fontSize:24, cursor:"pointer", fontWeight:900, padding:"0 0 0 12px", lineHeight:1 }}>×</button>
+          <button onClick={onClose} className="bg-transparent border-0 text-ak-text-dim text-2xl cursor-pointer font-black pl-3 leading-none">×</button>
         </div>
 
         {/* Date / time / venue row */}
-        <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:20 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <span style={{ fontSize:13, fontWeight:700, color:accentColor }}>{label}</span>
-            <span style={{ fontSize:13, fontWeight:700, color:C.textSub }}>· {gameTime}</span>
+        <div className="flex flex-col gap-1.5 mb-5">
+          <div className="flex items-center gap-2">
+            <span className={`text-[13px] font-bold ${accentCls}`}>{label}</span>
+            <span className="text-[13px] font-bold text-ak-text-sub">· {gameTime}</span>
           </div>
           {venue && (
             <a
               href={getVenueUrl(venue)}
               target="_blank" rel="noopener noreferrer"
-              style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, color:C.textSub, textDecoration:"none" }}
+              className="inline-flex items-center gap-1 text-xs text-ak-text-sub no-underline"
             >
               📍 {venue}
             </a>
@@ -146,17 +145,17 @@ function UpcomingGameModal({ game, onClose }: any) {
         </div>
 
         {/* Calendar buttons */}
-        <div style={{ display:"flex", gap:8 }}>
+        <div className="flex gap-2">
           <a
             href={buildGoogleCalendarUrl(game.opponent, game.scheduledFor, venue)}
             target="_blank" rel="noopener noreferrer"
-            style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px 12px", borderRadius:8, border:"1px solid #4285F440", background:"#4285F410", color:"#4285F4", fontSize:12, fontWeight:700, textDecoration:"none" }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-[10px] px-3 rounded-lg border border-[#4285F440] bg-[#4285F410] text-[#4285F4] text-xs font-bold no-underline"
           >
             <GoogleCalIcon /> Google
           </a>
           <button
             onClick={() => downloadIcsFile(game.opponent, game.scheduledFor, venue)}
-            style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px 12px", borderRadius:8, border:`1px solid ${C.border2}`, background:C.base, color:C.textSub, fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-[10px] px-3 rounded-lg border border-ak-border2 bg-ak-base text-ak-text-sub text-xs font-bold cursor-pointer"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -208,22 +207,24 @@ const BoxScore = memo(function BoxScore({ game, players, onClose, isLoading, onP
   }, []);
 
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:100, overflowY:"auto", padding:"80px 16px 32px", background:"rgba(0,0,0,0.82)" }} onClick={onClose}>
-      <div style={{ maxWidth:900, margin:"0 auto", borderRadius:16, border:`1px solid ${C.border2}`, background:C.surface, overflow:"hidden" }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding:"18px 24px", display:"flex", justifyContent:"space-between", alignItems:"center", background:C.base, borderBottom:`1px solid ${C.border}` }}>
+    <div className="fixed inset-0 z-[100] overflow-y-auto pt-20 px-4 pb-8 bg-black/[0.82]" onClick={onClose}>
+      <div className="max-w-[900px] mx-auto rounded-2xl border border-ak-border2 bg-ak-surface overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-[18px] flex justify-between items-center bg-ak-base border-b border-ak-border">
           <div>
-            <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase", marginBottom:2 }}>{game.date}</div>
-            <div style={{ fontSize:17, fontWeight:900, color:C.text }}>{game.home ? "vs" : "@"} {game.opponent} · <span style={{ color: game.result==="W" ? C.green : C.redText }}>{game.result} {game.score}</span></div>
+            <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-0.5">{game.date}</div>
+            <div className="text-[17px] font-black text-ak-text">
+              {game.home ? "vs" : "@"} {game.opponent} · <span className={game.result==="W" ? "text-ak-green" : "text-ak-red-text"}>{game.result} {game.score}</span>
+            </div>
             {(game.sourceUrl || game.youtubeUrl) && (
-              <div style={{ display:"flex", gap:10, marginTop:8 }}>
+              <div className="flex gap-[10px] mt-2">
                 {game.sourceUrl && (
-                  <a href={game.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize:11, fontWeight:700, color:C.textDim, textDecoration:"none", padding:"3px 10px", borderRadius:6, border:`1px solid ${C.border2}`, display:"inline-flex", alignItems:"center", gap:5 }}
+                  <a href={game.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-ak-text-dim no-underline py-[3px] px-[10px] rounded-md border border-ak-border2 inline-flex items-center gap-[5px]"
                     onClick={e => e.stopPropagation()}>
                     Official Stats ↗
                   </a>
                 )}
                 {game.youtubeUrl && (
-                  <a href={game.youtubeUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize:11, fontWeight:700, color:"#ff4444", textDecoration:"none", padding:"3px 10px", borderRadius:6, border:"1px solid #ff444440", display:"inline-flex", alignItems:"center", gap:5 }}
+                  <a href={game.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-[#ff4444] no-underline py-[3px] px-[10px] rounded-md border border-[#ff444440] inline-flex items-center gap-[5px]"
                     onClick={e => e.stopPropagation()}>
                     Watch Replay ▶
                   </a>
@@ -231,51 +232,56 @@ const BoxScore = memo(function BoxScore({ game, players, onClose, isLoading, onP
               </div>
             )}
           </div>
-          <button onClick={onClose} style={{ fontSize:28, fontWeight:900, color:C.textDim, background:"none", border:"none", cursor:"pointer" }}>×</button>
+          <button onClick={onClose} className="text-[28px] font-black text-ak-text-dim bg-transparent border-0 cursor-pointer">×</button>
         </div>
         {isLoading ? (
-          <div style={{ padding:48, textAlign:"center", color:C.textDim }}>
-            <div style={{ fontSize:14, fontWeight:700 }}>Loading box score...</div>
+          <div className="p-12 text-center text-ak-text-dim">
+            <div className="text-sm font-bold">Loading box score...</div>
           </div>
         ) : (
           <>
-            <div style={{ overflowX:"auto", padding:"0 0 4px" }}>
-              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, minWidth:700 }}>
+            <div className="overflow-x-auto pb-1">
+              <table className="w-full border-collapse text-xs min-w-[700px]">
                 <thead>
-                  <tr style={{ background:C.base, borderBottom:`1px solid ${C.border2}` }}>
-                    <th style={{ padding:"8px 12px", textAlign:"left", fontSize:10, fontWeight:900, color:C.textDim, letterSpacing:"0.12em", minWidth:48 }}>#</th>
-                    <th style={{ padding:"8px 12px", textAlign:"left", fontSize:10, fontWeight:900, color:C.textDim, letterSpacing:"0.12em", minWidth:150 }}>PLAYER</th>
-                    {BOX_COLS.map(c => <th key={c.key} style={{ padding:"8px 8px", fontSize:10, fontWeight:900, color:c.key==="eff"?C.redText:C.textDim, letterSpacing:"0.1em", minWidth:44, textAlign:"center" }}>{c.label}</th>)}
+                  <tr className="bg-ak-base border-b border-ak-border2">
+                    <th className="px-3 py-2 text-left text-[10px] font-black text-ak-text-dim tracking-[0.12em] min-w-[48px]">#</th>
+                    <th className="px-3 py-2 text-left text-[10px] font-black text-ak-text-dim tracking-[0.12em] min-w-[150px]">PLAYER</th>
+                    {BOX_COLS.map(c => (
+                      <th key={c.key} className={`px-2 py-2 text-[10px] font-black tracking-[0.1em] min-w-[44px] text-center ${c.key==="eff" ? "text-ak-red-text" : "text-ak-text-dim"}`}>{c.label}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r: any, i: number) => (
-                    <tr key={r.pid} style={{ background: i%2===0 ? C.surface : C.surface2, borderBottom:`1px solid ${C.border}` }}>
-                      <td style={{ padding:"8px 12px", fontWeight:700, color:C.textDim }}>{r.player.number}</td>
-                      <td style={{ padding:"8px 12px" }}>
+                    <tr key={r.pid} className={`border-b border-ak-border ${i%2===0 ? "bg-ak-surface" : "bg-ak-surface2"}`}>
+                      <td className="px-3 py-2 font-bold text-ak-text-dim">{r.player.number}</td>
+                      <td className="px-3 py-2">
                         {onPlayerClick ? (
                           <button
                             onClick={() => onPlayerClick(r.pid)}
-                            style={{
-                              background:"none", border:"none", padding:0, textAlign:"left",
-                              cursor:"pointer", fontFamily:"inherit", color:"inherit",
-                              transition:"color 0.15s",
-                            }}
-                            onMouseEnter={e => { (e.currentTarget.querySelector("span") as HTMLElement).style.color = C.redText; }}
-                            onMouseLeave={e => { (e.currentTarget.querySelector("span") as HTMLElement).style.color = C.text; }}
+                            className="bg-transparent border-0 p-0 text-left cursor-pointer group"
                           >
-                            <span style={{ fontWeight:700, color:C.text, fontSize:13, display:"block", transition:"color 0.15s" }}>{fmt(r.player.name)}</span>
-                            <span style={{ fontSize:10, color:C.textDim, letterSpacing:"0.1em", display:"block" }}>{r.player.position}</span>
+                            <span className="font-bold text-ak-text text-[13px] block transition-colors duration-150 group-hover:text-ak-red-text">{fmt(r.player.name)}</span>
+                            <span className="text-[10px] text-ak-text-dim tracking-[0.1em] block">{r.player.position}</span>
                           </button>
                         ) : (
                           <>
-                            <div style={{ fontWeight:700, color:C.text, fontSize:13 }}>{fmt(r.player.name)}</div>
-                            <div style={{ fontSize:10, color:C.textDim, letterSpacing:"0.1em" }}>{r.player.position}</div>
+                            <div className="font-bold text-ak-text text-[13px]">{fmt(r.player.name)}</div>
+                            <div className="text-[10px] text-ak-text-dim tracking-[0.1em]">{r.player.position}</div>
                           </>
                         )}
                       </td>
                       {BOX_COLS.map(c => (
-                        <td key={c.key} style={{ padding:"8px 8px", textAlign:"center", color: c.key==="eff" ? (r[c.key] >= 15 ? C.redText : r[c.key] < 0 ? "#ff4444" : C.textSub) : c.key==="pts" && r.pts >= 15 ? C.redText : C.textSub, fontWeight: c.key==="pts"||c.key==="eff" ? 900 : 400 }}>
+                        <td
+                          key={c.key}
+                          className={`px-2 py-2 text-center ${c.key==="pts"||c.key==="eff" ? "font-black" : "font-normal"} ${
+                            c.key==="eff"
+                              ? (r[c.key] >= 15 ? "text-ak-red-text" : r[c.key] < 0 ? "text-[#ff4444]" : "text-ak-text-sub")
+                              : c.key==="pts" && r.pts >= 15
+                                ? "text-ak-red-text"
+                                : "text-ak-text-sub"
+                          }`}
+                        >
                           {c.key === "min" ? (r.min > 0 ? fmtMinutes(r.min) : "—") : (r[c.key] ?? 0)}
                         </td>
                       ))}
@@ -285,7 +291,7 @@ const BoxScore = memo(function BoxScore({ game, players, onClose, isLoading, onP
               </table>
             </div>
             {rows.length === 0 && (
-              <div style={{ padding:32, textAlign:"center", color:C.textDim, fontSize:13 }}>No box score recorded for this game.</div>
+              <div className="p-8 text-center text-ak-text-dim text-[13px]">No box score recorded for this game.</div>
             )}
           </>
         )}
@@ -298,27 +304,16 @@ function LeagueFilter({ leagues, selected, onChange }: any) {
   if (leagues.length <= 1) return null;
   const options = [{ slug: "all", name: "All" }, ...leagues];
   return (
-    <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:20 }}>
+    <div className="flex gap-1.5 flex-wrap mb-5">
       {options.map(l => {
         const active = l.slug === selected;
         return (
           <button
             key={l.slug}
             onClick={() => onChange(l.slug)}
-            style={{
-              padding: "5px 14px",
-              fontSize: 11,
-              fontWeight: 900,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              borderRadius: 8,
-              border: `1px solid ${active ? C.red : C.border}`,
-              background: active ? C.red : "transparent",
-              color: active ? C.text : C.textDim,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              transition: "all 0.15s",
-            }}
+            className={`py-[5px] px-[14px] text-[11px] font-black tracking-[0.12em] uppercase rounded-lg border cursor-pointer transition-all duration-150 ${
+              active ? "border-ak-red bg-ak-red text-ak-text" : "border-ak-border bg-transparent text-ak-text-dim"
+            }`}
           >
             {l.name}
           </button>
@@ -331,27 +326,22 @@ function LeagueFilter({ leagues, selected, onChange }: any) {
 function ResultFilter({ selected, onChange }: any) {
   const options = [{ value: "all", label: "All" }, { value: "W", label: "Wins" }, { value: "L", label: "Losses" }];
   return (
-    <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:20 }}>
+    <div className="flex gap-1.5 flex-wrap mb-5">
       {options.map(o => {
         const active = o.value === selected;
         return (
           <button
             key={o.value}
             onClick={() => onChange(o.value)}
-            style={{
-              padding: "5px 14px",
-              fontSize: 11,
-              fontWeight: 900,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              borderRadius: 8,
-              border: `1px solid ${active ? (o.value === "W" ? C.green : o.value === "L" ? C.redText : C.red) : C.border}`,
-              background: active ? (o.value === "W" ? `${C.green}25` : o.value === "L" ? `${C.red}30` : C.red) : "transparent",
-              color: active ? (o.value === "W" ? C.green : o.value === "L" ? C.redText : C.text) : C.textDim,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              transition: "all 0.15s",
-            }}
+            className={`py-[5px] px-[14px] text-[11px] font-black tracking-[0.12em] uppercase rounded-lg border cursor-pointer transition-all duration-150 ${
+              active
+                ? o.value === "W"
+                  ? "border-ak-green bg-[#4caf7d25] text-ak-green"
+                  : o.value === "L"
+                    ? "border-ak-red-text bg-[#8b1a1a30] text-ak-red-text"
+                    : "border-ak-red bg-ak-red text-ak-text"
+                : "border-ak-border bg-transparent text-ak-text-dim"
+            }`}
           >
             {o.label}
           </button>
@@ -424,47 +414,38 @@ function CalendarView({ games, upcomingGames, onGameClick, loadingBoxScore }: an
     <button
       onClick={onClick}
       disabled={disabled}
-      style={{
-        padding: "6px 14px",
-        borderRadius: 8,
-        border: `1px solid ${disabled ? C.border : C.border2}`,
-        background: "transparent",
-        color: disabled ? C.textDim : C.text,
-        cursor: disabled ? "default" : "pointer",
-        fontSize: 16,
-        fontFamily: "inherit",
-        fontWeight: 900,
-        opacity: disabled ? 0.3 : 1,
-        transition: "all 0.15s",
-        lineHeight: 1,
-      }}
+      className={`px-[14px] py-[6px] rounded-lg bg-transparent border transition-all duration-150 text-base font-black leading-none ${
+        disabled
+          ? "border-ak-border text-ak-text-dim cursor-default opacity-30"
+          : "border-ak-border2 text-ak-text cursor-pointer"
+      }`}
     >{label}</button>
   );
 
   return (
     <>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="flex flex-col gap-4">
         {/* Month header with nav arrows */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <div className="flex items-center justify-between gap-2">
           {navBtn(!canPrev, () => setActiveKey(months[safeIdx - 1]), "‹")}
-          <div style={{ fontSize: 13, fontWeight: 900, color: C.text, letterSpacing: "0.14em", textTransform: "uppercase", textAlign: "center" }}>
+          <div className="text-[13px] font-black text-ak-text tracking-[0.14em] uppercase text-center">
             {monthLabel} {yr}
           </div>
           {navBtn(!canNext, () => setActiveKey(months[safeIdx + 1]), "›")}
         </div>
 
         {/* Day-of-week headers */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+        <div className="grid grid-cols-7 gap-0.5">
           {CAL_DAYS.map(d => (
-            <div key={d} style={{ textAlign: "center", fontSize: 9, fontWeight: 900, color: C.textDim, letterSpacing: "0.08em", padding: "3px 0" }}>{d}</div>
+            <div key={d} className="text-center text-[9px] font-black text-ak-text-dim tracking-[0.08em] py-[3px]">{d}</div>
           ))}
         </div>
 
         {/* Calendar grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+        <div className="grid grid-cols-7 gap-0.5">
           {cells.map(cell => {
             if (cell.type === "empty") {
-              return <div key={cell.id} style={{ aspectRatio: "1" }} />;
+              return <div key={cell.id} className="aspect-square" />;
             }
             const { day } = cell;
             const played = dayMap.get(day);
@@ -478,29 +459,15 @@ function CalendarView({ games, upcomingGames, onGameClick, loadingBoxScore }: an
                   key={day}
                   onClick={!loadingBoxScore ? () => onGameClick(played) : undefined}
                   disabled={loadingBoxScore}
-                  style={{
-                    aspectRatio: "1",
-                    borderRadius: 8,
-                    border: `1px solid ${isWin ? `${C.green}55` : `${C.redText}45`}`,
-                    background: isWin ? `${C.green}28` : `${C.red}38`,
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "3px 2px",
-                    gap: 2,
-                    transition: "border-color 0.15s, background 0.15s",
-                    fontFamily: "inherit",
-                    minWidth: 0,
-                    overflow: "hidden",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = isWin ? C.green : C.redText; e.currentTarget.style.background = isWin ? `${C.green}40` : `${C.red}50`; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = isWin ? `${C.green}55` : `${C.redText}45`; e.currentTarget.style.background = isWin ? `${C.green}28` : `${C.red}38`; }}
+                  className={`aspect-square rounded-lg cursor-pointer flex flex-col items-center justify-center p-[3px_2px] gap-0.5 transition-[border-color,background] duration-150 min-w-0 overflow-hidden ${
+                    isWin
+                      ? "border border-[#4caf7d55] bg-[#4caf7d28] hover:border-ak-green hover:bg-[#4caf7d40]"
+                      : "border border-[#e0555545] bg-[#8b1a1a38] hover:border-ak-red-text hover:bg-[#8b1a1a50]"
+                  }`}
                 >
-                  <span style={{ fontSize: 10, fontWeight: 900, color: C.text, lineHeight: 1 }}>{day}</span>
-                  <span style={{ fontSize: 8, fontWeight: 700, color: isWin ? C.green : C.redText, lineHeight: 1, letterSpacing: "0.04em" }}>{played.home ? "vs" : "@"}</span>
-                  <span style={{ fontSize: 8, fontWeight: 900, color: C.text, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%", padding: "0 3px" }}>{played.opponent}</span>
+                  <span className="text-[10px] font-black text-ak-text leading-none">{day}</span>
+                  <span className={`text-[8px] font-bold leading-none tracking-[0.04em] ${isWin ? "text-ak-green" : "text-ak-red-text"}`}>{played.home ? "vs" : "@"}</span>
+                  <span className="text-[8px] font-black text-ak-text leading-none whitespace-nowrap overflow-hidden text-ellipsis max-w-full px-[3px]">{played.opponent}</span>
                 </button>
               );
             }
@@ -509,36 +476,20 @@ function CalendarView({ games, upcomingGames, onGameClick, loadingBoxScore }: an
             if (upcoming) {
               const { tier } = getCountdownInfo(upcoming.scheduledFor);
               const isToday = tier === "today";
-              const goldBorder = isToday ? `${C.gold}70` : `${C.gold}40`;
-              const goldBg    = isToday ? `${C.gold}18` : `${C.gold}0d`;
               return (
                 <button
                   key={day}
                   onClick={() => setSelectedUpcoming(upcoming)}
-                  style={{
-                    aspectRatio: "1",
-                    borderRadius: 8,
-                    border: `1px solid ${goldBorder}`,
-                    background: goldBg,
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "3px 2px",
-                    gap: 2,
-                    transition: "border-color 0.15s, background 0.15s",
-                    fontFamily: "inherit",
-                    minWidth: 0,
-                    overflow: "hidden",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = C.gold; e.currentTarget.style.background = `${C.gold}28`; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = goldBorder; e.currentTarget.style.background = goldBg; }}
+                  className={`aspect-square rounded-lg cursor-pointer flex flex-col items-center justify-center p-[3px_2px] gap-0.5 transition-[border-color,background] duration-150 min-w-0 overflow-hidden hover:border-ak-gold hover:bg-[#c9a84c28] ${
+                    isToday
+                      ? "border border-[#c9a84c70] bg-[#c9a84c18]"
+                      : "border border-[#c9a84c40] bg-[#c9a84c0d]"
+                  }`}
                 >
-                  <span style={{ fontSize: 10, fontWeight: 900, color: C.gold, lineHeight: 1 }}>{day}</span>
-                  <span style={{ fontSize: 8, fontWeight: 700, color: C.gold, lineHeight: 1, letterSpacing: "0.04em" }}>{upcoming.location === "home" ? "vs" : "@"}</span>
-                  <span style={{ fontSize: 8, fontWeight: 900, color: C.textSub, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%", padding: "0 3px" }}>{upcoming.opponent}</span>
-                  <span style={{ fontSize: 7, color: C.textDim, lineHeight: 1 }}>{formatGameTime(upcoming.scheduledFor)}</span>
+                  <span className="text-[10px] font-black text-ak-gold leading-none">{day}</span>
+                  <span className="text-[8px] font-bold text-ak-gold leading-none tracking-[0.04em]">{upcoming.location === "home" ? "vs" : "@"}</span>
+                  <span className="text-[8px] font-black text-ak-text-sub leading-none whitespace-nowrap overflow-hidden text-ellipsis max-w-full px-[3px]">{upcoming.opponent}</span>
+                  <span className="text-[7px] text-ak-text-dim leading-none">{formatGameTime(upcoming.scheduledFor)}</span>
                 </button>
               );
             }
@@ -547,17 +498,9 @@ function CalendarView({ games, upcomingGames, onGameClick, loadingBoxScore }: an
             return (
               <div
                 key={day}
-                style={{
-                  aspectRatio: "1",
-                  borderRadius: 8,
-                  border: `1px solid ${C.border}`,
-                  background: C.surface,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                className="aspect-square rounded-lg border border-ak-border bg-ak-surface flex items-center justify-center"
               >
-                <span style={{ fontSize: 10, fontWeight: 400, color: C.textDim, lineHeight: 1 }}>{day}</span>
+                <span className="text-[10px] font-normal text-ak-text-dim leading-none">{day}</span>
               </div>
             );
           })}
@@ -668,28 +611,17 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
         onChange={handleSeasonChange}
         showAllTime={false}
         right={
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim }}>{filtered.length} GAMES</span>
-            <div style={{ display: "flex", gap: 2, background: C.surface2, borderRadius: 8, padding: 2, border: `1px solid ${C.border}` }}>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim">{filtered.length} GAMES</span>
+            <div className="flex gap-0.5 bg-ak-surface2 rounded-lg p-0.5 border border-ak-border">
               {(["list", "calendar"] as const).map(mode => (
                 <button
                   key={mode}
                   onClick={() => setViewMode(mode)}
                   title={mode === "list" ? "List view" : "Calendar view"}
-                  style={{
-                    padding: "4px 9px",
-                    borderRadius: 6,
-                    border: "none",
-                    background: viewMode === mode ? C.red : "transparent",
-                    color: viewMode === mode ? C.text : C.textDim,
-                    cursor: "pointer",
-                    fontSize: 11,
-                    fontFamily: "inherit",
-                    fontWeight: 900,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    transition: "all 0.15s",
-                  }}
+                  className={`px-[9px] py-1 rounded-md border-0 text-[11px] font-black tracking-[0.1em] uppercase cursor-pointer transition-all duration-150 ${
+                    viewMode === mode ? "bg-ak-red text-ak-text" : "bg-transparent text-ak-text-dim"
+                  }`}
                 >
                   {mode === "list" ? "≡" : "▦"}
                 </button>
@@ -708,9 +640,9 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
       <ResultFilter selected={selectedResult} onChange={handleResultChange} />
 
       {filtered.length === 0 ? (
-        <div style={{ textAlign:"center", padding:48, color:C.textDim }}>
-          <div style={{ fontSize:36, marginBottom:12 }}>📋</div>
-          <div style={{ fontSize:15, fontWeight:700 }}>No games recorded yet</div>
+        <div className="text-center p-12 text-ak-text-dim">
+          <div className="text-4xl mb-3">📋</div>
+          <div className="text-[15px] font-bold">No games recorded yet</div>
         </div>
       ) : viewMode === "calendar" ? (
         <CalendarView
@@ -721,42 +653,30 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
         />
       ) : (
         <>
-          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+          <div className="flex flex-col gap-2">
             {pagedItems.map((g: any) => {
               if (g._upcoming) {
                 const { label, tier } = getCountdownInfo(g.scheduledFor);
-                const accentColor = tier === "today" ? C.gold : tier === "week" ? C.redText : C.textSub;
+                const accentCls = tier === "today" ? "text-ak-gold" : tier === "week" ? "text-ak-red-text" : "text-ak-text-sub";
                 return (
                   <button
                     key={`upcoming-${g.id ?? g.scheduledFor}`}
                     onClick={() => setSelectedUpcomingInList(g)}
-                    style={{
-                      display:"flex", alignItems:"center", justifyContent:"space-between",
-                      padding:"14px 18px", borderRadius:12,
-                      border:`1px solid ${C.gold}30`,
-                      background:`${C.gold}08`, cursor:"pointer", textAlign:"left", fontFamily:"inherit",
-                      transition:"border-color 0.15s, background 0.15s",
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor=`${C.gold}60`; e.currentTarget.style.background=`${C.gold}14`; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor=`${C.gold}30`; e.currentTarget.style.background=`${C.gold}08`; }}
+                    className="flex items-center justify-between py-[14px] px-[18px] rounded-xl border border-[#c9a84c30] bg-[#c9a84c08] cursor-pointer text-left transition-[border-color,background] duration-150 hover:border-[#c9a84c60] hover:bg-[#c9a84c14]"
                   >
-                    <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                      <span style={{
-                        width:34, height:34, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
-                        fontSize:14, fontWeight:900, flexShrink:0,
-                        background:`${C.gold}15`, color:C.gold, border:`1px solid ${C.gold}35`,
-                      }}>▸</span>
+                    <div className="flex items-center gap-3">
+                      <span className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-sm font-black shrink-0 bg-[#c9a84c15] text-ak-gold border border-[#c9a84c35]">▸</span>
                       <div>
-                        <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{g.location === "home" ? "vs" : "@"} {g.opponent}</div>
-                        <div style={{ fontSize:11, color:accentColor, marginTop:2, fontWeight:700 }}>{label}</div>
+                        <div className="text-sm font-bold text-ak-text">{g.location === "home" ? "vs" : "@"} {g.opponent}</div>
+                        <div className={`text-[11px] mt-0.5 font-bold ${accentCls}`}>{label}</div>
                       </div>
                     </div>
-                    <div style={{ display:"flex", alignItems:"center", gap:24 }}>
-                      <div style={{ textAlign:"right" }}>
-                        <div style={{ fontSize:13, fontWeight:700, color:C.textSub }}>{g.scheduledFor.slice(0, 10)}</div>
-                        {g.competition && <div style={{ fontSize:11, color:C.textDim }}>{g.competition}</div>}
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <div className="text-[13px] font-bold text-ak-text-sub">{g.scheduledFor.slice(0, 10)}</div>
+                        {g.competition && <div className="text-[11px] text-ak-text-dim">{g.competition}</div>}
                       </div>
-                      <div style={{ fontSize:11, color:C.gold, fontWeight:700 }}>UPCOMING →</div>
+                      <div className="text-[11px] text-ak-gold font-bold">UPCOMING →</div>
                     </div>
                   </button>
                 );
@@ -764,39 +684,34 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
 
               const topScorer = formatTopScorer(g.topScorer);
               return (
-                <button key={g.id} onClick={() => handleGameClick(g)} disabled={loadingBoxScore} style={{
-                  display:"flex", alignItems:"center", justifyContent:"space-between",
-                  padding:"14px 18px", borderRadius:12, border:`1px solid ${C.border}`,
-                  background:C.surface, cursor:"pointer", textAlign:"left", fontFamily:"inherit",
-                  transition:"border-color 0.15s",
-                }}
-                onMouseEnter={e => e.currentTarget.style.borderColor=`${C.redBright}55`}
-                onMouseLeave={e => e.currentTarget.style.borderColor=C.border}
+                <button
+                  key={g.id}
+                  onClick={() => handleGameClick(g)}
+                  disabled={loadingBoxScore}
+                  className="flex items-center justify-between py-[14px] px-[18px] rounded-xl border border-ak-border bg-ak-surface cursor-pointer text-left transition-[border-color] duration-150 hover:border-[#c0392b55]"
                 >
-                  <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                    <span style={{
-                      width:34, height:34, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
-                      fontSize:12, fontWeight:900, flexShrink:0,
-                      background: g.result==="W" ? `${C.green}20` : `${C.red}30`,
-                      color: g.result==="W" ? C.green : C.redText,
-                      border: `1px solid ${g.result==="W" ? `${C.green}40` : `${C.redText}30`}`,
-                    }}>{g.result}</span>
+                  <div className="flex items-center gap-3">
+                    <span className={`w-[34px] h-[34px] rounded-full flex items-center justify-center text-xs font-black shrink-0 border ${
+                      g.result==="W"
+                        ? "bg-[#4caf7d20] text-ak-green border-[#4caf7d40]"
+                        : "bg-[#8b1a1a30] text-ak-red-text border-[#e0555530]"
+                    }`}>{g.result}</span>
                     <div>
-                      <div style={{ fontSize:14, fontWeight:700, color:C.text }}>{g.home ? "vs" : "@"} {g.opponent}</div>
-                      <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>
+                      <div className="text-sm font-bold text-ak-text">{g.home ? "vs" : "@"} {g.opponent}</div>
+                      <div className="text-[11px] text-ak-text-dim mt-0.5">
                         {g.date}
                         {seasonLeagues.length > 1 && selectedLeague === "all" && (
-                          <span style={{ marginLeft:8, color:C.textDim, opacity:0.7 }}>{g.leagueName}</span>
+                          <span className="ml-2 text-ak-text-dim opacity-70">{g.leagueName}</span>
                         )}
                       </div>
                     </div>
                   </div>
-                  <div style={{ display:"flex", alignItems:"center", gap:24 }}>
-                    <div style={{ textAlign:"right" }}>
-                      <div style={{ fontSize:18, fontWeight:900, color:C.text }}>{g.score}</div>
-                      {topScorer && <div style={{ fontSize:11, color:C.textDim }}>{topScorer}</div>}
+                  <div className="flex items-center gap-6">
+                    <div className="text-right">
+                      <div className="text-lg font-black text-ak-text">{g.score}</div>
+                      {topScorer && <div className="text-[11px] text-ak-text-dim">{topScorer}</div>}
                     </div>
-                    <div style={{ fontSize:11, color:C.textDim }}>BOX SCORE →</div>
+                    <div className="text-[11px] text-ak-text-dim">BOX SCORE →</div>
                   </div>
                 </button>
               );
@@ -804,29 +719,27 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
           </div>
 
           {totalPages > 1 && (
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop:16, padding:"0 2px" }}>
+            <div className="flex items-center justify-between mt-4 px-0.5">
               <button
                 onClick={() => setListPage(p => p - 1)}
                 disabled={listPage === 0}
-                style={{
-                  padding:"7px 18px", borderRadius:8, border:`1px solid ${listPage === 0 ? C.border : C.border2}`,
-                  background:"transparent", color: listPage === 0 ? C.textDim : C.text,
-                  cursor: listPage === 0 ? "default" : "pointer", fontSize:16, fontFamily:"inherit",
-                  fontWeight:900, opacity: listPage === 0 ? 0.3 : 1, transition:"all 0.15s", lineHeight:1,
-                }}
+                className={`py-[7px] px-[18px] rounded-lg bg-transparent border transition-all duration-150 text-base font-black leading-none ${
+                  listPage === 0
+                    ? "border-ak-border text-ak-text-dim cursor-default opacity-30"
+                    : "border-ak-border2 text-ak-text cursor-pointer"
+                }`}
               >‹</button>
-              <span style={{ fontSize:11, fontWeight:700, color:C.textDim, letterSpacing:"0.1em" }}>
+              <span className="text-[11px] font-bold text-ak-text-dim tracking-[0.1em]">
                 {listPage * LIST_PAGE_SIZE + 1}–{Math.min((listPage + 1) * LIST_PAGE_SIZE, listItems.length)} of {listItems.length}
               </span>
               <button
                 onClick={() => setListPage(p => p + 1)}
                 disabled={listPage >= totalPages - 1}
-                style={{
-                  padding:"7px 18px", borderRadius:8, border:`1px solid ${listPage >= totalPages - 1 ? C.border : C.border2}`,
-                  background:"transparent", color: listPage >= totalPages - 1 ? C.textDim : C.text,
-                  cursor: listPage >= totalPages - 1 ? "default" : "pointer", fontSize:16, fontFamily:"inherit",
-                  fontWeight:900, opacity: listPage >= totalPages - 1 ? 0.3 : 1, transition:"all 0.15s", lineHeight:1,
-                }}
+                className={`py-[7px] px-[18px] rounded-lg bg-transparent border transition-all duration-150 text-base font-black leading-none ${
+                  listPage >= totalPages - 1
+                    ? "border-ak-border text-ak-text-dim cursor-default opacity-30"
+                    : "border-ak-border2 text-ak-text cursor-pointer"
+                }`}
               >›</button>
             </div>
           )}
