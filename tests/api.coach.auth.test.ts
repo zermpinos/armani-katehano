@@ -10,7 +10,8 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.hoisted(() => {
-  process.env.SESSION_SECRET = "test-secret-coach-auth";
+  process.env.SESSION_SECRET       = "test-secret-coach-auth";
+  process.env.COACH_SESSION_SECRET = "test-coach-secret-coach-auth-xx";
 });
 
 vi.mock("../lib/loginAttempts.js", () => ({
@@ -31,8 +32,9 @@ vi.mock("../lib/coachAuth", async (importOriginal) => {
 });
 
 import { isLockedOut, recordAttempt, clearAttempts, getFailureCount } from "../lib/loginAttempts";
-import { verifyCaptcha, signSession }                                  from "../lib/security";
-import { verifyCoachPassword, getCoachSessionVersion }                 from "../lib/coachAuth";
+import { verifyCaptcha }                                               from "../lib/security";
+import { verifyCoachPassword, getCoachSessionVersion,
+         buildCoachSessionCookie }                                     from "../lib/coachAuth";
 import handler                                                         from "../pages/api/coach/auth";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -55,7 +57,9 @@ function mockReq({ method = "GET", headers = {}, body = {}, cookies = {} } = {})
 }
 
 function validCoachCookie(version = 0) {
-  return signSession(JSON.stringify({ ts: Date.now(), role: "coach", v: version }));
+  const full = buildCoachSessionCookie(JSON.stringify({ ts: Date.now(), role: "coach", v: version }));
+  // Extract the bare cookie value from "cookieName=VALUE; HttpOnly; ..."
+  return full.split(";")[0].split("=").slice(1).join("=");
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -92,7 +96,7 @@ describe("GET /api/coach/auth", () => {
     const payload = JSON.stringify({ ts: Date.now() - 25 * 60 * 60 * 1000, role: "coach", v: 0 });
     const req = mockReq({
       method:  "GET",
-      cookies: { "__Host-ak_coach": signSession(payload) },
+      cookies: { "__Host-ak_coach": buildCoachSessionCookie(payload).split(";")[0].split("=").slice(1).join("=") },
     });
     const res = mockRes();
     await handler(req, res);
