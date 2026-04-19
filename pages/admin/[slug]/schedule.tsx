@@ -5,7 +5,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { C } from "../../../lib/theme";
 import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, Confirm, useAdminAuth } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck';
 import { fmtDate } from "../../../lib/utils";
@@ -112,21 +111,27 @@ export default function SchedulePage({ validSlug }: any) {
   };
 
   const gameForm = (
-    <div style={{ borderRadius: 12, border: `1px solid ${editId === "new" ? `${C.green}40` : `${C.redBright}40`}`, padding: 16, background: C.base, marginTop: 8 }}>
-      <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: editId === "new" ? C.green : C.redText, marginBottom: 12, textTransform: "uppercase" }}>
+    <div className={[
+      "rounded-xl border p-4 bg-ak-base mt-2",
+      editId === "new" ? "border-[#4caf7d40]" : "border-[#c0392b40]",
+    ].join(" ")}>
+      <div className={[
+        "text-[10px] font-black tracking-[0.15em] mb-3 uppercase",
+        editId === "new" ? "text-ak-green" : "text-ak-red-text",
+      ].join(" ")}>
         {editId === "new" ? "NEW GAME" : "EDITING GAME"}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: 10, marginBottom: 12 }}>
+      <div className="grid gap-[10px] mb-3" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))" }}>
         <F label="OPPONENT" value={draft.opponent} onChange={(v: any) => updGame("opponent", v)} />
         <F label="DATE (DD-MM-YYYY)" value={draft.date} onChange={(v: any) => updGame("date", v)} placeholder="09-04-2026" />
         <F label="TIME" value={draft.time} onChange={(v: any) => updGame("time", v)} placeholder="18:45" type="time" />
         <Sel label="HOME/AWAY" value={draft.location} onChange={(v: any) => updGame("location", v)} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
         <F label="COMPETITION" value={draft.competition} onChange={(v: any) => updGame("competition", v)} placeholder="e.g. Super Winter Cup" />
       </div>
-      <div style={{ marginBottom: 12 }}>
+      <div className="mb-3">
         <F label="NOTES" value={draft.notes} onChange={(v: any) => updGame("notes", v)} placeholder="Optional notes" />
       </div>
-      <div style={{ display: "flex", gap: 10 }}>
+      <div className="flex gap-[10px]">
         <Btn onClick={save}>SAVE</Btn>
         <Btn variant="ghost" onClick={cancel}>CANCEL</Btn>
       </div>
@@ -134,43 +139,43 @@ export default function SchedulePage({ validSlug }: any) {
   );
 
   if (checking) return (
-    <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div className="min-h-screen bg-ak-base flex items-center justify-center">
       <Spinner />
     </div>
   );
 
   if (!authed) return (
-    <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div className="min-h-screen bg-ak-base flex items-center justify-center p-4">
       <LoginForm onLogin={handleLogin} error={loginError} />
     </div>
   );
 
   return (
     <AdminLayout slug={slug} title="Schedule" toast={toast} setToast={setToast} onLogout={handleLogout}>
-      <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontSize: 20, fontWeight: 900, color: C.text }}>Upcoming games</div>
+      <div className="mb-5 flex justify-between items-center">
+        <div className="text-[20px] font-black text-ak-text">Upcoming games</div>
         <Btn onClick={startNew}>+ ADD GAME</Btn>
       </div>
 
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Spinner /></div>
+        <div className="flex justify-center py-[60px]"><Spinner /></div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div className="flex flex-col gap-[6px]">
           {editId === "new" && gameForm}
           {[...schedule].sort((a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime()).map(g => (
             <div key={g.id}>
               {editId === g.id ? gameForm : (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface2 }}>
-                  <div style={{ flex: 1, minWidth: 200 }}>
-                    <div style={{ fontWeight: 900, fontSize: 13, color: C.text }}>
+                <div className="flex items-center justify-between flex-wrap gap-2 py-[10px] px-[14px] rounded-[10px] border border-ak-border bg-ak-surface2">
+                  <div className="flex-1 min-w-[200px]">
+                    <div className="font-black text-[13px] text-ak-text">
                       {g.location === "home" ? "vs" : "@"} {g.opponent}
                     </div>
-                    <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
+                    <div className="text-[11px] text-ak-text-dim mt-0.5">
                       {fmtDate(g.scheduledFor)} at {fmtTime(g.scheduledFor)}
                       {g.competition && <> · {g.competition}</>}
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 6 }}>
+                  <div className="flex gap-[6px]">
                     <Btn size="sm" variant="ghost" onClick={() => startEdit(g)}>EDIT</Btn>
                     <Btn size="sm" variant="danger" onClick={() => setConfirm(g)}>DEL</Btn>
                   </div>
@@ -179,7 +184,7 @@ export default function SchedulePage({ validSlug }: any) {
             </div>
           ))}
           {schedule.length === 0 && editId !== "new" && (
-            <div style={{ textAlign: "center", padding: "20px 0", color: C.textDim }}>
+            <div className="text-center py-5 text-ak-text-dim">
               No scheduled games yet
             </div>
           )}

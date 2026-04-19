@@ -6,7 +6,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { C } from "../../../lib/theme";
 import { AdminLayout, BoxScoreTable, F, Sel, Btn, Spinner, LoginForm, byJersey, useAdminAuth } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck';
 import { parseGreekDate, parseMinutes, detectLeagueSlug } from '../../../lib/greekDate';
@@ -220,58 +219,62 @@ export default function ImportPage({ validSlug }: any) {
 
   const leagueOptions = seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName }));
 
+  const urlInputCls = "w-full py-[10px] px-3 text-[13px] font-sans rounded-lg border border-ak-border2 bg-ak-base text-ak-text outline-none";
+
   if (checking) return (
-    <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div className="min-h-screen bg-ak-base flex items-center justify-center">
       <Spinner />
     </div>
   );
 
   if (!authed) return (
-    <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div className="min-h-screen bg-ak-base flex items-center justify-center p-4">
       <LoginForm onLogin={handleLogin} error={loginError} />
     </div>
   );
 
   return (
     <AdminLayout slug={slug} title="Import" toast={toast} setToast={setToast} onLogout={handleLogout}>
-      <div style={{ maxWidth: 900 }}>
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 20, fontWeight: 900, color: C.text, marginBottom: 4 }}>Import game</div>
-          <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.5 }}>
+      <div className="max-w-[900px]">
+        <div className="mb-6">
+          <div className="text-[20px] font-black text-ak-text mb-1">Import game</div>
+          <div className="text-[13px] text-ak-text-dim leading-[1.5]">
             Paste the game URL from basketcity.sportstats.gr — the server fetches and parses it automatically.
           </div>
         </div>
 
-        {dataLoading && <div style={{ display: "flex", justifyContent: "center", padding: 40 }}><Spinner /></div>}
+        {dataLoading && <div className="flex justify-center py-10"><Spinner /></div>}
 
         {!dataLoading && phase === "idle" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div className="flex flex-col gap-[14px]">
             <div>
-              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 6, textTransform: "uppercase" }}>Game URL</div>
+              <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[6px] uppercase">Game URL</div>
               <input
                 type="url"
                 value={gameUrl}
                 onChange={e => setGameUrl(e.target.value)}
                 placeholder="https://basketcity.sportstats.gr/men/gamedetails/id/…"
                 disabled={fetching}
-                style={{ width: "100%", padding: "10px 12px", fontSize: 13, fontFamily: "inherit", borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, outline: "none", boxSizing: "border-box" }}
+                className={urlInputCls}
               />
             </div>
 
             <div>
-              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 6, textTransform: "uppercase" }}>YouTube video URL <span style={{ fontWeight: 400, textTransform: "none", fontSize: 11 }}>(optional)</span></div>
+              <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[6px] uppercase">
+                YouTube video URL <span className="font-normal normal-case text-[11px]">(optional)</span>
+              </div>
               <input
                 type="url"
                 value={youtubeUrl}
                 onChange={e => setYoutubeUrl(e.target.value)}
                 placeholder="https://www.youtube.com/watch?v=…"
                 disabled={fetching}
-                style={{ width: "100%", padding: "10px 12px", fontSize: 13, fontFamily: "inherit", borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, outline: "none", boxSizing: "border-box" }}
+                className={urlInputCls}
               />
             </div>
 
             {error && (
-              <div style={{ fontSize: 12, color: C.redText, padding: "8px 12px", borderRadius: 8, background: `${C.red}18`, border: `1px solid ${C.red}40` }}>{error}</div>
+              <div className="text-xs text-ak-red-text py-2 px-3 rounded-lg bg-[#8b1a1a18] border border-[#8b1a1a40]">{error}</div>
             )}
 
             <div>
@@ -281,7 +284,7 @@ export default function ImportPage({ validSlug }: any) {
             </div>
 
             {fetching && (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, color: C.textDim, fontSize: 12 }}>
+              <div className="flex items-center gap-[10px] text-ak-text-dim text-xs">
                 <Spinner /> Scraping game page…
               </div>
             )}
@@ -289,17 +292,17 @@ export default function ImportPage({ validSlug }: any) {
         )}
 
         {!dataLoading && (phase === "review" || phase === "saving") && draft && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="flex flex-col gap-4">
             {warnings.length > 0 && (
-              <div style={{ padding: "10px 14px", borderRadius: 8, background: `${C.red}18`, border: `1px solid ${C.red}40`, fontSize: 12, color: C.redText }}>
-                <div style={{ fontWeight: 900, marginBottom: 4 }}>⚠ Warnings — review before saving:</div>
+              <div className="py-[10px] px-[14px] rounded-lg bg-[#8b1a1a18] border border-[#8b1a1a40] text-xs text-ak-red-text">
+                <div className="font-black mb-1">⚠ Warnings — review before saving:</div>
                 {warnings.map((w, i) => <div key={i}>• {w}</div>)}
               </div>
             )}
 
             <div>
-              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 10, textTransform: "uppercase" }}>Game info</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: 10 }}>
+              <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Game info</div>
+              <div className="grid gap-[10px]" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))" }}>
                 <F label="DATE"       value={draft.date}          onChange={(v: any) => updDraft("date", v)}          placeholder="YYYY-MM-DD" />
                 <F label="OPPONENT"   value={draft.opponent}      onChange={(v: any) => updDraft("opponent", v)} />
                 <Sel label="LEAGUE"   value={draft.seasonLeagueId || ""} onChange={(v: any) => updDraft("seasonLeagueId", v)} options={leagueOptions} />
@@ -311,22 +314,24 @@ export default function ImportPage({ validSlug }: any) {
             </div>
 
             <div>
-              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 6, textTransform: "uppercase" }}>YouTube video URL <span style={{ fontWeight: 400, textTransform: "none", fontSize: 11 }}>(optional)</span></div>
+              <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[6px] uppercase">
+                YouTube video URL <span className="font-normal normal-case text-[11px]">(optional)</span>
+              </div>
               <input
                 type="url"
                 value={youtubeUrl}
                 onChange={e => setYoutubeUrl(e.target.value)}
                 placeholder="https://www.youtube.com/watch?v=…"
-                style={{ width: "100%", padding: "10px 12px", fontSize: 13, fontFamily: "inherit", borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, outline: "none", boxSizing: "border-box" }}
+                className={urlInputCls}
               />
             </div>
 
             <div>
-              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 10, textTransform: "uppercase" }}>Box score — green rows played</div>
+              <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Box score — green rows played</div>
               <BoxScoreTable players={players} rows={draft.boxScore} onUpdate={updBox} highlights={highlights} />
             </div>
 
-            <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
+            <div className="flex gap-[10px] pt-1">
               <Btn onClick={save} variant="green" disabled={phase === "saving"}>{phase === "saving" ? "SAVING…" : "SAVE GAME"}</Btn>
               <Btn variant="ghost" onClick={() => { setPhase("idle"); setDraft(null); }} disabled={phase === "saving"}>BACK</Btn>
             </div>
