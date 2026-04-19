@@ -1,4 +1,17 @@
 import { withSentryConfig } from "@sentry/nextjs";
+
+function sentryReportUri() {
+  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+  if (!dsn) return null;
+  try {
+    const url = new URL(dsn);
+    const project = url.pathname.replace(/^\//, "");
+    return `https://${url.host}/api/${project}/security/?sentry_key=${url.username}`;
+  } catch {
+    return null;
+  }
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -10,11 +23,24 @@ const nextConfig = {
   },
 
   async headers() {
+    const reportUri = sentryReportUri();
+    const cspFallback = [
+      "default-src 'self'",
+      "script-src 'self' https://*.sentry-cdn.com",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https://res.cloudinary.com",
+      "connect-src 'self' https://*.sentry.io",
+      "frame-ancestors 'none'",
+      "base-uri 'none'",
+      "form-action 'self'",
+      ...(reportUri ? [`report-uri ${reportUri}`] : []),
+    ].join("; ") + ";";
+
     return [
       {
         source: "/(.*)",
         headers: [
-          { key: "Content-Security-Policy",   value: "default-src 'self'; script-src 'self' https://*.sentry-cdn.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://res.cloudinary.com; connect-src 'self' https://*.sentry.io; frame-ancestors 'none'; base-uri 'none'; form-action 'self';" },
+          { key: "Content-Security-Policy",   value: cspFallback },
           { key: "X-Content-Type-Options",    value: "nosniff"    },
           { key: "X-Frame-Options",           value: "DENY"       },
           { key: "Referrer-Policy",           value: "no-referrer"},
