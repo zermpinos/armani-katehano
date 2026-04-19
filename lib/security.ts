@@ -246,6 +246,7 @@ export function securityHeaders() {
 
 export const LOCKOUT_TTL_S = 60 * 15; // 15 minutes
 export const MAX_LOGIN_ATTEMPTS = 5;
+export const CAPTCHA_THRESHOLD = 3; // require CAPTCHA after this many IP failures
 
 // ─── Client IP extraction ─────────────────────────────────────────────────────
 
@@ -267,6 +268,24 @@ export function getClientIp(req: any): string {
 }
 
 // ─── Audit log ────────────────────────────────────────────────────────────────
+
+// ─── CAPTCHA verification ─────────────────────────────────────────────────────
+
+export async function verifyCaptcha(token: string, ip?: string): Promise<boolean> {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  if (!secret) {
+    console.warn("[captcha] TURNSTILE_SECRET_KEY not set — skipping verification");
+    return true;
+  }
+  const body = new URLSearchParams({ secret, response: token });
+  if (ip) body.set("remoteip", ip);
+  const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST",
+    body,
+  });
+  const data = await res.json();
+  return data.success === true;
+}
 
 /** Structured audit log → Vercel log drain. */
 export function auditLog(event: string, data: Record<string, unknown> = {}) {

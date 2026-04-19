@@ -9,8 +9,9 @@
  * Brute-force lockout reuses the shared LoginAttempt table (5 attempts → 15 min).
  */
 
-import { isLockedOut, recordAttempt, clearAttempts } from "../../../lib/loginAttempts";
-import { securityHeaders, auditLog, csrfCheck, getClientIp } from "../../../lib/security";
+import * as Sentry from "@sentry/nextjs";
+import { isLockedOut, recordAttempt, clearAttempts, getFailureCount } from "../../../lib/loginAttempts";
+import { securityHeaders, auditLog, csrfCheck, getClientIp, CAPTCHA_THRESHOLD, verifyCaptcha } from "../../../lib/security";
 import {
   getCoachSessionToken,
   verifyCoachSession,
@@ -78,7 +79,23 @@ export default async function handler(req: any, res: any) {
     const accountLocked = await isLockedOut(ACCOUNT_KEY, 25, 3600);
     if (accountLocked) {
       auditLog("coach_login_account_locked", { ip });
+      Sentry.captureMessage("Coach account lockout triggered", { level: "warning" });
       return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
+    }
+
+    // CAPTCHA required after CAPTCHA_THRESHOLD IP failures
+    const { captchaToken } = req.body ?? {};
+    const ipFailCount = await getFailureCount(ip);
+    if (ipFailCount >= CAPTCHA_THRESHOLD) {
+      if (!captchaToken || typeof captchaToken !== "string") {
+        return res.status(401).json({ error: "Captcha required", requiresCaptcha: true });
+      }
+      const captchaOk = await verifyCaptcha(captchaToken, ip);
+      if (!captchaOk) {
+        await Promise.all([recordAttempt(ip), recordAttempt(ACCOUNT_KEY)]);
+        auditLog("coach_login_captcha_failed", { ip });
+        return res.status(401).json({ error: "Captcha verification failed", requiresCaptcha: true });
+      }
     }
 
     const valid = await verifyCoachPassword(password);

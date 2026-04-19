@@ -15,19 +15,20 @@ vi.hoisted(() => {
 
 // Mock loginAttempts — it hits Prisma which we don't want in unit/integration tests.
 vi.mock("../lib/loginAttempts.js", () => ({
-  isLockedOut:   vi.fn().mockResolvedValue(false),
-  recordAttempt: vi.fn().mockResolvedValue(undefined),
-  clearAttempts: vi.fn().mockResolvedValue(undefined),
+  isLockedOut:      vi.fn().mockResolvedValue(false),
+  recordAttempt:    vi.fn().mockResolvedValue(undefined),
+  clearAttempts:    vi.fn().mockResolvedValue(undefined),
+  getFailureCount:  vi.fn().mockResolvedValue(0),
 }));
 
-// Partially mock security.js: keep all real implementations, override verifyCredentials, getAdminUser, verifyTotp.
+// Partially mock security.js: keep all real implementations, override verifyCredentials, getAdminUser, verifyTotp, verifyCaptcha.
 vi.mock("../lib/security", async (importOriginal) => {
   const actual = await importOriginal();
-  return { ...actual, verifyCredentials: vi.fn(), getAdminUser: vi.fn(), verifyTotp: vi.fn() };
+  return { ...actual, verifyCredentials: vi.fn(), getAdminUser: vi.fn(), verifyTotp: vi.fn(), verifyCaptcha: vi.fn() };
 });
 
-import { isLockedOut, recordAttempt, clearAttempts } from "../lib/loginAttempts";
-import { verifyCredentials, getAdminUser, verifyTotp, signSession } from "../lib/security";
+import { isLockedOut, recordAttempt, clearAttempts, getFailureCount } from "../lib/loginAttempts";
+import { verifyCredentials, getAdminUser, verifyTotp, verifyCaptcha, signSession } from "../lib/security";
 import handler                                         from "../pages/api/auth";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -58,9 +59,11 @@ function validSessionCookie() {
 beforeEach(() => {
   vi.clearAllMocks();
   isLockedOut.mockResolvedValue(false);
+  getFailureCount.mockResolvedValue(0);
   verifyCredentials.mockResolvedValue(false);
   getAdminUser.mockReturnValue(null); // no totpSecret by default
   verifyTotp.mockReturnValue(true);
+  verifyCaptcha.mockResolvedValue(true);
 });
 
 describe("GET /api/auth", () => {
@@ -246,6 +249,51 @@ describe("POST /api/auth (login)", () => {
     expect(res.statusCode).toBe(200);
     expect(res._body).toEqual({ ok: true });
     expect(clearAttempts).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns 401 with requiresCaptcha when IP has 3+ failures and no captchaToken", async () => {
+    getFailureCount.mockResolvedValue(3);
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { username: "admin", password: "any" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(401);
+    expect(res._body).toMatchObject({ requiresCaptcha: true });
+    expect(verifyCredentials).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 and records attempt when captchaToken is invalid", async () => {
+    getFailureCount.mockResolvedValue(3);
+    verifyCaptcha.mockResolvedValue(false);
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { username: "admin", password: "any", captchaToken: "bad-token" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(401);
+    expect(res._body).toMatchObject({ requiresCaptcha: true });
+    expect(recordAttempt).toHaveBeenCalledTimes(2);
+    expect(verifyCredentials).not.toHaveBeenCalled();
+  });
+
+  it("proceeds to credential check when captchaToken is valid and IP has 3+ failures", async () => {
+    getFailureCount.mockResolvedValue(3);
+    verifyCaptcha.mockResolvedValue(true);
+    verifyCredentials.mockResolvedValue(false);
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { username: "admin", password: "wrong", captchaToken: "valid-token" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(401);
+    expect(verifyCredentials).toHaveBeenCalledOnce();
   });
 });
 
