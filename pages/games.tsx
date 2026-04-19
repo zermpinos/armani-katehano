@@ -851,12 +851,15 @@ export async function getStaticProps() {
   const allSeasonsStats = await getAllSeasonsStats(seasons);
   const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
 
-  const playerSeasonHistory: Record<string, any> = {};
+  // Object.create(null) prevents prototype pollution when player.id/sid are from DB data
+  const playerSeasonHistory: Record<string, any> = Object.create(null);
   for (const [sid, seasonMap] of Object.entries(allSeasonsStats)) {
     for (const player of players) {
       const s = (seasonMap as any)[player.id];
       if (s && s.gp > 0) {
-        if (!playerSeasonHistory[player.id]) playerSeasonHistory[player.id] = {};
+        // eslint-disable-next-line security/detect-object-injection
+        if (!playerSeasonHistory[player.id]) playerSeasonHistory[player.id] = Object.create(null);
+        // eslint-disable-next-line security/detect-object-injection
         playerSeasonHistory[player.id][sid] = s;
       }
     }

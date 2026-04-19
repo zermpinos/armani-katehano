@@ -284,10 +284,12 @@ export default function CoachPage() {
   };
 
   const togglePlayer = (pid: string) => {
+    // eslint-disable-next-line security/detect-object-injection
     setRosterSlots(prev => ({ ...prev, [pid]: { ...prev[pid], checked: !prev[pid].checked } }));
   };
 
   const setNote = (pid: string, note: string) => {
+    // eslint-disable-next-line security/detect-object-injection
     setRosterSlots(prev => ({ ...prev, [pid]: { ...prev[pid], note } }));
   };
 
