@@ -1,10 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ── Reset & base ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-
-html {
-  height: 100%;
-}
+html { scroll-behavior: smooth; height: 100%; }
 
 body {
   background: #1c1c1e;
@@ -33,7 +33,7 @@ body {
 /* ── Links ── */
 a { color: inherit; text-decoration: none; }
 
-/* ── Animations ── */
+/* ── Keyframes -- kept here so existing inline style="animation:spin..." refs still work during Phase 2 migration ── */
 @keyframes fadeIn  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes spin    { to { transform: rotate(360deg); } }
 @keyframes pulse   { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
@@ -43,5 +43,4 @@ a { color: inherit; text-decoration: none; }
 .slide-up { animation: slideUp 0.4s ease both; }
 
 /* ── Utility ── */
-.overflow-x-auto { overflow-x: auto; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }

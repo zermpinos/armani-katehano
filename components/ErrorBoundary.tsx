@@ -1,10 +1,4 @@
-/**
- * components/ErrorBoundary.js
- * Catches rendering errors in a subtree and shows a fallback
- * instead of white-screening the entire page.
- */
 import { Component, ReactNode, ErrorInfo } from "react";
-import { C } from "../lib/theme";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -33,19 +27,12 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{
-          borderRadius: 12,
-          padding: "24px 20px",
-          border: `1px solid ${C.border}`,
-          background: C.surface,
-          textAlign: "center",
-          color: C.textDim,
-        }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>⚠️</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+        <div className="rounded-xl px-5 py-6 border border-ak-border bg-ak-surface text-center text-ak-text-dim">
+          <div className="text-[28px] mb-2">⚠️</div>
+          <div className="text-[13px] font-bold text-ak-text">
             {this.props.label ?? "This section failed to load"}
           </div>
-          <div style={{ fontSize: 12, marginTop: 4 }}>
+          <div className="text-xs mt-1">
             Try refreshing the page. If the problem persists, contact support.
           </div>
         </div>
