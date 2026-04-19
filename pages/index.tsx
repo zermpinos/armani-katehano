@@ -118,35 +118,11 @@ function ShowMoreButton({ href, onClick, children, className }: {
   children: React.ReactNode;
   className?: string;
 }) {
-  const style: React.CSSProperties = {
-    background: "none",
-    border: "none",
-    fontSize: 11,
-    fontWeight: 700,
-    color: C.textDim,
-    cursor: "pointer",
-    fontFamily: "inherit",
-    letterSpacing: "0.1em",
-    textTransform: "uppercase",
-    transition: "color 0.15s",
-    padding: "4px 0",
-    textDecoration: "none",
-    display: "inline-block",
-  };
-  const onEnter = (e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.color = C.textSub; };
-  const onLeave = (e: React.MouseEvent<HTMLElement>) => { (e.currentTarget as HTMLElement).style.color = C.textDim; };
+  const cls = `${className ?? ""} bg-transparent border-0 text-[11px] font-bold text-ak-text-dim hover:text-ak-text-sub cursor-pointer tracking-[0.1em] uppercase transition-colors duration-150 py-1 px-0 no-underline inline-block`;
   if (href) {
-    return (
-      <Link href={href} className={className} style={style} onMouseEnter={onEnter} onMouseLeave={onLeave}>
-        {children}
-      </Link>
-    );
+    return <Link href={href} className={cls}>{children}</Link>;
   }
-  return (
-    <button className={className} style={style} onClick={onClick} onMouseEnter={onEnter} onMouseLeave={onLeave}>
-      {children}
-    </button>
-  );
+  return <button className={cls} onClick={onClick}>{children}</button>;
 }
 
 function ConfirmToast() {
@@ -169,28 +145,22 @@ function ConfirmToast() {
   if (!visible) return null;
 
   const isSuccess = type === "success";
-  const bg        = isSuccess ? `${C.green}18`   : `#f59e0b18`;
-  const border    = isSuccess ? `${C.green}40`   : `#f59e0b40`;
-  const color     = isSuccess ? C.green           : "#d97706";
-  const icon      = isSuccess ? "✓"               : "⚠";
-  const message   = isSuccess
-    ? "Email confirmed — welcome to the team!"
-    : "This confirmation link has expired or was already used. Please subscribe again.";
 
   return (
-    <div style={{
-      position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)",
-      zIndex: 9999, maxWidth: 420, width: "calc(100% - 32px)",
-      display: "flex", alignItems: "flex-start", gap: 10,
-      padding: "12px 16px", borderRadius: 10,
-      background: bg, border: `1px solid ${border}`,
-      boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
-    }}>
-      <span style={{ fontSize: 15, color, flexShrink: 0, marginTop: 1 }}>{icon}</span>
-      <span style={{ fontSize: 13, color, fontWeight: 700, flex: 1, lineHeight: 1.45 }}>{message}</span>
+    <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[9999] max-w-[420px] w-[calc(100%-32px)] flex items-start gap-[10px] py-3 px-4 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.18)] border ${
+      isSuccess ? "bg-[#4caf7d18] border-[#4caf7d40]" : "bg-[#f59e0b18] border-[#f59e0b40]"
+    }`}>
+      <span className={`text-[15px] shrink-0 mt-0.5 ${isSuccess ? "text-ak-green" : "text-[#d97706]"}`}>
+        {isSuccess ? "✓" : "⚠"}
+      </span>
+      <span className={`text-[13px] font-bold flex-1 leading-[1.45] ${isSuccess ? "text-ak-green" : "text-[#d97706]"}`}>
+        {isSuccess
+          ? "Email confirmed — welcome to the team!"
+          : "This confirmation link has expired or was already used. Please subscribe again."}
+      </span>
       <button
         onClick={() => setVisible(false)}
-        style={{ background: "none", border: "none", cursor: "pointer", color, fontSize: 16, lineHeight: 1, padding: 0, flexShrink: 0, opacity: 0.7 }}
+        className={`bg-transparent border-0 cursor-pointer text-base leading-none p-0 shrink-0 opacity-70 ${isSuccess ? "text-ak-green" : "text-[#d97706]"}`}
         aria-label="Dismiss"
       >×</button>
     </div>
@@ -226,37 +196,37 @@ function SubscribeForm() {
   };
 
   return (
-    <div style={{ borderRadius: 14, padding: "20px 22px", border: `1px solid ${C.border}`, background: C.surface, marginBottom: 24 }}>
-      <div style={{ marginBottom: 6 }}>
-        <div style={{ fontSize: 13, fontWeight: 900, color: C.text, letterSpacing: "0.04em" }}>Roster notifications</div>
-        <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>Get emailed when the game roster is announced</div>
+    <div className="rounded-[14px] py-5 px-[22px] border border-ak-border bg-ak-surface mb-6">
+      <div className="mb-1.5">
+        <div className="text-[13px] font-black text-ak-text tracking-[0.04em]">Roster notifications</div>
+        <div className="text-[11px] text-ak-text-dim mt-0.5">Get emailed when the game roster is announced</div>
       </div>
       {status === "done" ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, padding: "10px 14px", borderRadius: 8, background: `${C.green}14`, border: `1px solid ${C.green}35` }}>
-          <span style={{ fontSize: 16 }}>✓</span>
-          <div style={{ fontSize: 13, color: C.green, fontWeight: 700 }}>Check your email and click the confirmation link to complete your subscription.</div>
+        <div className="flex items-center gap-2 mt-3 py-[10px] px-[14px] rounded-lg bg-[#4caf7d14] border border-[#4caf7d35]">
+          <span className="text-base">✓</span>
+          <div className="text-[13px] text-ak-green font-bold">Check your email and click the confirmation link to complete your subscription.</div>
         </div>
       ) : (
         <>
-          <form onSubmit={submit} style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+          <form onSubmit={submit} className="flex gap-2 flex-wrap mt-3">
             <input
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="your@email.com"
               required
-              style={{ flex: 1, minWidth: 200, padding: "8px 12px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none" }}
+              className="flex-1 min-w-[200px] py-2 px-3 text-[13px] rounded-lg border border-ak-border2 bg-ak-base text-ak-text outline-none"
             />
             <button
               type="submit"
               disabled={status === "loading" || !email}
-              style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: C.red, color: C.text, fontSize: 11, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", cursor: status === "loading" || !email ? "not-allowed" : "pointer", opacity: status === "loading" || !email ? 0.5 : 1, fontFamily: "inherit", whiteSpace: "nowrap" }}
+              className={`py-2 px-[18px] rounded-lg border-0 bg-ak-red text-ak-text text-[11px] font-black tracking-[0.1em] uppercase whitespace-nowrap ${status === "loading" || !email ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
             >
               {status === "loading" ? "Subscribing…" : "Notify me"}
             </button>
           </form>
-          {status === "error" && <div style={{ marginTop: 7, fontSize: 12, color: C.redText }}>{errMsg}</div>}
-          <div style={{ marginTop: 8, fontSize: 10, color: C.textDim }}>
+          {status === "error" && <div className="mt-[7px] text-xs text-ak-red-text">{errMsg}</div>}
+          <div className="mt-2 text-[10px] text-ak-text-dim">
             Your email is used solely for roster announcements. It is never shared with third parties and is deleted immediately when you unsubscribe. Unconfirmed addresses are removed after 24 hours.
           </div>
         </>
@@ -265,34 +235,41 @@ function SubscribeForm() {
   );
 }
 
+// Google Calendar icon SVG
+function GoogleCalIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+      <rect x="3" y="5" width="18" height="16" rx="2" fill="#fff" stroke="#4285F4" strokeWidth="1.5"/>
+      <path d="M3 11h18" stroke="#4285F4" strokeWidth="1.5"/>
+      <rect x="8" y="3" width="2" height="4" rx="1" fill="#4285F4"/>
+      <rect x="14" y="3" width="2" height="4" rx="1" fill="#4285F4"/>
+      <text x="12" y="20" textAnchor="middle" fill="#4285F4" fontSize="8" fontWeight="900" fontFamily="sans-serif">G</text>
+    </svg>
+  );
+}
+
 // Announced roster panel — shown when visitor toggles "View Roster"
 function RosterPanel({ announcement, onPlayerClick }: { announcement: any; onPlayerClick?: (id: string) => void }) {
   return (
-    <div style={{ paddingTop: 10 }}>
-      <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, textTransform: "uppercase", marginBottom: 8 }}>
+    <div className="pt-[10px]">
+      <div className="text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-2">
         Announced Roster
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <div className="flex flex-col gap-0.5">
         {announcement.players.map((p: any) => (
-          <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: `1px solid ${C.border}` }}>
-            <span style={{ fontSize: 11, fontWeight: 900, color: C.textDim, minWidth: 28, fontVariantNumeric: "tabular-nums" }}>#{p.number}</span>
+          <div key={p.id} className="flex items-center gap-2 py-1 border-b border-ak-border">
+            <span className="text-[11px] font-black text-ak-text-dim min-w-[28px] [font-variant-numeric:tabular-nums]">#{p.number}</span>
             <button
               type="button"
               onClick={() => onPlayerClick?.(p.id)}
               disabled={!onPlayerClick}
-              style={{
-                flex: 1, textAlign: "left", background: "none", border: "none", padding: 0,
-                fontFamily: "inherit", fontSize: 13, color: C.text,
-                cursor: onPlayerClick ? "pointer" : "default", transition: "color 0.15s",
-              }}
-              onMouseEnter={(e) => { if (onPlayerClick) (e.currentTarget as HTMLElement).style.color = C.redText; }}
-              onMouseLeave={(e) => { if (onPlayerClick) (e.currentTarget as HTMLElement).style.color = C.text; }}
+              className={`flex-1 text-left bg-transparent border-0 p-0 text-[13px] text-ak-text transition-colors duration-150 ${onPlayerClick ? "cursor-pointer hover:text-ak-red-text" : "cursor-default"}`}
             >
               {p.name}
             </button>
-            <span style={{ fontSize: 10, color: C.textDim }}>{p.position}</span>
+            <span className="text-[10px] text-ak-text-dim">{p.position}</span>
             {p.note && (
-              <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.08em", padding: "2px 6px", borderRadius: 4, background: `${C.green}20`, color: C.green, border: `1px solid ${C.green}40`, whiteSpace: "nowrap" }}>
+              <span className="text-[9px] font-black tracking-[0.08em] px-1.5 py-0.5 rounded bg-[#4caf7d20] text-ak-green border border-[#4caf7d40] whitespace-nowrap">
                 {p.note}
               </span>
             )}
@@ -300,24 +277,11 @@ function RosterPanel({ announcement, onPlayerClick }: { announcement: any; onPla
         ))}
       </div>
       {announcement.message && (
-        <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 8, background: C.surface2, fontSize: 12, color: C.textSub, fontStyle: "italic", lineHeight: 1.5 }}>
+        <div className="mt-[10px] py-2 px-3 rounded-lg bg-ak-surface2 text-xs text-ak-text-sub italic leading-relaxed">
           &ldquo;{announcement.message}&rdquo;
         </div>
       )}
     </div>
-  );
-}
-
-// Google Calendar icon SVG
-function GoogleCalIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-      <rect x="3" y="5" width="18" height="16" rx="2" fill="#fff" stroke="#4285F4" strokeWidth="1.5"/>
-      <path d="M3 11h18" stroke="#4285F4" strokeWidth="1.5"/>
-      <rect x="8" y="3" width="2" height="4" rx="1" fill="#4285F4"/>
-      <rect x="14" y="3" width="2" height="4" rx="1" fill="#4285F4"/>
-      <text x="12" y="20" textAnchor="middle" fill="#4285F4" fontSize="8" fontWeight="900" fontFamily="sans-serif">G</text>
-    </svg>
   );
 }
 
@@ -389,24 +353,25 @@ export default function HomePage({ players, games, stats, upcomingGames, current
     <Layout title="Armani Katehano">
       <ConfirmToast />
       {/* Hero */}
-      <div style={{ position:"relative", borderRadius:16, overflow:"hidden", padding:"40px 32px", border:`1px solid ${C.border}`, background:C.surface, marginBottom:24 }}>
-        <div style={{ position:"absolute", inset:0, opacity:0.18, backgroundImage:`repeating-linear-gradient(45deg,${C.red} 0,${C.red} 1px,transparent 0,transparent 50%)`, backgroundSize:"20px 20px" }} />
-        <div style={{ position:"absolute", top:0, right:0, width:280, height:280, borderRadius:"50%", background:`${C.red}18`, transform:"translate(35%,-35%)" }} />
-        <div style={{ position:"relative" }}>
-          <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.18em", textTransform:"uppercase", color:C.redText, marginBottom:8 }}>2025–26 · Regular Season</div>
-          <h1 style={{ fontSize:"clamp(36px,6vw,64px)", fontWeight:900, lineHeight:1, letterSpacing:"-0.02em", textTransform:"uppercase", color:C.text }}>
-            Armani<br /><span style={{ color:C.redBright }}>Katehano</span>
+      <div className="relative rounded-2xl overflow-hidden py-10 px-8 border border-ak-border bg-ak-surface mb-6">
+        {/* repeating diagonal texture — complex CSS, kept as inline style */}
+        <div className="absolute inset-0 opacity-[0.18]" style={{ backgroundImage: `repeating-linear-gradient(45deg,#8b1a1a 0,#8b1a1a 1px,transparent 0,transparent 50%)`, backgroundSize: "20px 20px" }} />
+        <div className="absolute top-0 right-0 w-[280px] h-[280px] rounded-full bg-[#8b1a1a18] translate-x-[35%] -translate-y-[35%]" />
+        <div className="relative">
+          <div className="text-[11px] font-black tracking-[0.18em] uppercase text-ak-red-text mb-2">2025–26 · Regular Season</div>
+          <h1 className="text-[clamp(36px,6vw,64px)] font-black leading-none tracking-[-0.02em] uppercase text-ak-text">
+            Armani<br /><span className="text-ak-red-bright">Katehano</span>
           </h1>
-          <p style={{ marginTop:12, fontSize:13, fontWeight:600, color:C.textSub }}>
+          <p className="mt-3 text-[13px] font-semibold text-ak-text-sub">
             {record.wins}–{record.losses}
-            {record.streak.count > 0 && <> · <span style={{ color:C.redText }}>{record.streak.count}-game {record.streak.type === "W" ? "win" : "loss"} streak</span></>}
-            {" "}· <span style={{ color:C.redText }}>{winPct}%</span> win rate
+            {record.streak.count > 0 && <> · <span className="text-ak-red-text">{record.streak.count}-game {record.streak.type === "W" ? "win" : "loss"} streak</span></>}
+            {" "}· <span className="text-ak-red-text">{winPct}%</span> win rate
           </p>
         </div>
       </div>
 
       {/* Record tiles */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:12, marginBottom:24 }}>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3 mb-6">
         <StatTile label="Record"  value={`${record.wins}–${record.losses}`} sub={`${winPct}% win rate`} />
         <StatTile label="Streak"  value={record.streak.count > 0 ? `${record.streak.count}${record.streak.type}` : "—"} sub="current streak" highlight={record.streak.type === "W" && record.streak.count > 0} />
         <StatTile label="PPG"     value={record.ppg    || "—"} sub="points per game" />
@@ -421,80 +386,64 @@ export default function HomePage({ players, games, stats, upcomingGames, current
         const featTime = formatGameTime(featured.scheduledFor);
         const isToday = featTier === "today";
         const isWeek  = featTier === "week";
-        const featAccent = isToday ? C.gold : isWeek ? C.redText : C.textSub;
+        const featAccentCls = isToday ? "text-ak-gold" : isWeek ? "text-ak-red-text" : "text-ak-text-sub";
         const featVenue  = featured.notes;
 
         return (
-          <div style={{ borderRadius:16, padding:"20px 16px", border:`1px solid ${C.border}`, background:C.surface, marginBottom:24, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
+          <div className="rounded-2xl py-5 px-4 border border-ak-border bg-ak-surface mb-6 shadow-[0_4px_16px_rgba(0,0,0,0.25)]">
             {/* Section header */}
-            <div style={{ marginBottom:14 }}>
-              <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.18em", color:C.textDim, textTransform:"uppercase" }}>Schedule</div>
-              <h2 style={{ fontSize:"clamp(16px,5vw,18px)", fontWeight:700, color:C.text, margin:"4px 0 0 0" }}>Upcoming Games</h2>
+            <div className="mb-[14px]">
+              <div className="text-[11px] font-black tracking-[0.18em] text-ak-text-dim uppercase">Schedule</div>
+              <h2 className="text-[clamp(16px,5vw,18px)] font-bold text-ak-text mt-1 mb-0">Upcoming Games</h2>
             </div>
 
             {/* ── Featured card: next game ── */}
-            <div style={{
-              borderRadius:14,
-              padding:"18px 20px",
-              border:`1px solid ${isToday ? `${C.gold}55` : isWeek ? `${C.redText}35` : C.border2}`,
-              background: isToday ? `${C.gold}0d` : isWeek ? `${C.redText}08` : C.surface2,
-              marginBottom: rest.length > 0 ? 10 : 0,
-              boxShadow: isToday ? `0 8px 24px ${C.gold}18` : isWeek ? `0 4px 16px ${C.redText}12` : "0 2px 8px rgba(0,0,0,0.18)",
-            }}>
+            <div className={`rounded-[14px] py-[18px] px-5 border ${
+              isToday ? "border-[#c9a84c55] bg-[#c9a84c0d] shadow-[0_8px_24px_#c9a84c18]"
+              : isWeek ? "border-[#e0555535] bg-[#e055550a] shadow-[0_4px_16px_#e0555512]"
+              : "border-ak-border2 bg-ak-surface2 shadow-[0_2px_8px_rgba(0,0,0,0.18)]"
+            } ${rest.length > 0 ? "mb-[10px]" : ""}`}>
               {/* Top label */}
-              <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.18em", textTransform:"uppercase", color: isToday ? C.gold : C.redText, marginBottom:12 }}>
+              <div className={`text-[10px] font-black tracking-[0.18em] uppercase mb-3 ${isToday ? "text-ak-gold" : "text-ak-red-text"}`}>
                 {isToday ? "⚡ Today" : "Next Game"}
               </div>
               {/* Main row: left info | right badge + buttons */}
-              <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:16 }}>
+              <div className="flex items-start justify-between gap-4">
                 {/* Left */}
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ display:"flex", alignItems:"baseline", gap:8, marginBottom:4, flexWrap:"wrap" }}>
-                    <div style={{ fontSize:"clamp(18px,5vw,24px)", fontWeight:900, color:C.text, lineHeight:1.15 }}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2 mb-1 flex-wrap">
+                    <div className="text-[clamp(18px,5vw,24px)] font-black text-ak-text leading-[1.15]">
                       {featured.location === "home" ? "vs" : "@"} {featured.opponent}
                     </div>
-                    <div style={{ fontSize:"clamp(13px,3vw,15px)", fontWeight:700, color:featAccent }}>{featTime}</div>
+                    <div className={`text-[clamp(13px,3vw,15px)] font-bold ${featAccentCls}`}>{featTime}</div>
                   </div>
                   {featured.competition && (
-                    <div style={{ fontSize:12, color:C.textDim, fontWeight:500, marginBottom:4 }}>{featured.competition}</div>
+                    <div className="text-xs text-ak-text-dim font-medium mb-1">{featured.competition}</div>
                   )}
                   {featVenue && (
                     <a
                       href={getVenueUrl(featVenue)}
                       target="_blank" rel="noopener noreferrer"
-                      style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:12, color:C.textSub, textDecoration:"none", transition:"color 0.2s", marginTop:2 }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = C.redText)}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = C.textSub)}
+                      className="inline-flex items-center gap-1 text-xs text-ak-text-sub no-underline transition-colors duration-200 mt-0.5 hover:text-ak-red-text"
                     >
                       📍 {featVenue}
                     </a>
                   )}
                 </div>
                 {/* Right: badge + calendar buttons side by side */}
-                <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8, flexShrink:0 }}>
-                  <div style={{
-                    fontSize:11, fontWeight:700, color:featAccent,
-                    padding:"3px 10px", borderRadius:20,
-                    background: isToday ? `${C.gold}20` : isWeek ? `${C.redText}12` : `${C.textSub}10`,
-                    letterSpacing:"0.03em", whiteSpace:"nowrap",
-                  }}>
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <div className={`text-[11px] font-bold ${featAccentCls} py-[3px] px-[10px] rounded-full whitespace-nowrap ${
+                    isToday ? "bg-[#c9a84c20]" : isWeek ? "bg-[#e0555512]" : "bg-[#a8a8ac10]"
+                  } tracking-[0.03em]`}>
                     {featLabel}
                   </div>
-                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <div className="flex items-center gap-1.5">
                     {/* Google Calendar */}
                     <a
                       href={buildGoogleCalendarUrl(featured.opponent, featured.scheduledFor, featVenue)}
                       target="_blank" rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      style={{
-                        display:"inline-flex", alignItems:"center", gap:6,
-                        padding:"7px 12px", borderRadius:8,
-                        border:"1px solid #4285F440", background:"#4285F410", color:"#4285F4",
-                        fontSize:11, fontWeight:700, textDecoration:"none",
-                        cursor:"pointer", transition:"all 0.2s ease", whiteSpace:"nowrap",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background="#4285F420"; e.currentTarget.style.borderColor="#4285F465"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background="#4285F410"; e.currentTarget.style.borderColor="#4285F440"; }}
+                      className="inline-flex items-center gap-1.5 py-[7px] px-3 rounded-lg border border-[#4285F440] bg-[#4285F410] text-[#4285F4] text-[11px] font-bold no-underline cursor-pointer whitespace-nowrap transition-all duration-200 hover:bg-[#4285F420] hover:border-[#4285F465]"
                     >
                       <GoogleCalIcon />
                       Google
@@ -502,15 +451,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
                     {/* Download .ics */}
                     <button
                       onClick={(e) => { e.stopPropagation(); downloadIcsFile(featured.opponent, featured.scheduledFor, featVenue); }}
-                      style={{
-                        display:"inline-flex", alignItems:"center", gap:6,
-                        padding:"7px 12px", borderRadius:8,
-                        border:`1px solid ${C.border2}`, background:C.base, color:C.textSub,
-                        fontSize:11, fontWeight:700, cursor:"pointer",
-                        transition:"all 0.2s ease", fontFamily:"inherit", whiteSpace:"nowrap",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color=C.text; e.currentTarget.style.borderColor=C.border2; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color=C.textSub; e.currentTarget.style.borderColor=C.border2; }}
+                      className="inline-flex items-center gap-1.5 py-[7px] px-3 rounded-lg border border-ak-border2 bg-ak-base text-ak-text-sub text-[11px] font-bold cursor-pointer whitespace-nowrap transition-all duration-200 hover:text-ak-text"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -524,14 +465,12 @@ export default function HomePage({ players, games, stats, upcomingGames, current
               </div>
 
               {/* Roster section */}
-              <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
+              <div className="mt-3 pt-[10px] border-t border-ak-border">
                 {featured.announcement ? (
                   <>
                     <button
                       onClick={() => toggleRoster(featured.id)}
-                      style={{ background: "none", border: "none", fontSize: 11, fontWeight: 700, color: C.textDim, cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.1em", textTransform: "uppercase", padding: "2px 0", display: "flex", alignItems: "center", gap: 6 }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = C.textSub; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = C.textDim; }}
+                      className="bg-transparent border-0 text-[11px] font-bold text-ak-text-dim cursor-pointer tracking-[0.1em] uppercase py-0.5 px-0 flex items-center gap-1.5 hover:text-ak-text-sub transition-colors duration-150"
                     >
                       {openRosterId === featured.id
                         ? "Hide Roster ↑"
@@ -540,80 +479,57 @@ export default function HomePage({ players, games, stats, upcomingGames, current
                     {openRosterId === featured.id && <RosterPanel announcement={featured.announcement} onPlayerClick={openPlayerById} />}
                   </>
                 ) : (
-                  <div style={{ fontSize: 11, color: C.textDim, letterSpacing: "0.04em" }}>Roster TBA</div>
+                  <div className="text-[11px] text-ak-text-dim tracking-[0.04em]">Roster TBA</div>
                 )}
               </div>
             </div>
 
             {/* ── Compact cards: remaining games ── */}
             {rest.length > 0 && (
-              <div style={{ display:"flex", flexDirection:"column", gap:5 }}>
+              <div className="flex flex-col gap-[5px]">
                 {(showAllUpcoming ? rest : rest.slice(0, 3)).map((g: any) => {
                   const { label, tier } = getCountdownInfo(g.scheduledFor);
                   const gameTime = formatGameTime(g.scheduledFor);
-                  const accentColor = tier === "today" ? C.gold : tier === "week" ? C.redText : C.textSub;
+                  const accentCls = tier === "today" ? "text-ak-gold" : tier === "week" ? "text-ak-red-text" : "text-ak-text-sub";
                   const venue = g.notes;
                   const rosterOpen = openRosterId === g.id;
                   return (
                     <div key={g.id}>
-                      <div style={{
-                        display:"flex", alignItems:"center", justifyContent:"space-between", gap:10,
-                        padding:"10px 14px", borderRadius: rosterOpen ? "10px 10px 0 0" : 10,
-                        border:`1px solid ${rosterOpen ? `${C.green}40` : C.border}`,
-                        background:"transparent",
-                        transition:"background 0.15s ease, border-color 0.15s ease",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = C.surface2; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                      <div
+                        className={`flex items-center justify-between gap-[10px] py-[10px] px-[14px] border bg-transparent transition-all duration-150 hover:bg-ak-surface2 ${
+                          rosterOpen
+                            ? "rounded-t-[10px] border-[#4caf7d40]"
+                            : "rounded-[10px] border-ak-border"
+                        }`}
                       >
                         {/* Left: info */}
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ display:"flex", alignItems:"baseline", gap:6, flexWrap:"wrap" }}>
-                            <span style={{ fontSize:13, fontWeight:700, color:C.text }}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-1.5 flex-wrap">
+                            <span className="text-[13px] font-bold text-ak-text">
                               {g.location === "home" ? "vs" : "@"} {g.opponent}
                             </span>
-                            <span style={{ fontSize:11, fontWeight:600, color:accentColor }}>{gameTime}</span>
+                            <span className={`text-[11px] font-semibold ${accentCls}`}>{gameTime}</span>
                             {g.competition && (
-                              <span style={{ fontSize:11, color:C.textDim }}>· {g.competition}</span>
+                              <span className="text-[11px] text-ak-text-dim">· {g.competition}</span>
                             )}
                           </div>
-                          <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{label}</div>
+                          <div className="text-[11px] text-ak-text-dim mt-0.5">{label}</div>
                         </div>
                         {/* Right: icon-only buttons + roster toggle */}
-                        <div style={{ display:"flex", alignItems:"center", gap:5, flexShrink:0 }}>
+                        <div className="flex items-center gap-[5px] shrink-0">
                           <a
                             href={buildGoogleCalendarUrl(g.opponent, g.scheduledFor, venue)}
                             target="_blank" rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
                             title="Add to Google Calendar"
-                            style={{
-                              display:"flex", alignItems:"center", justifyContent:"center",
-                              width:28, height:28, borderRadius:7,
-                              border:`1px solid ${C.border}`,
-                              background:C.base,
-                              textDecoration:"none",
-                              transition:"all 0.15s ease",
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.borderColor="#4285F4"; e.currentTarget.style.background="#4285F412"; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.borderColor=C.border; e.currentTarget.style.background=C.base; }}
+                            className="flex items-center justify-center w-7 h-7 rounded-[7px] border border-ak-border bg-ak-base no-underline transition-all duration-150 hover:border-[#4285F4] hover:bg-[#4285F412]"
                           >
                             <GoogleCalIcon />
                           </a>
                           <button
                             onClick={(e) => { e.stopPropagation(); downloadIcsFile(g.opponent, g.scheduledFor, venue); }}
                             title="Download .ics"
-                            style={{
-                              display:"flex", alignItems:"center", justifyContent:"center",
-                              width:28, height:28, borderRadius:7,
-                              border:`1px solid ${C.border}`,
-                              background:C.base,
-                              color:C.textDim,
-                              cursor:"pointer",
-                              transition:"all 0.15s ease",
-                              fontFamily:"inherit",
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.borderColor=C.border2; e.currentTarget.style.color=C.textSub; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.borderColor=C.border; e.currentTarget.style.color=C.textDim; }}
+                            className="flex items-center justify-center w-7 h-7 rounded-[7px] border border-ak-border bg-ak-base text-ak-text-dim cursor-pointer transition-all duration-150 hover:border-ak-border2 hover:text-ak-text-sub"
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -625,27 +541,20 @@ export default function HomePage({ players, games, stats, upcomingGames, current
                             onClick={(e) => { e.stopPropagation(); toggleRoster(g.id); }}
                             title={g.announcement ? (rosterOpen ? "Hide roster" : "View roster") : "Roster TBA"}
                             disabled={!g.announcement}
-                            style={{
-                              display:"flex", alignItems:"center", justifyContent:"center",
-                              width:28, height:28, borderRadius:7,
-                              border:`1px solid ${rosterOpen ? `${C.green}60` : C.border}`,
-                              background: rosterOpen ? `${C.green}15` : C.base,
-                              color: g.announcement ? (rosterOpen ? C.green : C.textDim) : C.textDim,
-                              cursor: g.announcement ? "pointer" : "default",
-                              transition:"all 0.15s ease",
-                              fontFamily:"inherit",
-                              fontSize: 10, fontWeight: 900, letterSpacing: "0.05em",
-                              opacity: g.announcement ? 1 : 0.4,
-                            }}
-                            onMouseEnter={(e) => { if (g.announcement && !rosterOpen) { e.currentTarget.style.borderColor=C.border2; e.currentTarget.style.color=C.textSub; } }}
-                            onMouseLeave={(e) => { if (g.announcement && !rosterOpen) { e.currentTarget.style.borderColor=C.border; e.currentTarget.style.color=C.textDim; } }}
+                            className={`flex items-center justify-center w-7 h-7 rounded-[7px] border text-[10px] font-black tracking-[0.05em] transition-all duration-150 ${
+                              rosterOpen
+                                ? "border-[#4caf7d60] bg-[#4caf7d15] text-ak-green cursor-pointer"
+                                : g.announcement
+                                  ? "border-ak-border bg-ak-base text-ak-text-dim cursor-pointer hover:border-ak-border2 hover:text-ak-text-sub"
+                                  : "border-ak-border bg-ak-base text-ak-text-dim cursor-default opacity-40"
+                            }`}
                           >
                             {g.announcement ? (rosterOpen ? "↑" : `${g.announcement.players.length}`) : "—"}
                           </button>
                         </div>
                       </div>
                       {rosterOpen && g.announcement && (
-                        <div style={{ padding:"10px 14px 12px", border:`1px solid ${C.green}40`, borderTop:"none", borderRadius:"0 0 10px 10px", background:`${C.green}05` }}>
+                        <div className="py-[10px] px-[14px] pb-3 border border-[#4caf7d40] border-t-0 rounded-b-[10px] bg-[#4caf7d05]">
                           <RosterPanel announcement={g.announcement} onPlayerClick={openPlayerById} />
                         </div>
                       )}
@@ -655,25 +564,10 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 
                 {/* Show More — ghost style, matches "BOX SCORE →" in games.tsx */}
                 {!showAllUpcoming && rest.length > 3 && (
-                  <div style={{ textAlign:"center", paddingTop:4 }}>
-                    <button
-                      onClick={() => setShowAllUpcoming(true)}
-                      style={{
-                        background:"none", border:"none",
-                        fontSize:11, fontWeight:700,
-                        color:C.textDim,
-                        cursor:"pointer",
-                        fontFamily:"inherit",
-                        letterSpacing:"0.1em",
-                        textTransform:"uppercase",
-                        transition:"color 0.15s",
-                        padding:"4px 0",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = C.textSub; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = C.textDim; }}
-                    >
+                  <div className="text-center pt-1">
+                    <ShowMoreButton onClick={() => setShowAllUpcoming(true)}>
                       {rest.length - 3} more game{rest.length - 3 !== 1 ? "s" : ""} →
-                    </button>
+                    </ShowMoreButton>
                   </div>
                 )}
               </div>
@@ -686,16 +580,16 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 
       <ErrorBoundary label="Stats failed to load">
       {hasData && (
-        <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:20 }}>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))", gap:20 }}>
+        <div className="grid grid-cols-1 gap-5">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-5">
 
             {/* Scoring trend */}
             {trend.length > 0 && (
-              <div style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)", display:"flex", flexDirection:"column", minHeight:320 }}>
-                <div style={{ marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <div className="rounded-2xl p-5 border border-ak-border bg-ak-surface shadow-[0_4px_16px_rgba(0,0,0,0.25)] flex flex-col min-h-[320px]">
+                <div className="mb-3 flex items-center justify-between">
                   <div>
-                    <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Scoring Trend</div>
-                    <div style={{ fontSize:18, fontWeight:700, color:C.text }}>Last {trend.length} Games</div>
+                    <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim uppercase">Scoring Trend</div>
+                    <div className="text-lg font-bold text-ak-text">Last {trend.length} Games</div>
                   </div>
                   <ShowMoreButton className="show-more-btn" onClick={() => setShowTrendModal(true)}>Show More →</ShowMoreButton>
                 </div>
@@ -738,11 +632,11 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 
             {/* Recent results */}
             {recentGames.length > 0 && (
-              <div style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}>
-                <div style={{ marginBottom:14, display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+              <div className="rounded-2xl p-5 border border-ak-border bg-ak-surface shadow-[0_4px_16px_rgba(0,0,0,0.25)]">
+                <div className="mb-[14px] flex items-start justify-between">
                   <div>
-                    <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Recent Results</div>
-                    <div style={{ fontSize:18, fontWeight:700, color:C.text, marginTop:2 }}>Last {recentGames.length} Games</div>
+                    <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim uppercase">Recent Results</div>
+                    <div className="text-lg font-bold text-ak-text mt-0.5">Last {recentGames.length} Games</div>
                   </div>
                   <ShowMoreButton href="/games" className="show-more-btn">All Games →</ShowMoreButton>
                 </div>
@@ -752,74 +646,61 @@ export default function HomePage({ players, games, stats, upcomingGames, current
                   const g = recentGames[0];
                   const isWin = g.result === "W";
                   return (
-                    <div style={{
-                      borderRadius:12, padding:"14px 16px", marginBottom:8,
-                      border:`1px solid ${isWin ? `${C.green}30` : `${C.redText}25`}`,
-                      background: isWin ? "rgba(16,185,129,0.06)" : `${C.red}08`,
-                      display:"flex", alignItems:"center", justifyContent:"space-between", gap:12,
-                    }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                        <span style={{
-                          width:36, height:36, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
-                          fontSize:13, fontWeight:900, flexShrink:0,
-                          background: isWin ? "rgba(16,185,129,0.15)" : `${C.red}35`,
-                          color: isWin ? "#6ee7b7" : C.redText,
-                          border:`1px solid ${isWin ? "rgba(16,185,129,0.25)" : `${C.redText}30`}`,
-                        }}>{g.result}</span>
+                    <div className={`rounded-xl py-[14px] px-4 mb-2 border flex items-center justify-between gap-3 ${
+                      isWin ? "border-[#4caf7d30] bg-[rgba(16,185,129,0.06)]" : "border-[#e0555525] bg-[#8b1a1a08]"
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <span className={`w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-black shrink-0 border ${
+                          isWin
+                            ? "bg-[rgba(16,185,129,0.15)] text-[#6ee7b7] border-[rgba(16,185,129,0.25)]"
+                            : "bg-[#8b1a1a35] text-ak-red-text border-[#e0555530]"
+                        }`}>{g.result}</span>
                         <div>
-                          <div style={{ fontSize:15, fontWeight:800, color:C.text }}>{g.home ? "vs" : "@"} {g.opponent}</div>
-                          <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>{fmtDate(g.date)}</div>
+                          <div className="text-[15px] font-extrabold text-ak-text">{g.home ? "vs" : "@"} {g.opponent}</div>
+                          <div className="text-[11px] text-ak-text-dim mt-0.5">{fmtDate(g.date)}</div>
                         </div>
                       </div>
-                      <div style={{ textAlign:"right", flexShrink:0 }}>
-                        <div style={{ fontSize:20, fontWeight:900, color: isWin ? C.green : C.redText }}>{g.score}</div>
+                      <div className="text-right shrink-0">
+                        <div className={`text-xl font-black ${isWin ? "text-ak-green" : "text-ak-red-text"}`}>{g.score}</div>
                       </div>
                     </div>
                   );
                 })()}
 
                 {/* Compact: remaining games */}
-                <div style={{ display:"flex", flexDirection:"column" }}>
+                <div className="flex flex-col">
                   {recentGames.slice(1).map((g, i) => {
                     const isWin = g.result === "W";
                     return (
-                      <div key={g.id} style={{
-                        display:"flex", alignItems:"center", justifyContent:"space-between", gap:10,
-                        padding:"9px 4px",
-                        borderTop: i === 0 ? `1px solid ${C.border}` : `1px solid ${C.border}`,
-                      }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:9 }}>
-                          <span style={{
-                            width:24, height:24, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center",
-                            fontSize:10, fontWeight:900, flexShrink:0,
-                            background: isWin ? "rgba(16,185,129,0.10)" : `${C.red}25`,
-                            color: isWin ? "#6ee7b7" : C.redText,
-                          }}>{g.result}</span>
+                      <div key={g.id} className="flex items-center justify-between gap-[10px] py-[9px] px-1 border-t border-ak-border">
+                        <div className="flex items-center gap-[9px]">
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
+                            isWin ? "bg-[rgba(16,185,129,0.10)] text-[#6ee7b7]" : "bg-[#8b1a1a25] text-ak-red-text"
+                          }`}>{g.result}</span>
                           <div>
-                            <div style={{ fontSize:12, fontWeight:600, color:C.textSub }}>{g.home ? "vs" : "@"} {g.opponent}</div>
-                            <div style={{ fontSize:10, color:C.textDim }}>{fmtDate(g.date)}</div>
+                            <div className="text-xs font-semibold text-ak-text-sub">{g.home ? "vs" : "@"} {g.opponent}</div>
+                            <div className="text-[10px] text-ak-text-dim">{fmtDate(g.date)}</div>
                           </div>
                         </div>
-                        <div style={{ fontSize:12, fontWeight:700, color:C.textSub }}>{g.score}</div>
+                        <div className="text-xs font-bold text-ak-text-sub">{g.score}</div>
                       </div>
                     );
                   })}
                 </div>
-
               </div>
             )}
           </div>
 
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))", gap:20 }}>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-5">
             {/* Top scorers */}
             {topScorers.length > 0 && (
               <div
-                style={{ borderRadius:16, padding:20, border:`1px solid ${C.border}`, background:C.surface, boxShadow:"0 4px 16px rgba(0,0,0,0.25)" }}
+                className="rounded-2xl p-5 border border-ak-border bg-ak-surface shadow-[0_4px_16px_rgba(0,0,0,0.25)]"
                 role="img"
                 aria-label="Top Scorers — PPG"
               >
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
-                  <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase" }}>Top Scorers — PPG</div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim uppercase">Top Scorers — PPG</div>
                   <ShowMoreButton href="/players" className="show-more-btn">All Players →</ShowMoreButton>
                 </div>
                 <ResponsiveContainer width="100%" height={topScorers.length * 44}>
@@ -860,38 +741,33 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 
             {/* Efficiency leader card */}
             {mvp && mvp.stats.eff > 0 && (
-              <div style={{ borderRadius:16, padding:20, position:"relative", overflow:"hidden", border:`0.5px solid ${C.redBright}35`, background:C.surface, boxShadow:"0 1px 1px rgba(0,0,0,0.25)" }}>
-                <div style={{ position:"absolute", top:0, right:0, width:140, height:140, borderRadius:"50%", background:`${C.red}12`, transform:"translate(40%,-40%)" }} />
+              <div className="rounded-2xl p-5 relative overflow-hidden border border-[#c0392b35] bg-ak-surface shadow-[0_1px_1px_rgba(0,0,0,0.25)]">
+                <div className="absolute top-0 right-0 w-[140px] h-[140px] rounded-full bg-[#8b1a1a12] translate-x-[40%] -translate-y-[40%]" />
                 {/* Header */}
-                <div style={{ marginBottom:14, position:"relative", zIndex:1, display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+                <div className="mb-[14px] relative z-[1] flex items-start justify-between">
                   <div>
-                    <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.redText, textTransform:"uppercase" }}>⚡ Efficiency Leader</div>
+                    <div className="text-[11px] font-black tracking-[0.15em] text-ak-red-text uppercase">⚡ Efficiency Leader</div>
                   </div>
                   <ShowMoreButton href="/players" className="show-more-btn">All Players →</ShowMoreButton>
                 </div>
                 {/* Featured player */}
-                <div style={{
-                  borderRadius:12, padding:"14px 16px", marginBottom:12,
-                  border:`1px solid ${C.redText}25`, background:`${C.red}08`,
-                  display:"flex", alignItems:"center", justifyContent:"space-between", gap:12,
-                  position:"relative", zIndex:1,
-                }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                    <div style={{ width:36, height:36, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", background:`${C.red}20`, border:`1px solid ${C.redText}30`, flexShrink:0, fontSize:16 }}>
+                <div className="rounded-xl py-[14px] px-4 mb-3 border border-[#e0555525] bg-[#8b1a1a08] flex items-center justify-between gap-3 relative z-[1]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-[10px] flex items-center justify-center bg-[#8b1a1a20] border border-[#e0555530] shrink-0 text-base">
                       🏀
                     </div>
                     <div>
-                      <div style={{ fontSize:15, fontWeight:800, color:C.text }}>{fmt(mvp.name)}</div>
-                      <div style={{ fontSize:11, fontWeight:700, color:C.textDim, marginTop:2 }}>#{mvp.number} · {mvp.position}</div>
+                      <div className="text-[15px] font-extrabold text-ak-text">{fmt(mvp.name)}</div>
+                      <div className="text-[11px] font-bold text-ak-text-dim mt-0.5">#{mvp.number} · {mvp.position}</div>
                     </div>
                   </div>
-                  <div style={{ textAlign:"right", flexShrink:0 }}>
-                    <div style={{ fontSize:22, fontWeight:900, color:C.redText }}>{mvp.stats.eff}</div>
-                    <div style={{ fontSize:10, fontWeight:700, color:C.textDim, letterSpacing:"0.1em" }}>EFF</div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[22px] font-black text-ak-red-text">{mvp.stats.eff}</div>
+                    <div className="text-[10px] font-bold text-ak-text-dim tracking-[0.1em]">EFF</div>
                   </div>
                 </div>
                 {/* Stat grid */}
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, position:"relative", zIndex:1 }}>
+                <div className="grid grid-cols-3 gap-2 relative z-[1]">
                   {[
                     ["PPG", mvp.stats.ppg],
                     ["RPG", mvp.stats.rpg],
@@ -900,9 +776,9 @@ export default function HomePage({ players, games, stats, upcomingGames, current
                     ["GP",  mvp.stats.gp],
                     ["MPG", mvp.stats.mpg > 0 ? fmtMinutes(mvp.stats.mpg) : "—"],
                   ].map(([l, v]) => (
-                    <div key={l} style={{ textAlign:"center", borderRadius:8, padding:"8px 4px", background:C.base, border:`1px solid ${C.border}` }}>
-                      <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.12em", color:C.textDim }}>{l}</div>
-                      <div style={{ fontSize:13, fontWeight:900, color:C.text, marginTop:2 }}>{v}</div>
+                    <div key={l} className="text-center rounded-lg py-2 px-1 bg-ak-base border border-ak-border">
+                      <div className="text-[10px] font-black tracking-[0.12em] text-ak-text-dim">{l}</div>
+                      <div className="text-[13px] font-black text-ak-text mt-0.5">{v}</div>
                     </div>
                   ))}
                 </div>
@@ -914,147 +790,64 @@ export default function HomePage({ players, games, stats, upcomingGames, current
       </ErrorBoundary>
 
       {!hasData && (
-        <div style={{ textAlign:"center", padding:"48px 0", color:C.textDim }}>
-          <div style={{ fontSize:40, marginBottom:12 }}>🏀</div>
-          <div style={{ fontSize:15, fontWeight:700 }}>No data yet</div>
-          <div style={{ fontSize:13, marginTop:4 }}>Add games via the admin panel to see stats here.</div>
+        <div className="text-center py-12 text-ak-text-dim">
+          <div className="text-[40px] mb-3">🏀</div>
+          <div className="text-[15px] font-bold">No data yet</div>
+          <div className="text-[13px] mt-1">Add games via the admin panel to see stats here.</div>
         </div>
       )}
 
       {/* Scoring Trend Modal */}
       {showTrendModal && (
-        <div style={{
-          position:"fixed",
-          inset:0,
-          backgroundColor:"rgba(0,0,0,0.5)",
-          display:"flex",
-          alignItems:"center",
-          justifyContent:"center",
-          zIndex:1000,
-          padding:"16px",
-        }}
-        onClick={(e) => e.target === e.currentTarget && setShowTrendModal(false)}
-        className="trend-modal-backdrop"
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4 trend-modal-backdrop"
+          onClick={(e) => e.target === e.currentTarget && setShowTrendModal(false)}
         >
-          <div style={{
-            borderRadius:16,
-            padding:"clamp(16px, 4vw, 32px)",
-            background:C.surface,
-            border:`1px solid ${C.border}`,
-            maxWidth:"95vw",
-            width:"100%",
-            maxHeight:"90vh",
-            display:"flex",
-            flexDirection:"column",
-            boxShadow:"0 20px 64px rgba(0,0,0,0.3)",
-            minHeight:0,
-          }} className="trend-modal-content">
+          <div className="rounded-2xl p-[clamp(16px,4vw,32px)] bg-ak-surface border border-ak-border max-w-[95vw] w-full max-h-[90vh] flex flex-col shadow-[0_20px_64px_rgba(0,0,0,0.3)] min-h-0 trend-modal-content">
             {/* Header */}
-            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:"clamp(16px, 3vw, 24px)", gap:16 }}>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, textTransform:"uppercase", marginBottom:4 }}>Scoring Trend</div>
-                <div style={{ fontSize:"clamp(18px, 5vw, 22px)", fontWeight:700, color:C.text }}>Last {extendedTrend.length} Games</div>
+            <div className="flex items-start justify-between mb-[clamp(16px,3vw,24px)] gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-1">Scoring Trend</div>
+                <div className="text-[clamp(18px,5vw,22px)] font-bold text-ak-text">Last {extendedTrend.length} Games</div>
               </div>
               <button
                 onClick={() => setShowTrendModal(false)}
-                style={{
-                  width:"clamp(32px, 8vw, 40px)",
-                  height:"clamp(32px, 8vw, 40px)",
-                  minWidth:32,
-                  minHeight:32,
-                  borderRadius:8,
-                  border:`1px solid ${C.border}`,
-                  background:C.base,
-                  color:C.text,
-                  fontSize:"clamp(16px, 4vw, 20px)",
-                  cursor:"pointer",
-                  display:"flex",
-                  alignItems:"center",
-                  justifyContent:"center",
-                  transition:"all 0.2s ease",
-                  flexShrink:0,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = C.redText;
-                  e.currentTarget.style.borderColor = C.redText;
-                  e.currentTarget.style.color = C.surface;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = C.base;
-                  e.currentTarget.style.borderColor = C.border;
-                  e.currentTarget.style.color = C.text;
-                }}
+                className="w-[clamp(32px,8vw,40px)] h-[clamp(32px,8vw,40px)] min-w-8 min-h-8 rounded-lg border border-ak-border bg-ak-base text-ak-text text-[clamp(16px,4vw,20px)] cursor-pointer flex items-center justify-center transition-all duration-200 shrink-0 hover:bg-ak-red-text hover:border-ak-red-text hover:text-ak-surface"
               >
                 ✕
               </button>
             </div>
 
             {/* Range selection */}
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(70px, 1fr))", gap:"8px", marginBottom:"clamp(16px, 3vw, 24px)" }} className="trend-buttons">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(70px,1fr))] gap-2 mb-[clamp(16px,3vw,24px)] trend-buttons">
               {[10, 20, 30].map(range => (
                 <button
                   key={range}
                   onClick={() => setTrendRange(range)}
-                  style={{
-                    padding:"clamp(6px, 2vw, 8px) clamp(12px, 3vw, 16px)",
-                    borderRadius:8,
-                    border:`1px solid ${trendRange === range ? C.redText : C.border}`,
-                    background:trendRange === range ? `${C.redText}15` : C.base,
-                    color:trendRange === range ? C.redText : C.text,
-                    fontSize:"clamp(11px, 2.5vw, 13px)",
-                    fontWeight:700,
-                    cursor:"pointer",
-                    transition:"all 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (trendRange !== range) {
-                      e.currentTarget.style.borderColor = C.redText;
-                      e.currentTarget.style.background = `${C.redText}08`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (trendRange !== range) {
-                      e.currentTarget.style.borderColor = C.border;
-                      e.currentTarget.style.background = C.base;
-                    }
-                  }}
+                  className={`py-[clamp(6px,2vw,8px)] px-[clamp(12px,3vw,16px)] rounded-lg border text-[clamp(11px,2.5vw,13px)] font-bold cursor-pointer transition-all duration-200 ${
+                    trendRange === range
+                      ? "border-ak-red-text bg-[#e0555515] text-ak-red-text"
+                      : "border-ak-border bg-ak-base text-ak-text hover:border-ak-red-text hover:bg-[#e0555508]"
+                  }`}
                 >
                   Last {range}
                 </button>
               ))}
               <button
                 onClick={() => setTrendRange(games.length)}
-                style={{
-                  padding:"clamp(6px, 2vw, 8px) clamp(12px, 3vw, 16px)",
-                  borderRadius:8,
-                  border:`1px solid ${trendRange === games.length ? C.redText : C.border}`,
-                  background:trendRange === games.length ? `${C.redText}15` : C.base,
-                  color:trendRange === games.length ? C.redText : C.text,
-                  fontSize:"clamp(11px, 2.5vw, 13px)",
-                  fontWeight:700,
-                  cursor:"pointer",
-                  transition:"all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  if (trendRange !== games.length) {
-                    e.currentTarget.style.borderColor = C.redText;
-                    e.currentTarget.style.background = `${C.redText}08`;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (trendRange !== games.length) {
-                    e.currentTarget.style.borderColor = C.border;
-                    e.currentTarget.style.background = C.base;
-                  }
-                }}
+                className={`py-[clamp(6px,2vw,8px)] px-[clamp(12px,3vw,16px)] rounded-lg border text-[clamp(11px,2.5vw,13px)] font-bold cursor-pointer transition-all duration-200 ${
+                  trendRange === games.length
+                    ? "border-ak-red-text bg-[#e0555515] text-ak-red-text"
+                    : "border-ak-border bg-ak-base text-ak-text hover:border-ak-red-text hover:bg-[#e0555508]"
+                }`}
               >
                 All Games
               </button>
             </div>
 
             {/* Chart */}
-            <div style={{ height:"clamp(250px, 50vh, 500px)", overflowX:"auto", overflowY:"hidden", marginRight:"-8px", paddingRight:"8px" }}>
-              <div style={{ minWidth:500, height:"100%" }}>
+            <div className="h-[clamp(250px,50vh,500px)] overflow-x-auto overflow-y-hidden -mr-2 pr-2">
+              <div className="min-w-[500px] h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={extendedTrend} margin={{ top:4, right:8, left:0, bottom:0 }}>
                   <defs>
