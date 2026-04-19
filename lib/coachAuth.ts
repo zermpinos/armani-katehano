@@ -21,6 +21,7 @@ export const COACH_SESSION_TTL_S = 4 * 60 * 60; // 4 hours
 // ─── Cookie helpers (reuse security.ts signing so SESSION_SECRET is shared) ───
 
 export function getCoachSessionToken(req: any): string {
+  // eslint-disable-next-line security/detect-object-injection
   return req.cookies?.[COACH_COOKIE] ?? "";
 }
 

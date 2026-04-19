@@ -331,10 +331,12 @@ export async function getAllSeasonsStats(seasons: string[]) {
   const bySeason: Record<string, any[]> = Object.fromEntries(seasons.map((s: string) => [s, []]));
   for (const agg of allAggregates) {
     const name = agg.seasonLeague.season.name;
-    if (bySeason[name]) bySeason[name].push(agg);
+    // eslint-disable-next-line security/detect-object-injection
+    if (Object.hasOwn(bySeason, name)) bySeason[name].push(agg);
   }
 
   return Object.fromEntries(
+    // eslint-disable-next-line security/detect-object-injection
     seasons.map((s: string) => [s, aggregatesToStatsMap(bySeason[s])])
   );
 }
