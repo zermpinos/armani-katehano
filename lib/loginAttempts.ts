@@ -41,3 +41,10 @@ export async function clearAttempts(key: string) {
   await prisma.loginAttempt.deleteMany({ where: { ip: rlKey(key) } });
 }
 
+export async function getFailureCount(key: string, windowSeconds = LOCKOUT_TTL_S): Promise<number> {
+  const since = new Date(Date.now() - windowSeconds * 1000);
+  return prisma.loginAttempt.count({
+    where: { ip: rlKey(key), attemptedAt: { gte: since } },
+  });
+}
+

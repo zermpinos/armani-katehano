@@ -8,7 +8,7 @@
  * Auth: separate COACH_PASSWORD + __Host-ak_coach session cookie.
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Head from "next/head";
 import { C } from "../../lib/theme";
 import { fmtDate } from "../../lib/utils";
@@ -33,16 +33,71 @@ function Btn({ onClick, disabled = false, children, variant = "primary", size = 
   );
 }
 
+// ─── Turnstile widget ────────────────────────────────────────────────────────
+
+function TurnstileWidget({ onVerified, onExpired }: { onVerified: (token: string) => void; onExpired: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const widgetId = useRef<string | null>(null);
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
+
+  useEffect(() => {
+    const render = () => {
+      const ts = (window as any).turnstile;
+      if (containerRef.current && ts && !widgetId.current) {
+        widgetId.current = ts.render(containerRef.current, {
+          sitekey: siteKey,
+          callback: onVerified,
+          "expired-callback": onExpired,
+          theme: "dark",
+        });
+      }
+    };
+
+    if ((window as any).turnstile) {
+      render();
+    } else {
+      const existing = document.getElementById("cf-turnstile-script");
+      if (!existing) {
+        const script = document.createElement("script");
+        script.id = "cf-turnstile-script";
+        script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+        script.async = true;
+        script.defer = true;
+        script.onload = render;
+        document.head.appendChild(script);
+      } else {
+        existing.addEventListener("load", render);
+      }
+    }
+
+    return () => {
+      if (widgetId.current && (window as any).turnstile) {
+        (window as any).turnstile.remove(widgetId.current);
+        widgetId.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteKey]);
+
+  return <div ref={containerRef} style={{ margin: "4px 0" }} />;
+}
+
 // ─── Login form ───────────────────────────────────────────────────────────────
 
-function LoginForm({ onLogin, error }: { onLogin: (pw: string) => Promise<void>; error: string | null }) {
-  const [password, setPassword] = useState("");
-  const [loading,  setLoading]  = useState(false);
+function LoginForm({ onLogin, error }: { onLogin: (pw: string, captchaToken?: string | null) => Promise<{ failed: boolean; requiresCaptcha?: boolean } | void>; error: string | null }) {
+  const [password,     setPassword]     = useState("");
+  const [loading,      setLoading]      = useState(false);
+  const [failCount,    setFailCount]    = useState(0);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
+  const needsCaptcha = failCount >= 3;
 
   const submit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
-    await onLogin(password);
+    const result = await onLogin(password, captchaToken);
+    if (result?.failed) setFailCount(c => c + 1);
+    if (result?.requiresCaptcha) setCaptchaToken(null);
     setLoading(false);
   };
 
@@ -59,9 +114,15 @@ function LoginForm({ onLogin, error }: { onLogin: (pw: string) => Promise<void>;
           <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter coach password" autoFocus
             style={{ width: "100%", padding: "9px 12px", fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
         </div>
+        {needsCaptcha && (
+          <TurnstileWidget
+            onVerified={setCaptchaToken}
+            onExpired={() => setCaptchaToken(null)}
+          />
+        )}
         {error && <div style={{ fontSize: 12, color: C.redText }}>{error}</div>}
-        <button type="submit" disabled={loading || !password}
-          style={{ padding: 12, fontWeight: 900, fontSize: 14, letterSpacing: "0.12em", textTransform: "uppercase", borderRadius: 10, border: "none", background: C.red, color: C.text, cursor: "pointer", fontFamily: "inherit", opacity: loading || !password ? 0.5 : 1 }}>
+        <button type="submit" disabled={loading || !password || (needsCaptcha && !captchaToken)}
+          style={{ padding: 12, fontWeight: 900, fontSize: 14, letterSpacing: "0.12em", textTransform: "uppercase", borderRadius: 10, border: "none", background: C.red, color: C.text, cursor: "pointer", fontFamily: "inherit", opacity: loading || !password || (needsCaptcha && !captchaToken) ? 0.5 : 1 }}>
           {loading ? "VERIFYING..." : "SIGN IN"}
         </button>
       </form>
@@ -112,15 +173,16 @@ export default function CoachPage() {
       .finally(() => setChecking(false));
   }, []);
 
-  const handleLogin = useCallback(async (password: string) => {
+  const handleLogin = useCallback(async (password: string, captchaToken?: string | null) => {
     setLoginError(null);
     const res = await fetch("/api/coach/auth", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ password }),
+      body:    JSON.stringify({ password, captchaToken }),
     });
     if (res.ok) {
       setAuthed(true);
+      return { failed: false };
     } else {
       const body = await res.json().catch(() => ({}));
       if (res.status === 429) {
@@ -128,6 +190,7 @@ export default function CoachPage() {
       } else {
         setLoginError(body.error ?? "Invalid credentials.");
       }
+      return { failed: true, requiresCaptcha: body.requiresCaptcha ?? false };
     }
   }, []);
 
