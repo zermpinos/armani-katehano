@@ -3,12 +3,12 @@ import React, { useEffect } from "react";
 // ── Player silhouette SVG ────────────────────────────────────────────────────
 
 interface PlayerSilhouetteProps {
-  style?: React.CSSProperties;
+  className?: string;
 }
 
-export function PlayerSilhouette({ style = {} }: PlayerSilhouetteProps) {
+export function PlayerSilhouette({ className }: PlayerSilhouetteProps) {
   return (
-    <svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg" style={style}>
+    <svg viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
       <circle cx="50" cy="28" r="18" fill="currentColor" opacity="0.55" />
       <path d="M18 115 C18 85 28 70 50 68 C72 70 82 85 82 115Z" fill="currentColor" opacity="0.55" />
     </svg>
@@ -230,16 +230,8 @@ export function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogPro
 
 // ── Loading spinner ───────────────────────────────────────────────────────────
 
-interface SpinnerProps {
-  size?: number;
-}
-
-export function Spinner({ size = 32 }: SpinnerProps) {
-  // size is a runtime value in px — set via CSS variable, consumed by arbitrary Tailwind class
+export function Spinner() {
   return (
-    <div
-      className="rounded-full border-2 border-ak-border2 border-t-ak-red-bright animate-ak-spin"
-      style={{ width: size, height: size }}
-    />
+    <div className="w-8 h-8 rounded-full border-2 border-ak-border2 border-t-ak-red-bright animate-ak-spin" />
   );
 }
