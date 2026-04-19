@@ -12,7 +12,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import Link from "next/link";
-import { C } from "../lib/theme";
 
 export default function UnsubscribePage() {
   const router = useRouter();
@@ -47,36 +46,29 @@ export default function UnsubscribePage() {
         <title>Unsubscribe -- Armani Katehano</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <div style={{
-        minHeight: "100vh", background: C.base, display: "flex",
-        alignItems: "center", justifyContent: "center", padding: 24,
-        fontFamily: "system-ui, -apple-system, sans-serif",
-      }}>
-        <div style={{
-          maxWidth: 420, width: "100%", borderRadius: 16, padding: "36px 32px",
-          border: `1px solid ${C.border}`, background: C.surface, textAlign: "center",
-        }}>
-          <div style={{ fontSize: 36, marginBottom: 16 }}>
+      <div className="min-h-screen bg-ak-base flex items-center justify-center p-6">
+        <div className="max-w-[420px] w-full rounded-2xl py-9 px-8 border border-ak-border bg-ak-surface text-center">
+          <div className="text-4xl mb-4">
             {status === "pending" ? "⏳" : status === "done" ? "✅" : "⚠️"}
           </div>
 
           {status === "pending" && (
             <>
-              <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>Unsubscribing...</div>
-              <div style={{ fontSize: 13, color: C.textDim }}>Please wait.</div>
+              <div className="text-lg font-black text-ak-text mb-2">Unsubscribing...</div>
+              <div className="text-[13px] text-ak-text-dim">Please wait.</div>
             </>
           )}
 
           {status === "done" && (
             <>
-              <div style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>You&apos;ve been unsubscribed</div>
-              <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.6 }}>
+              <div className="text-lg font-black text-ak-text mb-2">You&apos;ve been unsubscribed</div>
+              <div className="text-[13px] text-ak-text-dim leading-relaxed">
                 You won&apos;t receive any more roster notifications.<br />
                 You can re-subscribe any time from the homepage.
               </div>
               <Link
                 href="/"
-                style={{ display: "inline-block", marginTop: 20, padding: "8px 20px", borderRadius: 8, background: C.red, color: C.text, fontSize: 12, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", textDecoration: "none" }}
+                className="inline-block mt-5 px-5 py-2 rounded-lg bg-ak-red text-ak-text text-xs font-black tracking-[0.1em] uppercase no-underline"
               >
                 Back to site
               </Link>
@@ -85,14 +77,14 @@ export default function UnsubscribePage() {
 
           {status === "error" && (
             <>
-              <div style={{ fontSize: 18, fontWeight: 900, color: C.redText, marginBottom: 8 }}>Link invalid or expired</div>
-              <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.6 }}>
+              <div className="text-lg font-black text-ak-red-text mb-2">Link invalid or expired</div>
+              <div className="text-[13px] text-ak-text-dim leading-relaxed">
                 This unsubscribe link may have already been used or is no longer valid.
                 If you&apos;re still receiving emails, contact us.
               </div>
               <Link
                 href="/"
-                style={{ display: "inline-block", marginTop: 20, padding: "8px 20px", borderRadius: 8, background: C.surface2, color: C.text, fontSize: 12, fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", textDecoration: "none", border: `1px solid ${C.border2}` }}
+                className="inline-block mt-5 px-5 py-2 rounded-lg bg-ak-surface2 text-ak-text text-xs font-black tracking-[0.1em] uppercase no-underline border border-ak-border2"
               >
                 Back to site
               </Link>
