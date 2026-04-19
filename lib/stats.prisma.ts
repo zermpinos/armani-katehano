@@ -47,6 +47,7 @@ export function computePlayerAggregates(rows: any[]): Record<string, any> | null
   const gp = active.length;
   if (gp === 0) return null;
 
+  // eslint-disable-next-line security/detect-object-injection
   const sum = (key: string) => active.reduce((a: number, r: any) => a + ((r as any)[key] || 0), 0);
   const avg = (key: string) => +(sum(key) / gp).toFixed(2);
 
@@ -175,6 +176,7 @@ export async function recalcAggregates(seasonLeagueId: string, tx: any = prisma)
   // Value rows: each data value is safely parameterised by Prisma.sql / Prisma.join
   const valuePlaceholders = Prisma.join(
     toUpsert.map((row: any) =>
+      // eslint-disable-next-line security/detect-object-injection
       Prisma.sql`(${Prisma.join(cols.map(col => row[col]))})`
     )
   );
