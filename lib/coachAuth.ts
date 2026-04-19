@@ -4,21 +4,48 @@
  * Auth helpers for the coach portal -- fully separate from the admin session.
  *
  * Cookie : __Host-ak_coach  (HttpOnly, Secure, SameSite=Strict, Path=/)
- * Secret : same SESSION_SECRET used for HMAC signing (key reuse is fine;
- *          the cookie name and role field prevent cross-session confusion)
+ * Secret : COACH_SESSION_SECRET -- distinct from SESSION_SECRET (admin).
+ *          Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
  * Password: COACH_PASSWORD env var -- must be a bcrypt hash.
  *           Generate: node -e "require('bcryptjs').hash('pw',12).then(console.log)"
  */
 
 import crypto from "crypto";
 import bcrypt  from "bcryptjs";
-import { signSession, verifySession } from "./security";
 import prisma from "./prisma";
 
 const COACH_COOKIE = "__Host-ak_coach";
 export const COACH_SESSION_TTL_S = 4 * 60 * 60; // 4 hours
 
-// ─── Cookie helpers (reuse security.ts signing so SESSION_SECRET is shared) ───
+// ─── Local HMAC sign/verify using COACH_SESSION_SECRET ───────────────────────
+
+function signCoachSession(payload: string): string {
+  const secret = process.env.COACH_SESSION_SECRET;
+  if (!secret) throw new Error("COACH_SESSION_SECRET is not set");
+  const data = Buffer.from(payload).toString("base64url");
+  const sig  = crypto.createHmac("sha256", secret).update(data).digest("base64url");
+  return `${data}.${sig}`;
+}
+
+function verifyCoachSessionHmac(cookieValue: string | null | undefined): string | null {
+  const secret = process.env.COACH_SESSION_SECRET;
+  if (!secret || !cookieValue) return null;
+  const lastDot = cookieValue.lastIndexOf(".");
+  if (lastDot === -1) return null;
+  const data = cookieValue.slice(0, lastDot);
+  const sig  = cookieValue.slice(lastDot + 1);
+  if (!data || !sig) return null;
+  const expected = crypto.createHmac("sha256", secret).update(data).digest("base64url");
+  try {
+    const a = Buffer.from(sig,      "utf8");
+    const b = Buffer.from(expected, "utf8");
+    if (a.length !== b.length) return null;
+    if (!crypto.timingSafeEqual(a, b)) return null;
+  } catch { return null; }
+  return Buffer.from(data, "base64url").toString("utf8");
+}
+
+// ─── Cookie helpers ───────────────────────────────────────────────────────────
 
 export function getCoachSessionToken(req: any): string {
   // eslint-disable-next-line security/detect-object-injection
@@ -26,11 +53,11 @@ export function getCoachSessionToken(req: any): string {
 }
 
 export function verifyCoachSession(cookieValue: string): string | null {
-  return verifySession(cookieValue);
+  return verifyCoachSessionHmac(cookieValue);
 }
 
 export function buildCoachSessionCookie(payload: string): string {
-  const value = signSession(payload);
+  const value = signCoachSession(payload);
   return [
     `${COACH_COOKIE}=${value}`,
     "HttpOnly",
