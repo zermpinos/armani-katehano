@@ -1,5 +1,4 @@
 import React, { useEffect } from "react";
-import { C } from "../../lib/theme";
 
 // ── Player silhouette SVG ────────────────────────────────────────────────────
 
@@ -26,15 +25,23 @@ interface SectionHeadingProps {
 
 export function SectionHeading({ label, title, right }: SectionHeadingProps) {
   return (
-    <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", marginBottom:20 }}>
-      <div style={{ display:"flex", alignItems:"flex-start", gap:12 }}>
-        <div style={{ width:4, alignSelf:"stretch", borderRadius:2, background:C.redBright, minHeight:32 }} />
+    <div className="flex items-end justify-between mb-5">
+      <div className="flex items-start gap-3">
+        <div className="w-1 self-stretch rounded-sm bg-ak-red-bright min-h-8" />
         <div>
-          {label && <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", marginBottom:2, color:C.redText, textTransform:"uppercase" }}>{label}</div>}
-          <h2 style={{ fontSize:22, fontWeight:900, textTransform:"uppercase", letterSpacing:"-0.02em", color:C.text }}>{title}</h2>
+          {label && (
+            <div className="text-[11px] font-black tracking-[0.15em] mb-0.5 text-ak-red-text uppercase">
+              {label}
+            </div>
+          )}
+          <h2 className="text-[22px] font-black uppercase tracking-[-0.02em] text-ak-text">
+            {title}
+          </h2>
         </div>
       </div>
-      {right && <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim }}>{right}</div>}
+      {right && (
+        <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim">{right}</div>
+      )}
     </div>
   );
 }
@@ -50,18 +57,24 @@ interface StatTileProps {
 
 export function StatTile({ label, value, sub, highlight }: StatTileProps) {
   return (
-    <div style={{
-      borderRadius:12, padding:"14px 12px", textAlign:"center", border:`1px solid ${highlight ? `${C.redBright}55` : C.border}`,
-      background: highlight ? `${C.red}22` : C.surface,
-    }}>
-      <div style={{ fontSize:10, fontWeight:900, letterSpacing:"0.15em", marginBottom:4, color:C.textDim }}>{label}</div>
-      <div style={{ fontSize:28, fontWeight:900, color: highlight ? C.redText : C.text }}>{value}</div>
-      {sub && <div style={{ fontSize:11, marginTop:2, color:C.textDim }}>{sub}</div>}
+    <div
+      className={[
+        "rounded-xl px-3 py-[14px] text-center border",
+        highlight
+          ? "border-[#c0392b55] bg-[#8b1a1a22]"
+          : "border-ak-border bg-ak-surface",
+      ].join(" ")}
+    >
+      <div className="text-[10px] font-black tracking-[0.15em] mb-1 text-ak-text-dim">{label}</div>
+      <div className={["text-[28px] font-black", highlight ? "text-ak-red-text" : "text-ak-text"].join(" ")}>
+        {value}
+      </div>
+      {sub && <div className="text-[11px] mt-0.5 text-ak-text-dim">{sub}</div>}
     </div>
   );
 }
 
-// ── Primary / ghost / danger button ──────────────────────────────────────────
+// ── Primary / ghost / danger / secondary button ───────────────────────────────
 
 interface BtnProps {
   children: React.ReactNode;
@@ -72,19 +85,31 @@ interface BtnProps {
   type?: "button" | "submit" | "reset";
 }
 
+const BTN_VARIANT: Record<string, string> = {
+  primary:   "bg-ak-red border-transparent text-ak-text",
+  danger:    "bg-[#7f1d1d] border-transparent text-ak-text",
+  ghost:     "bg-transparent border-ak-border2 text-ak-text-sub",
+  secondary: "bg-ak-surface2 border-transparent text-ak-text",
+};
+
+const BTN_SIZE: Record<string, string> = {
+  sm: "py-[6px] px-3 text-[11px]",
+  md: "py-[9px] px-[18px] text-[13px]",
+};
+
 export function Btn({ children, onClick, variant = "primary", size = "md", disabled = false, type = "button" }: BtnProps) {
-  const bg  = variant==="primary" ? C.red : variant==="danger" ? "#7f1d1d" : variant==="ghost" ? "transparent" : C.surface2;
-  const bc  = variant==="ghost" ? C.border2 : "transparent";
-  const col = variant==="ghost" ? C.textSub : C.text;
-  const pad = size==="sm" ? "6px 12px" : "9px 18px";
-  const fs  = size==="sm" ? 11 : 13;
   return (
-    <button type={type} onClick={onClick} disabled={disabled} style={{
-      padding:pad, fontSize:fs, fontWeight:900, letterSpacing:"0.12em",
-      borderRadius:8, border:`1px solid ${bc}`, background:bg, color:col,
-      cursor:disabled?"not-allowed":"pointer", opacity:disabled?0.4:1,
-      fontFamily:"inherit", transition:"opacity 0.15s",
-    }}>
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={[
+        "font-black tracking-[0.12em] rounded-lg border font-sans transition-opacity duration-150",
+        BTN_VARIANT[variant],
+        BTN_SIZE[size],
+        disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer opacity-100",
+      ].join(" ")}
+    >
       {children}
     </button>
   );
@@ -104,16 +129,20 @@ interface FieldProps {
 export function Field({ label, value, onChange, type = "text", placeholder = "", small = false }: FieldProps) {
   return (
     <div>
-      {label && <label style={{ display:"block", fontSize:10, fontWeight:900, letterSpacing:"0.15em", marginBottom:6, color:C.textDim, textTransform:"uppercase" }}>{label}</label>}
+      {label && (
+        <label className="block text-[10px] font-black tracking-[0.15em] mb-1.5 text-ak-text-dim uppercase">
+          {label}
+        </label>
+      )}
       <input
-        type={type} value={value ?? ""} onChange={e => onChange(e.target.value)}
+        type={type}
+        value={value ?? ""}
+        onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        style={{
-          width:"100%", padding: small ? "6px 8px" : "9px 12px",
-          fontSize: small ? 12 : 13, borderRadius:8,
-          border:`1px solid ${C.border2}`, background:C.base, color:C.text,
-          fontFamily:"inherit", outline:"none",
-        }}
+        className={[
+          "w-full rounded-lg border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none",
+          small ? "py-[6px] px-2 text-xs" : "py-[9px] px-3 text-[13px]",
+        ].join(" ")}
       />
     </div>
   );
@@ -136,12 +165,16 @@ interface SelectProps {
 export function Select({ label, value, onChange, options }: SelectProps) {
   return (
     <div>
-      {label && <label style={{ display:"block", fontSize:10, fontWeight:900, letterSpacing:"0.15em", marginBottom:6, color:C.textDim, textTransform:"uppercase" }}>{label}</label>}
-      <select value={value} onChange={e => onChange(e.target.value)} style={{
-        width:"100%", padding:"9px 12px", fontSize:13, borderRadius:8,
-        border:`1px solid ${C.border2}`, background:C.base, color:C.text,
-        fontFamily:"inherit", outline:"none",
-      }}>
+      {label && (
+        <label className="block text-[10px] font-black tracking-[0.15em] mb-1.5 text-ak-text-dim uppercase">
+          {label}
+        </label>
+      )}
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full py-[9px] px-3 text-[13px] rounded-lg border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none"
+      >
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     </div>
@@ -159,14 +192,14 @@ interface ToastProps {
 export function Toast({ message, type = "success", onDone }: ToastProps) {
   useEffect(() => { const t = setTimeout(onDone, 2800); return () => clearTimeout(t); }, [onDone]);
   return (
-    <div style={{
-      position:"fixed", bottom:24, right:24, zIndex:200,
-      display:"flex", alignItems:"center", gap:10,
-      borderRadius:12, padding:"12px 20px", boxShadow:"0 8px 32px rgba(0,0,0,0.5)",
-      background:C.surface2, color:C.text, fontSize:14, fontWeight:600,
-      border:`1px solid ${type==="success" ? `${C.green}60` : `${C.redText}60`}`,
-    }}>
-      <span>{type==="success" ? "✓" : "✕"}</span>
+    <div
+      className={[
+        "fixed bottom-6 right-6 z-[200] flex items-center gap-2.5 rounded-xl px-5 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.5)]",
+        "bg-ak-surface2 text-ak-text text-[14px] font-semibold border",
+        type === "success" ? "border-[#4caf7d60]" : "border-[#e0555560]",
+      ].join(" ")}
+    >
+      <span>{type === "success" ? "✓" : "✕"}</span>
       <span>{message}</span>
     </div>
   );
@@ -182,11 +215,11 @@ interface ConfirmDialogProps {
 
 export function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogProps) {
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:150, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(0,0,0,0.75)" }}>
-      <div style={{ background:C.surface, border:`1px solid ${C.border2}`, borderRadius:16, padding:24, width:"100%", maxWidth:360, boxShadow:"0 16px 48px rgba(0,0,0,0.5)" }}>
-        <div style={{ fontSize:17, fontWeight:900, color:C.text, marginBottom:8 }}>Are you sure?</div>
-        <div style={{ fontSize:13, color:C.textSub, marginBottom:24 }}>{message}</div>
-        <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/75">
+      <div className="bg-ak-surface border border-ak-border2 rounded-2xl p-6 w-full max-w-[360px] shadow-[0_16px_48px_rgba(0,0,0,0.5)]">
+        <div className="text-[17px] font-black text-ak-text mb-2">Are you sure?</div>
+        <div className="text-[13px] text-ak-text-sub mb-6">{message}</div>
+        <div className="flex gap-2.5 justify-end">
           <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
           <Btn variant="danger" onClick={onConfirm}>Delete</Btn>
         </div>
@@ -202,11 +235,11 @@ interface SpinnerProps {
 }
 
 export function Spinner({ size = 32 }: SpinnerProps) {
+  // size is a runtime value in px -- set via CSS variable, consumed by arbitrary Tailwind class
   return (
-    <div style={{
-      width:size, height:size, borderRadius:"50%",
-      border:`2px solid ${C.border2}`, borderTopColor:C.redBright,
-      animation:"spin 0.7s linear infinite",
-    }} />
+    <div
+      className="rounded-full border-2 border-ak-border2 border-t-ak-red-bright animate-ak-spin"
+      style={{ width: size, height: size }}
+    />
   );
 }

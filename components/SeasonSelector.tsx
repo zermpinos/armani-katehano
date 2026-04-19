@@ -1,17 +1,4 @@
-/**
- * components/SeasonSelector.js
- * Reusable season tab strip used on all public pages that support season filtering.
- *
- * Props:
- *   seasons        string[]   all available season ids e.g. ["2025-26","2026-27"]
- *   currentSeason  string     the currently selected season id
- *   onChange       fn(sid)    called when user picks a different season
- *   showAllTime    bool       whether to show an "All Time" tab (default true)
- *   right          node       optional element aligned to the right of the tab strip
- */
-
 import React from "react";
-import { C } from "../lib/theme";
 
 interface SeasonSelectorProps {
   seasons: string[];
@@ -24,43 +11,33 @@ interface SeasonSelectorProps {
 export default function SeasonSelector({ seasons, currentSeason, onChange, showAllTime = true, right }: SeasonSelectorProps) {
   if (!seasons || seasons.length === 0) return null;
 
-  // Only render the selector when there is something to switch between
   const showSelector = seasons.length > 1 || showAllTime;
   if (!showSelector && !right) return null;
 
-  const tabs = [...seasons].sort().reverse(); // newest first
+  const tabs = [...seasons].sort().reverse();
   const options = showAllTime ? [...tabs, "all-time"] : tabs;
 
   const label = (sid: string) => {
     if (sid === "all-time") return "All Time";
-    // "2025-26" -> "2025-26" (en-dash for display)
     return sid.replace(/-/g, "-");
   };
 
   return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:20 }}>
+    <div className="flex items-center justify-between gap-2 mb-5">
       {showSelector && (
-        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+        <div className="flex gap-1.5 flex-wrap">
           {options.map(sid => {
             const active = sid === currentSeason;
             return (
               <button
                 key={sid}
                 onClick={() => onChange(sid)}
-                style={{
-                  padding: "5px 14px",
-                  fontSize: 11,
-                  fontWeight: 900,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  borderRadius: 8,
-                  border: `1px solid ${active ? C.red : C.border}`,
-                  background: active ? C.red : "transparent",
-                  color: active ? C.text : C.textDim,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  transition: "all 0.15s",
-                }}
+                className={[
+                  "py-[5px] px-[14px] text-[11px] font-black tracking-[0.12em] uppercase rounded-lg border cursor-pointer font-sans transition-all duration-150",
+                  active
+                    ? "border-ak-red bg-ak-red text-ak-text"
+                    : "border-ak-border bg-transparent text-ak-text-dim",
+                ].join(" ")}
               >
                 {label(sid)}
               </button>
@@ -68,7 +45,11 @@ export default function SeasonSelector({ seasons, currentSeason, onChange, showA
           })}
         </div>
       )}
-      {right && <div style={{ fontSize:11, fontWeight:900, letterSpacing:"0.15em", color:C.textDim, flexShrink:0 }}>{right}</div>}
+      {right && (
+        <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim shrink-0">
+          {right}
+        </div>
+      )}
     </div>
   );
 }
