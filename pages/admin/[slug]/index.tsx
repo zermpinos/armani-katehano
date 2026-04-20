@@ -5,7 +5,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { C } from "../../../lib/theme";
 import { AdminLayout, Spinner, LoginForm, useAdminAuth } from "../../../lib/adminShared";
 import { validateAdminSlug } from "../../../lib/adminSlugCheck";
 
@@ -65,15 +64,12 @@ export default function AdminDashboard({ validSlug }: any) {
   }, [authed, slug]);
 
   // ── 404 ───────────────────────────────────────────────────────────────────
-  // validSlug is false when adminSlugCheck rejects the URL segment.
-  // getServerSideProps returns { notFound: true } so Next.js renders its own
-  // 404 page -- this branch is a belt-and-suspenders fallback only.
   if (!validSlug) return null;
 
   // ── Auth loading ──────────────────────────────────────────────────────────
   if (authLoading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.base }}>
+      <div className="min-h-screen flex items-center justify-center bg-ak-base">
         <Spinner />
       </div>
     );
@@ -82,7 +78,7 @@ export default function AdminDashboard({ validSlug }: any) {
   // ── Not authed -> Login screen ─────────────────────────────────────────────
   if (!authed) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.base, padding: 16 }}>
+      <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
         <LoginForm onLogin={handleLogin} error={loginError} />
       </div>
     );
@@ -107,13 +103,13 @@ export default function AdminDashboard({ validSlug }: any) {
   return (
     <AdminLayout slug={slug} title="Dashboard" toast={toast} setToast={setToast} onLogout={handleLogout}>
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
+        <div className="flex justify-center py-[60px]">
           <Spinner />
         </div>
       ) : (
         <>
           {/* Summary strip */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))", gap: 10, marginBottom: 28 }}>
+          <div className="grid gap-[10px] mb-7" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))" }}>
             {[
               ["SEASON",      data?.currentSeason ?? "--"],
               ["RECORD",      `${wins}-${losses}`],
@@ -122,43 +118,38 @@ export default function AdminDashboard({ validSlug }: any) {
               ["APG",         apg],
               ["SUBSCRIBERS", subscriberCount !== null ? String(subscriberCount) : "--"],
             ].map(([label, value]) => (
-              <div key={label} style={{ borderRadius: 10, padding: "12px 14px", textAlign: "center", border: `1px solid ${C.border}`, background: C.surface }}>
-                <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 4 }}>{label}</div>
-                <div style={{ fontSize: label === "SEASON" ? 14 : 22, fontWeight: 900, color: label === "SEASON" ? C.redText : C.text }}>{value}</div>
+              <div key={label} className="rounded-[10px] px-[14px] py-3 text-center border border-ak-border bg-ak-surface">
+                <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-1">{label}</div>
+                <div className={["font-black", label === "SEASON" ? "text-[14px] text-ak-red-text" : "text-[22px] text-ak-text"].join(" ")}>{value}</div>
               </div>
             ))}
           </div>
 
           {/* Subscriber list */}
           {subscribers.length > 0 && (
-            <div style={{ marginBottom: 28 }}>
+            <div className="mb-7">
               <button
                 onClick={() => setShowSubscribers(v => !v)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  background: "none", border: "none", cursor: "pointer",
-                  padding: 0, marginBottom: showSubscribers ? 10 : 0,
-                }}
+                className={["flex items-center gap-2 bg-transparent border-0 cursor-pointer p-0", showSubscribers ? "mb-[10px]" : "mb-0"].join(" ")}
               >
-                <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, textTransform: "uppercase" }}>
+                <span className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase">
                   Subscriber emails
                 </span>
-                <span style={{ fontSize: 10, color: C.textDim }}>{showSubscribers ? "▲" : "▼"}</span>
+                <span className="text-[10px] text-ak-text-dim">{showSubscribers ? "▲" : "▼"}</span>
               </button>
               {showSubscribers && (
-                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+                <div className="border border-ak-border rounded-[10px] overflow-hidden">
                   {subscribers.map((s, i) => (
                     <div
                       key={s.email}
-                      style={{
-                        display: "flex", justifyContent: "space-between", alignItems: "center",
-                        padding: "9px 14px",
-                        background: i % 2 === 0 ? C.surface : C.surface2,
-                        borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
-                      }}
+                      className={[
+                        "flex justify-between items-center py-[9px] px-[14px]",
+                        i % 2 === 0 ? "bg-ak-surface" : "bg-ak-surface2",
+                        i === 0 ? "" : "border-t border-ak-border",
+                      ].join(" ")}
                     >
-                      <span style={{ fontSize: 13, color: C.text, fontFamily: "monospace" }}>{s.email}</span>
-                      <span style={{ fontSize: 11, color: C.textDim, whiteSpace: "nowrap", marginLeft: 16 }}>
+                      <span className="text-[13px] text-ak-text font-mono">{s.email}</span>
+                      <span className="text-[11px] text-ak-text-dim whitespace-nowrap ml-4">
                         {s.createdAt?.slice(0, 10)}
                       </span>
                     </div>
@@ -169,31 +160,29 @@ export default function AdminDashboard({ validSlug }: any) {
           )}
 
           {/* Quick links */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12, marginBottom: 28 }}>
+          <div className="grid gap-3 mb-7" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))" }}>
             {navItems.map(link => (
-              <a key={link.href} href={link.href} style={{ display: "block", borderRadius: 12, padding: "18px 20px", border: `1px solid ${C.border}`, background: C.surface, textDecoration: "none" }}>
-                <div style={{ fontSize: 20, marginBottom: 8 }}>{link.icon}</div>
-                <div style={{ fontSize: 13, fontWeight: 900, color: C.text, marginBottom: 3 }}>{link.label}</div>
-                <div style={{ fontSize: 11, color: C.textDim }}>{link.desc}</div>
+              <a key={link.href} href={link.href} className="block rounded-xl px-5 py-[18px] border border-ak-border bg-ak-surface">
+                <div className="text-[20px] mb-2">{link.icon}</div>
+                <div className="text-[13px] font-black text-ak-text mb-[3px]">{link.label}</div>
+                <div className="text-[11px] text-ak-text-dim">{link.desc}</div>
               </a>
             ))}
           </div>
 
           {/* Recalc */}
-          <div style={{ marginBottom: 28 }}>
+          <div className="mb-7">
             <button
               onClick={handleRecalc}
               disabled={recalcing}
-              style={{
-                padding: "10px 18px", fontSize: 12, fontWeight: 900, letterSpacing: "0.08em",
-                borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface,
-                color: recalcing ? C.textDim : C.text, cursor: recalcing ? "not-allowed" : "pointer",
-                fontFamily: "inherit",
-              }}
+              className={[
+                "py-[10px] px-[18px] text-[12px] font-black tracking-[0.08em] rounded-[9px] border border-ak-border bg-ak-surface font-sans",
+                recalcing ? "text-ak-text-dim cursor-not-allowed" : "text-ak-text cursor-pointer",
+              ].join(" ")}
             >
               {recalcing ? "Recalculating..." : "⟳ Recalc stats"}
             </button>
-            <span style={{ fontSize: 11, color: C.textDim, marginLeft: 10 }}>
+            <span className="text-[11px] text-ak-text-dim ml-[10px]">
               Recomputes all player aggregates from raw game data
             </span>
           </div>
@@ -201,27 +190,30 @@ export default function AdminDashboard({ validSlug }: any) {
           {/* Recent games */}
           {data?.recentGames?.length > 0 && (
             <div>
-              <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 10, textTransform: "uppercase" }}>
+              <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">
                 Recent games
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="flex flex-col gap-[6px]">
                 {data.recentGames.map((g: any) => (
-                    <div key={g.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <span style={{ padding: "2px 8px", borderRadius: 5, fontSize: 11, fontWeight: 900, background: g.result === "W" ? `${C.green}22` : `${C.red}22`, color: g.result === "W" ? C.green : C.redText }}>
-                          {g.result}
-                        </span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                          {g.opponent}
-                        </span>
-                        <span style={{ fontSize: 12, color: C.textDim }}>{g.teamScore}-{g.opponentScore}</span>
-                      </div>
-                      <span style={{ fontSize: 11, color: C.textDim }}>{g.playedOn?.slice(0, 10)}</span>
+                  <div key={g.id} className="flex justify-between items-center py-[10px] px-[14px] rounded-[9px] border border-ak-border bg-ak-surface">
+                    <div className="flex items-center gap-[10px]">
+                      <span className={[
+                        "px-2 py-[2px] rounded-[5px] text-[11px] font-black",
+                        g.result === "W" ? "bg-[#4caf7d22] text-ak-green" : "bg-[#8b1a1a22] text-ak-red-text",
+                      ].join(" ")}>
+                        {g.result}
+                      </span>
+                      <span className="text-[13px] font-bold text-ak-text">
+                        {g.opponent}
+                      </span>
+                      <span className="text-[12px] text-ak-text-dim">{g.teamScore}-{g.opponentScore}</span>
                     </div>
-                  ))}
+                    <span className="text-[11px] text-ak-text-dim">{g.playedOn?.slice(0, 10)}</span>
+                  </div>
+                ))}
               </div>
-              <div style={{ marginTop: 10 }}>
-                <a href={`/admin/${slug}/games`} style={{ fontSize: 11, color: C.redText, fontWeight: 700, textDecoration: "none" }}>
+              <div className="mt-[10px]">
+                <a href={`/admin/${slug}/games`} className="text-[11px] text-ak-red-text font-bold">
                   View all games ->
                 </a>
               </div>
@@ -236,8 +228,6 @@ export default function AdminDashboard({ validSlug }: any) {
 // ── SSR slug validation ─────────────────────────────────────────────────────
 export async function getServerSideProps({ params }: any) {
   const validSlug = await validateAdminSlug(params.slug);
-  // Return notFound so Next.js renders its built-in 404 page for bad slugs,
-  // rather than mounting the component with validSlug = false.
   if (!validSlug) return { notFound: true };
   return { props: { validSlug } };
 }
