@@ -8,32 +8,16 @@
  * Protected by coach session (requireCoachAuth).
  */
 
-import { z } from "zod";
 import { requireCoachAuth } from "../../../lib/requireCoachAuth";
 import { auditLog, getClientIp } from "../../../lib/security";
 import { rlKey } from "../../../lib/loginAttempts";
 import prisma from "../../../lib/prisma";
 import { prodError } from "../../../lib/utils";
 import { sendRosterAnnouncement } from "../../../lib/email";
+import { CoachAnnouncementWriteSchema, AnnouncementDeleteSchema } from "@/schemas/roster-announcement";
 
 const BLAST_LIMIT  = 10;   // max email blasts per IP per hour
 const BLAST_WINDOW = 3600; // 1 hour in seconds
-
-const PlayerSlotSchema = z.object({
-  playerId: z.string().cuid(),
-  note:     z.string().max(200).optional().nullable(),
-});
-
-const WriteSchema = z.object({
-  upcomingGameId: z.string().cuid(),
-  message:        z.string().max(1000).optional().nullable(),
-  players:        z.array(PlayerSlotSchema).max(20).optional(),
-  resend:         z.boolean().optional(),
-});
-
-const DeleteSchema = z.object({
-  upcomingGameId: z.string().cuid(),
-});
 
 async function handler(req: any, res: any) {
   const ip = getClientIp(req);
@@ -75,7 +59,7 @@ async function handler(req: any, res: any) {
     prisma.loginAttempt.create({ data: { ip: blastKey } })
       .catch((err: unknown) => console.error("[roster-announcement] rate-limit record failed:", err));
 
-    const parsed = WriteSchema.safeParse(req.body ?? {});
+    const parsed = CoachAnnouncementWriteSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       return res.status(400).json({
         error: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; "),
@@ -183,7 +167,7 @@ async function handler(req: any, res: any) {
 
   // ── DELETE ────────────────────────────────────────────────────────────────
   if (req.method === "DELETE") {
-    const parsed = DeleteSchema.safeParse(req.body ?? {});
+    const parsed = AnnouncementDeleteSchema.safeParse(req.body ?? {});
     if (!parsed.success) {
       return res.status(400).json({
         error: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; "),

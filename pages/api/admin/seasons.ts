@@ -3,17 +3,11 @@
  * POST /api/admin/seasons → create a new season and link leagues to it
  */
 
-import { z }                         from "zod";
 import { requireAuth }               from '../../../lib/requireAuth';
 import { auditLog, getClientIp }     from "../../../lib/security";
 import prisma                        from "../../../lib/prisma";
-import { prodError } from "../../../lib/utils";      // B-02: was missing
-
-const SeasonCreateSchema = z.object({
-  name:      z.string().min(1).max(100),
-  year:      z.coerce.number().int().min(2000).max(2100),
-  leagueIds: z.array(z.string().cuid()).max(20).optional(),
-});
+import { prodError }                 from "../../../lib/utils";
+import { SeasonCreateSchema }        from "@/schemas/season";
 
 async function handler(req: any, res: any) {
   const ip = getClientIp(req);

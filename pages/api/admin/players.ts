@@ -5,26 +5,11 @@
  * PUT  /api/admin/players → edit player
  */
 
-import { z }                         from "zod";
 import { requireAuth }               from "../../../lib/requireAuth";
 import { auditLog, getClientIp }     from "../../../lib/security";
 import prisma                        from "../../../lib/prisma";
 import { slugify, prodError }        from "../../../lib/utils";
-import { POSITIONS }                 from "../../../lib/positions";
-
-const PlayerWriteSchema = z.object({
-  name:     z.string().min(1).max(100),
-  number:   z.coerce.number().int().min(0).max(99),
-  position: z.enum(POSITIONS),
-  height:   z.string().max(10).optional().nullable(),
-  weight:   z.string().max(10).optional().nullable(),
-  photoUrl: z.string().max(255).optional().nullable(),
-});
-
-const PlayerUpdateSchema = PlayerWriteSchema.extend({
-  playerId: z.string().cuid(),
-  isActive: z.boolean().optional(),
-});
+import { PlayerWriteSchema, PlayerUpdateSchema } from "@/schemas/player";
 
 async function handler(req: any, res: any) {
   const ip = getClientIp(req);

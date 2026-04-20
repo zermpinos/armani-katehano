@@ -6,27 +6,11 @@
  * GET    /api/admin/schedule → list all upcoming games (including past ones for admin)
  */
 
-import { z } from "zod";
 import { requireAuth } from "../../../lib/requireAuth";
 import { auditLog, getClientIp } from "../../../lib/security";
 import prisma from "../../../lib/prisma";
 import { prodError } from "../../../lib/utils";
-
-const ScheduleWriteSchema = z.object({
-  opponent: z.string().min(1).max(100),
-  scheduledFor: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)),
-  location: z.enum(["home", "away"]).default("home"),
-  competition: z.string().max(200).optional().nullable(),
-  notes: z.string().max(1000).optional().nullable(),
-});
-
-const ScheduleUpdateSchema = ScheduleWriteSchema.extend({
-  id: z.string().cuid(),
-});
-
-const ScheduleDeleteSchema = z.object({
-  id: z.string().cuid(),
-});
+import { ScheduleWriteSchema, ScheduleUpdateSchema, ScheduleDeleteSchema } from "@/schemas/schedule";
 
 async function handler(req: any, res: any) {
   const ip = getClientIp(req);
