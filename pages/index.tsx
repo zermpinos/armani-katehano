@@ -11,280 +11,13 @@ import { PlayerDetail } from "../components/PlayerDetail";
 import { LineChart, Line, BarChart, Bar, Cell, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "../components/Charts";
 import Link from "next/link";
 import { getVenueUrl } from "../lib/venues";
-
-// Countdown badge logic — determines tier and label for upcoming games
-function getCountdownInfo(isoStr: string): { label: string; tier: "today" | "week" | "future" } {
-  const now = new Date();
-  const gameTime = new Date(isoStr);
-
-  // Normalize to start of day for date comparisons
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const gameDay = new Date(gameTime.getFullYear(), gameTime.getMonth(), gameTime.getDate());
-  const daysUntil = Math.ceil((gameDay.getTime() - todayStart.getTime()) / 86400000);
-
-  // Format time in 24-hour format (HH:MM)
-  const fmtTime = () => isoStr.slice(11, 16);
-
-  if (daysUntil === 0)       return { label: `Today at ${fmtTime()}`, tier: "today" };
-  if (daysUntil === 1)       return { label: `Tomorrow at ${fmtTime()}`, tier: "week" };
-  if (daysUntil <= 6)        return { label: `In ${daysUntil} days`, tier: "week" };
-  /* future */               return { label: fmtDate(isoStr), tier: "future" };
-}
-
-function formatGameTime(isoStr: string): string {
-  return isoStr.slice(11, 16);
-}
-
-// Generate and download .ics file with Europe/Athens timezone
-function downloadIcsFile(opponent: string, isoStr: string, venue?: string): void {
-  // isoStr is like "2026-04-09T17:30:00" — already in Athens local time
-  const dtStart = isoStr.replace(/[-:]/g, "").split(".")[0];
-  // Add 1 hour for end time
-  const [datePart, timePart] = isoStr.split("T");
-  const [hh, mm, ss] = timePart.split(":");
-  const endHH = String(parseInt(hh) + 1).padStart(2, "0");
-  const dtEnd = `${datePart.replace(/-/g, "")}T${endHH}${mm}${ss || "00"}`;
-
-  const title = `Armani Katehano vs ${opponent}`;
-  const description = venue ? `Venue: ${venue}` : "Game";
-  const uid = `${dtStart}-${opponent.replace(/\s+/g, "")}@armanikatehano`;
-
-  const ical = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Armani Katehano//EN",
-    "CALSCALE:GREGORIAN",
-    "BEGIN:VTIMEZONE",
-    "TZID:Europe/Athens",
-    "BEGIN:STANDARD",
-    "DTSTART:19701025T040000",
-    "RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU",
-    "TZOFFSETFROM:+0300",
-    "TZOFFSETTO:+0200",
-    "TZNAME:EET",
-    "END:STANDARD",
-    "BEGIN:DAYLIGHT",
-    "DTSTART:19700329T030000",
-    "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU",
-    "TZOFFSETFROM:+0200",
-    "TZOFFSETTO:+0300",
-    "TZNAME:EEST",
-    "END:DAYLIGHT",
-    "END:VTIMEZONE",
-    "BEGIN:VEVENT",
-    `DTSTART;TZID=Europe/Athens:${dtStart}`,
-    `DTEND;TZID=Europe/Athens:${dtEnd}`,
-    `SUMMARY:${title}`,
-    `DESCRIPTION:${description}`,
-    venue ? `LOCATION:${venue}` : "",
-    `UID:${uid}`,
-    `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z`,
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ].filter(Boolean).join("\r\n");
-
-  const blob = new Blob([ical], { type: "text/calendar;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `Armani-Katehano-vs-${opponent.replace(/\s+/g, "-")}.ics`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-// Build a Google Calendar "Add to Calendar" URL for a game
-function buildGoogleCalendarUrl(opponent: string, isoStr: string, venue?: string): string {
-  const dtStart = isoStr.replace(/[-:]/g, "").split(".")[0];
-  const [datePart, timePart] = isoStr.split("T");
-  const [hh, mm] = timePart.split(":");
-  const endHH = String(parseInt(hh) + 1).padStart(2, "0");
-  const dtEnd = `${datePart.replace(/-/g, "")}T${endHH}${mm}00`;
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: `Armani Katehano vs ${opponent}`,
-    dates: `${dtStart}/${dtEnd}`,
-    ctz: "Europe/Athens",
-    ...(venue ? { location: venue, details: `Venue: ${venue}` } : {}),
-  });
-  return `https://calendar.google.com/calendar/render?${params}`;
-}
-
-// Ghost "Show More" — no border, no fill; matches "BOX SCORE →" style in games.tsx
-function ShowMoreButton({ href, onClick, children, className }: {
-  href?: string;
-  onClick?: () => void;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  const cls = `${className ?? ""} bg-transparent border-0 text-[11px] font-bold text-ak-text-dim hover:text-ak-text-sub cursor-pointer tracking-[0.1em] uppercase transition-colors duration-150 py-1 px-0 no-underline inline-block`;
-  if (href) {
-    return <Link href={href} className={cls}>{children}</Link>;
-  }
-  return <button className={cls} onClick={onClick}>{children}</button>;
-}
-
-function ConfirmToast() {
-  const router = useRouter();
-  const [visible, setVisible] = useState(false);
-  const [type, setType]       = useState<"success" | "expired">("success");
-
-  useEffect(() => {
-    const { confirmed } = router.query;
-    if (!confirmed) return;
-    setType(confirmed === "1" ? "success" : "expired");
-    setVisible(true);
-    const t = setTimeout(() => setVisible(false), 5000);
-    // Strip the param from the URL so a refresh doesn't re-show it
-    router.replace("/", undefined, { shallow: true });
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.query.confirmed]);
-
-  if (!visible) return null;
-
-  const isSuccess = type === "success";
-
-  return (
-    <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[9999] max-w-[420px] w-[calc(100%-32px)] flex items-start gap-[10px] py-3 px-4 rounded-[10px] shadow-[0_4px_16px_rgba(0,0,0,0.18)] border ${
-      isSuccess ? "bg-[#4caf7d18] border-[#4caf7d40]" : "bg-[#f59e0b18] border-[#f59e0b40]"
-    }`}>
-      <span className={`text-[15px] shrink-0 mt-0.5 ${isSuccess ? "text-ak-green" : "text-[#d97706]"}`}>
-        {isSuccess ? "✓" : "⚠"}
-      </span>
-      <span className={`text-[13px] font-bold flex-1 leading-[1.45] ${isSuccess ? "text-ak-green" : "text-[#d97706]"}`}>
-        {isSuccess
-          ? "Email confirmed — welcome to the team!"
-          : "This confirmation link has expired or was already used. Please subscribe again."}
-      </span>
-      <button
-        onClick={() => setVisible(false)}
-        className={`bg-transparent border-0 cursor-pointer text-base leading-none p-0 shrink-0 opacity-70 ${isSuccess ? "text-ak-green" : "text-[#d97706]"}`}
-        aria-label="Dismiss"
-      >×</button>
-    </div>
-  );
-}
-
-// Email subscription widget
-function SubscribeForm() {
-  const [email,  setEmail]  = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
-  const [errMsg, setErrMsg] = useState("");
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setStatus("loading");
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (res.ok) {
-        setStatus("done");
-      } else {
-        const d = await res.json().catch(() => ({}));
-        setErrMsg(d.error ?? "Something went wrong.");
-        setStatus("error");
-      }
-    } catch {
-      setErrMsg("Network error. Please try again.");
-      setStatus("error");
-    }
-  };
-
-  return (
-    <div className="rounded-[14px] py-5 px-[22px] border border-ak-border bg-ak-surface mb-6">
-      <div className="mb-1.5">
-        <div className="text-[13px] font-black text-ak-text tracking-[0.04em]">Roster notifications</div>
-        <div className="text-[11px] text-ak-text-dim mt-0.5">Get emailed when the game roster is announced</div>
-      </div>
-      {status === "done" ? (
-        <div className="flex items-center gap-2 mt-3 py-[10px] px-[14px] rounded-lg bg-[#4caf7d14] border border-[#4caf7d35]">
-          <span className="text-base">✓</span>
-          <div className="text-[13px] text-ak-green font-bold">Check your email and click the confirmation link to complete your subscription.</div>
-        </div>
-      ) : (
-        <>
-          <form onSubmit={submit} className="flex gap-2 flex-wrap mt-3">
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              required
-              className="flex-1 min-w-[200px] py-2 px-3 text-[13px] rounded-lg border border-ak-border2 bg-ak-base text-ak-text outline-none"
-            />
-            <button
-              type="submit"
-              disabled={status === "loading" || !email}
-              className={`py-2 px-[18px] rounded-lg border-0 bg-ak-red text-ak-text text-[11px] font-black tracking-[0.1em] uppercase whitespace-nowrap ${status === "loading" || !email ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-            >
-              {status === "loading" ? "Subscribing…" : "Notify me"}
-            </button>
-          </form>
-          {status === "error" && <div className="mt-[7px] text-xs text-ak-red-text">{errMsg}</div>}
-          <div className="mt-2 text-[10px] text-ak-text-dim">
-            Your email is used solely for roster announcements. It is never shared with third parties and is deleted immediately when you unsubscribe. Unconfirmed addresses are removed after 24 hours.{" "}
-            <Link href="/privacy" className="underline text-ak-text-dim">Privacy notice</Link>.
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// Google Calendar icon SVG
-function GoogleCalIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
-      <rect x="3" y="5" width="18" height="16" rx="2" fill="#fff" stroke="#4285F4" strokeWidth="1.5"/>
-      <path d="M3 11h18" stroke="#4285F4" strokeWidth="1.5"/>
-      <rect x="8" y="3" width="2" height="4" rx="1" fill="#4285F4"/>
-      <rect x="14" y="3" width="2" height="4" rx="1" fill="#4285F4"/>
-      <text x="12" y="20" textAnchor="middle" fill="#4285F4" fontSize="8" fontWeight="900" fontFamily="sans-serif">G</text>
-    </svg>
-  );
-}
-
-// Announced roster panel — shown when visitor toggles "View Roster"
-function RosterPanel({ announcement, onPlayerClick }: { announcement: any; onPlayerClick?: (id: string) => void }) {
-  return (
-    <div className="pt-[10px]">
-      <div className="text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-2">
-        Announced Roster
-      </div>
-      <div className="flex flex-col gap-0.5">
-        {announcement.players.map((p: any) => (
-          <div key={p.id} className="flex items-center gap-2 py-1 border-b border-ak-border">
-            <span className="text-[11px] font-black text-ak-text-dim min-w-[28px] [font-variant-numeric:tabular-nums]">#{p.number}</span>
-            <button
-              type="button"
-              onClick={() => onPlayerClick?.(p.id)}
-              disabled={!onPlayerClick}
-              className={`flex-1 text-left bg-transparent border-0 p-0 text-[13px] text-ak-text transition-colors duration-150 ${onPlayerClick ? "cursor-pointer hover:text-ak-red-text" : "cursor-default"}`}
-            >
-              {p.name}
-            </button>
-            <span className="text-[10px] text-ak-text-dim">{p.position}</span>
-            {p.note && (
-              <span className="text-[9px] font-black tracking-[0.08em] px-1.5 py-0.5 rounded bg-[#4caf7d20] text-ak-green border border-[#4caf7d40] whitespace-nowrap">
-                {p.note}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-      {announcement.message && (
-        <div className="mt-[10px] py-2 px-3 rounded-lg bg-ak-surface2 text-xs text-ak-text-sub italic leading-relaxed">
-          &ldquo;{announcement.message}&rdquo;
-        </div>
-      )}
-    </div>
-  );
-}
+import { getCountdownInfo, formatGameTime, downloadIcsFile, buildGoogleCalendarUrl } from "@/client/home/calendar-utils";
+import { ShowMoreButton } from "@/client/home/show-more-button";
+import { GoogleCalIcon } from "@/client/home/google-cal-icon";
+import { RosterPanel } from "@/client/home/roster-panel";
+import { ConfirmToast } from "@/client/home/confirm-toast";
+import { SubscribeForm } from "@/client/home/subscribe-form";
+import { ScoringTrendModal } from "@/client/home/scoring-trend-modal";
 
 export default function HomePage({ players, games, stats, upcomingGames, currentSeason }: any) {
   const [trendRange, setTrendRange] = useState(10);
@@ -315,7 +48,6 @@ export default function HomePage({ players, games, stats, upcomingGames, current
     ? activePlayers.reduce((b: any, p: any) => p.stats.eff > b.stats.eff ? p : b, activePlayers[0])
     : null;
 
-  // Helper to generate trend data for a given range
   const generateTrendData = (rangeGames: number) => {
     return [...games]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -333,7 +65,6 @@ export default function HomePage({ players, games, stats, upcomingGames, current
       });
   };
 
-  // Top scorers — full player objects sorted by PPG
   const topPlayers = [...playersWithStats]
     .filter(p => p.stats.ppg > 0)
     .sort((a, b) => b.stats.ppg - a.stats.ppg)
@@ -797,96 +528,14 @@ export default function HomePage({ players, games, stats, upcomingGames, current
         </div>
       )}
 
-      {/* Scoring Trend Modal */}
-      {showTrendModal && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4 trend-modal-backdrop"
-          onClick={(e) => e.target === e.currentTarget && setShowTrendModal(false)}
-        >
-          <div className="rounded-2xl p-[clamp(16px,4vw,32px)] bg-ak-surface border border-ak-border max-w-[95vw] w-full max-h-[90vh] flex flex-col shadow-[0_20px_64px_rgba(0,0,0,0.3)] min-h-0 trend-modal-content">
-            {/* Header */}
-            <div className="flex items-start justify-between mb-[clamp(16px,3vw,24px)] gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-1">Scoring Trend</div>
-                <div className="text-[clamp(18px,5vw,22px)] font-bold text-ak-text">Last {extendedTrend.length} Games</div>
-              </div>
-              <button
-                onClick={() => setShowTrendModal(false)}
-                className="w-[clamp(32px,8vw,40px)] h-[clamp(32px,8vw,40px)] min-w-8 min-h-8 rounded-lg border border-ak-border bg-ak-base text-ak-text text-[clamp(16px,4vw,20px)] cursor-pointer flex items-center justify-center transition-all duration-200 shrink-0 hover:bg-ak-red-text hover:border-ak-red-text hover:text-ak-surface"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Range selection */}
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(70px,1fr))] gap-2 mb-[clamp(16px,3vw,24px)] trend-buttons">
-              {[10, 20, 30].map(range => (
-                <button
-                  key={range}
-                  onClick={() => setTrendRange(range)}
-                  className={`py-[clamp(6px,2vw,8px)] px-[clamp(12px,3vw,16px)] rounded-lg border text-[clamp(11px,2.5vw,13px)] font-bold cursor-pointer transition-all duration-200 ${
-                    trendRange === range
-                      ? "border-ak-red-text bg-[#e0555515] text-ak-red-text"
-                      : "border-ak-border bg-ak-base text-ak-text hover:border-ak-red-text hover:bg-[#e0555508]"
-                  }`}
-                >
-                  Last {range}
-                </button>
-              ))}
-              <button
-                onClick={() => setTrendRange(games.length)}
-                className={`py-[clamp(6px,2vw,8px)] px-[clamp(12px,3vw,16px)] rounded-lg border text-[clamp(11px,2.5vw,13px)] font-bold cursor-pointer transition-all duration-200 ${
-                  trendRange === games.length
-                    ? "border-ak-red-text bg-[#e0555515] text-ak-red-text"
-                    : "border-ak-border bg-ak-base text-ak-text hover:border-ak-red-text hover:bg-[#e0555508]"
-                }`}
-              >
-                All Games
-              </button>
-            </div>
-
-            {/* Chart */}
-            <div className="h-[clamp(250px,50vh,500px)] overflow-x-auto overflow-y-hidden -mr-2 pr-2">
-              <div className="min-w-[500px] h-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={extendedTrend} margin={{ top:4, right:8, left:0, bottom:0 }}>
-                  <defs>
-                    <linearGradient id="trendFillModal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={C.redBright} stopOpacity={0.25}/>
-                      <stop offset="100%" stopColor={C.red} stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="4 4" stroke={C.border2} vertical={false} />
-                  <XAxis dataKey="idx" tick={false} axisLine={{ stroke: C.border2 }} tickLine={false} />
-                  <YAxis width={32} tick={{ fill:C.textDim, fontSize:11 }} axisLine={false} tickLine={false} domain={["auto","auto"]} />
-                  <Tooltip
-                    {...chartTooltipStyle}
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.length) return null;
-                      const entries = payload.filter(p => p.name === "AK" || p.name === "OPP");
-                      if (!entries.length) return null;
-                      const game = payload[0]?.payload?.game;
-                      return (
-                        <div className="bg-ak-surface2 border border-ak-border2 rounded-lg text-xs text-ak-text">
-                          {game && <div className="text-[10px] text-ak-text-dim mb-1">{game}</div>}
-                          {entries.map(p => (
-                            <div key={p.name} className={p.name === "AK" ? "text-ak-red-bright" : "text-ak-silver"}>{p.name}: {p.value}</div>
-                          ))}
-                        </div>
-                      );
-                    }}
-                  />
-                  <Area type="monotone" dataKey="pts" stroke="none" fill="url(#trendFillModal)" legendType="none" />
-                  <Line type="monotone" dataKey="pts" stroke={C.redBright} strokeWidth={3} dot={{ fill:C.redBright, r:3, strokeWidth:0 }} activeDot={{ r:5 }} name="AK" />
-                  <Line type="monotone" dataKey="opp" stroke={C.silver} strokeWidth={2} dot={{ fill:C.silver, r:3, strokeWidth:0 }} activeDot={{ r:5 }} strokeDasharray="5 5" name="OPP" />
-                  <Legend wrapperStyle={{ fontSize:11, color:C.textSub }} />
-                </LineChart>
-              </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ScoringTrendModal
+        show={showTrendModal}
+        onClose={() => setShowTrendModal(false)}
+        extendedTrend={extendedTrend}
+        trendRange={trendRange}
+        setTrendRange={setTrendRange}
+        totalGames={games.length}
+      />
 
       {selectedPlayer && <PlayerDetail player={selectedPlayer} onClose={() => setSelectedPlayer(null)} activeSeason={currentSeason ?? null} />}
       </Layout>
