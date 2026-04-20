@@ -9,22 +9,17 @@
  * can rotate their own password without the site owner ever knowing it.
  */
 
-import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { requireCoachAuth } from "../../../lib/requireCoachAuth";
 import { verifyCoachPassword, setCoachPasswordHash, incrementCoachSessionVersion, clearCoachSessionCookie } from "../../../lib/coachAuth";
 import { auditLog, getClientIp } from "../../../lib/security";
 import { prodError } from "../../../lib/utils";
-
-const ChangeSchema = z.object({
-  currentPassword: z.string().min(1).max(200),
-  newPassword:     z.string().min(8).max(200),
-});
+import { ChangePasswordSchema } from "@/schemas/coach";
 
 async function handler(req: any, res: any) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const parsed = ChangeSchema.safeParse(req.body ?? {});
+  const parsed = ChangePasswordSchema.safeParse(req.body ?? {});
   if (!parsed.success) {
     return res.status(400).json({
       error: parsed.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; "),
