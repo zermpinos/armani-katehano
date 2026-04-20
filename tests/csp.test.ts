@@ -61,4 +61,31 @@ describe("buildCsp", () => {
     const connectSrc = csp.split(";").find(d => d.trim().startsWith("connect-src"));
     expect(connectSrc).toContain("https://*.sentry.io");
   });
+
+  it("allows vercel.live in script-src and connect-src on preview deployments", () => {
+    const prev = process.env.VERCEL_ENV;
+    process.env.VERCEL_ENV = "preview";
+    try {
+      const csp        = buildCsp(generateNonce());
+      const scriptSrc  = csp.split(";").find(d => d.trim().startsWith("script-src"));
+      const connectSrc = csp.split(";").find(d => d.trim().startsWith("connect-src"));
+      expect(scriptSrc).toContain("https://vercel.live");
+      expect(connectSrc).toContain("https://vercel.live");
+    } finally {
+      if (prev === undefined) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = prev;
+    }
+  });
+
+  it("excludes vercel.live on production deployments", () => {
+    const prev = process.env.VERCEL_ENV;
+    process.env.VERCEL_ENV = "production";
+    try {
+      const csp = buildCsp(generateNonce());
+      expect(csp).not.toContain("vercel.live");
+    } finally {
+      if (prev === undefined) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = prev;
+    }
+  });
 });
