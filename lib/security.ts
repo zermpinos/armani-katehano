@@ -14,6 +14,7 @@
 import crypto from "crypto";
 import bcrypt  from "bcryptjs";
 import { TOTP, Secret } from "otpauth";
+import * as Sentry from "@sentry/nextjs";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SESSION_SECRET = process.env.SESSION_SECRET;
@@ -327,7 +328,21 @@ export async function verifyCaptcha(token: string, ip?: string): Promise<boolean
   return data.success === true;
 }
 
-/** Structured audit log → Vercel log drain. */
+// Events that indicate an active attack or lockout — forwarded to Sentry so
+// alert rules can page on them without waiting for manual log inspection.
+const SECURITY_ALERT_EVENTS = new Set([
+  "login_account_locked",
+  "login_locked",
+  "login_totp_failed",
+  "csrf_blocked",
+  "csrf_token_blocked",
+  "coach_session_revoked",
+  "coach_login_account_locked",
+  "coach_csrf_blocked",
+  "coach_csrf_token_blocked",
+]);
+
+/** Structured audit log → Vercel log drain. Security-critical events also go to Sentry. */
 export function auditLog(event: string, data: Record<string, unknown> = {}) {
   console.log(JSON.stringify({
     type:      "[AUDIT]",
@@ -335,4 +350,11 @@ export function auditLog(event: string, data: Record<string, unknown> = {}) {
     timestamp: new Date().toISOString(),
     ...data,
   }));
+  if (SECURITY_ALERT_EVENTS.has(event)) {
+    Sentry.captureMessage(`[AUDIT] ${event}`, {
+      level: "warning",
+      tags:  { audit_event: event },
+      extra: data,
+    });
+  }
 }
