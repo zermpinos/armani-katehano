@@ -135,7 +135,7 @@ export default function GamesPage({ validSlug }: any) {
       ].join(" ")}>
         {editId === "new" ? "NEW GAME" : "EDITING GAME"}
       </div>
-      <div className="grid gap-[10px] mb-3" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))" }}>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-[10px] mb-3">
         <F label="DATE"        value={draft.date}           onChange={(v: any) => updGame("date", v)}           placeholder="YYYY-MM-DD" />
         <F label="OPPONENT"    value={draft.opponent}       onChange={(v: any) => updGame("opponent", v)} />
         <Sel label="LEAGUE"    value={draft.seasonLeagueId || ""} onChange={(v: any) => updGame("seasonLeagueId", v)} options={leagueOptions} />

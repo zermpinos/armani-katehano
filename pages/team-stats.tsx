@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import Layout from "../components/Layout";
 import { SectionHeading, StatTile } from "../components/ui";
 import { C, chartTooltipStyle } from "../lib/theme";
@@ -188,8 +188,8 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
                     <span className="text-[13px] font-black text-ak-text">{val}%</span>
                   </div>
                   <div className="h-1 rounded-sm bg-ak-border">
-                    {/* runtime float -- unavoidable inline style */}
-                    <div className="h-full rounded-sm bg-ak-red-bright transition-[width] duration-[400ms]" style={{ width: `${Math.min(100, val)}%` }} />
+                    <div className="h-full rounded-sm bg-ak-red-bright transition-[width] duration-[400ms] w-[var(--pb)]"
+                      style={{ "--pb": `${Math.min(100, val)}%` } as React.CSSProperties} />
                   </div>
                 </div>
               ))}

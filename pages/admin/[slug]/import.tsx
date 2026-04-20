@@ -302,7 +302,7 @@ export default function ImportPage({ validSlug }: any) {
 
             <div>
               <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Game info</div>
-              <div className="grid gap-[10px]" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))" }}>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-[10px]">
                 <F label="DATE"       value={draft.date}          onChange={(v: any) => updDraft("date", v)}          placeholder="YYYY-MM-DD" />
                 <F label="OPPONENT"   value={draft.opponent}      onChange={(v: any) => updDraft("opponent", v)} />
                 <Sel label="LEAGUE"   value={draft.seasonLeagueId || ""} onChange={(v: any) => updDraft("seasonLeagueId", v)} options={leagueOptions} />
