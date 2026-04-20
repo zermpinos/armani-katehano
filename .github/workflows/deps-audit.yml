@@ -15,8 +15,8 @@ permissions:
   contents: read
 
 jobs:
-  audit:
-    name: npm audit
+  audit-prod:
+    name: npm audit (prod)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -25,6 +25,18 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      # --omit=dev: only flag vulnerabilities in production deps.
-      # Remove --omit=dev if you also want to audit devDependencies.
       - run: npm audit --omit=dev
+
+  audit-dev:
+    name: npm audit (dev)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Audit devDependencies separately so build-chain CVEs are caught.
+      # --production=false is the default but explicit for clarity.
+      - run: npm audit --only=dev
