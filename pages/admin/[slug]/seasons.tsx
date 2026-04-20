@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, F, Sel, Btn, Spinner, LoginForm, useAdminAuth } from "../../../lib/adminShared";
+import { AdminLayout, F, Sel, Btn, Spinner, LoginForm, useAdminAuth, apiFetch } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck';
 
 export default function SeasonsPage({ validSlug }: any) {
@@ -48,7 +48,7 @@ export default function SeasonsPage({ validSlug }: any) {
 
   const createSeason = async () => {
     if (!newSeason.name || !newSeason.year) { showToast("Name and year required", "error"); return; }
-    const res = await fetch("/api/admin/seasons", {
+    const res = await apiFetch("/api/admin/seasons", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newSeason),
     });
@@ -60,7 +60,7 @@ export default function SeasonsPage({ validSlug }: any) {
 
   const createLeague = async () => {
     if (!newLeague.name) { showToast("League name required", "error"); return; }
-    const res = await fetch("/api/admin/leagues", {
+    const res = await apiFetch("/api/admin/leagues", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...newLeague, seasonId: linkSeasonId }),
     });
@@ -72,7 +72,7 @@ export default function SeasonsPage({ validSlug }: any) {
 
   const linkLeague = async () => {
     if (!linkLeagueId || !linkSeasonId) return;
-    const res = await fetch("/api/admin/seasons", {
+    const res = await apiFetch("/api/admin/seasons", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name:      seasons.find(s => s.id === linkSeasonId)?.name,

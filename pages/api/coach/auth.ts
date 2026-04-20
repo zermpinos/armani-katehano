@@ -11,7 +11,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { isLockedOut, recordAttempt, clearAttempts, getFailureCount } from "../../../lib/loginAttempts";
-import { securityHeaders, auditLog, csrfCheck, getClientIp, CAPTCHA_THRESHOLD, verifyCaptcha } from "../../../lib/security";
+import { securityHeaders, auditLog, csrfCheck, getClientIp, CAPTCHA_THRESHOLD, verifyCaptcha, generateCsrfToken, buildCsrfCookie, clearCsrfCookie } from "../../../lib/security";
 import {
   getCoachSessionToken,
   verifyCoachSession,
@@ -50,7 +50,7 @@ export default async function handler(req: any, res: any) {
 
   // ── DELETE: logout ────────────────────────────────────────────────────────
   if (req.method === "DELETE") {
-    res.setHeader("Set-Cookie", clearCoachSessionCookie());
+    res.setHeader("Set-Cookie", [clearCoachSessionCookie(), clearCsrfCookie()]);
     auditLog("coach_logout", { ip });
     return res.status(200).json({ ok: true });
   }
@@ -108,7 +108,7 @@ export default async function handler(req: any, res: any) {
     await Promise.all([clearAttempts(ip), clearAttempts(ACCOUNT_KEY)]);
     const v = await getCoachSessionVersion();
     const payload = JSON.stringify({ ts: Date.now(), role: "coach", v });
-    res.setHeader("Set-Cookie", buildCoachSessionCookie(payload));
+    res.setHeader("Set-Cookie", [buildCoachSessionCookie(payload), buildCsrfCookie(generateCsrfToken())]);
     auditLog("coach_login_success", { ip });
     return res.status(200).json({ ok: true });
   }
