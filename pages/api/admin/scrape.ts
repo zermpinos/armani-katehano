@@ -16,13 +16,19 @@ import { prodError }                     from '../../../lib/utils';
 
 // ─── SSRF guard ───────────────────────────────────────────────────────────────
 
+// SCRAPE_HOSTNAME_ALLOWLIST: comma-separated bare hostnames (no wildcards).
+// Each entry matches that hostname and all subdomains.
+// Default: the two known scraper targets.
+const ALLOWLIST: string[] = (
+  process.env.SCRAPE_HOSTNAME_ALLOWLIST ?? 'basketcity.sportstats.gr,basketaki.com'
+)
+  .split(',')
+  .map(h => h.trim().toLowerCase())
+  .filter(Boolean);
+
 function isAllowedHostname(hostname: string): boolean {
-  return (
-    hostname === 'basketcity.sportstats.gr' ||
-    hostname.endsWith('.basketcity.sportstats.gr') ||
-    hostname === 'basketaki.com' ||
-    hostname.endsWith('.basketaki.com')
-  );
+  const h = hostname.toLowerCase();
+  return ALLOWLIST.some(entry => h === entry || h.endsWith('.' + entry));
 }
 
 function isPrivateIp(ip: string): boolean {
