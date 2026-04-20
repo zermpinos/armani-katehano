@@ -5,7 +5,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { C } from "../../../lib/theme";
 import { AdminLayout, Spinner, LoginForm, BoxScoreTable, F, Sel, Btn, Confirm, useAdminAuth, byJersey } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck';
 
@@ -126,11 +125,17 @@ export default function GamesPage({ validSlug }: any) {
   };
 
   const gameForm = (
-    <div style={{ borderRadius: 12, border: `1px solid ${editId === "new" ? `${C.green}40` : `${C.redBright}40`}`, padding: 16, background: C.base, marginTop: 8 }}>
-      <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: editId === "new" ? C.green : C.redText, marginBottom: 12, textTransform: "uppercase" }}>
+    <div className={[
+      "rounded-xl border p-4 bg-ak-base mt-2",
+      editId === "new" ? "border-[#4caf7d40]" : "border-[#c0392b40]",
+    ].join(" ")}>
+      <div className={[
+        "text-[10px] font-black tracking-[0.15em] mb-3 uppercase",
+        editId === "new" ? "text-ak-green" : "text-ak-red-text",
+      ].join(" ")}>
         {editId === "new" ? "NEW GAME" : "EDITING GAME"}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: 10, marginBottom: 12 }}>
+      <div className="grid gap-[10px] mb-3" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))" }}>
         <F label="DATE"        value={draft.date}           onChange={(v: any) => updGame("date", v)}           placeholder="YYYY-MM-DD" />
         <F label="OPPONENT"    value={draft.opponent}       onChange={(v: any) => updGame("opponent", v)} />
         <Sel label="LEAGUE"    value={draft.seasonLeagueId || ""} onChange={(v: any) => updGame("seasonLeagueId", v)} options={leagueOptions} />
@@ -139,13 +144,13 @@ export default function GamesPage({ validSlug }: any) {
         <F label="OUR SCORE"   value={draft.teamScore}      onChange={(v: any) => updGame("teamScore", v)}      type="number" />
         <F label="OPP SCORE"   value={draft.opponentScore}  onChange={(v: any) => updGame("opponentScore", v)}  type="number" />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+      <div className="grid grid-cols-2 gap-[10px] mb-3">
         <F label="OFFICIAL STATS URL" value={draft.sourceUrl} onChange={(v: any) => updGame("sourceUrl", v)} placeholder="https://..." />
         <F label="YOUTUBE REPLAY URL" value={draft.youtubeUrl} onChange={(v: any) => updGame("youtubeUrl", v)} placeholder="https://youtube.com/..." />
       </div>
-      <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 8, paddingTop: 8, borderTop: `1px solid ${C.border}`, textTransform: "uppercase" }}>Box score</div>
+      <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-2 pt-2 border-t border-ak-border uppercase">Box score</div>
       <BoxScoreTable players={players} rows={draft.boxScore || []} onUpdate={updBox} />
-      <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+      <div className="flex gap-[10px] mt-3">
         <Btn onClick={save}>SAVE GAME</Btn>
         <Btn variant="ghost" onClick={cancel}>CANCEL</Btn>
       </div>
@@ -153,24 +158,24 @@ export default function GamesPage({ validSlug }: any) {
   );
 
   if (checking) return (
-    <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div className="min-h-screen bg-ak-base flex items-center justify-center">
       <Spinner />
     </div>
   );
 
   if (!authed) return (
-    <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div className="min-h-screen bg-ak-base flex items-center justify-center p-4">
       <LoginForm onLogin={handleLogin} error={loginError} />
     </div>
   );
 
   return (
     <AdminLayout slug={slug} title="Games" toast={toast} setToast={setToast} onLogout={handleLogout}>
-      <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="mb-5 flex justify-between items-center">
         <div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: C.text }}>Game results</div>
+          <div className="text-[20px] font-black text-ak-text">Game results</div>
           {games.length > 0 && (
-            <div style={{ fontSize: 11, color: C.textDim, marginTop: 2 }}>
+            <div className="text-[11px] text-ak-text-dim mt-0.5">
               {games.length} game{games.length !== 1 ? "s" : ""}
               {games.length >= 200 && " · showing latest 200"}
             </div>
@@ -180,32 +185,35 @@ export default function GamesPage({ validSlug }: any) {
       </div>
 
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Spinner /></div>
+        <div className="flex justify-center py-[60px]"><Spinner /></div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div className="flex flex-col gap-[6px]">
           {games.length === 0 && editId !== "new" && (
-            <div style={{ textAlign: "center", padding: "20px 0", color: C.textDim }}>No games recorded yet</div>
+            <div className="text-center py-5 text-ak-text-dim">No games recorded yet</div>
           )}
           {editId === "new" && gameForm}
           {[...games].sort((a, b) => new Date(b.date ?? b.playedOn).getTime() - new Date(a.date ?? a.playedOn).getTime()).map(g => (
             <div key={g.id}>
               {editId === g.id ? gameForm : (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface2 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, background: g.result === "W" ? `${C.green}25` : `${C.red}25`, color: g.result === "W" ? C.green : C.redText, flexShrink: 0 }}>
+                <div className="flex items-center justify-between py-[10px] px-[14px] rounded-[10px] border border-ak-border bg-ak-surface2">
+                  <div className="flex items-center gap-[10px]">
+                    <span className={[
+                      "w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black shrink-0",
+                      g.result === "W" ? "bg-[#4caf7d25] text-ak-green" : "bg-[#8b1a1a25] text-ak-red-text",
+                    ].join(" ")}>
                       {g.result}
                     </span>
                     <div>
-                      <div style={{ fontWeight: 900, fontSize: 13, color: C.text }}>
+                      <div className="font-black text-[13px] text-ak-text">
                         {(g.home ?? g.location === "home") ? "vs" : "@"} {g.opponent}
-                        <span style={{ fontWeight: 400, color: C.textDim, marginLeft: 8 }}>{g.score ?? `${g.teamScore}–${g.opponentScore}`}</span>
+                        <span className="font-normal text-ak-text-dim ml-2">{g.score ?? `${g.teamScore}–${g.opponentScore}`}</span>
                       </div>
-                      <div style={{ fontSize: 11, color: C.textDim }}>
+                      <div className="text-[11px] text-ak-text-dim">
                         {g.date ?? g.playedOn?.slice(0, 10)} · {seasonLeagues.find(sl => sl.id === g.seasonLeagueId)?.leagueName ?? ""}
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 6 }}>
+                  <div className="flex gap-[6px]">
                     <Btn size="sm" variant="ghost" onClick={() => startEdit(g)}>EDIT</Btn>
                     <Btn size="sm" variant="danger" onClick={() => setConfirm(g)}>DEL</Btn>
                   </div>

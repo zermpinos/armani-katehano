@@ -11,7 +11,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
-import { C } from './theme';
 import { fmt as _fmt } from './utils';
 
 // ─── Re-export fmt ────────────────────────────────────────────────────────────
@@ -84,38 +83,30 @@ export function AdminLayout({ slug, title, children, toast, setToast, onLogout }
   const current = typeof window !== 'undefined' ? window.location.pathname : '';
 
   return (
-    <div style={{ minHeight: '100vh', background: C.base, fontFamily: 'inherit' }}>
+    <div className="min-h-screen bg-ak-base">
       <Head>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
+
       {/* Top bar */}
-      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 40 }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px', display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto' }}>
-          <div style={{ fontSize: 13, fontWeight: 900, color: C.red, letterSpacing: '0.1em', textTransform: 'uppercase', paddingRight: 24, borderRight: `1px solid ${C.border}`, marginRight: 16, whiteSpace: 'nowrap', padding: '14px 24px 14px 0' }}>
+      <div className="bg-ak-surface border-b border-ak-border sticky top-0 z-40">
+        <div className="max-w-[1100px] mx-auto px-4 flex items-center overflow-x-auto">
+          <div className="text-[13px] font-black text-ak-red tracking-[0.1em] uppercase py-[14px] pr-6 border-r border-ak-border mr-4 whitespace-nowrap shrink-0">
             AK Admin
           </div>
           {tabs.map(t => {
             const active = current === t.href || (t.href !== `/admin/${slug}` && current.startsWith(t.href));
             return (
-              <a key={t.href} href={t.href} style={{
-                padding: '14px 14px',
-                fontSize: 11, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase',
-                color: active ? C.redText : C.textDim,
-                borderBottom: active ? `2px solid ${C.redBright}` : '2px solid transparent',
-                textDecoration: 'none', whiteSpace: 'nowrap',
-                transition: 'color 0.15s',
-              }}>
+              <a key={t.href} href={t.href} className={[
+                'px-[14px] py-[14px] text-[11px] font-black tracking-[0.12em] uppercase whitespace-nowrap transition-colors duration-150 border-b-2',
+                active ? 'text-ak-red-text border-ak-red-bright' : 'text-ak-text-dim border-transparent',
+              ].join(' ')}>
                 {t.label}
               </a>
             );
           })}
           {onLogout && (
-            <button onClick={onLogout} style={{
-              marginLeft: 'auto', padding: '6px 12px', fontSize: 10, fontWeight: 900,
-              letterSpacing: '0.1em', textTransform: 'uppercase', background: 'transparent',
-              border: `1px solid ${C.border2}`, borderRadius: 6, color: C.textDim,
-              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-            }}>
+            <button onClick={onLogout} className="ml-auto px-3 py-[6px] text-[10px] font-black tracking-[0.1em] uppercase bg-transparent border border-ak-border2 rounded-md text-ak-text-dim cursor-pointer whitespace-nowrap shrink-0">
               Sign out
             </button>
           )}
@@ -123,23 +114,21 @@ export function AdminLayout({ slug, title, children, toast, setToast, onLogout }
       </div>
 
       {/* Page content */}
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 16px' }}>
+      <div className="max-w-[1100px] mx-auto py-8 px-4">
         {children}
       </div>
 
       {/* Toast */}
       {toast && (
-        <div style={{
-          position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 50,
-          padding: '12px 18px', borderRadius: 10,
-          background: toast.type === 'error' ? `${C.red}22` : `${C.green}22`,
-          color: toast.type === 'error' ? C.redText : C.green,
-          border: `1px solid ${toast.type === 'error' ? `${C.red}55` : `${C.green}55`}`,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
-          display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, fontWeight: 700,
-        }}>
+        <div className={[
+          'fixed bottom-6 right-6 z-50 px-[18px] py-3 rounded-[10px]',
+          'flex items-center gap-3 text-[13px] font-bold shadow-[0_4px_16px_rgba(0,0,0,0.25)]',
+          toast.type === 'error'
+            ? 'bg-[#8b1a1a22] text-ak-red-text border border-[#8b1a1a55]'
+            : 'bg-[#4caf7d22] text-ak-green border border-[#4caf7d55]',
+        ].join(' ')}>
           <span>{toast.msg}</span>
-          <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'inherit', fontWeight: 900, lineHeight: 1 }}>×</button>
+          <button onClick={() => setToast(null)} className="bg-transparent border-0 cursor-pointer text-[18px] text-current font-black leading-none p-0">×</button>
         </div>
       )}
     </div>
@@ -169,14 +158,17 @@ export function BoxScoreTable({ players, rows, onUpdate, highlights = {} }: { pl
   if (!rows || rows.length === 0) return null;
 
   return (
-    <div style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${C.border}` }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 900 }}>
+    <div className="overflow-x-auto rounded-lg border border-ak-border">
+      <table className="w-full border-collapse text-[11px] min-w-[900px]">
         <thead>
-          <tr style={{ background: C.base }}>
-            <th style={{ padding: '7px 10px', textAlign: 'left', fontSize: 9, fontWeight: 900, color: C.textDim, letterSpacing: '0.12em', whiteSpace: 'nowrap' }}>#</th>
-            <th style={{ padding: '7px 10px', textAlign: 'left', fontSize: 9, fontWeight: 900, color: C.textDim, letterSpacing: '0.12em', minWidth: 130 }}>PLAYER</th>
+          <tr className="bg-ak-base">
+            <th className="py-[7px] px-[10px] text-left text-[9px] font-black text-ak-text-dim tracking-[0.12em] whitespace-nowrap">#</th>
+            <th className="py-[7px] px-[10px] text-left text-[9px] font-black text-ak-text-dim tracking-[0.12em] min-w-[130px]">PLAYER</th>
             {BOX_COLS.map(c => (
-              <th key={c.key} style={{ padding: '7px 6px', fontSize: 9, fontWeight: 900, color: c.key === 'eff' ? C.redText : C.textDim, letterSpacing: '0.1em', textAlign: 'center', minWidth: 40 }}>
+              <th key={c.key} className={[
+                'py-[7px] px-[6px] text-[9px] font-black tracking-[0.1em] text-center min-w-[40px]',
+                c.key === 'eff' ? 'text-ak-red-text' : 'text-ak-text-dim',
+              ].join(' ')}>
                 {c.label}
               </th>
             ))}
@@ -184,31 +176,32 @@ export function BoxScoreTable({ players, rows, onUpdate, highlights = {} }: { pl
         </thead>
         <tbody>
           {rows.map((row: any, i: number) => {
-            const player  = players.find((p: any) => p.id === row.playerId);
-            const played  = highlights[row.playerId];
-            const rowBg   = played ? `${C.green}10` : (i % 2 === 0 ? C.surface : C.surface2);
+            const player = players.find((p: any) => p.id === row.playerId);
+            const played = highlights[row.playerId];
             return (
-              <tr key={row.playerId} style={{ background: rowBg, borderTop: `1px solid ${C.border}` }}>
-                <td style={{ padding: '5px 10px', color: C.textDim, fontWeight: 700 }}>{player?.number ?? '?'}</td>
-                <td style={{ padding: '5px 10px', color: played ? C.green : C.text, fontWeight: played ? 900 : 400, fontSize: 12 }}>
+              <tr key={row.playerId} className={[
+                'border-t border-ak-border',
+                played ? 'bg-[#4caf7d10]' : i % 2 === 0 ? 'bg-ak-surface' : 'bg-ak-surface2',
+              ].join(' ')}>
+                <td className="py-[5px] px-[10px] text-ak-text-dim font-bold">{player?.number ?? '?'}</td>
+                <td className={['py-[5px] px-[10px] text-[12px]', played ? 'text-ak-green font-black' : 'text-ak-text font-normal'].join(' ')}>
                   {player ? _fmt(player.name) : '—'}
                 </td>
                 {BOX_COLS.map(c => (
-                  <td key={c.key} style={{ padding: '3px 4px', textAlign: 'center' }}>
+                  <td key={c.key} className="py-[3px] px-1 text-center">
                     {onUpdate ? (
                       <input
                         type="number"
                         value={row[c.key] ?? 0}
                         onChange={e => onUpdate(row.playerId, c.key, e.target.value)}
-                        style={{
-                          width: 38, textAlign: 'center', fontSize: 11, padding: '2px 0',
-                          background: 'transparent', border: `1px solid ${played ? `${C.green}40` : C.border}`,
-                          borderRadius: 4, color: c.key === 'eff' ? C.redText : C.textSub,
-                          fontFamily: 'inherit',
-                        }}
+                        className={[
+                          'w-[38px] text-center text-[11px] py-[2px] bg-transparent rounded border font-sans outline-none',
+                          played ? 'border-[#4caf7d40]' : 'border-ak-border',
+                          c.key === 'eff' ? 'text-ak-red-text' : 'text-ak-text-sub',
+                        ].join(' ')}
                       />
                     ) : (
-                      <span style={{ color: c.key === 'eff' ? C.redText : C.textSub }}>{row[c.key] ?? 0}</span>
+                      <span className={c.key === 'eff' ? 'text-ak-red-text' : 'text-ak-text-sub'}>{row[c.key] ?? 0}</span>
                     )}
                   </td>
                 ))}
@@ -224,7 +217,7 @@ export function BoxScoreTable({ players, rows, onUpdate, highlights = {} }: { pl
 // ─── Spinner ──────────────────────────────────────────────────────────────────
 export function Spinner() {
   return (
-    <div style={{ width: 32, height: 32, borderRadius: '50%', border: `2px solid ${C.border2}`, borderTopColor: C.redBright, animation: 'spin 0.7s linear infinite' }} />
+    <div className="w-8 h-8 rounded-full border-2 border-ak-border2 border-t-ak-red-bright animate-ak-spin" />
   );
 }
 
@@ -273,7 +266,7 @@ export function TurnstileWidget({ onVerified, onExpired }: { onVerified: (token:
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteKey]);
 
-  return <div ref={containerRef} style={{ margin: "4px 0" }} />;
+  return <div ref={containerRef} className="my-1" />;
 }
 
 // ─── LoginForm ────────────────────────────────────────────────────────────────
@@ -296,28 +289,28 @@ export function LoginForm({ onLogin, error }: { onLogin: any; error: any }) {
     setLoading(false);
   };
 
-  const inputStyle = { width: '100%', padding: '9px 12px', fontSize: 13, borderRadius: 8, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: 'inherit', outline: 'none' };
-  const labelStyle = { display: 'block', fontSize: 10, fontWeight: 900, letterSpacing: '0.15em', marginBottom: 5, color: C.textDim, textTransform: 'uppercase' as const };
+  const inputCls = 'w-full py-[9px] px-3 text-[13px] rounded-lg border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none';
+  const labelCls = 'block text-[10px] font-black tracking-[0.15em] mb-[5px] text-ak-text-dim uppercase';
 
   return (
-    <div style={{ width: '100%', maxWidth: 360, borderRadius: 20, padding: 32, border: `1px solid ${C.border}`, background: C.surface }}>
-      <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <div style={{ width: 52, height: 52, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 22, background: `${C.red}18`, border: `1px solid ${C.red}45` }}>🔐</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: C.text }}>Admin Access</div>
-        <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>Armani Katehano · Team Manager</div>
+    <div className="w-full max-w-[360px] rounded-[20px] p-8 border border-ak-border bg-ak-surface">
+      <div className="text-center mb-7">
+        <div className="w-[52px] h-[52px] rounded-full flex items-center justify-center mx-auto mb-3 text-[22px] bg-[#8b1a1a18] border border-[#8b1a1a45]">🔐</div>
+        <div className="text-[22px] font-black text-ak-text">Admin Access</div>
+        <div className="text-xs text-ak-text-dim mt-1">Armani Katehano · Team Manager</div>
       </div>
-      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <form onSubmit={submit} className="flex flex-col gap-[14px]">
         <div>
-          <label style={labelStyle}>Username</label>
-          <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter username" autoComplete="username" style={inputStyle} />
+          <label className={labelCls}>Username</label>
+          <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter username" autoComplete="username" className={inputCls} />
         </div>
         <div>
-          <label style={labelStyle}>Password</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" autoComplete="current-password" style={inputStyle} />
+          <label className={labelCls}>Password</label>
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" autoComplete="current-password" className={inputCls} />
         </div>
         <div>
-          <label style={labelStyle}>Authenticator code</label>
-          <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} value={totpToken} onChange={e => setTotpToken(e.target.value.replace(/\D/g, ''))} placeholder="6-digit code" autoComplete="one-time-code" style={inputStyle} />
+          <label className={labelCls}>Authenticator code</label>
+          <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} value={totpToken} onChange={e => setTotpToken(e.target.value.replace(/\D/g, ''))} placeholder="6-digit code" autoComplete="one-time-code" className={inputCls} />
         </div>
         {needsCaptcha && (
           <TurnstileWidget
@@ -325,34 +318,42 @@ export function LoginForm({ onLogin, error }: { onLogin: any; error: any }) {
             onExpired={() => setCaptchaToken(null)}
           />
         )}
-        {error && <div style={{ fontSize: 12, color: C.redText }}>{error}</div>}
+        {error && <div className="text-xs text-ak-red-text">{error}</div>}
         <button type="submit" disabled={loading || !username || !password || (needsCaptcha && !captchaToken)}
-          style={{ padding: '12px', fontWeight: 900, fontSize: 14, letterSpacing: '0.12em', textTransform: 'uppercase', borderRadius: 10, border: 'none', background: C.red, color: C.text, cursor: 'pointer', fontFamily: 'inherit', opacity: loading || !username || !password || (needsCaptcha && !captchaToken) ? 0.5 : 1 }}>
+          className={[
+            'py-3 font-black text-[14px] tracking-[0.12em] uppercase rounded-[10px] border-0 bg-ak-red text-ak-text font-sans',
+            (loading || !username || !password || (needsCaptcha && !captchaToken)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer opacity-100',
+          ].join(' ')}>
           {loading ? 'VERIFYING…' : 'SIGN IN'}
         </button>
       </form>
-      <div style={{ textAlign: 'center', fontSize: 10, color: C.textDim, marginTop: 16 }}>5 failed attempts → 15-minute lockout</div>
+      <div className="text-center text-[10px] text-ak-text-dim mt-4">5 failed attempts → 15-minute lockout</div>
     </div>
   );
 }
 
 // ─── Btn ──────────────────────────────────────────────────────────────────────
+const BTN_VARIANT: Record<string, string> = {
+  primary:   'bg-ak-red border-transparent text-ak-text',
+  danger:    'bg-[#7f1d1d] border-transparent text-ak-text',
+  ghost:     'bg-transparent border-ak-border2 text-ak-text-sub',
+  secondary: 'bg-ak-surface2 border-transparent text-ak-text',
+  green:     'bg-ak-green border-transparent text-ak-text',
+};
+
+const BTN_SIZE: Record<string, string> = {
+  sm: 'py-[6px] px-3 text-[11px]',
+  md: 'py-[9px] px-[18px] text-[13px]',
+};
+
 export function Btn({ onClick, disabled = false, children, variant = 'primary', size = 'md' }: { onClick?: any; disabled?: boolean; children: any; variant?: string; size?: string }) {
-  const bg = variant === 'danger'    ? C.red
-           : variant === 'ghost'     ? 'transparent'
-           : variant === 'green'     ? C.green
-           : variant === 'secondary' ? C.surface2
-           : C.red;
-  const color = variant === 'ghost' ? C.textDim : C.text;
-  const border = variant === 'ghost' ? `1px solid ${C.border2}` : 'none';
-  const pad = size === 'sm' ? '5px 10px' : '8px 16px';
   return (
-    <button onClick={onClick} disabled={disabled} style={{
-      padding: pad, background: bg, color, border, borderRadius: 7,
-      fontSize: 11, fontWeight: 900, letterSpacing: '0.1em', textTransform: 'uppercase',
-      cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
-      fontFamily: 'inherit',
-    }}>
+    <button onClick={onClick} disabled={disabled} className={[
+      'font-black tracking-[0.12em] rounded-lg border font-sans transition-opacity duration-150',
+      BTN_VARIANT[variant] ?? BTN_VARIANT.primary,
+      BTN_SIZE[size] ?? BTN_SIZE.md,
+      disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer opacity-100',
+    ].join(' ')}>
       {children}
     </button>
   );
@@ -361,10 +362,10 @@ export function Btn({ onClick, disabled = false, children, variant = 'primary', 
 // ─── F (field input) ──────────────────────────────────────────────────────────
 export function F({ label, value, onChange, type = 'text', placeholder = '' }: { label: any; value: any; onChange: any; type?: string; placeholder?: string }) {
   return (
-    <label style={{ display: 'block' }}>
-      <span style={{ display: 'block', fontSize: 9, fontWeight: 900, letterSpacing: '0.15em', color: C.textDim, textTransform: 'uppercase', marginBottom: 4 }}>{label}</span>
+    <label className="block">
+      <span className="block text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-1">{label}</span>
       <input type={type} value={value ?? ''} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        style={{ width: '100%', padding: '7px 10px', fontSize: 12, borderRadius: 7, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+        className="w-full py-[7px] px-[10px] text-xs rounded-[7px] border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none" />
     </label>
   );
 }
@@ -372,10 +373,10 @@ export function F({ label, value, onChange, type = 'text', placeholder = '' }: {
 // ─── Sel (select) ─────────────────────────────────────────────────────────────
 export function Sel({ label, value, onChange, options = [] }: { label: any; value: any; onChange: any; options?: Array<{ value: string; label: string }> }) {
   return (
-    <label style={{ display: 'block' }}>
-      <span style={{ display: 'block', fontSize: 9, fontWeight: 900, letterSpacing: '0.15em', color: C.textDim, textTransform: 'uppercase', marginBottom: 4 }}>{label}</span>
+    <label className="block">
+      <span className="block text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-1">{label}</span>
       <select value={value ?? ''} onChange={e => onChange(e.target.value)}
-        style={{ width: '100%', padding: '7px 10px', fontSize: 12, borderRadius: 7, border: `1px solid ${C.border2}`, background: C.base, color: C.text, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}>
+        className="w-full py-[7px] px-[10px] text-xs rounded-[7px] border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none">
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     </label>
@@ -386,10 +387,10 @@ export function Sel({ label, value, onChange, options = [] }: { label: any; valu
 export function Confirm({ msg, onConfirm, onCancel }: { msg: any; onConfirm: any; onCancel: any }) {
   if (!msg) return null;
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-      <div style={{ background: C.surface, padding: '2rem', borderRadius: 12, maxWidth: 400, width: '90%', border: `1px solid ${C.border2}` }}>
-        <p style={{ marginBottom: '1.5rem', color: C.text, fontSize: 14 }}>{msg}</p>
-        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100]">
+      <div className="bg-ak-surface p-8 rounded-xl max-w-[400px] w-[90%] border border-ak-border2">
+        <p className="mb-6 text-ak-text text-[14px]">{msg}</p>
+        <div className="flex gap-3 justify-end">
           <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
           <Btn variant="danger" onClick={onConfirm}>Confirm</Btn>
         </div>

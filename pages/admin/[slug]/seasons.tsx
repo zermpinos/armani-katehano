@@ -5,7 +5,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { C } from "../../../lib/theme";
 import { AdminLayout, F, Sel, Btn, Spinner, LoginForm, useAdminAuth } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck';
 
@@ -86,45 +85,44 @@ export default function SeasonsPage({ validSlug }: any) {
     loadData();
   };
 
-
   if (checking) return (
-    <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div className="min-h-screen bg-ak-base flex items-center justify-center">
       <Spinner />
     </div>
   );
 
   if (!authed) return (
-    <div style={{ minHeight: "100vh", background: C.base, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div className="min-h-screen bg-ak-base flex items-center justify-center p-4">
       <LoginForm onLogin={handleLogin} error={loginError} />
     </div>
   );
 
   return (
     <AdminLayout slug={slug} title="Seasons" toast={toast} setToast={setToast} onLogout={handleLogout}>
-      <div style={{ fontSize: 20, fontWeight: 900, color: C.text, marginBottom: 24 }}>Seasons & leagues</div>
+      <div className="text-[20px] font-black text-ak-text mb-6">Seasons & leagues</div>
 
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><Spinner /></div>
+        <div className="flex justify-center py-[60px]"><Spinner /></div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 24 }}>
+        <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))" }}>
 
           {/* Active season leagues */}
           <div>
-            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 12, textTransform: "uppercase" }}>Active season leagues</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
+            <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-3 uppercase">Active season leagues</div>
+            <div className="flex flex-col gap-[6px] mb-5">
               {seasonLeagues.length === 0
-                ? <div style={{ fontSize: 12, color: C.textDim }}>No leagues linked yet.</div>
+                ? <div className="text-xs text-ak-text-dim">No leagues linked yet.</div>
                 : seasonLeagues.map(sl => (
-                  <div key={sl.id} style={{ padding: "10px 14px", borderRadius: 9, border: `1px solid ${C.border}`, background: C.surface2 }}>
-                    <div style={{ fontWeight: 900, fontSize: 13, color: C.text }}>{sl.leagueName}</div>
-                    <div style={{ fontSize: 11, color: C.textDim }}>{sl.seasonName} · {sl.leagueSlug}</div>
+                  <div key={sl.id} className="py-[10px] px-[14px] rounded-[9px] border border-ak-border bg-ak-surface2">
+                    <div className="font-black text-[13px] text-ak-text">{sl.leagueName}</div>
+                    <div className="text-[11px] text-ak-text-dim">{sl.seasonName} · {sl.leagueSlug}</div>
                   </div>
                 ))
               }
             </div>
 
-            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 10, textTransform: "uppercase" }}>Link existing league to season</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+            <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Link existing league to season</div>
+            <div className="grid grid-cols-2 gap-2 mb-[10px]">
               <Sel label="Season" value={linkSeasonId} onChange={setLinkSeasonId} options={seasons.map(s => ({ value: s.id, label: s.name }))} />
               <Sel label="League" value={linkLeagueId} onChange={setLinkLeagueId} options={leagues.map(l => ({ value: l.id, label: l.name }))} />
             </div>
@@ -133,15 +131,15 @@ export default function SeasonsPage({ validSlug }: any) {
 
           {/* Create season + league */}
           <div>
-            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, marginBottom: 12, textTransform: "uppercase" }}>Create new season</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+            <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-3 uppercase">Create new season</div>
+            <div className="flex flex-col gap-2 mb-[10px]">
               <F label="Name" value={newSeason.name} onChange={(v: any) => setNewSeason((s: any) => ({ ...s, name: v }))} placeholder="e.g. 2026-27" />
               <F label="Year" value={newSeason.year} onChange={(v: any) => setNewSeason((s: any) => ({ ...s, year: v }))} type="number" placeholder="e.g. 2026" />
             </div>
             <Btn onClick={createSeason} disabled={!newSeason.name || !newSeason.year}>CREATE SEASON</Btn>
 
-            <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.15em", color: C.textDim, margin: "24px 0 12px", textTransform: "uppercase" }}>Create new league</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+            <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mt-6 mb-3 uppercase">Create new league</div>
+            <div className="flex flex-col gap-2 mb-[10px]">
               <F label="Name"      value={newLeague.name}      onChange={(v: any) => setNewLeague((l: any) => ({ ...l, name: v }))}      placeholder="e.g. BC6" />
               <F label="Organizer" value={newLeague.organizer} onChange={(v: any) => setNewLeague((l: any) => ({ ...l, organizer: v }))} placeholder="e.g. Basket City" />
               <F label="Level"     value={newLeague.level}     onChange={(v: any) => setNewLeague((l: any) => ({ ...l, level: v }))}     placeholder="e.g. Amateur" />
