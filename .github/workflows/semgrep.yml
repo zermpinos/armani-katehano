@@ -1,0 +1,24 @@
+name: SAST
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 9 * * 1" # Monday 09:00 UTC -- matches deps-audit cadence
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    name: Semgrep (javascript-typescript)
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run Semgrep
+        run: semgrep scan --config=p/typescript --config=p/nodejs --config=p/secrets --error .
