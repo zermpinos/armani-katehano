@@ -8,12 +8,14 @@
  * Auth: separate COACH_PASSWORD + __Host-ak_coach session cookie.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { fmtDate } from "../../lib/utils";
 import { Spinner, Btn } from "@/client/coach/primitives";
 import { LoginForm } from "@/client/coach/login-form";
 import { coachFetch } from "@/client/coach/csrf";
+import { CoachRosterPanel } from "@/client/coach/roster-panel";
+import { ChangePasswordForm } from "@/client/coach/change-password-form";
 
 export default function CoachPage() {
   const [authed,     setAuthed]     = useState(false);
@@ -27,19 +29,19 @@ export default function CoachPage() {
   const [announcedGameIds, setAnnouncedGameIds]  = useState<Set<string>>(new Set());
 
   // Roster panel
-  const [panelGameId,   setPanelGameId]   = useState<string | null>(null);
-  const [rosterSlots,   setRosterSlots]   = useState<Record<string, { checked: boolean; note: string }>>({});
-  const [rosterMsg,     setRosterMsg]     = useState("");
-  const [panelLoading,  setPanelLoading]  = useState(false);
-  const [saving,        setSaving]        = useState(false);
+  const [panelGameId,  setPanelGameId]  = useState<string | null>(null);
+  const [rosterSlots,  setRosterSlots]  = useState<Record<string, { checked: boolean; note: string }>>({});
+  const [rosterMsg,    setRosterMsg]    = useState("");
+  const [panelLoading, setPanelLoading] = useState(false);
+  const [saving,       setSaving]       = useState(false);
 
   // Change password
-  const [showChangePw,   setShowChangePw]   = useState(false);
-  const [currentPw,      setCurrentPw]      = useState("");
-  const [newPw,          setNewPw]          = useState("");
-  const [confirmPw,      setConfirmPw]      = useState("");
-  const [changingPw,     setChangingPw]     = useState(false);
-  const [changePwError,  setChangePwError]  = useState<string | null>(null);
+  const [showChangePw,  setShowChangePw]  = useState(false);
+  const [currentPw,     setCurrentPw]     = useState("");
+  const [newPw,         setNewPw]         = useState("");
+  const [confirmPw,     setConfirmPw]     = useState("");
+  const [changingPw,    setChangingPw]    = useState(false);
+  const [changePwError, setChangePwError] = useState<string | null>(null);
 
   const showToast = (msg: string, type = "success") => {
     setToast({ msg, type });
@@ -250,7 +252,6 @@ export default function CoachPage() {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   const fmtTime = (iso: string) => iso.slice(11, 16);
-
   const selectedCount = Object.values(rosterSlots).filter(v => v.checked).length;
 
   // ── Render guards ─────────────────────────────────────────────────────────
@@ -268,8 +269,6 @@ export default function CoachPage() {
   );
 
   // ── Authenticated UI ──────────────────────────────────────────────────────
-
-  const panelGame = schedule.find(g => g.id === panelGameId);
 
   return (
     <>
@@ -306,7 +305,6 @@ export default function CoachPage() {
           <div className="flex flex-col gap-2">
             {schedule.map(g => (
               <div key={g.id}>
-                {/* Game row */}
                 <div className={[
                   "flex items-center justify-between flex-wrap gap-2 py-3 px-4 rounded-[10px] border transition-[border-color,background] duration-150",
                   panelGameId === g.id ? "border-[#4caf7d60] bg-[#4caf7d08]" : "border-ak-border bg-ak-surface2",
@@ -330,95 +328,27 @@ export default function CoachPage() {
                   </Btn>
                 </div>
 
-                {/* Inline roster panel */}
                 {panelGameId === g.id && (
                   <div className="mt-1 rounded-[10px] border border-[#4caf7d40] p-5 bg-ak-base">
                     {panelLoading ? (
                       <div className="flex justify-center py-8"><Spinner /></div>
                     ) : (
-                      <>
-                        {/* Player selection */}
-                        <div className="mb-5">
-                          <div className="text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-[10px]">
-                            Players &nbsp;
-                            <span className={selectedCount > 0 ? "text-ak-green font-bold" : "text-ak-text-dim font-bold"}>
-                              ({selectedCount} selected)
-                            </span>
-                          </div>
-
-                          {allPlayers.length === 0 ? (
-                            <div className="text-xs text-ak-text-dim">No active players found.</div>
-                          ) : (
-                            <div className="flex flex-col gap-1">
-                              {allPlayers.map(p => {
-                                const slot = rosterSlots[p.id] ?? { checked: false, note: "" };
-                                return (
-                                  <div key={p.id} className={[
-                                    "flex items-center gap-[10px] py-[7px] px-3 rounded-lg border transition-[background,border-color] duration-100",
-                                    slot.checked ? "bg-[#4caf7d12] border-[#4caf7d40]" : "bg-ak-surface2 border-ak-border",
-                                  ].join(" ")}>
-                                    <input
-                                      type="checkbox"
-                                      checked={slot.checked}
-                                      onChange={() => togglePlayer(p.id)}
-                                      className="w-4 h-4 shrink-0 cursor-pointer accent-ak-green"
-                                    />
-                                    <span className={["text-xs font-black min-w-[30px] tabular-nums", slot.checked ? "text-ak-green" : "text-ak-text-dim"].join(" ")}>#{p.number}</span>
-                                    <span className={["text-[13px] flex-1", slot.checked ? "text-ak-text font-bold" : "text-ak-text-sub font-normal"].join(" ")}>{p.name}</span>
-                                    <span className="text-[10px] text-ak-text-dim min-w-[36px]">{p.position}</span>
-                                    {slot.checked && (
-                                      <input
-                                        type="text"
-                                        value={slot.note}
-                                        onChange={e => setNote(p.id, e.target.value)}
-                                        placeholder="note (e.g. starting)"
-                                        maxLength={200}
-                                        className="w-[170px] py-[3px] px-2 text-[11px] rounded-[5px] border border-ak-border2 bg-ak-surface text-ak-text font-sans outline-none"
-                                      />
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Coach message */}
-                        <div className="mb-5">
-                          <label className="block">
-                            <span className="block text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-[6px]">
-                              Coach message <span className="font-normal normal-case tracking-normal">(optional)</span>
-                            </span>
-                            <textarea
-                              value={rosterMsg}
-                              onChange={e => setRosterMsg(e.target.value)}
-                              placeholder="Add a message for fans…"
-                              maxLength={1000}
-                              rows={3}
-                              className="w-full py-2 px-3 text-[13px] rounded-lg border border-ak-border2 bg-ak-surface text-ak-text font-sans outline-none resize-y"
-                            />
-                            <span className="text-[10px] text-ak-text-dim">{rosterMsg.length} / 1000</span>
-                          </label>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex gap-[10px] flex-wrap items-center">
-                          <Btn onClick={publish} disabled={saving} variant="green">
-                            {saving ? "SAVING…" : announcedGameIds.has(g.id) ? "UPDATE ROSTER" : "PUBLISH ROSTER"}
-                          </Btn>
-                          {announcedGameIds.has(g.id) && (
-                            <Btn onClick={resendEmail} disabled={saving} variant="ghost">
-                              RESEND EMAIL
-                            </Btn>
-                          )}
-                          {announcedGameIds.has(g.id) && (
-                            <Btn onClick={removeAnnouncement} disabled={saving} variant="danger">
-                              REMOVE
-                            </Btn>
-                          )}
-                          <Btn variant="ghost" onClick={closePanel}>CANCEL</Btn>
-                        </div>
-                      </>
+                      <CoachRosterPanel
+                        allPlayers={allPlayers}
+                        rosterSlots={rosterSlots}
+                        rosterMsg={rosterMsg}
+                        onRosterMsgChange={setRosterMsg}
+                        panelLoading={panelLoading}
+                        saving={saving}
+                        selectedCount={selectedCount}
+                        isAnnounced={announcedGameIds.has(g.id)}
+                        onTogglePlayer={togglePlayer}
+                        onSetNote={setNote}
+                        onPublish={publish}
+                        onResendEmail={resendEmail}
+                        onRemoveAnnouncement={removeAnnouncement}
+                        onClose={closePanel}
+                      />
                     )}
                   </div>
                 )}
@@ -439,34 +369,15 @@ export default function CoachPage() {
               Change password
             </button>
           ) : (
-            <div className="max-w-[360px]">
-              <div className="text-[13px] font-black text-ak-text mb-[14px]">Change password</div>
-              <form onSubmit={changePassword} className="flex flex-col gap-[10px]">
-                {[
-                  { label: "Current password", value: currentPw,  setter: setCurrentPw },
-                  { label: "New password",      value: newPw,      setter: setNewPw },
-                  { label: "Confirm password",  value: confirmPw,  setter: setConfirmPw },
-                ].map(({ label, value, setter }) => (
-                  <div key={label}>
-                    <label className="block text-[10px] font-black tracking-[0.12em] text-ak-text-dim uppercase mb-1">{label}</label>
-                    <input
-                      type="password"
-                      value={value}
-                      onChange={e => setter(e.target.value)}
-                      required
-                      className="w-full py-2 px-3 text-[13px] rounded-lg border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none"
-                    />
-                  </div>
-                ))}
-                {changePwError && <div className="text-xs text-ak-red-text">{changePwError}</div>}
-                <div className="flex gap-2 mt-1">
-                  <Btn variant="green" disabled={changingPw}>
-                    {changingPw ? "SAVING…" : "UPDATE PASSWORD"}
-                  </Btn>
-                  <Btn variant="ghost" onClick={() => { setShowChangePw(false); setChangePwError(null); }}>CANCEL</Btn>
-                </div>
-              </form>
-            </div>
+            <ChangePasswordForm
+              currentPw={currentPw}   setCurrentPw={setCurrentPw}
+              newPw={newPw}           setNewPw={setNewPw}
+              confirmPw={confirmPw}   setConfirmPw={setConfirmPw}
+              changingPw={changingPw}
+              error={changePwError}
+              onSubmit={changePassword}
+              onCancel={() => { setShowChangePw(false); setChangePwError(null); }}
+            />
           )}
         </div>
       </div>
