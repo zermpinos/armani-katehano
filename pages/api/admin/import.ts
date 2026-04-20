@@ -7,8 +7,8 @@
  * Protected by admin session cookie via requireAuth().
  */
 
-import prisma                    from "../../../lib/prisma";
-import { recalcAggregates }     from '../../../lib/stats.prisma';
+import prisma                    from "@/server/db/client";
+import { recalcAggregates }     from "@/server/services/stats-recalc";
 import { prodError }            from "../../../lib/utils";
 import { requireAuth }          from '../../../lib/requireAuth';
 import { BoxScoreRowSchema }    from "../../../lib/validators";
