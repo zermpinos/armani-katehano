@@ -72,7 +72,7 @@ export default function RosterPage({ validSlug }: any) {
       ].join(" ")}>
         {editId === "new" ? "NEW PLAYER" : `EDITING: ${draft.name || "..."}`}
       </div>
-      <div className="grid gap-[10px] mb-3" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(120px,1fr))" }}>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-[10px] mb-3">
         <F label="FULL NAME"  value={draft.name}     onChange={(v: any) => upd("name", v)} />
         <F label="JERSEY #"   value={draft.number}   onChange={(v: any) => upd("number", v)} type="number" />
         <Sel label="POSITION" value={draft.position || "PG"} onChange={(v: any) => upd("position", v)} options={POSITIONS.map(p => ({ value: p, label: p }))} />

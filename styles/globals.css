@@ -42,5 +42,11 @@ a { color: inherit; text-decoration: none; }
 .fade-in  { animation: fadeIn  0.3s ease both; }
 .slide-up { animation: slideUp 0.4s ease both; }
 
+/* ── Hero diagonal texture ── */
+.ak-hero-texture {
+  background-image: repeating-linear-gradient(45deg,#8b1a1a 0,#8b1a1a 1px,transparent 0,transparent 50%);
+  background-size: 20px 20px;
+}
+
 /* ── Utility ── */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }

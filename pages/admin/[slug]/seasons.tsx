@@ -104,7 +104,7 @@ export default function SeasonsPage({ validSlug }: any) {
       {loading ? (
         <div className="flex justify-center py-[60px]"><Spinner /></div>
       ) : (
-        <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))" }}>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-6">
 
           {/* Active season leagues */}
           <div>
