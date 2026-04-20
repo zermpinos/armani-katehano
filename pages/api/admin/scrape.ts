@@ -81,9 +81,8 @@ export default requireAuth(async function handler(req: any, res: any) {
     return res.status(400).json({ error: 'URL not allowed' });
 
   let address: string;
-  let family: number;
   try {
-    ({ address, family } = await dns.promises.lookup(urlObj.hostname));
+    ({ address } = await dns.promises.lookup(urlObj.hostname));
   } catch {
     return res.status(400).json({ error: 'URL not allowed' });
   }
@@ -91,16 +90,11 @@ export default requireAuth(async function handler(req: any, res: any) {
   if (isPrivateIp(address))
     return res.status(400).json({ error: 'URL not allowed' });
 
-  // Connect to the resolved IP directly so Node does not re-resolve
-  const fetchUrl = new URL(url);
-  fetchUrl.hostname = family === 6 ? `[${address}]` : address;
-
   let response;
   try {
-    response = await fetch(fetchUrl.toString(), {
+    response = await fetch(url, {
       redirect: 'manual',
       headers: {
-        'Host':       urlObj.hostname,
         'User-Agent': 'BoxScoreScraper/1.0',
         'Accept':     'text/html,application/xhtml+xml',
       },
