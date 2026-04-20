@@ -16,12 +16,14 @@ function sentryReportUri(): string | null {
 
 export function buildCsp(nonce: string): string {
   const reportUri = sentryReportUri();
+  // Vercel injects its feedback/toolbar script only on preview deployments.
+  const isPreview = process.env.VERCEL_ENV !== "production";
   return [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' https://*.sentry-cdn.com`,
+    `script-src 'self' 'nonce-${nonce}' https://*.sentry-cdn.com${isPreview ? " https://vercel.live" : ""}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' data: https://res.cloudinary.com`,
-    `connect-src 'self' https://*.sentry.io`,
+    `connect-src 'self' https://*.sentry.io${isPreview ? " https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com" : ""}`,
     `frame-ancestors 'none'`,
     `base-uri 'none'`,
     `form-action 'self'`,
