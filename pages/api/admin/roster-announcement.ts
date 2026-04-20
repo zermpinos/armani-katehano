@@ -6,26 +6,11 @@
  * DELETE                       → remove announcement
  */
 
-import { z } from "zod";
 import { requireAuth } from "../../../lib/requireAuth";
 import { auditLog, getClientIp } from "../../../lib/security";
 import prisma from "../../../lib/prisma";
 import { prodError } from "../../../lib/utils";
-
-const PlayerSlotSchema = z.object({
-  playerId: z.string().cuid(),
-  note: z.string().max(200).optional().nullable(),
-});
-
-const AnnouncementWriteSchema = z.object({
-  upcomingGameId: z.string().cuid(),
-  message: z.string().max(1000).optional().nullable(),
-  players: z.array(PlayerSlotSchema).min(1).max(20),
-});
-
-const AnnouncementDeleteSchema = z.object({
-  upcomingGameId: z.string().cuid(),
-});
+import { AnnouncementWriteSchema, AnnouncementDeleteSchema } from "@/schemas/roster-announcement";
 
 async function handler(req: any, res: any) {
   const ip = getClientIp(req);

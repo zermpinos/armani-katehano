@@ -4,15 +4,11 @@
  * GET ?token=<hex>  → confirm a pending subscription (double opt-in)
  */
 
-import { z } from "zod";
 import prisma from "../../lib/prisma";
 import { securityHeaders, auditLog } from "../../lib/security";
+import { TokenSchema } from "@/schemas/subscriber";
 
 const CONFIRM_TTL_MS = 86_400_000; // 1 day
-
-const TokenSchema = z.object({
-  token: z.string().min(32).max(128),
-});
 
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));

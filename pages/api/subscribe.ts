@@ -5,27 +5,19 @@
  * DELETE { token }              → unsubscribe via token (linked from emails)
  */
 
-import { z } from "zod";
 import { randomBytes } from "crypto";
 import prisma from "../../lib/prisma";
 import { prodError } from "../../lib/utils";
 import { securityHeaders, getClientIp, csrfCheck, auditLog } from "../../lib/security";
 import { rlKey } from "../../lib/loginAttempts";
 import { sendConfirmationEmail } from "../../lib/email";
+import { SubscribeSchema, UnsubscribeSchema } from "@/schemas/subscriber";
 
 const SUBSCRIBE_LIMIT        = 3;       // max attempts per IP per hour
 const SUBSCRIBE_WINDOW       = 3600;    // 1 hour in seconds
 const EMAIL_COOLDOWN_WINDOW  = 86400;   // 24 hours in seconds
 const UNCONFIRMED_TTL        = 86400;         // 1 day in seconds
 const CONFIRMED_RETENTION    = 365 * 86400;   // 1 year in seconds
-
-const SubscribeSchema = z.object({
-  email: z.string().email().max(254).transform(v => v.toLowerCase().trim()),
-});
-
-const UnsubscribeSchema = z.object({
-  token: z.string().min(32).max(128),
-});
 
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
