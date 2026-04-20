@@ -20,6 +20,27 @@ export { _fmt as fmt };
 /** Sort comparator — orders players by jersey number ascending. */
 export const byJersey = (a: any, b: any) => Number(a.number) - Number(b.number);
 
+// ─── Double-submit CSRF helpers (browser-only) ────────────────────────────────
+
+export function getCsrfToken(): string {
+  if (typeof document === "undefined") return "";
+  const match = document.cookie.match(/(?:^|;\s*)__Host-ak_csrf=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
+const MUTATING_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
+
+export function apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const method = ((init.method as string | undefined) ?? "GET").toUpperCase();
+  if (MUTATING_METHODS.has(method)) {
+    const token = getCsrfToken();
+    if (token) {
+      init = { ...init, headers: { ...init.headers, "X-CSRF-Token": token } };
+    }
+  }
+  return fetch(url, init);
+}
+
 // ─── useAdminAuth ─────────────────────────────────────────────────────────────
 /**
  * Single source of truth for admin authentication state.
@@ -39,7 +60,7 @@ export function useAdminAuth(slug: any) {
 
   const handleLogin = useCallback(async (username: string, password: string, totpToken: string, captchaToken?: string | null) => {
     setError(null);
-    const res = await fetch('/api/auth', {
+    const res = await apiFetch('/api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password, totpToken, slug, captchaToken }),
@@ -59,7 +80,7 @@ export function useAdminAuth(slug: any) {
   }, [slug]);
 
   const handleLogout = useCallback(() => {
-    fetch('/api/auth', { method: 'DELETE' }).finally(() => setAuthed(false));
+    apiFetch('/api/auth', { method: 'DELETE' }).finally(() => setAuthed(false));
   }, []);
 
   return { authed, loading, loginError, handleLogin, handleLogout };
