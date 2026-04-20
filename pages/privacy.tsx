@@ -80,14 +80,7 @@ export default function PrivacyPage() {
 
           <Section title="Your rights">
             <p>Under GDPR you have the right to access, rectify, or erase your personal data, and to withdraw consent at any time.</p>
-            <p>
-              To <strong className="text-ak-text">unsubscribe</strong>, use the link at the bottom of any roster
-              email, or visit{" "}
-              <Link href="/unsubscribe" className="text-ak-red-text underline">
-                /unsubscribe
-              </Link>
-              . Your record is deleted immediately.
-            </p>
+            <p>To <strong className="text-ak-text">unsubscribe</strong>, use the link at the bottom of any roster announcement email. Your record is deleted immediately. </p>
             <p>
               For any other request, email{" "}
               <a href="mailto:webmaster@armani-katehano.com" className="text-ak-red-text underline">
