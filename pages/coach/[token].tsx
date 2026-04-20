@@ -157,7 +157,7 @@ function getCsrfToken(): string {
 
 const COACH_MUTATING = new Set(["POST", "PUT", "DELETE", "PATCH"]);
 
-function coachFetch(url: string, init: RequestInit = {}): Promise<Response> {
+function coachFetch(url: string, init: Record<string, any> = {}): Promise<Response> {
   const method = ((init.method as string | undefined) ?? "GET").toUpperCase();
   if (COACH_MUTATING.has(method)) {
     const token = getCsrfToken();
