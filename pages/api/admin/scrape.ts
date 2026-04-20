@@ -8,10 +8,9 @@
  */
 
 import dns                               from 'dns';
-import { z }                              from 'zod';
 import { requireAuth }                   from '../../../lib/requireAuth';
 import { scrapeGame }                    from '../../../lib/boxscore-scraper';
-import { ScrapedGameSchema }             from '../../../lib/validators';
+import { ScrapedGameSchema, ScrapeSchema } from '@/schemas';
 import { prodError }                     from '../../../lib/utils';
 
 // ─── SSRF guard ───────────────────────────────────────────────────────────────
@@ -55,12 +54,6 @@ function isPrivateIp(ip: string): boolean {
 
   return false;
 }
-
-// ─── Schema ───────────────────────────────────────────────────────────────────
-
-const ScrapeSchema = z.object({
-  url: z.string().url().max(500),
-});
 
 export default requireAuth(async function handler(req: any, res: any) {
   if (req.method !== 'POST')
