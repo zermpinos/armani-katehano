@@ -12,8 +12,8 @@
 import { requireAuth }                  from "../../../lib/requireAuth";
 import { prodError, MAX_GAMES_PER_PAGE } from "../../../lib/utils";
 import { calcEff, aggregatesToStatsMap } from "../../../lib/stats";
-import { getAllUpcomingGames }          from "../../../lib/repository.prisma";
-import prisma                          from "../../../lib/prisma";
+import { getAllUpcomingGames }          from "@/server/db/repositories";
+import prisma                          from "@/server/db/client";
 import { z }                           from "zod";
 
 async function handler(req: any, res: any) {

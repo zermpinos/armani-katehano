@@ -11,7 +11,7 @@ import { GameWriteSchema, GameUpdateSchema, GameDeleteSchema } from "@/schemas/g
 import { requireAuth }                    from "../../../lib/requireAuth";
 import { auditLog, getClientIp }          from "../../../lib/security";
 import prisma                             from "../../../lib/prisma";
-import { recalcAggregates }               from "../../../lib/stats.prisma";
+import { recalcAggregates }               from "@/server/services/stats-recalc";
 import { prodError, MAX_GAMES_PER_PAGE }  from "../../../lib/utils";
 import { calcEff }                        from "../../../lib/stats";
 

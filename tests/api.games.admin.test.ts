@@ -39,12 +39,12 @@ vi.mock("../lib/prisma", () => ({
   prisma:  mockPrisma,
 }));
 
-vi.mock("../lib/stats.prisma.js", () => ({
+vi.mock("@/server/services/stats-recalc", () => ({
   recalcAggregates: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { signSession, SESSION_TTL_S } from "../lib/security";
-import { recalcAggregates } from "../lib/stats.prisma";
+import { recalcAggregates } from "@/server/services/stats-recalc";
 import handler               from "../pages/api/admin/games";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
