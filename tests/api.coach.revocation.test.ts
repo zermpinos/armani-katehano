@@ -5,7 +5,7 @@
  * by checking the session version embedded in the cookie against the
  * current DB version.
  *
- * Mocks: lib/prisma (unused — version is mocked directly), lib/coachAuth
+ * Mocks: @/server/db/client (prevent pool init), @/server/auth/coach
  *   (partial — only getCoachSessionVersion overridden so HMAC helpers remain real).
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
@@ -15,15 +15,15 @@ vi.hoisted(() => {
   process.env.COACH_SESSION_SECRET = "test-coach-secret-revocation-xx";
 });
 
-vi.mock("../lib/prisma", () => ({ default: {} }));
+vi.mock("@/server/db/client", () => ({ default: {}, prisma: {} }));
 
-vi.mock("../lib/coachAuth", async (importOriginal) => {
+vi.mock("@/server/auth/coach", async (importOriginal) => {
   const actual = await importOriginal();
   return { ...actual, getCoachSessionVersion: vi.fn() };
 });
 
 import { getCoachSessionVersion,
-         buildCoachSessionCookie } from "../lib/coachAuth";
+         buildCoachSessionCookie } from "@/server/auth/coach";
 import { requireCoachAuth }        from "../lib/requireCoachAuth";
 
 function signCoach(payload: string): string {
