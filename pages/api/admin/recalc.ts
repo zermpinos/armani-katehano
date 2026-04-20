@@ -10,8 +10,8 @@
  */
 
 import { requireAuth }       from '../../../lib/requireAuth';
-import prisma                from "../../../lib/prisma";
-import { recalcAggregates }  from '../../../lib/stats.prisma';
+import prisma                from "@/server/db/client";
+import { recalcAggregates }  from "@/server/services/stats-recalc";
 
 async function handler(req: any, res: any) {
   if (req.method !== "POST") {
