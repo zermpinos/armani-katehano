@@ -225,6 +225,45 @@ export function csrfCheck(req: any, { strict = false } = {}) {
  */
 export const checkCsrf = (req: any) => csrfCheck(req, { strict: true });
 
+// ─── Double-submit CSRF token ─────────────────────────────────────────────────
+
+const CSRF_COOKIE_NAME = "__Host-ak_csrf";
+
+/** Generates a 32-byte random hex token. */
+export function generateCsrfToken(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+/** Non-HttpOnly cookie so the browser's JS can read and echo it back. */
+export function buildCsrfCookie(token: string): string {
+  return [`${CSRF_COOKIE_NAME}=${token}`, "Secure", "SameSite=Strict", "Path=/"].join("; ");
+}
+
+export function clearCsrfCookie(): string {
+  return `${CSRF_COOKIE_NAME}=; Secure; SameSite=Strict; Path=/; Max-Age=0`;
+}
+
+/**
+ * Double-submit CSRF token check (defense-in-depth).
+ * When the CSRF cookie is present the X-CSRF-Token header must match it.
+ * If the cookie is absent (pre-login or pre-rollout session) the check is skipped --
+ * the Origin/Referer check in csrfCheck() is still enforced.
+ */
+export function csrfTokenCheck(req: any): boolean {
+  if (!CSRF_METHODS.has(req.method)) return true;
+  // eslint-disable-next-line security/detect-object-injection
+  const cookie = req.cookies?.[CSRF_COOKIE_NAME];
+  if (!cookie) return true;
+  const header = req.headers["x-csrf-token"];
+  if (!header || typeof header !== "string") return false;
+  try {
+    const a = Buffer.from(cookie, "utf8");
+    const b = Buffer.from(header, "utf8");
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch { return false; }
+}
+
 // ─── Security headers ─────────────────────────────────────────────────────────
 
 /**

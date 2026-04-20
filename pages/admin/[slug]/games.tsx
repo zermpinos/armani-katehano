@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, Spinner, LoginForm, BoxScoreTable, F, Sel, Btn, Confirm, useAdminAuth, byJersey } from "../../../lib/adminShared";
+import { AdminLayout, Spinner, LoginForm, BoxScoreTable, F, Sel, Btn, Confirm, useAdminAuth, byJersey, apiFetch } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck';
 
 export default function GamesPage({ validSlug }: any) {
@@ -89,7 +89,7 @@ export default function GamesPage({ validSlug }: any) {
       };
     });
 
-    const res = await fetch("/api/admin/games", {
+    const res = await apiFetch("/api/admin/games", {
       method:  isNew ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -113,7 +113,7 @@ export default function GamesPage({ validSlug }: any) {
   };
 
   const deleteGame = async (g: any) => {
-    const res = await fetch("/api/admin/games", {
+    const res = await apiFetch("/api/admin/games", {
       method:  "DELETE",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ gameId: g.id, seasonLeagueId: g.seasonLeagueId }),

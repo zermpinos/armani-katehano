@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, BoxScoreTable, F, Sel, Btn, Spinner, LoginForm, byJersey, useAdminAuth } from "../../../lib/adminShared";
+import { AdminLayout, BoxScoreTable, F, Sel, Btn, Spinner, LoginForm, byJersey, useAdminAuth, apiFetch } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck';
 import { parseGreekDate, parseMinutes, detectLeagueSlug } from '../../../lib/greekDate';
 
@@ -149,7 +149,7 @@ export default function ImportPage({ validSlug }: any) {
     setError("");
     setFetching(true);
     try {
-      const res = await fetch("/api/admin/scrape", {
+      const res = await apiFetch("/api/admin/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: gameUrl.trim() }),
@@ -186,7 +186,7 @@ export default function ImportPage({ validSlug }: any) {
       };
     });
 
-    const res = await fetch("/api/admin/games", {
+    const res = await apiFetch("/api/admin/games", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         seasonLeagueId: draft.seasonLeagueId,
