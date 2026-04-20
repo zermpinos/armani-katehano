@@ -7,7 +7,8 @@
  *
  * Auth: separate COACH_PASSWORD + __Host-ak_coach session cookie.
  */
-
+ 
+import React from "react";
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { fmtDate } from "../../lib/utils";
