@@ -14,12 +14,9 @@ import { fmtDate } from "../../lib/utils";
 
 // ─── Tiny shared primitives (no adminShared import — keeps coach bundle isolated) ─
 
-function Spinner({ size = 32 }: { size?: number }) {
+function Spinner() {
   return (
-    <div
-      className="rounded-full border-2 border-ak-border2 border-t-ak-red-bright animate-ak-spin"
-      style={{ width: size, height: size }}
-    />
+    <div className="w-8 h-8 rounded-full border-2 border-ak-border2 border-t-ak-red-bright animate-ak-spin" />
   );
 }
 
