@@ -109,7 +109,7 @@ export default function AdminDashboard({ validSlug }: any) {
       ) : (
         <>
           {/* Summary strip */}
-          <div className="grid gap-[10px] mb-7" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(110px,1fr))" }}>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(110px,1fr))] gap-[10px] mb-7">
             {[
               ["SEASON",      data?.currentSeason ?? "—"],
               ["RECORD",      `${wins}–${losses}`],
@@ -160,7 +160,7 @@ export default function AdminDashboard({ validSlug }: any) {
           )}
 
           {/* Quick links */}
-          <div className="grid gap-3 mb-7" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))" }}>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 mb-7">
             {navItems.map(link => (
               <a key={link.href} href={link.href} className="block rounded-xl px-5 py-[18px] border border-ak-border bg-ak-surface">
                 <div className="text-[20px] mb-2">{link.icon}</div>

@@ -354,8 +354,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
       <ConfirmToast />
       {/* Hero */}
       <div className="relative rounded-2xl overflow-hidden py-10 px-8 border border-ak-border bg-ak-surface mb-6">
-        {/* repeating diagonal texture — complex CSS, kept as inline style */}
-        <div className="absolute inset-0 opacity-[0.18]" style={{ backgroundImage: `repeating-linear-gradient(45deg,#8b1a1a 0,#8b1a1a 1px,transparent 0,transparent 50%)`, backgroundSize: "20px 20px" }} />
+        <div className="absolute inset-0 opacity-[0.18] ak-hero-texture" />
         <div className="absolute top-0 right-0 w-[280px] h-[280px] rounded-full bg-[#8b1a1a18] translate-x-[35%] -translate-y-[35%]" />
         <div className="relative">
           <div className="text-[11px] font-black tracking-[0.18em] uppercase text-ak-red-text mb-2">2025–26 · Regular Season</div>
@@ -612,10 +611,10 @@ export default function HomePage({ players, games, stats, upcomingGames, current
                         if (!entries.length) return null;
                         const game = payload[0]?.payload?.game;
                         return (
-                          <div style={chartTooltipStyle.contentStyle}>
-                            {game && <div style={{ color: C.textDim, fontSize:10, marginBottom:4 }}>{game}</div>}
+                          <div className="bg-ak-surface2 border border-ak-border2 rounded-lg text-xs text-ak-text">
+                            {game && <div className="text-[10px] text-ak-text-dim mb-1">{game}</div>}
                             {entries.map(p => (
-                              <div key={p.name} style={{ color: p.color }}>{p.name}: {p.value}</div>
+                              <div key={p.name} className={p.name === "AK" ? "text-ak-red-bright" : "text-ak-silver"}>{p.name}: {p.value}</div>
                             ))}
                           </div>
                         );
@@ -867,10 +866,10 @@ export default function HomePage({ players, games, stats, upcomingGames, current
                       if (!entries.length) return null;
                       const game = payload[0]?.payload?.game;
                       return (
-                        <div style={chartTooltipStyle.contentStyle}>
-                          {game && <div style={{ color: C.textDim, fontSize:10, marginBottom:4 }}>{game}</div>}
+                        <div className="bg-ak-surface2 border border-ak-border2 rounded-lg text-xs text-ak-text">
+                          {game && <div className="text-[10px] text-ak-text-dim mb-1">{game}</div>}
                           {entries.map(p => (
-                            <div key={p.name} style={{ color: p.color }}>{p.name}: {p.value}</div>
+                            <div key={p.name} className={p.name === "AK" ? "text-ak-red-bright" : "text-ak-silver"}>{p.name}: {p.value}</div>
                           ))}
                         </div>
                       );

@@ -121,7 +121,7 @@ export default function SchedulePage({ validSlug }: any) {
       ].join(" ")}>
         {editId === "new" ? "NEW GAME" : "EDITING GAME"}
       </div>
-      <div className="grid gap-[10px] mb-3" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))" }}>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-[10px] mb-3">
         <F label="OPPONENT" value={draft.opponent} onChange={(v: any) => updGame("opponent", v)} />
         <F label="DATE (DD-MM-YYYY)" value={draft.date} onChange={(v: any) => updGame("date", v)} placeholder="09-04-2026" />
         <F label="TIME" value={draft.time} onChange={(v: any) => updGame("time", v)} placeholder="18:45" type="time" />
