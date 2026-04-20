@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, Confirm, useAdminAuth } from "../../../lib/adminShared";
+import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, Confirm, useAdminAuth, apiFetch } from "../../../lib/adminShared";
 import { validateAdminSlug } from '../../../lib/adminSlugCheck';
 import { fmtDate } from "../../../lib/utils";
 
@@ -75,7 +75,7 @@ export default function SchedulePage({ validSlug }: any) {
     // Convert DD-MM-YYYY to YYYY-MM-DD and combine with time: "2026-04-09T20:00:00Z"
     const [day, month, year] = draft.date.split("-");
     const scheduledFor = `${year}-${month}-${day}T${draft.time}:00`;
-    const res = await fetch("/api/admin/schedule", {
+    const res = await apiFetch("/api/admin/schedule", {
       method:  isNew ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -94,7 +94,7 @@ export default function SchedulePage({ validSlug }: any) {
   };
 
   const deleteGame = async (g: any) => {
-    const res = await fetch("/api/admin/schedule", {
+    const res = await apiFetch("/api/admin/schedule", {
       method:  "DELETE",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ id: g.id }),

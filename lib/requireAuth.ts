@@ -9,6 +9,7 @@ import {
   securityHeaders,
   auditLog,
   csrfCheck,
+  csrfTokenCheck,
   getClientIp,
   SESSION_TTL_S, // S-06: imported to enforce TTL server-side
 } from "./security";
@@ -23,6 +24,10 @@ export function requireAuth(handler: (req: any, res: any) => any) {
     // ── CSRF check ────────────────────────────────────────────────────────────
     if (!csrfCheck(req, { strict: true })) {
       auditLog("csrf_blocked", { ip, path: req.url, method: req.method });
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    if (!csrfTokenCheck(req)) {
+      auditLog("csrf_token_blocked", { ip, path: req.url, method: req.method });
       return res.status(403).json({ error: "Forbidden" });
     }
 

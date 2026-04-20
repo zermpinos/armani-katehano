@@ -12,7 +12,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { isLockedOut, recordAttempt, clearAttempts, getFailureCount } from "../../lib/loginAttempts";
-import { getSessionToken, verifyPayload, verifyCredentials, getAdminUser, verifyTotp, buildSessionCookie, clearSessionCookie, securityHeaders, auditLog, csrfCheck, getClientIp, CAPTCHA_THRESHOLD, verifyCaptcha } from "../../lib/security";
+import { getSessionToken, verifyPayload, verifyCredentials, getAdminUser, verifyTotp, buildSessionCookie, clearSessionCookie, generateCsrfToken, buildCsrfCookie, clearCsrfCookie, securityHeaders, auditLog, csrfCheck, getClientIp, CAPTCHA_THRESHOLD, verifyCaptcha } from "../../lib/security";
 
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
@@ -33,7 +33,7 @@ export default async function handler(req: any, res: any) {
     const payload = verifyPayload(token);
     let logoutUser: string | undefined;
     try { logoutUser = payload ? JSON.parse(payload).user : undefined; } catch { /* ignore */ }
-    res.setHeader("Set-Cookie", clearSessionCookie());
+    res.setHeader("Set-Cookie", [clearSessionCookie(), clearCsrfCookie()]);
     auditLog("logout", { ip, username: logoutUser });
     return res.status(200).json({ ok: true });
   }
@@ -102,7 +102,7 @@ export default async function handler(req: any, res: any) {
 
     await Promise.all([clearAttempts(ip), clearAttempts(ACCOUNT_KEY)]);
     const payload = JSON.stringify({ ts: Date.now(), role: "admin", user: username });
-    res.setHeader("Set-Cookie", buildSessionCookie(payload));
+    res.setHeader("Set-Cookie", [buildSessionCookie(payload), buildCsrfCookie(generateCsrfToken())]);
     auditLog("login_success", { ip, slug, username });
     return res.status(200).json({ ok: true });
   }

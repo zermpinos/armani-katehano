@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, Spinner, LoginForm, useAdminAuth } from "../../../lib/adminShared";
+import { AdminLayout, Spinner, LoginForm, useAdminAuth, apiFetch } from "../../../lib/adminShared";
 import { validateAdminSlug } from "../../../lib/adminSlugCheck";
 
 export default function AdminDashboard({ validSlug }: any) {
@@ -30,7 +30,7 @@ export default function AdminDashboard({ validSlug }: any) {
   const handleRecalc = async () => {
     setRecalcing(true);
     try {
-      const res = await fetch("/api/admin/recalc", { method: "POST" });
+      const res = await apiFetch("/api/admin/recalc", { method: "POST" });
       const json = await res.json();
       if (res.ok) {
         setToast({ type: "success", msg: `Recalculated ${json.recalculated} league(s)` });
