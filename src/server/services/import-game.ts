@@ -171,10 +171,31 @@ export async function importGame(
       }
 
       await recalcAggregates(seasonLeagueId, tx);
+
+      if (sourceUrl) {
+        const upcoming = await tx.upcomingGame.findUnique({ where: { sourceUrl } });
+        if (upcoming) {
+          await tx.gameImportJob.updateMany({
+            where: { upcomingGameId: upcoming.id, status: "PENDING" },
+            data:  { status: "IMPORTED", gameId: g.id },
+          });
+        }
+      }
     });
   } catch (err) {
-    if ((err as any).message === "DUPLICATE")
-      throw Object.assign(new ImportError("This game has already been imported.", 409), { gameId: (err as any).gameId });
+    if ((err as any).message === "DUPLICATE") {
+      const dupGameId = (err as any).gameId as string;
+      if (sourceUrl) {
+        const upcoming = await prisma.upcomingGame.findUnique({ where: { sourceUrl } });
+        if (upcoming) {
+          await prisma.gameImportJob.updateMany({
+            where: { upcomingGameId: upcoming.id, status: "PENDING" },
+            data:  { status: "IMPORTED", gameId: dupGameId },
+          });
+        }
+      }
+      throw Object.assign(new ImportError("This game has already been imported.", 409), { gameId: dupGameId });
+    }
     throw err;
   }
 
