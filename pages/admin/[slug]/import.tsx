@@ -42,6 +42,7 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
   const [highlights, setHighlights] = useState<Record<string, boolean>>({});
   const [warnings,   setWarnings]   = useState<string[]>([]);
   const [error,      setError]      = useState("");
+  const [gameState,  setGameState]  = useState<{ state: string; reason: string } | null>(null);
 
   const showToast = (msg: string, type = "success") => setToast({ msg, type });
 
@@ -175,6 +176,7 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
 
       const { draft, highlights, warnings } = buildDraft(body.data);
       setDraft(draft); setHighlights(highlights); setWarnings(warnings);
+      setGameState(body.gameState ?? null);
       setPhase("review");
     } catch (err) {
       setError((err as Error).message);
@@ -232,6 +234,7 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
     setYoutubeUrl("");
     setHighlights({});
     setWarnings([]);
+    setGameState(null);
   };
 
   const leagueOptions = seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName }));
@@ -310,6 +313,20 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
 
         {!dataLoading && (phase === "review" || phase === "saving") && draft && (
           <div className="flex flex-col gap-4">
+            {gameState && gameState.state !== "final" && (
+              <div className={[
+                "py-[10px] px-[14px] rounded-lg text-xs border",
+                gameState.state === "scheduled"
+                  ? "bg-[#8b1a1a18] border-[#8b1a1a40] text-ak-red-text"
+                  : "bg-[#8b5a0018] border-[#8b5a0040] text-[#b8860b]",
+              ].join(" ")}>
+                <div className="font-black mb-0.5">
+                  {gameState.state === "scheduled" ? "Game not yet played" : "Game may still be in progress"}
+                </div>
+                <div>{gameState.reason}</div>
+              </div>
+            )}
+
             {warnings.length > 0 && (
               <div className="py-[10px] px-[14px] rounded-lg bg-[#8b1a1a18] border border-[#8b1a1a40] text-xs text-ak-red-text">
                 <div className="font-black mb-1">⚠ Warnings -- review before saving:</div>
@@ -349,8 +366,14 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
             </div>
 
             <div className="flex gap-[10px] pt-1">
-              <Btn onClick={save} variant="green" disabled={phase === "saving"}>{phase === "saving" ? "SAVING..." : "SAVE GAME"}</Btn>
-              <Btn variant="ghost" onClick={() => { setPhase("idle"); setDraft(null); }} disabled={phase === "saving"}>BACK</Btn>
+              <Btn
+                onClick={save}
+                variant="green"
+                disabled={phase === "saving" || gameState?.state === "scheduled"}
+              >
+                {phase === "saving" ? "SAVING..." : "SAVE GAME"}
+              </Btn>
+              <Btn variant="ghost" onClick={() => { setPhase("idle"); setDraft(null); setGameState(null); }} disabled={phase === "saving"}>BACK</Btn>
             </div>
           </div>
         )}
