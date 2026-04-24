@@ -3,6 +3,7 @@ import { PDFParse }  from "pdf-parse";
 import { scrapeGame } from "@/server/integrations/scraper/boxscore";
 import { ScrapedGameSchema } from "@/schemas";
 import { assertSsrfSafe, isAllowedHostname, isPrivateIp } from "@/server/security/ssrf";
+import { classifyScrapedGame, type ClassifyResult } from "@/server/services/import-classifier";
 
 const AK_IDENTIFIERS = ["ARMANI", "KATEHANO"];
 
@@ -31,7 +32,12 @@ export class ScrapeError extends Error {
   }
 }
 
-export async function scrapeGameFromUrl(url: string): Promise<any> {
+export interface ScrapeResult {
+  data: any;
+  gameState: ClassifyResult;
+}
+
+export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
   await assertSsrfSafe(url).catch(() => {
     throw new ScrapeError("URL not allowed", 400);
   });
@@ -98,5 +104,7 @@ export async function scrapeGameFromUrl(url: string): Promise<any> {
   if (!data.teams.length)
     throw new ScrapeError("No box score found -- check the URL points to a game details page.", 422);
 
-  return data;
+  const gameState = classifyScrapedGame(data);
+
+  return { data, gameState };
 }

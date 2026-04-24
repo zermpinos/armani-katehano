@@ -11,8 +11,8 @@ export default requireAuth(async function handler(req: any, res: any) {
     return res.status(400).json({ error: "Invalid URL" });
 
   try {
-    const data = await scrapeGameFromUrl(parsed.data.url);
-    return res.status(200).json({ ok: true, data });
+    const { data, gameState } = await scrapeGameFromUrl(parsed.data.url);
+    return res.status(200).json({ ok: true, data, gameState });
   } catch (err) {
     if (err instanceof ScrapeError)
       return res.status(err.status).json({ error: err.message });
