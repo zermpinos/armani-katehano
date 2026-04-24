@@ -6,26 +6,40 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout, Spinner, LoginForm, BoxScoreTable, F, Sel, Btn, Confirm, useAdminAuth, byJersey, apiFetch } from "@/client/admin";
+import type { Player, Game, SeasonLeague, BoxScoreRow } from "@/client/admin";
 import { validateAdminSlug } from '@/server/auth';
 
-export default function GamesPage({ validSlug }: any) {
+type GameDraft = {
+  date: string;
+  opponent: string;
+  home: boolean;
+  result: string;
+  teamScore: string | number;
+  opponentScore: string | number;
+  seasonLeagueId: string;
+  sourceUrl: string;
+  youtubeUrl: string;
+  boxScore: BoxScoreRow[];
+};
+
+export default function GamesPage({ validSlug }: { validSlug: boolean }) {
   // A-02 fix: derive slug from the Next.js router, not window.location.
   const router = useRouter();
   const slug = router.query.slug || validSlug;
 
   const { authed, loading: checking, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
 
-  const [players,       setPlayers]       = useState<any[]>([]);
-  const [games,         setGames]         = useState<any[]>([]);
-  const [seasonLeagues, setSeasonLeagues] = useState<any[]>([]);
+  const [players,       setPlayers]       = useState<Player[]>([]);
+  const [games,         setGames]         = useState<Game[]>([]);
+  const [seasonLeagues, setSeasonLeagues] = useState<SeasonLeague[]>([]);
   const [loading,       setLoading]       = useState(false);
   const [toast, setToast] = useState<{ msg: string; type?: string } | null>(null);
 
   const [editId, setEditId] = useState<string | null>(null);
-  const [draft,   setDraft]   = useState<Record<string, any>>({});
-  const [confirm, setConfirm] = useState<any>(null);
+  const [draft,   setDraft]   = useState<Partial<GameDraft>>({});
+  const [confirm, setConfirm] = useState<Game | null>(null);
 
-  const showToast = (msg: any, type = "success") => setToast({ msg, type });
+  const showToast = (msg: string, type = "success") => setToast({ msg, type });
 
   const loadData = async () => {
     setLoading(true);
@@ -49,10 +63,10 @@ export default function GamesPage({ validSlug }: any) {
   }, [authed, slug]);
 
   const leagueOptions = seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName }));
-  const emptyRow      = (playerId: any) => ({ playerId, minutes: 0, pts: 0, reb: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, fgm: 0, fga: 0, fg2m: 0, fg2a: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, eff: 0 });
-  const buildBox      = (existing: any) => [...players].sort(byJersey).map((p: any) => {
-    const found = existing?.find((r: any) => r.playerId === p.id);
-    return found || emptyRow(p.id);
+  const emptyRow      = (playerId: string): BoxScoreRow => ({ playerId, minutes: 0, pts: 0, reb: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, fgm: 0, fga: 0, fg2m: 0, fg2a: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, eff: 0 });
+  const buildBox      = (existing: BoxScoreRow[] | undefined): BoxScoreRow[] => [...players].sort(byJersey).map(p => {
+    const found = existing?.find(r => r.playerId === p.id);
+    return found ?? emptyRow(p.id);
   });
 
   const startNew = () => {
@@ -60,23 +74,23 @@ export default function GamesPage({ validSlug }: any) {
     setEditId("new");
   };
 
-  const startEdit = (g: any) => {
+  const startEdit = (g: Game) => {
     setDraft({ ...g, date: g.date ?? g.playedOn?.slice(0, 10) ?? "", home: g.home ?? g.location === "home", sourceUrl: g.sourceUrl ?? "", youtubeUrl: g.youtubeUrl ?? "", boxScore: buildBox(g.boxScore) });
     setEditId(g.id);
   };
 
   const cancel   = () => { setEditId(null); setDraft({}); };
-  const updGame  = (k: any, v: any) => setDraft((d: any) => ({ ...d, [k]: v }));
-  const updBox   = (playerId: any, k: any, v: any) => setDraft((d: any) => ({
-    ...d, boxScore: d.boxScore.map((r: any) => r.playerId === playerId ? { ...r, [k]: parseFloat(v) || 0 } : r)
-  }));
+  const updGame  = (k: string, v: unknown) => setDraft(d => ({ ...d, [k]: v } as Partial<GameDraft>));
+  const updBox   = (playerId: string, k: string, v: string) => setDraft(d => ({
+    ...d, boxScore: (d.boxScore ?? []).map(r => r.playerId === playerId ? { ...r, [k]: parseFloat(v) || 0 } : r)
+  } as Partial<GameDraft>));
 
   const save = async () => {
     if (!draft.opponent?.trim()) { showToast("Opponent is required", "error"); return; }
     if (!draft.date?.trim())     { showToast("Date is required", "error"); return; }
     if (!draft.seasonLeagueId)   { showToast("League is required", "error"); return; }
     const isNew    = editId === "new";
-    const boxScore = draft.boxScore.map((r: any) => {
+    const boxScore = (draft.boxScore ?? []).map(r => {
       const fg2m = r.fg2m || 0, fg2a = r.fg2a || 0;
       const fg3m = r.fg3m || 0, fg3a = r.fg3a || 0;
       return {
@@ -112,7 +126,7 @@ export default function GamesPage({ validSlug }: any) {
     loadData();
   };
 
-  const deleteGame = async (g: any) => {
+  const deleteGame = async (g: Game) => {
     const res = await apiFetch("/api/admin/games", {
       method:  "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -136,20 +150,20 @@ export default function GamesPage({ validSlug }: any) {
         {editId === "new" ? "NEW GAME" : "EDITING GAME"}
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-[10px] mb-3">
-        <F label="DATE"        value={draft.date}           onChange={(v: any) => updGame("date", v)}           placeholder="YYYY-MM-DD" />
-        <F label="OPPONENT"    value={draft.opponent}       onChange={(v: any) => updGame("opponent", v)} />
-        <Sel label="LEAGUE"    value={draft.seasonLeagueId || ""} onChange={(v: any) => updGame("seasonLeagueId", v)} options={leagueOptions} />
-        <Sel label="HOME/AWAY" value={draft.home ? "home" : "away"} onChange={(v: any) => updGame("home", v === "home")} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
-        <Sel label="RESULT"    value={draft.result}         onChange={(v: any) => updGame("result", v)}         options={[{ value: "W", label: "Win" }, { value: "L", label: "Loss" }, { value: "T", label: "Tie" }]} />
-        <F label="OUR SCORE"   value={draft.teamScore}      onChange={(v: any) => updGame("teamScore", v)}      type="number" />
-        <F label="OPP SCORE"   value={draft.opponentScore}  onChange={(v: any) => updGame("opponentScore", v)}  type="number" />
+        <F label="DATE"        value={draft.date ?? ""}          onChange={v => updGame("date", v)}           placeholder="YYYY-MM-DD" />
+        <F label="OPPONENT"    value={draft.opponent ?? ""}      onChange={v => updGame("opponent", v)} />
+        <Sel label="LEAGUE"    value={draft.seasonLeagueId ?? ""} onChange={v => updGame("seasonLeagueId", v)} options={leagueOptions} />
+        <Sel label="HOME/AWAY" value={draft.home ? "home" : "away"} onChange={v => updGame("home", v === "home")} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
+        <Sel label="RESULT"    value={draft.result ?? "W"}       onChange={v => updGame("result", v)}         options={[{ value: "W", label: "Win" }, { value: "L", label: "Loss" }, { value: "T", label: "Tie" }]} />
+        <F label="OUR SCORE"   value={draft.teamScore ?? ""}     onChange={v => updGame("teamScore", v)}      type="number" />
+        <F label="OPP SCORE"   value={draft.opponentScore ?? ""} onChange={v => updGame("opponentScore", v)}  type="number" />
       </div>
       <div className="grid grid-cols-2 gap-[10px] mb-3">
-        <F label="OFFICIAL STATS URL" value={draft.sourceUrl} onChange={(v: any) => updGame("sourceUrl", v)} placeholder="https://..." />
-        <F label="YOUTUBE REPLAY URL" value={draft.youtubeUrl} onChange={(v: any) => updGame("youtubeUrl", v)} placeholder="https://youtube.com/..." />
+        <F label="OFFICIAL STATS URL" value={draft.sourceUrl ?? ""} onChange={v => updGame("sourceUrl", v)} placeholder="https://..." />
+        <F label="YOUTUBE REPLAY URL" value={draft.youtubeUrl ?? ""} onChange={v => updGame("youtubeUrl", v)} placeholder="https://youtube.com/..." />
       </div>
       <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-2 pt-2 border-t border-ak-border uppercase">Box score</div>
-      <BoxScoreTable players={players} rows={draft.boxScore || []} onUpdate={updBox} />
+      <BoxScoreTable players={players} rows={draft.boxScore ?? []} onUpdate={updBox} />
       <div className="flex gap-[10px] mt-3">
         <Btn onClick={save}>SAVE GAME</Btn>
         <Btn variant="ghost" onClick={cancel}>CANCEL</Btn>
@@ -192,7 +206,7 @@ export default function GamesPage({ validSlug }: any) {
             <div className="text-center py-5 text-ak-text-dim">No games recorded yet</div>
           )}
           {editId === "new" && gameForm}
-          {[...games].sort((a, b) => new Date(b.date ?? b.playedOn).getTime() - new Date(a.date ?? a.playedOn).getTime()).map(g => (
+          {[...games].sort((a, b) => new Date(b.date ?? b.playedOn ?? "").getTime() - new Date(a.date ?? a.playedOn ?? "").getTime()).map(g => (
             <div key={g.id}>
               {editId === g.id ? gameForm : (
                 <div className="flex items-center justify-between py-[10px] px-[14px] rounded-[10px] border border-ak-border bg-ak-surface2">
@@ -235,7 +249,7 @@ export default function GamesPage({ validSlug }: any) {
   );
 }
 
-export async function getServerSideProps({ params }: any) {
+export async function getServerSideProps({ params }: { params: { slug: string } }) {
   if (!await validateAdminSlug(params.slug)) return { notFound: true };
   return { props: { validSlug: true } };
 }

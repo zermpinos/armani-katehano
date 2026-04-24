@@ -6,24 +6,25 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, useAdminAuth, byJersey, apiFetch } from "@/client/admin";
+import type { Player } from "@/client/admin";
 import { validateAdminSlug } from '@/server/auth';
 import { POSITIONS } from '@/domain/players/positions';
 
-export default function RosterPage({ validSlug }: any) {
+export default function RosterPage({ validSlug }: { validSlug: boolean }) {
   // A-02 fix: derive slug from the Next.js router, not window.location.
   const router = useRouter();
   const slug = router.query.slug || validSlug;
 
   const { authed, loading: checking, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
 
-  const [players, setPlayers] = useState<any[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type?: string } | null>(null);
 
   const [editId, setEditId] = useState<string | null>(null);
-  const [draft,  setDraft]  = useState<Record<string, any>>({});
+  const [draft,  setDraft]  = useState<Partial<Player>>({});
 
-  const showToast = (msg: any, type = "success") => setToast({ msg, type });
+  const showToast = (msg: string, type = "success") => setToast({ msg, type });
 
   const loadPlayers = async () => {
     setLoading(true);
@@ -42,9 +43,9 @@ export default function RosterPage({ validSlug }: any) {
   }, [authed, slug]);
 
   const startNew  = () => { setDraft({ name: "", number: "", position: "PG", height: "", weight: "" }); setEditId("new"); };
-  const startEdit = (p: any) => { setDraft({ ...p }); setEditId(p.id); };
+  const startEdit = (p: Player) => { setDraft({ ...p }); setEditId(p.id); };
   const cancel    = () => { setEditId(null); setDraft({}); };
-  const upd       = (k: any, v: any) => setDraft((d: any) => ({ ...d, [k]: v }));
+  const upd       = (k: string, v: unknown) => setDraft(d => ({ ...d, [k]: v } as Partial<Player>));
 
   const save = async () => {
     if (!draft.name?.trim())        { showToast("Name is required", "error"); return; }
@@ -73,11 +74,11 @@ export default function RosterPage({ validSlug }: any) {
         {editId === "new" ? "NEW PLAYER" : `EDITING: ${draft.name || "..."}`}
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-[10px] mb-3">
-        <F label="FULL NAME"  value={draft.name}     onChange={(v: any) => upd("name", v)} />
-        <F label="JERSEY #"   value={draft.number}   onChange={(v: any) => upd("number", v)} type="number" />
-        <Sel label="POSITION" value={draft.position || "PG"} onChange={(v: any) => upd("position", v)} options={POSITIONS.map(p => ({ value: p, label: p }))} />
-        <F label="HEIGHT"     value={draft.height}   onChange={(v: any) => upd("height", v)} placeholder='e.g. 6&apos;4"' />
-        <F label="WEIGHT"     value={draft.weight}   onChange={(v: any) => upd("weight", v)} placeholder="e.g. 90 kg" />
+        <F label="FULL NAME"  value={draft.name ?? ""}     onChange={v => upd("name", v)} />
+        <F label="JERSEY #"   value={draft.number ?? ""}   onChange={v => upd("number", v)} type="number" />
+        <Sel label="POSITION" value={draft.position ?? "PG"} onChange={v => upd("position", v)} options={POSITIONS.map(p => ({ value: p, label: p }))} />
+        <F label="HEIGHT"     value={draft.height ?? ""}   onChange={v => upd("height", v)} placeholder='e.g. 6&apos;4"' />
+        <F label="WEIGHT"     value={draft.weight ?? ""}   onChange={v => upd("weight", v)} placeholder="e.g. 90 kg" />
       </div>
       <div className="flex gap-[10px]">
         <Btn onClick={save}>{editId === "new" ? "ADD PLAYER" : "SAVE PLAYER"}</Btn>
@@ -134,7 +135,7 @@ export default function RosterPage({ validSlug }: any) {
   );
 }
 
-export async function getServerSideProps({ params }: any) {
+export async function getServerSideProps({ params }: { params: { slug: string } }) {
   if (!await validateAdminSlug(params.slug)) return { notFound: true };
   return { props: { validSlug: true } };
 }

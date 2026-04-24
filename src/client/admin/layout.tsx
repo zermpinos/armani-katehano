@@ -1,6 +1,17 @@
 import Head from "next/head";
+import Link from "next/link";
+import type { ReactNode } from "react";
 
-export function AdminLayout({ slug, title, children, toast, setToast, onLogout }: { slug: any; title: any; children: any; toast: any; setToast: any; onLogout?: () => void }) {
+type Toast = { type?: string; msg: string };
+
+export function AdminLayout({ slug, title, children, toast, setToast, onLogout }: {
+  slug: string | string[] | boolean | undefined;
+  title: string;
+  children: ReactNode;
+  toast: Toast | null;
+  setToast: (t: Toast | null) => void;
+  onLogout?: () => void;
+}) {
   const tabs = [
     { href: `/admin/${slug}`,          label: "Dashboard" },
     { href: `/admin/${slug}/games`,    label: "Games"     },
@@ -27,12 +38,12 @@ export function AdminLayout({ slug, title, children, toast, setToast, onLogout }
           {tabs.map(t => {
             const active = current === t.href || (t.href !== `/admin/${slug}` && current.startsWith(t.href));
             return (
-              <a key={t.href} href={t.href} className={[
+              <Link key={t.href} href={t.href} className={[
                 "px-[14px] py-[14px] text-[11px] font-black tracking-[0.12em] uppercase whitespace-nowrap transition-colors duration-150 border-b-2",
                 active ? "text-ak-red-text border-ak-red-bright" : "text-ak-text-dim border-transparent",
               ].join(" ")}>
                 {t.label}
-              </a>
+              </Link>
             );
           })}
           {onLogout && (
@@ -58,7 +69,13 @@ export function AdminLayout({ slug, title, children, toast, setToast, onLogout }
             : "bg-[#4caf7d22] text-ak-green border border-[#4caf7d55]",
         ].join(" ")}>
           <span>{toast.msg}</span>
-          <button onClick={() => setToast(null)} className="bg-transparent border-0 cursor-pointer text-[18px] text-current font-black leading-none p-0">×</button>
+          <button
+            aria-label="Close"
+            onClick={() => setToast(null)}
+            className="bg-transparent border-0 cursor-pointer text-[18px] text-current font-black leading-none p-0"
+          >
+            ×
+          </button>
         </div>
       )}
     </div>

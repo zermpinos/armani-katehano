@@ -5,10 +5,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import { AdminLayout, Spinner, LoginForm, useAdminAuth, apiFetch } from "@/client/admin";
+import type { DashboardData } from "@/client/admin";
 import { validateAdminSlug } from "@/server/auth";
 
-export default function AdminDashboard({ validSlug }: any) {
+export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
   // A-02 fix: derive slug from the Next.js router, not window.location.
   // router.query is {} on first render; fall back to validSlug (from SSR props)
   // so the auth hook has a non-empty slug immediately.
@@ -19,9 +21,9 @@ export default function AdminDashboard({ validSlug }: any) {
   const { authed, loading: authLoading, loginError, handleLogin, handleLogout } =
     useAdminAuth(slug);
 
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [toast,   setToast]   = useState<{ type: string; msg: string } | null>(null);
+  const [toast,   setToast]   = useState<{ type?: string; msg: string } | null>(null);
   const [recalcing, setRecalcing] = useState(false);
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
   const [subscribers, setSubscribers] = useState<{ email: string; createdAt: string }[]>([]);
@@ -162,11 +164,11 @@ export default function AdminDashboard({ validSlug }: any) {
           {/* Quick links */}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 mb-7">
             {navItems.map(link => (
-              <a key={link.href} href={link.href} className="block rounded-xl px-5 py-[18px] border border-ak-border bg-ak-surface">
+              <Link key={link.href} href={link.href} className="block rounded-xl px-5 py-[18px] border border-ak-border bg-ak-surface">
                 <div className="text-[20px] mb-2">{link.icon}</div>
                 <div className="text-[13px] font-black text-ak-text mb-[3px]">{link.label}</div>
                 <div className="text-[11px] text-ak-text-dim">{link.desc}</div>
-              </a>
+              </Link>
             ))}
           </div>
 
@@ -188,13 +190,13 @@ export default function AdminDashboard({ validSlug }: any) {
           </div>
 
           {/* Recent games */}
-          {data?.recentGames?.length > 0 && (
+          {data?.recentGames && data.recentGames.length > 0 && (
             <div>
               <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">
                 Recent games
               </div>
               <div className="flex flex-col gap-[6px]">
-                {data.recentGames.map((g: any) => (
+                {data.recentGames.map(g => (
                   <div key={g.id} className="flex justify-between items-center py-[10px] px-[14px] rounded-[9px] border border-ak-border bg-ak-surface">
                     <div className="flex items-center gap-[10px]">
                       <span className={[
@@ -213,9 +215,9 @@ export default function AdminDashboard({ validSlug }: any) {
                 ))}
               </div>
               <div className="mt-[10px]">
-                <a href={`/admin/${slug}/games`} className="text-[11px] text-ak-red-text font-bold">
+                <Link href={`/admin/${slug}/games`} className="text-[11px] text-ak-red-text font-bold">
                   View all games →
-                </a>
+                </Link>
               </div>
             </div>
           )}
@@ -226,7 +228,7 @@ export default function AdminDashboard({ validSlug }: any) {
 }
 
 // ── SSR slug validation ─────────────────────────────────────────────────────
-export async function getServerSideProps({ params }: any) {
+export async function getServerSideProps({ params }: { params: { slug: string } }) {
   const validSlug = await validateAdminSlug(params.slug);
   if (!validSlug) return { notFound: true };
   return { props: { validSlug } };

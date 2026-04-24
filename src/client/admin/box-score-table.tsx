@@ -1,4 +1,5 @@
 import { fmt } from "@/domain/players/format";
+import type { Player, BoxScoreRow } from "./shared";
 
 const BOX_COLS = [
   { key: "min", label: "MIN" }, { key: "pts", label: "PTS" }, { key: "reb", label: "REB" },
@@ -9,8 +10,15 @@ const BOX_COLS = [
   { key: "ftm", label: "FTM" }, { key: "fta", label: "FTA" }, { key: "eff", label: "EFF" },
 ];
 
-export function BoxScoreTable({ players, rows, onUpdate, highlights = {} }: { players: any; rows: any; onUpdate: any; highlights?: any }) {
+export function BoxScoreTable({ players, rows, onUpdate, highlights = {} }: {
+  players: Player[];
+  rows: BoxScoreRow[];
+  onUpdate?: ((playerId: string, key: string, value: string) => void) | null;
+  highlights?: Record<string, boolean>;
+}) {
   if (!rows || rows.length === 0) return null;
+
+  const playerMap = new Map(players.map(p => [p.id, p]));
 
   return (
     <div className="overflow-x-auto rounded-lg border border-ak-border">
@@ -30,9 +38,10 @@ export function BoxScoreTable({ players, rows, onUpdate, highlights = {} }: { pl
           </tr>
         </thead>
         <tbody>
-          {rows.map((row: any, i: number) => {
-            const player = players.find((p: any) => p.id === row.playerId);
+          {rows.map((row, i) => {
+            const player = playerMap.get(row.playerId);
             const played = highlights[row.playerId];
+            const rowData = row as unknown as Record<string, number | undefined>;
             return (
               <tr key={row.playerId} className={[
                 "border-t border-ak-border",
@@ -47,7 +56,8 @@ export function BoxScoreTable({ players, rows, onUpdate, highlights = {} }: { pl
                     {onUpdate ? (
                       <input
                         type="number"
-                        value={row[c.key] ?? 0}
+                        aria-label={`${c.label} for ${player ? fmt(player.name) : row.playerId}`}
+                        value={rowData[c.key] ?? 0}
                         onChange={e => onUpdate(row.playerId, c.key, e.target.value)}
                         className={[
                           "w-[38px] text-center text-[11px] py-[2px] bg-transparent rounded border font-sans outline-none",
@@ -56,7 +66,7 @@ export function BoxScoreTable({ players, rows, onUpdate, highlights = {} }: { pl
                         ].join(" ")}
                       />
                     ) : (
-                      <span className={c.key === "eff" ? "text-ak-red-text" : "text-ak-text-sub"}>{row[c.key] ?? 0}</span>
+                      <span className={c.key === "eff" ? "text-ak-red-text" : "text-ak-text-sub"}>{rowData[c.key] ?? 0}</span>
                     )}
                   </td>
                 ))}
