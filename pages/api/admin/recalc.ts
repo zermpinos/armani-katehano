@@ -9,7 +9,7 @@
  * Protected by requireAuth — same as all other admin endpoints.
  */
 
-import { requireAuth }       from '../../../lib/requireAuth';
+import { requireAuth }       from '@/server/auth';
 import prisma                from "@/server/db/client";
 import { recalcAggregates }  from "@/server/services/stats-recalc";
 

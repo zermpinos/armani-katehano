@@ -5,10 +5,10 @@
  * Returns the data the import page needs to populate the league dropdown.
  */
 
-import { requireAuth }               from "../../../lib/requireAuth";
-import { auditLog }                  from "../../../lib/security";
-import { prodError }                 from "../../../lib/utils";
-import prisma                        from "../../../lib/prisma";
+import { requireAuth }               from "@/server/auth";
+import { auditLog }                  from "@/server/security";
+import { prodError }                 from "@/domain/shared/format";
+import prisma                        from "@/server/db/client";
 
 async function handler(req: any, res: any) {
   if (req.method !== "GET") {

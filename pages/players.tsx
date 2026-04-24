@@ -2,9 +2,9 @@ import { useState } from "react";
 import Image from "next/image";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
-import { getAllPublicData, getAllSeasonsStats } from "../lib/data";
-import { buildAllTimeStatsMap } from "../lib/stats";
-import { fmt } from "../lib/utils";
+import { getAllPublicData, getAllSeasonsStats } from "@/server/db/repositories";
+import { buildAllTimeStatsMap } from "@/domain/stats";
+import { fmt } from "@/domain/players/format";
 import SeasonSelector from "../components/SeasonSelector";
 import { PlayerDetail } from "../components/PlayerDetail";
 

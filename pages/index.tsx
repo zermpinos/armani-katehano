@@ -1,9 +1,9 @@
 import { useState } from "react";
 import Layout from "../components/Layout";
 import { StatTile, SectionHeading } from "../components/ui";
-import { getAllPublicData, getUpcomingGamesWithAnnouncements } from "../lib/data";
-import { computeRecord } from "../lib/stats";
-import { fmt } from "../lib/utils";
+import { getAllPublicData, getUpcomingGamesWithAnnouncements } from "@/server/db/repositories";
+import { computeRecord } from "@/domain/games/score";
+import { fmt } from "@/domain/players/format";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { PlayerDetail } from "../components/PlayerDetail";
 import { ConfirmToast } from "@/client/home/confirm-toast";

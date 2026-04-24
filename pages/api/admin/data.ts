@@ -9,9 +9,10 @@
  *
  */
 
-import { requireAuth }                  from "../../../lib/requireAuth";
-import { prodError, MAX_GAMES_PER_PAGE } from "../../../lib/utils";
-import { calcEff, aggregatesToStatsMap } from "../../../lib/stats";
+import { requireAuth }                  from "@/server/auth";
+import { prodError } from "@/domain/shared/format";
+import { MAX_GAMES_PER_PAGE } from "@/domain/shared/constants";
+import { calcEff, aggregatesToStatsMap } from "@/domain/stats";
 import { getAllUpcomingGames }          from "@/server/db/repositories";
 import prisma                          from "@/server/db/client";
 import { z }                           from "zod";

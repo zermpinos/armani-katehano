@@ -6,9 +6,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, BoxScoreTable, F, Sel, Btn, Spinner, LoginForm, byJersey, useAdminAuth, apiFetch } from "../../../lib/adminShared";
-import { validateAdminSlug } from '../../../lib/adminSlugCheck';
-import { parseGreekDate, parseMinutes, detectLeagueSlug } from '../../../lib/greekDate';
+import { AdminLayout, BoxScoreTable, F, Sel, Btn, Spinner, LoginForm, byJersey, useAdminAuth, apiFetch } from "@/client/admin";
+import { validateAdminSlug } from '@/server/auth';
+import { parseGreekDate, parseMinutes, detectLeagueSlug } from '@/domain/calendar/greek-date';
 
 
 export default function ImportPage({ validSlug }: any) {

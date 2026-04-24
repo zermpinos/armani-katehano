@@ -3,10 +3,10 @@
  * POST /api/admin/seasons → create a new season and link leagues to it
  */
 
-import { requireAuth }               from '../../../lib/requireAuth';
-import { auditLog, getClientIp }     from "../../../lib/security";
-import prisma                        from "../../../lib/prisma";
-import { prodError }                 from "../../../lib/utils";
+import { requireAuth }               from '@/server/auth';
+import { auditLog, getClientIp }     from "@/server/security";
+import prisma                        from "@/server/db/client";
+import { prodError }                 from "@/domain/shared/format";
 import { SeasonCreateSchema }        from "@/schemas/season";
 
 async function handler(req: any, res: any) {

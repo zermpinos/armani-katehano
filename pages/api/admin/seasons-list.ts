@@ -3,9 +3,9 @@
  * GET /api/admin/seasons-list → list all seasons
  */
 
-import { requireAuth }               from "../../../lib/requireAuth";
-import { prodError }                 from "../../../lib/utils";
-import prisma                        from "../../../lib/prisma";
+import { requireAuth }               from "@/server/auth";
+import { prodError }                 from "@/domain/shared/format";
+import prisma                        from "@/server/db/client";
 
 async function handler(req: any, res: any) {
   if (req.method !== "GET") return res.status(405).end();

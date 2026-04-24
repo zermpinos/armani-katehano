@@ -5,11 +5,11 @@
  * Short cache: 60s on CDN, stale-while-revalidate 300s.
  * The public site calls this from getStaticProps / getServerSideProps.
  */
-import { getAllPublicData } from "../../../lib/data";
-import { securityHeaders, getClientIp } from "../../../lib/security";
-import { rlKey } from "../../../lib/loginAttempts";
-import { prodError }       from "../../../lib/utils";
-import prisma              from "../../../lib/prisma";
+import { getAllPublicData } from "@/server/db/repositories";
+import { securityHeaders, getClientIp } from "@/server/security";
+import { rlKey } from "@/server/auth";
+import { prodError }       from "@/domain/shared/format";
+import prisma              from "@/server/db/client";
 
 const PUBLIC_DATA_LIMIT  = 30;  // max requests per IP per minute
 const PUBLIC_DATA_WINDOW = 60;  // 1 minute in seconds

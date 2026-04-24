@@ -5,9 +5,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, useAdminAuth, byJersey, apiFetch } from "../../../lib/adminShared";
-import { validateAdminSlug } from '../../../lib/adminSlugCheck';
-import { POSITIONS } from '../../../lib/positions';
+import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, useAdminAuth, byJersey, apiFetch } from "@/client/admin";
+import { validateAdminSlug } from '@/server/auth';
+import { POSITIONS } from '@/domain/players/positions';
 
 export default function RosterPage({ validSlug }: any) {
   // A-02 fix: derive slug from the Next.js router, not window.location.

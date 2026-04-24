@@ -23,40 +23,32 @@ const eslintConfig = [
       "no-undef": "error", // catches prodError, requireAuth, etc. used without import
     },
   },
-  // ─── Architecture layer enforcement (warn-only until src/ migration is done) ───
+  // ─── Architecture layer enforcement ───────────────────────────────────────
   // These zones encode the import rules from docs/architecture.md:
   //   components/ui  → no server, no features
+  //   src/client/**  → no server
   //   features       → no server
   //   domain         → no server, no components, no features, no React/Next/Prisma
   {
     plugins: { import: importPlugin },
     rules: {
       "import/no-restricted-paths": [
-        "warn",
+        "error",
         {
           zones: [
             // UI primitives must stay pure — no server-side or feature code
             {
               target: ["./components/**", "./src/components/**"],
-              from: [
-                "./lib/security.ts",
-                "./lib/requireAuth.ts",
-                "./lib/requireCoachAuth.ts",
-                "./lib/coachAuth.ts",
-                "./lib/loginAttempts.ts",
-                "./lib/adminSlugCheck.ts",
-                "./lib/prisma.ts",
-                "./lib/repository.prisma.ts",
-                "./lib/stats.prisma.ts",
-                "./lib/email.ts",
-                "./lib/boxscore-scraper.ts",
-                "./lib/csp.ts",
-                // future paths
-                "./src/server/**",
-                "./src/features/**",
-              ],
+              from: ["./src/server/**", "./src/features/**"],
               message:
                 "components/ui must not import from server or feature layers.",
+            },
+            // Client components must not reach into server layer
+            {
+              target: ["./src/client/**"],
+              from: ["./src/server/**"],
+              message:
+                "src/client/* must not import from src/server/*. Use an API route instead.",
             },
             // Feature components must not reach into server layer
             {

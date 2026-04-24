@@ -1,4 +1,4 @@
-import { fmtDate } from "../../../lib/utils";
+import { fmtDate } from "@/domain/shared/format";
 
 export function getCountdownInfo(isoStr: string): { label: string; tier: "today" | "week" | "future" } {
   const now = new Date();

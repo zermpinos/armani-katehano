@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { generateNonce, buildCsp } from "./lib/csp";
+import { generateNonce, buildCsp } from "@/server/security";
 
 export function middleware(request: NextRequest) {
   const nonce = generateNonce();
