@@ -12,6 +12,19 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
+  "browserslist": {
+    "production": [
+      "chrome >= 96",
+      "firefox >= 94",
+      "safari >= 15.4",
+      "edge >= 96"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
   "prisma": {
     "seed": "node prisma/seed.js"
   },
