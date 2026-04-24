@@ -29,7 +29,7 @@ export const C: ColorTokens = {
   redText:   "#e05555",
   text:      "#f0ede8",
   textSub:   "#a8a8ac",
-  textDim:   "#5a5a5e",
+  textDim:   "#919196",
   gold:      "#c9a84c",
   silver:    "#9ba3af",
   bronze:    "#b87333",

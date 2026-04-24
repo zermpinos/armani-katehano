@@ -1,4 +1,5 @@
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { StatTile, SectionHeading } from "@/components/ui";
 import { getAllPublicData, getUpcomingGamesWithAnnouncements } from "@/server/db/repositories";
@@ -8,12 +9,25 @@ import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { PlayerDetail } from "@/client/players/PlayerDetail";
 import { ConfirmToast } from "@/client/home/confirm-toast";
 import { SubscribeForm } from "@/client/home/subscribe-form";
-import { ScoringTrendModal } from "@/client/home/scoring-trend-modal";
-import { UpcomingGamesSection } from "@/client/home/upcoming-games-section";
-import { ScoringTrendChart } from "@/client/home/scoring-trend-chart";
 import { RecentResultsCard } from "@/client/home/recent-results-card";
-import { TopScorersChart } from "@/client/home/top-scorers-chart";
 import { EfficiencyLeaderCard } from "@/client/home/efficiency-leader-card";
+
+const UpcomingGamesSection = dynamic(
+  () => import("@/client/home/upcoming-games-section").then(m => ({ default: m.UpcomingGamesSection })),
+  { ssr: false }
+);
+const ScoringTrendChart = dynamic(
+  () => import("@/client/home/scoring-trend-chart").then(m => ({ default: m.ScoringTrendChart })),
+  { ssr: false }
+);
+const TopScorersChart = dynamic(
+  () => import("@/client/home/top-scorers-chart").then(m => ({ default: m.TopScorersChart })),
+  { ssr: false }
+);
+const ScoringTrendModal = dynamic(
+  () => import("@/client/home/scoring-trend-modal").then(m => ({ default: m.ScoringTrendModal })),
+  { ssr: false }
+);
 
 export default function HomePage({ players, games, stats, upcomingGames, currentSeason }: any) {
   const [trendRange, setTrendRange] = useState(10);
