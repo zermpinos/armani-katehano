@@ -191,6 +191,7 @@ model UpcomingGame {
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
   announcement   GameRosterAnnouncement?
+  importJobs     GameImportJob[]
 
   @@index([scheduledFor])
 }
@@ -232,4 +233,20 @@ model Setting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model GameImportJob {
+  id             String       @id @default(cuid())
+  upcomingGameId String
+  status         String       @default("PENDING")
+  gameId         String?
+  triggeredBy    String       @default("manual")
+  errorMessage   String?
+  attempts       Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  upcomingGame   UpcomingGame @relation(fields: [upcomingGameId], references: [id], onDelete: Cascade)
+
+  @@index([upcomingGameId])
+  @@index([status])
 }
