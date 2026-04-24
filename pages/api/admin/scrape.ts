@@ -8,10 +8,10 @@
  */
 
 import dns                               from 'dns';
-import { requireAuth }                   from '../../../lib/requireAuth';
-import { scrapeGame }                    from '../../../lib/boxscore-scraper';
+import { requireAuth }                   from '@/server/auth';
+import { scrapeGame }                    from '@/server/integrations/scraper/boxscore';
 import { ScrapedGameSchema, ScrapeSchema } from '@/schemas';
-import { prodError }                     from '../../../lib/utils';
+import { prodError }                     from '@/domain/shared/format';
 
 // ─── SSRF guard ───────────────────────────────────────────────────────────────
 

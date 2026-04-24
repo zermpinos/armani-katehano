@@ -1,4 +1,4 @@
-import { fmtDate } from "../../../lib/utils";
+import { fmtDate } from "@/domain/shared/format";
 import { ShowMoreButton } from "./show-more-button";
 
 export function RecentResultsCard({ recentGames }: { recentGames: any[] }) {

@@ -6,9 +6,9 @@
  * GET    /api/admin/schedule -> list all upcoming games (including past ones for admin)
  */
 
-import { requireAuth } from "../../../lib/requireAuth";
-import { auditLog, getClientIp } from "../../../lib/security";
-import prisma from "../../../lib/prisma";
+import { requireAuth } from "@/server/auth";
+import { auditLog, getClientIp } from "@/server/security";
+import prisma from "@/server/db/client";
 import { ScheduleWriteSchema, ScheduleUpdateSchema, ScheduleDeleteSchema } from "@/schemas/schedule";
 import { handleError }  from "@/server/http/handle-error";
 import { parseBody }    from "@/server/http/parse-body";

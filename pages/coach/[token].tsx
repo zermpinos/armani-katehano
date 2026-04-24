@@ -11,7 +11,7 @@
 import React from "react";
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
-import { fmtDate } from "../../lib/utils";
+import { fmtDate } from "@/domain/shared/format";
 import { Spinner, Btn } from "@/client/coach/primitives";
 import { LoginForm } from "@/client/coach/login-form";
 import { coachFetch } from "@/client/coach/csrf";
@@ -402,7 +402,7 @@ export default function CoachPage() {
 // ── Server-side: 404 if token doesn't match ───────────────────────────────────
 
 export async function getServerSideProps({ params }: any) {
-  const { isValidCoachToken } = await import("../../lib/coachAuth");
+  const { isValidCoachToken } = await import("@/server/auth");
   if (!isValidCoachToken(params.token ?? "")) {
     return { notFound: true };
   }

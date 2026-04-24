@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { getCountdownInfo, formatGameTime, downloadIcsFile, buildGoogleCalendarUrl } from "@/client/home/calendar-utils";
 import { GoogleCalIcon } from "@/client/home/google-cal-icon";
-import { getVenueUrl } from "../../../lib/venues";
+import { getVenueUrl } from "@/domain/shared/venues";
 
 export function UpcomingGameModal({ game, onClose }: any) {
   const { label, tier } = getCountdownInfo(game.scheduledFor);

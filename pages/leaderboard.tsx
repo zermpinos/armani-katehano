@@ -1,8 +1,8 @@
 import { useState } from "react";
 import Layout from "../components/Layout";
 import { SectionHeading } from "../components/ui";
-import { getAllPublicData, getAllSeasonsStats } from "../lib/data";
-import { buildAllTimeStatsMap } from "../lib/stats";
+import { getAllPublicData, getAllSeasonsStats } from "@/server/db/repositories";
+import { buildAllTimeStatsMap } from "@/domain/stats";
 import SeasonSelector from "../components/SeasonSelector";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { PlayerDetail } from "../components/PlayerDetail";

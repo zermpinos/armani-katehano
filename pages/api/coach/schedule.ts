@@ -3,9 +3,9 @@
  * GET /api/coach/schedule -> list upcoming games (read-only, coach-auth)
  */
 
-import { requireCoachAuth } from "../../../lib/requireCoachAuth";
-import prisma from "../../../lib/prisma";
-import { prodError } from "../../../lib/utils";
+import { requireCoachAuth } from "@/server/auth";
+import prisma from "@/server/db/client";
+import { prodError } from "@/domain/shared/format";
 
 async function handler(req: any, res: any) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });

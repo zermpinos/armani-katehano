@@ -10,10 +10,10 @@
  */
 
 import bcrypt from "bcryptjs";
-import { requireCoachAuth } from "../../../lib/requireCoachAuth";
-import { verifyCoachPassword, setCoachPasswordHash, incrementCoachSessionVersion, clearCoachSessionCookie } from "../../../lib/coachAuth";
-import { auditLog, getClientIp } from "../../../lib/security";
-import { prodError } from "../../../lib/utils";
+import { requireCoachAuth } from "@/server/auth";
+import { verifyCoachPassword, setCoachPasswordHash, incrementCoachSessionVersion, clearCoachSessionCookie } from "@/server/auth";
+import { auditLog, getClientIp } from "@/server/security";
+import { prodError } from "@/domain/shared/format";
 import { ChangePasswordSchema } from "@/schemas/coach";
 
 async function handler(req: any, res: any) {
