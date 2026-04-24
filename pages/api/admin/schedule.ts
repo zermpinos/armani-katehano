@@ -52,6 +52,11 @@ async function createSchedule(req: any, res: any) {
         sourceUrl: sourceUrl ?? null,
       },
     });
+    if (sourceUrl) {
+      await prisma.gameImportJob.create({
+        data: { upcomingGameId: game.id, sourceUrl, state: "PENDING" },
+      });
+    }
     auditLog("schedule_created", { ip, gameId: game.id, opponent });
     return res.status(201).json({ ok: true, id: game.id });
   } catch (err) {
@@ -78,6 +83,28 @@ async function updateSchedule(req: any, res: any) {
         sourceUrl: sourceUrl ?? null,
       },
     });
+
+    const newUrl = sourceUrl ?? null;
+    const existingJob = await prisma.gameImportJob.findUnique({ where: { upcomingGameId: id } });
+
+    if (!newUrl) {
+      // sourceUrl cleared — abandon any pending job
+      if (existingJob?.state === "PENDING") {
+        await prisma.gameImportJob.update({
+          where: { upcomingGameId: id },
+          data:  { state: "ABANDONED" },
+        });
+      }
+    } else if (!existingJob) {
+      await prisma.gameImportJob.create({ data: { upcomingGameId: id, sourceUrl: newUrl, state: "PENDING" } });
+    } else if (existingJob.sourceUrl !== newUrl && existingJob.state !== "IMPORTED") {
+      // sourceUrl changed and job hasn't already completed — reset it
+      await prisma.gameImportJob.update({
+        where: { upcomingGameId: id },
+        data:  { sourceUrl: newUrl, state: "PENDING", attempts: 0, lockedAt: null, lockedBy: null, lastError: null, lastErrorHtml: null },
+      });
+    }
+
     auditLog("schedule_updated", { ip, gameId: id, opponent });
     return res.status(200).json({ ok: true });
   } catch (err) {
