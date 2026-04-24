@@ -50,7 +50,7 @@ export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
     const year = now.getFullYear();
     const dateStr = `${day}-${month}-${year}`;
     const timeStr = "20:00";
-    setDraft({ opponent: "", date: dateStr, time: timeStr, location: "home", competition: "", notes: "" });
+    setDraft({ opponent: "", date: dateStr, time: timeStr, location: "home", competition: "", notes: "", sourceUrl: "" });
     setEditId("new");
   };
 
@@ -88,6 +88,7 @@ export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
         location:     draft.location,
         competition:  draft.competition || null,
         notes:        draft.notes || null,
+        sourceUrl:    draft.sourceUrl || null,
       }),
     });
     if (!res.ok) { const d = await res.json(); showToast(d.error, "error"); return; }
@@ -128,6 +129,9 @@ export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
         <F label="TIME" value={draft.time ?? ""} onChange={v => updGame("time", v)} placeholder="18:45" type="time" />
         <Sel label="HOME/AWAY" value={draft.location ?? "home"} onChange={v => updGame("location", v)} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
         <F label="COMPETITION" value={draft.competition ?? ""} onChange={v => updGame("competition", v)} placeholder="e.g. Super Winter Cup" />
+      </div>
+      <div className="mb-3">
+        <F label="SOURCE URL" value={draft.sourceUrl ?? ""} onChange={v => updGame("sourceUrl", v)} placeholder="https://basketcity.sportstats.gr/..." />
       </div>
       <div className="mb-3">
         <F label="NOTES" value={draft.notes ?? ""} onChange={v => updGame("notes", v)} placeholder="Optional notes" />
@@ -174,6 +178,7 @@ export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
                     <div className="text-[11px] text-ak-text-dim mt-0.5">
                       {fmtDate(g.scheduledFor)} at {fmtTime(g.scheduledFor)}
                       {g.competition && <> · {g.competition}</>}
+                      {g.sourceUrl && <span className="ml-1 text-ak-green font-bold" title={g.sourceUrl}>· URL ✓</span>}
                     </div>
                   </div>
                   <div className="flex gap-[6px]">

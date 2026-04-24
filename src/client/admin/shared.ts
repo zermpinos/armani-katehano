@@ -64,6 +64,7 @@ export interface ScheduledGame {
   location: "home" | "away";
   competition?: string | null;
   notes?: string | null;
+  sourceUrl?: string | null;
 }
 
 export interface SeasonLeague {

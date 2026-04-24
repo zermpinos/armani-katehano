@@ -27,6 +27,7 @@ async function listSchedule(_req: any, res: any) {
         location:     g.location,
         competition:  g.competition ?? null,
         notes:        g.notes ?? null,
+        sourceUrl:    (g as any).sourceUrl ?? null,
       })),
     });
   } catch (err) {
@@ -38,7 +39,7 @@ async function createSchedule(req: any, res: any) {
   const ip   = getClientIp(req);
   const data = parseBody(ScheduleWriteSchema, req.body, res);
   if (!data) return;
-  const { opponent, scheduledFor, location, competition, notes } = data;
+  const { opponent, scheduledFor, location, competition, notes, sourceUrl } = data;
 
   try {
     const game = await prisma.upcomingGame.create({
@@ -48,7 +49,8 @@ async function createSchedule(req: any, res: any) {
         location,
         competition: competition ?? null,
         notes: notes ?? null,
-      },
+        sourceUrl: sourceUrl ?? null,
+      } as any,
     });
     auditLog("schedule_created", { ip, gameId: game.id, opponent });
     return res.status(201).json({ ok: true, id: game.id });
@@ -62,7 +64,7 @@ async function updateSchedule(req: any, res: any) {
   const ip   = getClientIp(req);
   const data = parseBody(ScheduleUpdateSchema, req.body, res);
   if (!data) return;
-  const { id, opponent, scheduledFor, location, competition, notes } = data;
+  const { id, opponent, scheduledFor, location, competition, notes, sourceUrl } = data;
 
   try {
     await prisma.upcomingGame.update({
@@ -73,7 +75,8 @@ async function updateSchedule(req: any, res: any) {
         location,
         competition: competition ?? null,
         notes: notes ?? null,
-      },
+        sourceUrl: sourceUrl ?? null,
+      } as any,
     });
     auditLog("schedule_updated", { ip, gameId: id, opponent });
     return res.status(200).json({ ok: true });
