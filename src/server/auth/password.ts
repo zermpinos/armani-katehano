@@ -34,9 +34,6 @@ export async function verifyCredentials(username: string, plaintext: string): Pr
   return verifyPassword(plaintext);
 }
 
-/** @deprecated Use verifyPassword() */
-export const safePasswordCompare = verifyPassword;
-
 export type AdminUser = { username: string; passwordHash: string; totpSecret?: string };
 
 export function getAdminUser(username: string): AdminUser | null {

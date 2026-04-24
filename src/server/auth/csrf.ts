@@ -13,9 +13,6 @@ export function csrfCheck(req: any, { strict = false } = {}) {
   return !strict;
 }
 
-/** @deprecated Use csrfCheck() */
-export const checkCsrf = (req: any) => csrfCheck(req, { strict: true });
-
 export function generateCsrfToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
