@@ -7,9 +7,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout, BoxScoreTable, F, Sel, Btn, Spinner, LoginForm, byJersey, useAdminAuth, apiFetch } from "@/client/admin";
-import type { Player, SeasonLeague, BoxScoreRow } from "@/client/admin";
+import type { Player, SeasonLeague, BoxScoreRow, ScheduledGame } from "@/client/admin";
 import { validateAdminSlug } from '@/server/auth';
 import { parseGreekDate, parseMinutes, detectLeagueSlug } from '@/domain/calendar/greek-date';
+import { fmtDate } from "@/domain/shared/format";
 
 type ImportDraft = {
   date: string;
@@ -31,6 +32,7 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
 
   const [players,       setPlayers]       = useState<Player[]>([]);
   const [seasonLeagues, setSeasonLeagues] = useState<SeasonLeague[]>([]);
+  const [schedule,      setSchedule]      = useState<ScheduledGame[]>([]);
   const [dataLoading,   setDataLoading]   = useState(false);
   const [toast, setToast] = useState<{ msg: string; type?: string } | null>(null);
 
@@ -49,12 +51,14 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
   const loadBase = async () => {
     setDataLoading(true);
     try {
-      const [pRes, slRes] = await Promise.all([
+      const [pRes, slRes, schRes] = await Promise.all([
         fetch("/api/admin/players"),
         fetch("/api/admin/season-leagues"),
+        fetch("/api/admin/schedule"),
       ]);
-      if (pRes.ok)  { const d = await pRes.json();  setPlayers(d.players ?? []); }
-      if (slRes.ok) { const d = await slRes.json(); setSeasonLeagues(d.seasonLeagues ?? []); }
+      if (pRes.ok)   { const d = await pRes.json();   setPlayers(d.players ?? []); }
+      if (slRes.ok)  { const d = await slRes.json();  setSeasonLeagues(d.seasonLeagues ?? []); }
+      if (schRes.ok) { const d = await schRes.json(); setSchedule(d.schedule ?? []); }
     } finally { setDataLoading(false); }
   };
 
@@ -267,6 +271,33 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
 
         {!dataLoading && phase === "idle" && (
           <div className="flex flex-col gap-[14px]">
+            {(() => {
+              const now = new Date();
+              const candidates = schedule
+                .filter(g => g.sourceUrl && new Date(g.scheduledFor) <= now)
+                .sort((a, b) => new Date(b.scheduledFor).getTime() - new Date(a.scheduledFor).getTime());
+              if (!candidates.length) return null;
+              return (
+                <div>
+                  <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[6px] uppercase">Quick import</div>
+                  <div className="flex flex-col gap-[4px]">
+                    {candidates.map(g => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        disabled={fetching}
+                        onClick={() => setGameUrl(g.sourceUrl!)}
+                        className="w-full text-left py-[8px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 hover:border-ak-border2 text-[12px] text-ak-text disabled:opacity-50 transition-colors"
+                      >
+                        <span className="font-black">{g.location === "home" ? "vs" : "@"} {g.opponent}</span>
+                        <span className="text-ak-text-dim ml-2">{fmtDate(g.scheduledFor)}{g.competition ? ` · ${g.competition}` : ""}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             <div>
               <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[6px] uppercase">Game URL</div>
               <input
