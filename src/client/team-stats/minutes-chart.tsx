@@ -1,5 +1,5 @@
-import { C, chartTooltipStyle } from "../../../lib/theme";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "../../../components/Charts";
+import { C, chartTooltipStyle } from "@/theme/tokens";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "@/components/Charts";
 import { fmtMinutes } from "@/domain/shared/format";
 
 export function MinutesChart({ minutesDist }: { minutesDist: { name: string; mpg: number; highlight?: boolean }[] }) {

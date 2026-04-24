@@ -1,11 +1,11 @@
 import { useState } from "react";
-import Layout from "../components/Layout";
-import { SectionHeading } from "../components/ui";
+import Layout from "@/components/ui/Layout";
+import { SectionHeading } from "@/components/ui";
 import { getAllPublicData, getAllSeasonsStats } from "@/server/db/repositories";
 import { buildAllTimeStatsMap } from "@/domain/stats";
-import SeasonSelector from "../components/SeasonSelector";
-import ErrorBoundary from "../components/ErrorBoundary";
-import { PlayerDetail } from "../components/PlayerDetail";
+import SeasonSelector from "@/components/ui/SeasonSelector";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { PlayerDetail } from "@/client/players/PlayerDetail";
 import { LeaderboardTable, COLS, TOTAL_COLS } from "@/client/leaderboard/leaderboard-table";
 
 export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }: any) {

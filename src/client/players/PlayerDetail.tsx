@@ -1,8 +1,8 @@
 import { useState } from "react";
 import Image from "next/image";
-import { C, chartTooltipStyle } from "../lib/theme";
+import { C, chartTooltipStyle } from "@/theme/tokens";
 import { fmtMinutes } from "@/domain/shared/format";
-import { LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "./Charts";
+import { LineChart, Line, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "@/components/Charts";
 
 const playerImg = (player: any) => player.photoUrl || null;
 
