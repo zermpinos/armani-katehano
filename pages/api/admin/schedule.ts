@@ -27,7 +27,7 @@ async function listSchedule(_req: any, res: any) {
         location:     g.location,
         competition:  g.competition ?? null,
         notes:        g.notes ?? null,
-        sourceUrl:    (g as any).sourceUrl ?? null,
+        sourceUrl:    g.sourceUrl ?? null,
       })),
     });
   } catch (err) {
@@ -50,7 +50,7 @@ async function createSchedule(req: any, res: any) {
         competition: competition ?? null,
         notes: notes ?? null,
         sourceUrl: sourceUrl ?? null,
-      } as any,
+      },
     });
     auditLog("schedule_created", { ip, gameId: game.id, opponent });
     return res.status(201).json({ ok: true, id: game.id });
@@ -76,7 +76,7 @@ async function updateSchedule(req: any, res: any) {
         competition: competition ?? null,
         notes: notes ?? null,
         sourceUrl: sourceUrl ?? null,
-      } as any,
+      },
     });
     auditLog("schedule_updated", { ip, gameId: id, opponent });
     return res.status(200).json({ ok: true });
