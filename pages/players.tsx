@@ -1,12 +1,12 @@
 import { useState } from "react";
 import Image from "next/image";
-import Layout from "../components/Layout";
-import { SectionHeading } from "../components/ui";
+import Layout from "@/components/ui/Layout";
+import { SectionHeading } from "@/components/ui";
 import { getAllPublicData, getAllSeasonsStats } from "@/server/db/repositories";
 import { buildAllTimeStatsMap } from "@/domain/stats";
 import { fmt } from "@/domain/players/format";
-import SeasonSelector from "../components/SeasonSelector";
-import { PlayerDetail } from "../components/PlayerDetail";
+import SeasonSelector from "@/components/ui/SeasonSelector";
+import { PlayerDetail } from "@/client/players/PlayerDetail";
 
 const playerImg = (player: any) => player.photoUrl || null;
 

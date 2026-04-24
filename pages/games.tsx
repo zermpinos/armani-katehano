@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
-import Layout from "../components/Layout";
-import { SectionHeading } from "../components/ui";
-import SeasonSelector from "../components/SeasonSelector";
+import Layout from "@/components/ui/Layout";
+import { SectionHeading } from "@/components/ui";
+import SeasonSelector from "@/components/ui/SeasonSelector";
 import { getAllGames, getPlayers, getSeasons, getConfig, getAllUpcomingGames, getAllSeasonsStats } from "@/server/db/repositories";
 import { buildAllTimeStatsMap } from "@/domain/stats";
-import ErrorBoundary from "../components/ErrorBoundary";
-import { PlayerDetail } from "../components/PlayerDetail";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { PlayerDetail } from "@/client/players/PlayerDetail";
 import { BoxScore } from "@/client/games/box-score";
 import { UpcomingGameModal } from "@/client/games/upcoming-game-modal";
 import { LeagueFilter } from "@/client/games/league-filter";
