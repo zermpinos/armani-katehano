@@ -2,7 +2,7 @@ import { getCountdownInfo, formatGameTime, downloadIcsFile, buildGoogleCalendarU
 import { GoogleCalIcon } from "./google-cal-icon";
 import { RosterPanel } from "./roster-panel";
 import { ShowMoreButton } from "./show-more-button";
-import { getVenueUrl } from "../../../lib/venues";
+import { getVenueUrl } from "@/domain/shared/venues";
 
 interface Props {
   upcomingGames: any[];

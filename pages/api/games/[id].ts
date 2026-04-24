@@ -5,8 +5,8 @@
  */
 
 import { z }           from "zod";
-import { getBoxScore } from "../../../lib/data";
-import { prodError }   from "../../../lib/utils";
+import { getBoxScore } from "@/server/db/repositories";
+import { prodError }   from "@/domain/shared/format";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "GET") return res.status(405).end();

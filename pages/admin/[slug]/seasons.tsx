@@ -5,8 +5,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, F, Sel, Btn, Spinner, LoginForm, useAdminAuth, apiFetch } from "../../../lib/adminShared";
-import { validateAdminSlug } from '../../../lib/adminSlugCheck';
+import { AdminLayout, F, Sel, Btn, Spinner, LoginForm, useAdminAuth, apiFetch } from "@/client/admin";
+import { validateAdminSlug } from '@/server/auth';
 
 export default function SeasonsPage({ validSlug }: any) {
   const router = useRouter();

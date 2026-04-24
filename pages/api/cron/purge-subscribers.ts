@@ -8,8 +8,8 @@
  * Auth: Vercel sends Authorization: Bearer <CRON_SECRET> automatically.
  */
 
-import prisma from "../../../lib/prisma";
-import { securityHeaders, auditLog } from "../../../lib/security";
+import prisma from "@/server/db/client";
+import { securityHeaders, auditLog } from "@/server/security";
 
 const UNCONFIRMED_TTL     = 86_400;         // 1 day in seconds
 const CONFIRMED_RETENTION = 365 * 86_400;   // 1 year in seconds

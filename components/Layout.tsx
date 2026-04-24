@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { SITE_NAME, CURRENT_SEASON, COPYRIGHT_YEAR } from "../lib/constants";
+import { SITE_NAME, CURRENT_SEASON, COPYRIGHT_YEAR } from "@/domain/shared/constants";
 
 const NAV_LINKS = [
   { href: "/",            label: "Home"       },

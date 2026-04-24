@@ -6,11 +6,12 @@
  */
 
 import { randomBytes } from "crypto";
-import prisma from "../../lib/prisma";
-import { prodError } from "../../lib/utils";
-import { securityHeaders, getClientIp, csrfCheck, auditLog } from "../../lib/security";
-import { rlKey } from "../../lib/loginAttempts";
-import { sendConfirmationEmail } from "../../lib/email";
+import prisma from "@/server/db/client";
+import { prodError } from "@/domain/shared/format";
+import { csrfCheck } from "@/server/auth";
+import { securityHeaders, getClientIp, auditLog } from "@/server/security";
+import { rlKey } from "@/server/auth";
+import { sendConfirmationEmail } from "@/server/integrations/email/client";
 import { SubscribeSchema, UnsubscribeSchema } from "@/schemas/subscriber";
 
 const SUBSCRIBE_LIMIT        = 3;       // max attempts per IP per hour

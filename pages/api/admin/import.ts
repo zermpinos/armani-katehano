@@ -9,14 +9,14 @@
 
 import prisma                    from "@/server/db/client";
 import { recalcAggregates }     from "@/server/services/stats-recalc";
-import { prodError }            from "../../../lib/utils";
-import { requireAuth }          from '../../../lib/requireAuth';
-import { BoxScoreRowSchema }    from "../../../lib/validators";
+import { prodError }            from "@/domain/shared/format";
+import { requireAuth }          from '@/server/auth';
+import { BoxScoreRowSchema }    from "@/schemas/box-score";
 import {
   parseGreekDate,
   detectLeagueSlug,
   parseMinutes,
-} from '../../../lib/greekDate';
+} from '@/domain/calendar/greek-date';
 
 // Single source of truth for team name matching
 const AK_IDENTIFIERS = ["ARMANI", "KATEHANO"];

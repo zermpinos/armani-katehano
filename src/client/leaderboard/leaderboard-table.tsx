@@ -1,4 +1,5 @@
-import { fmt, fmtMinutes } from "../../../lib/utils";
+import { fmt } from "@/domain/players/format";
+import { fmtMinutes } from "@/domain/shared/format";
 
 export const MEDALS = [
   { label: "🥇", textCls: "text-ak-gold",   rowBgCls: "bg-[#c9a84c18]", borderCls: "border-[#c9a84c45]", numBgCls: "bg-[#c9a84c30]", numBorderCls: "border-[#c9a84c55]" },

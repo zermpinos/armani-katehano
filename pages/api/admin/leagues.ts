@@ -3,10 +3,11 @@
  * POST /api/admin/leagues -> create a new league and optionally link to a season
  */
 
-import { requireAuth }               from '../../../lib/requireAuth';
-import { auditLog, getClientIp }     from "../../../lib/security";
-import prisma                        from "../../../lib/prisma";
-import { slugify, prodError }        from "../../../lib/utils";
+import { requireAuth }               from '@/server/auth';
+import { auditLog, getClientIp }     from "@/server/security";
+import prisma                        from "@/server/db/client";
+import { slugify } from "@/domain/players/format";
+import { prodError } from "@/domain/shared/format";
 import { LeagueCreateSchema }        from "@/schemas/league";
 
 async function handler(req: any, res: any) {

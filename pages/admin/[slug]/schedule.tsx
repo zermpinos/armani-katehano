@@ -5,9 +5,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, Confirm, useAdminAuth, apiFetch } from "../../../lib/adminShared";
-import { validateAdminSlug } from '../../../lib/adminSlugCheck';
-import { fmtDate } from "../../../lib/utils";
+import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, Confirm, useAdminAuth, apiFetch } from "@/client/admin";
+import { validateAdminSlug } from '@/server/auth';
+import { fmtDate } from "@/domain/shared/format";
 
 export default function SchedulePage({ validSlug }: any) {
   const router = useRouter();

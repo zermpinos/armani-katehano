@@ -18,7 +18,7 @@
  * header management is needed for the cron invocation.
  */
 
-import prisma from "../../../lib/prisma";
+import prisma from "@/server/db/client";
 import crypto from "crypto";
 
 

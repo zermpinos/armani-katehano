@@ -1,5 +1,6 @@
 import { memo, useMemo, useEffect } from "react";
-import { fmt, fmtMinutes } from "../../../lib/utils";
+import { fmt } from "@/domain/players/format";
+import { fmtMinutes } from "@/domain/shared/format";
 
 const BOX_COLS = [
   { key: "min", label: "MIN" },
