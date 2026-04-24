@@ -3,9 +3,9 @@
  * GET /api/admin/subscribers → count + email list (admin-auth protected)
  */
 
-import { requireAuth } from "../../../lib/requireAuth";
-import prisma from "../../../lib/prisma";
-import { prodError } from "../../../lib/utils";
+import { requireAuth } from "@/server/auth";
+import prisma from "@/server/db/client";
+import { prodError } from "@/domain/shared/format";
 
 async function handler(req: any, res: any) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });

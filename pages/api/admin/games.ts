@@ -8,12 +8,12 @@
 
 import { z }                              from "zod";
 import { GameWriteSchema, GameUpdateSchema, GameDeleteSchema } from "@/schemas/game";
-import { requireAuth }                    from "../../../lib/requireAuth";
-import { auditLog, getClientIp }          from "../../../lib/security";
-import prisma                             from "../../../lib/prisma";
+import { requireAuth }                    from "@/server/auth";
+import { auditLog, getClientIp }          from "@/server/security";
+import prisma                             from "@/server/db/client";
 import { recalcAggregates }               from "@/server/services/stats-recalc";
-import { MAX_GAMES_PER_PAGE }             from "../../../lib/utils";
-import { calcEff }                        from "../../../lib/stats";
+import { MAX_GAMES_PER_PAGE }             from "@/domain/shared/constants";
+import { calcEff }                        from "@/domain/stats";
 import { handleError }                    from "@/server/http/handle-error";
 import { parseBody }                      from "@/server/http/parse-body";
 import { methodRouter }                   from "@/server/http/method-router";

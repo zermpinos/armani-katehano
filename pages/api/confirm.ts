@@ -4,8 +4,8 @@
  * GET ?token=<hex>  → confirm a pending subscription (double opt-in)
  */
 
-import prisma from "../../lib/prisma";
-import { securityHeaders, auditLog } from "../../lib/security";
+import prisma from "@/server/db/client";
+import { securityHeaders, auditLog } from "@/server/security";
 import { TokenSchema } from "@/schemas/subscriber";
 
 const CONFIRM_TTL_MS = 86_400_000; // 1 day

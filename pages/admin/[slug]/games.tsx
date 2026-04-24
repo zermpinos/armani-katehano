@@ -5,8 +5,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, Spinner, LoginForm, BoxScoreTable, F, Sel, Btn, Confirm, useAdminAuth, byJersey, apiFetch } from "../../../lib/adminShared";
-import { validateAdminSlug } from '../../../lib/adminSlugCheck';
+import { AdminLayout, Spinner, LoginForm, BoxScoreTable, F, Sel, Btn, Confirm, useAdminAuth, byJersey, apiFetch } from "@/client/admin";
+import { validateAdminSlug } from '@/server/auth';
 
 export default function GamesPage({ validSlug }: any) {
   // A-02 fix: derive slug from the Next.js router, not window.location.

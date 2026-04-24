@@ -10,8 +10,9 @@
  */
 
 import * as Sentry from "@sentry/nextjs";
-import { isLockedOut, recordAttempt, clearAttempts, getFailureCount } from "../../../lib/loginAttempts";
-import { securityHeaders, auditLog, csrfCheck, getClientIp, CAPTCHA_THRESHOLD, verifyCaptcha, generateCsrfToken, buildCsrfCookie, clearCsrfCookie } from "../../../lib/security";
+import { isLockedOut, recordAttempt, clearAttempts, getFailureCount } from "@/server/auth";
+import { csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha, generateCsrfToken, buildCsrfCookie, clearCsrfCookie } from "@/server/auth";
+import { securityHeaders, auditLog, getClientIp } from "@/server/security";
 import {
   getCoachSessionToken,
   verifyCoachSession,
@@ -20,7 +21,7 @@ import {
   buildCoachSessionCookie,
   clearCoachSessionCookie,
   COACH_SESSION_TTL_S,
-} from "../../../lib/coachAuth";
+} from "@/server/auth";
 
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));

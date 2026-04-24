@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getCountdownInfo } from "@/client/home/calendar-utils";
-import { fmt } from "../../../lib/utils";
+import { fmt } from "@/domain/players/format";
 
 const PAGE_SIZE = 10;
 

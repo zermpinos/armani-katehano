@@ -8,12 +8,12 @@
  * Protected by coach session (requireCoachAuth).
  */
 
-import { requireCoachAuth } from "../../../lib/requireCoachAuth";
-import { auditLog, getClientIp } from "../../../lib/security";
-import { rlKey } from "../../../lib/loginAttempts";
-import prisma from "../../../lib/prisma";
-import { prodError } from "../../../lib/utils";
-import { sendRosterAnnouncement } from "../../../lib/email";
+import { requireCoachAuth } from "@/server/auth";
+import { auditLog, getClientIp } from "@/server/security";
+import { rlKey } from "@/server/auth";
+import prisma from "@/server/db/client";
+import { prodError } from "@/domain/shared/format";
+import { sendRosterAnnouncement } from "@/server/integrations/email/client";
 import { CoachAnnouncementWriteSchema, AnnouncementDeleteSchema } from "@/schemas/roster-announcement";
 
 const BLAST_LIMIT  = 10;   // max email blasts per IP per hour

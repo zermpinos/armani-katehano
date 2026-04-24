@@ -1,4 +1,5 @@
-import { fmt, fmtMinutes } from "../../../lib/utils";
+import { fmt } from "@/domain/players/format";
+import { fmtMinutes } from "@/domain/shared/format";
 import { ShowMoreButton } from "./show-more-button";
 
 export function EfficiencyLeaderCard({ mvp }: { mvp: any }) {

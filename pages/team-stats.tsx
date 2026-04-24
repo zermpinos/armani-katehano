@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
 import Layout from "../components/Layout";
 import { SectionHeading, StatTile } from "../components/ui";
-import { getAllPublicData } from "../lib/data";
-import { computeRecord, computeTeamAverages } from "../lib/stats";
-import { fmt } from "../lib/utils";
+import { getAllPublicData } from "@/server/db/repositories";
+import { computeRecord } from "@/domain/games/score";
+import { computeTeamAverages } from "@/domain/stats";
+import { fmt } from "@/domain/players/format";
 import SeasonSelector from "../components/SeasonSelector";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { RecordBreakdown } from "@/client/team-stats/record-breakdown";
