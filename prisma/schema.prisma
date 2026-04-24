@@ -80,6 +80,7 @@ model Game {
   defRating      Float?
   seasonLeague   SeasonLeague     @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
   playerStats    PlayerGameStat[]
+  importJob      GameImportJob?
 
   @@index([playedOn])
 }
@@ -235,18 +236,33 @@ model Setting {
   updatedAt DateTime @updatedAt
 }
 
-model GameImportJob {
-  id             String       @id @default(cuid())
-  upcomingGameId String
-  status         String       @default("PENDING")
-  gameId         String?
-  triggeredBy    String       @default("manual")
-  errorMessage   String?
-  attempts       Int          @default(0)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  upcomingGame   UpcomingGame @relation(fields: [upcomingGameId], references: [id], onDelete: Cascade)
+enum ImportJobState {
+  PENDING
+  IMPORTED
+  ERROR
+  ABANDONED
+}
 
-  @@index([upcomingGameId])
-  @@index([status])
+model GameImportJob {
+  id             String         @id @default(cuid())
+  upcomingGameId String         @unique
+  sourceUrl      String?
+  state          ImportJobState @default(PENDING)
+  attempts       Int            @default(0)
+  lastAttemptAt  DateTime?
+  lockedAt       DateTime?
+  lockedBy       String?
+  importedGameId String?        @unique
+  importedAt     DateTime?
+  lastError      String?
+  lastErrorHtml  String?
+  warningSentAt  DateTime?
+  successSentAt  DateTime?
+  failureSentAt  DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  upcomingGame   UpcomingGame   @relation(fields: [upcomingGameId], references: [id], onDelete: Cascade)
+  importedGame   Game?          @relation(fields: [importedGameId], references: [id], onDelete: SetNull)
+
+  @@index([state])
 }
