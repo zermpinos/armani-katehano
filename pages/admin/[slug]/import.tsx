@@ -7,18 +7,30 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout, BoxScoreTable, F, Sel, Btn, Spinner, LoginForm, byJersey, useAdminAuth, apiFetch } from "@/client/admin";
+import type { Player, SeasonLeague, BoxScoreRow } from "@/client/admin";
 import { validateAdminSlug } from '@/server/auth';
 import { parseGreekDate, parseMinutes, detectLeagueSlug } from '@/domain/calendar/greek-date';
 
+type ImportDraft = {
+  date: string;
+  opponent: string;
+  home: boolean;
+  result: "W" | "L" | "T";
+  teamScore: number;
+  opponentScore: number;
+  seasonLeagueId: string;
+  sourceUrl: string | null;
+  boxScore: BoxScoreRow[];
+};
 
-export default function ImportPage({ validSlug }: any) {
+export default function ImportPage({ validSlug }: { validSlug: boolean }) {
   const router = useRouter();
   const slug = router.query.slug || validSlug;
 
   const { authed, loading: checking, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
 
-  const [players,       setPlayers]       = useState<any[]>([]);
-  const [seasonLeagues, setSeasonLeagues] = useState<any[]>([]);
+  const [players,       setPlayers]       = useState<Player[]>([]);
+  const [seasonLeagues, setSeasonLeagues] = useState<SeasonLeague[]>([]);
   const [dataLoading,   setDataLoading]   = useState(false);
   const [toast, setToast] = useState<{ msg: string; type?: string } | null>(null);
 
@@ -26,12 +38,12 @@ export default function ImportPage({ validSlug }: any) {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [fetching,   setFetching]   = useState(false);
   const [phase,      setPhase]      = useState("idle");
-  const [draft, setDraft] = useState<any>(null);
-  const [highlights, setHighlights] = useState({});
-  const [warnings,   setWarnings]   = useState<any[]>([]);
+  const [draft, setDraft] = useState<ImportDraft | null>(null);
+  const [highlights, setHighlights] = useState<Record<string, boolean>>({});
+  const [warnings,   setWarnings]   = useState<string[]>([]);
   const [error,      setError]      = useState("");
 
-  const showToast = (msg: any, type = "success") => setToast({ msg, type });
+  const showToast = (msg: string, type = "success") => setToast({ msg, type });
 
   const loadBase = async () => {
     setDataLoading(true);
@@ -48,10 +60,14 @@ export default function ImportPage({ validSlug }: any) {
   useEffect(() => { if (authed) loadBase(); }, [authed]);
 
   // ── buildDraft -- maps scraper JSON to the review UI ──────────────────────
-  const buildDraft = (data: any) => {
-    const { game, teams, url: sourceUrl } = data;
+  const buildDraft = (data: Record<string, unknown>) => {
+    const { game, teams, url: sourceUrl } = data as {
+      game: { homeTeam: string; awayTeam: string; date: string; finalScore: { home: number; away: number } };
+      teams: { name: string; players: Record<string, unknown>[] }[];
+      url: string;
+    };
 
-    const akTeam = teams.find((t: any) =>
+    const akTeam = teams.find(t =>
       t.name.toUpperCase().includes("ARMANI") ||
       t.name.toUpperCase().includes("KATEHANO")
     );
@@ -62,7 +78,7 @@ export default function ImportPage({ validSlug }: any) {
     const akScore     = isHome ? game.finalScore.home  : game.finalScore.away;
     const oppScore    = isHome ? game.finalScore.away  : game.finalScore.home;
     const oppTeamName = isHome ? game.awayTeam         : game.homeTeam;
-    const result      = akScore > oppScore ? "W" : akScore < oppScore ? "L" : "T";
+    const result      = akScore > oppScore ? "W" : akScore < oppScore ? "L" : "T" as const;
     const parsedDate  = parseGreekDate(game.date);
     const date        = parsedDate ? parsedDate.toISOString().slice(0, 10) : "";
     const leagueSlug  = detectLeagueSlug(sourceUrl);
@@ -70,9 +86,9 @@ export default function ImportPage({ validSlug }: any) {
     const matchedSL = seasonLeagues.find(sl => sl.leagueSlug === leagueSlug)
                    ?? seasonLeagues[0];
 
-    const boxScore = [...players].sort(byJersey).map(dbPlayer => {
-      const scraped = akTeam.players.find((p: any) => p["#"] === Number(dbPlayer.number));
-      const mins    = scraped ? parseMinutes(scraped.MIN) : 0;
+    const boxScore: BoxScoreRow[] = [...players].sort(byJersey).map(dbPlayer => {
+      const scraped = akTeam.players.find((p: Record<string, unknown>) => p["#"] === Number(dbPlayer.number));
+      const mins    = scraped ? parseMinutes(scraped.MIN as string) : 0;
 
       if (!scraped || mins === 0) {
         return {
@@ -83,47 +99,47 @@ export default function ImportPage({ validSlug }: any) {
         };
       }
 
-      const fg2m = scraped["2PTS"]?.made      ?? 0;
-      const fg2a = scraped["2PTS"]?.attempted ?? 0;
-      const fg3m = scraped["3PTS"]?.made      ?? 0;
-      const fg3a = scraped["3PTS"]?.attempted ?? 0;
+      const fg2m = (scraped["2PTS"] as { made?: number })?.made      ?? 0;
+      const fg2a = (scraped["2PTS"] as { attempted?: number })?.attempted ?? 0;
+      const fg3m = (scraped["3PTS"] as { made?: number })?.made      ?? 0;
+      const fg3a = (scraped["3PTS"] as { attempted?: number })?.attempted ?? 0;
 
       return {
         playerId: dbPlayer.id,
         minutes:  mins,
-        pts:  scraped.PTS  ?? 0,
-        reb:  scraped.REB  ?? 0,
-        orb:  scraped.OREB ?? 0,
-        drb:  scraped.DREB ?? 0,
-        ast:  scraped.AST  ?? 0,
-        stl:  scraped.STL  ?? 0,
-        blk:  scraped.BLK  ?? 0,
-        tov:  scraped.TO   ?? 0,
-        pf:   scraped.PF   ?? 0,
+        pts:  scraped.PTS  as number ?? 0,
+        reb:  scraped.REB  as number ?? 0,
+        orb:  scraped.OREB as number ?? 0,
+        drb:  scraped.DREB as number ?? 0,
+        ast:  scraped.AST  as number ?? 0,
+        stl:  scraped.STL  as number ?? 0,
+        blk:  scraped.BLK  as number ?? 0,
+        tov:  scraped.TO   as number ?? 0,
+        pf:   scraped.PF   as number ?? 0,
         fg2m, fg2a, fg3m, fg3a,
         fgm:  fg2m + fg3m,
         fga:  fg2a + fg3a,
-        ftm:  scraped.FT?.made      ?? 0,
-        fta:  scraped.FT?.attempted ?? 0,
-        eff:  scraped.EF  ?? 0,
+        ftm:  (scraped.FT as { made?: number })?.made      ?? 0,
+        fta:  (scraped.FT as { attempted?: number })?.attempted ?? 0,
+        eff:  scraped.EF   as number ?? 0,
       };
     });
 
     const hl: Record<string, boolean> = {};
-    akTeam.players.forEach((p: any) => {
-      if (parseMinutes(p.MIN) > 0) {
-        const dbPlayer = players.find((pl: any) => Number(pl.number) === p["#"]);
-        if (dbPlayer) hl[dbPlayer.id] = true;  // keyed by playerId
+    akTeam.players.forEach((p: Record<string, unknown>) => {
+      if (parseMinutes(p.MIN as string) > 0) {
+        const dbPlayer = players.find(pl => Number(pl.number) === p["#"]);
+        if (dbPlayer) hl[dbPlayer.id] = true;
       }
     });
 
     const warns: string[] = [];
-    akTeam.players.filter((p: any) => parseMinutes(p.MIN) > 0).forEach((p: any) => {
-      const fg2m = p["2PTS"]?.made ?? 0;
-      const fg3m = p["3PTS"]?.made ?? 0;
-      const ftm  = p.FT?.made ?? 0;
+    akTeam.players.filter((p: Record<string, unknown>) => parseMinutes(p.MIN as string) > 0).forEach((p: Record<string, unknown>) => {
+      const fg2m = (p["2PTS"] as { made?: number })?.made ?? 0;
+      const fg3m = (p["3PTS"] as { made?: number })?.made ?? 0;
+      const ftm  = (p.FT as { made?: number })?.made ?? 0;
       const expPts = fg2m * 2 + fg3m * 3 + ftm;
-      if ((p.PTS ?? 0) !== expPts)
+      if ((p.PTS as number ?? 0) !== expPts)
         warns.push(`#${p["#"]} ${p.Players}: pts=${p.PTS}, expected ${expPts}`);
     });
 
@@ -138,7 +154,7 @@ export default function ImportPage({ validSlug }: any) {
         seasonLeagueId: matchedSL?.id ?? "",
         sourceUrl:      sourceUrl ?? null,
         boxScore,
-      },
+      } satisfies ImportDraft,
       highlights: hl,
       warnings:   warns,
     };
@@ -161,20 +177,21 @@ export default function ImportPage({ validSlug }: any) {
       setDraft(draft); setHighlights(highlights); setWarnings(warnings);
       setPhase("review");
     } catch (err) {
-      setError((err as any).message);
+      setError((err as Error).message);
     } finally {
       setFetching(false);
     }
   };
 
-  const updDraft = (k: any, v: any) => setDraft((d: any) => ({ ...d, [k]: v }));
-  const updBox   = (playerId: any, k: any, v: any) => setDraft((d: any) => ({
-    ...d, boxScore: d.boxScore.map((r: any) => r.playerId === playerId ? { ...r, [k]: parseFloat(v) || 0 } : r)
-  }));
+  const updDraft = (k: string, v: unknown) => setDraft(d => d ? ({ ...d, [k]: v } as ImportDraft) : d);
+  const updBox   = (playerId: string, k: string, v: string) => setDraft(d => d ? ({
+    ...d, boxScore: d.boxScore.map(r => r.playerId === playerId ? { ...r, [k]: parseFloat(v) || 0 } : r)
+  } as ImportDraft) : d);
 
   const save = async () => {
+    if (!draft) return;
     setPhase("saving");
-    const boxScore = draft.boxScore.map((r: any) => {
+    const boxScore = draft.boxScore.map(r => {
       const fg2m = r.fg2m || 0, fg2a = r.fg2a || 0;
       const fg3m = r.fg3m || 0, fg3a = r.fg3a || 0;
       return {
@@ -303,13 +320,13 @@ export default function ImportPage({ validSlug }: any) {
             <div>
               <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Game info</div>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-[10px]">
-                <F label="DATE"       value={draft.date}          onChange={(v: any) => updDraft("date", v)}          placeholder="YYYY-MM-DD" />
-                <F label="OPPONENT"   value={draft.opponent}      onChange={(v: any) => updDraft("opponent", v)} />
-                <Sel label="LEAGUE"   value={draft.seasonLeagueId || ""} onChange={(v: any) => updDraft("seasonLeagueId", v)} options={leagueOptions} />
-                <Sel label="HOME/AWAY" value={draft.home ? "home" : "away"} onChange={(v: any) => updDraft("home", v === "home")} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
-                <Sel label="RESULT"   value={draft.result}        onChange={(v: any) => updDraft("result", v)}        options={[{ value: "W", label: "Win" }, { value: "L", label: "Loss" }, { value: "T", label: "Tie" }]} />
-                <F label="OUR SCORE"  value={draft.teamScore}     onChange={(v: any) => updDraft("teamScore", v)}     type="number" />
-                <F label="OPP SCORE"  value={draft.opponentScore} onChange={(v: any) => updDraft("opponentScore", v)} type="number" />
+                <F label="DATE"       value={draft.date}          onChange={v => updDraft("date", v)}          placeholder="YYYY-MM-DD" />
+                <F label="OPPONENT"   value={draft.opponent}      onChange={v => updDraft("opponent", v)} />
+                <Sel label="LEAGUE"   value={draft.seasonLeagueId || ""} onChange={v => updDraft("seasonLeagueId", v)} options={leagueOptions} />
+                <Sel label="HOME/AWAY" value={draft.home ? "home" : "away"} onChange={v => updDraft("home", v === "home")} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
+                <Sel label="RESULT"   value={draft.result}        onChange={v => updDraft("result", v)}        options={[{ value: "W", label: "Win" }, { value: "L", label: "Loss" }, { value: "T", label: "Tie" }]} />
+                <F label="OUR SCORE"  value={draft.teamScore}     onChange={v => updDraft("teamScore", v)}     type="number" />
+                <F label="OPP SCORE"  value={draft.opponentScore} onChange={v => updDraft("opponentScore", v)} type="number" />
               </div>
             </div>
 
@@ -342,7 +359,7 @@ export default function ImportPage({ validSlug }: any) {
   );
 }
 
-export async function getServerSideProps({ params }: any) {
+export async function getServerSideProps({ params }: { params: { slug: string } }) {
   if (!await validateAdminSlug(params.slug)) return { notFound: true };
   return { props: { validSlug: true } };
 }

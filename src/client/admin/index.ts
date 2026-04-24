@@ -1,5 +1,5 @@
 export { fmt }         from "@/domain/players/format";
-export { byJersey }    from "@/client/admin/shared";
+export *               from "@/client/admin/shared";
 export * from "@/client/admin/csrf";
 export * from "@/client/admin/use-admin-auth";
 export * from "@/client/admin/layout";

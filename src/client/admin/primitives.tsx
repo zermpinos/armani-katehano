@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 const BTN_VARIANT: Record<string, string> = {
   primary:   "bg-ak-red border-transparent text-ak-text",
   danger:    "bg-[#7f1d1d] border-transparent text-ak-text",
@@ -11,7 +13,7 @@ const BTN_SIZE: Record<string, string> = {
   md: "py-[9px] px-[18px] text-[13px]",
 };
 
-export function Btn({ onClick, disabled = false, children, variant = "primary", size = "md" }: { onClick?: any; disabled?: boolean; children: any; variant?: string; size?: string }) {
+export function Btn({ onClick, disabled = false, children, variant = "primary", size = "md" }: { onClick?: () => void; disabled?: boolean; children: ReactNode; variant?: string; size?: string }) {
   return (
     <button onClick={onClick} disabled={disabled} className={[
       "font-black tracking-[0.12em] rounded-lg border font-sans transition-opacity duration-150",
@@ -24,7 +26,7 @@ export function Btn({ onClick, disabled = false, children, variant = "primary", 
   );
 }
 
-export function F({ label, value, onChange, type = "text", placeholder = "" }: { label: any; value: any; onChange: any; type?: string; placeholder?: string }) {
+export function F({ label, value, onChange, type = "text", placeholder = "" }: { label: string; value: string | number; onChange: (v: string) => void; type?: string; placeholder?: string }) {
   return (
     <label className="block">
       <span className="block text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-1">{label}</span>
@@ -34,7 +36,7 @@ export function F({ label, value, onChange, type = "text", placeholder = "" }: {
   );
 }
 
-export function Sel({ label, value, onChange, options = [] }: { label: any; value: any; onChange: any; options?: Array<{ value: string; label: string }> }) {
+export function Sel({ label, value, onChange, options = [] }: { label: string; value: string; onChange: (v: string) => void; options?: Array<{ value: string; label: string }> }) {
   return (
     <label className="block">
       <span className="block text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-1">{label}</span>

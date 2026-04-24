@@ -6,24 +6,27 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, Confirm, useAdminAuth, apiFetch } from "@/client/admin";
+import type { ScheduledGame } from "@/client/admin";
 import { validateAdminSlug } from '@/server/auth';
 import { fmtDate } from "@/domain/shared/format";
 
-export default function SchedulePage({ validSlug }: any) {
+type ScheduleDraft = Partial<ScheduledGame> & { date?: string; time?: string };
+
+export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
   const router = useRouter();
   const slug = router.query.slug || validSlug;
 
   const { authed, loading: checking, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
 
-  const [schedule,  setSchedule]  = useState<any[]>([]);
+  const [schedule,  setSchedule]  = useState<ScheduledGame[]>([]);
   const [loading,   setLoading]   = useState(false);
   const [toast,     setToast]     = useState<{ msg: string; type?: string } | null>(null);
 
   const [editId, setEditId] = useState<string | null>(null);
-  const [draft,  setDraft]  = useState<Record<string, any>>({});
-  const [confirm, setConfirm] = useState<any>(null);
+  const [draft,  setDraft]  = useState<ScheduleDraft>({});
+  const [confirm, setConfirm] = useState<ScheduledGame | null>(null);
 
-  const showToast = (msg: any, type = "success") => setToast({ msg, type });
+  const showToast = (msg: string, type = "success") => setToast({ msg, type });
 
   const loadData = async () => {
     setLoading(true);
@@ -51,7 +54,7 @@ export default function SchedulePage({ validSlug }: any) {
     setEditId("new");
   };
 
-  const startEdit = (g: any) => {
+  const startEdit = (g: ScheduledGame) => {
     const iso = g.scheduledFor;
     const date = new Date(iso);
     const day = String(date.getDate()).padStart(2, "0");
@@ -64,7 +67,7 @@ export default function SchedulePage({ validSlug }: any) {
   };
 
   const cancel   = () => { setEditId(null); setDraft({}); };
-  const updGame  = (k: any, v: any) => setDraft((d: any) => ({ ...d, [k]: v }));
+  const updGame  = (k: string, v: unknown) => setDraft(d => ({ ...d, [k]: v } as ScheduleDraft));
 
   const save = async () => {
     if (!draft.opponent || !draft.date || !draft.time) {
@@ -93,7 +96,7 @@ export default function SchedulePage({ validSlug }: any) {
     loadData();
   };
 
-  const deleteGame = async (g: any) => {
+  const deleteGame = async (g: ScheduledGame) => {
     const res = await apiFetch("/api/admin/schedule", {
       method:  "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -106,9 +109,7 @@ export default function SchedulePage({ validSlug }: any) {
   };
 
   // Format time from ISO string: "2026-04-09T18:45:00.000Z" -> "18:45"
-  const fmtTime = (isoStr: string) => {
-    return isoStr.slice(11, 16);
-  };
+  const fmtTime = (isoStr: string) => isoStr.slice(11, 16);
 
   const gameForm = (
     <div className={[
@@ -122,14 +123,14 @@ export default function SchedulePage({ validSlug }: any) {
         {editId === "new" ? "NEW GAME" : "EDITING GAME"}
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-[10px] mb-3">
-        <F label="OPPONENT" value={draft.opponent} onChange={(v: any) => updGame("opponent", v)} />
-        <F label="DATE (DD-MM-YYYY)" value={draft.date} onChange={(v: any) => updGame("date", v)} placeholder="09-04-2026" />
-        <F label="TIME" value={draft.time} onChange={(v: any) => updGame("time", v)} placeholder="18:45" type="time" />
-        <Sel label="HOME/AWAY" value={draft.location} onChange={(v: any) => updGame("location", v)} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
-        <F label="COMPETITION" value={draft.competition} onChange={(v: any) => updGame("competition", v)} placeholder="e.g. Super Winter Cup" />
+        <F label="OPPONENT" value={draft.opponent ?? ""} onChange={v => updGame("opponent", v)} />
+        <F label="DATE (DD-MM-YYYY)" value={draft.date ?? ""} onChange={v => updGame("date", v)} placeholder="09-04-2026" />
+        <F label="TIME" value={draft.time ?? ""} onChange={v => updGame("time", v)} placeholder="18:45" type="time" />
+        <Sel label="HOME/AWAY" value={draft.location ?? "home"} onChange={v => updGame("location", v)} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
+        <F label="COMPETITION" value={draft.competition ?? ""} onChange={v => updGame("competition", v)} placeholder="e.g. Super Winter Cup" />
       </div>
       <div className="mb-3">
-        <F label="NOTES" value={draft.notes} onChange={(v: any) => updGame("notes", v)} placeholder="Optional notes" />
+        <F label="NOTES" value={draft.notes ?? ""} onChange={v => updGame("notes", v)} placeholder="Optional notes" />
       </div>
       <div className="flex gap-[10px]">
         <Btn onClick={save}>SAVE</Btn>
@@ -202,7 +203,7 @@ export default function SchedulePage({ validSlug }: any) {
   );
 }
 
-export async function getServerSideProps({ params }: any) {
+export async function getServerSideProps({ params }: { params: { slug: string } }) {
   if (!await validateAdminSlug(params.slug)) return { notFound: true };
   return { props: { validSlug: true } };
 }

@@ -6,9 +6,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout, F, Sel, Btn, Spinner, LoginForm, useAdminAuth, apiFetch } from "@/client/admin";
+import type { SeasonLeague, Season, League } from "@/client/admin";
 import { validateAdminSlug } from '@/server/auth';
 
-export default function SeasonsPage({ validSlug }: any) {
+export default function SeasonsPage({ validSlug }: { validSlug: boolean }) {
   const router = useRouter();
   const slug = router.query.slug || validSlug;
 
@@ -16,9 +17,9 @@ export default function SeasonsPage({ validSlug }: any) {
   // with a single hook call.
   const { authed, loading: checking, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
 
-  const [seasons,       setSeasons]       = useState<any[]>([]);
-  const [leagues,       setLeagues]       = useState<any[]>([]);
-  const [seasonLeagues, setSeasonLeagues] = useState<any[]>([]);
+  const [seasons,       setSeasons]       = useState<Season[]>([]);
+  const [leagues,       setLeagues]       = useState<League[]>([]);
+  const [seasonLeagues, setSeasonLeagues] = useState<SeasonLeague[]>([]);
   const [loading,       setLoading]       = useState(false);
   const [toast, setToast] = useState<{ msg: string; type?: string } | null>(null);
 
@@ -27,7 +28,7 @@ export default function SeasonsPage({ validSlug }: any) {
   const [linkSeasonId, setLinkSeasonId] = useState("");
   const [linkLeagueId, setLinkLeagueId] = useState("");
 
-  const showToast = (msg: any, type = "success") => setToast({ msg, type });
+  const showToast = (msg: string, type = "success") => setToast({ msg, type });
 
   const loadData = async () => {
     setLoading(true);
@@ -133,16 +134,16 @@ export default function SeasonsPage({ validSlug }: any) {
           <div>
             <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-3 uppercase">Create new season</div>
             <div className="flex flex-col gap-2 mb-[10px]">
-              <F label="Name" value={newSeason.name} onChange={(v: any) => setNewSeason((s: any) => ({ ...s, name: v }))} placeholder="e.g. 2026-27" />
-              <F label="Year" value={newSeason.year} onChange={(v: any) => setNewSeason((s: any) => ({ ...s, year: v }))} type="number" placeholder="e.g. 2026" />
+              <F label="Name" value={newSeason.name} onChange={v => setNewSeason(s => ({ ...s, name: v }))} placeholder="e.g. 2026-27" />
+              <F label="Year" value={newSeason.year} onChange={v => setNewSeason(s => ({ ...s, year: v }))} type="number" placeholder="e.g. 2026" />
             </div>
             <Btn onClick={createSeason} disabled={!newSeason.name || !newSeason.year}>CREATE SEASON</Btn>
 
             <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mt-6 mb-3 uppercase">Create new league</div>
             <div className="flex flex-col gap-2 mb-[10px]">
-              <F label="Name"      value={newLeague.name}      onChange={(v: any) => setNewLeague((l: any) => ({ ...l, name: v }))}      placeholder="e.g. BC6" />
-              <F label="Organizer" value={newLeague.organizer} onChange={(v: any) => setNewLeague((l: any) => ({ ...l, organizer: v }))} placeholder="e.g. Basket City" />
-              <F label="Level"     value={newLeague.level}     onChange={(v: any) => setNewLeague((l: any) => ({ ...l, level: v }))}     placeholder="e.g. Amateur" />
+              <F label="Name"      value={newLeague.name}      onChange={v => setNewLeague(l => ({ ...l, name: v }))}      placeholder="e.g. BC6" />
+              <F label="Organizer" value={newLeague.organizer} onChange={v => setNewLeague(l => ({ ...l, organizer: v }))} placeholder="e.g. Basket City" />
+              <F label="Level"     value={newLeague.level}     onChange={v => setNewLeague(l => ({ ...l, level: v }))}     placeholder="e.g. Amateur" />
               <Sel label="Link to season" value={linkSeasonId} onChange={setLinkSeasonId} options={seasons.map(s => ({ value: s.id, label: s.name }))} />
             </div>
             <Btn onClick={createLeague} disabled={!newLeague.name}>CREATE LEAGUE</Btn>
@@ -153,7 +154,7 @@ export default function SeasonsPage({ validSlug }: any) {
   );
 }
 
-export async function getServerSideProps({ params }: any) {
+export async function getServerSideProps({ params }: { params: { slug: string } }) {
   if (!await validateAdminSlug(params.slug)) return { notFound: true };
   return { props: { validSlug: true } };
 }
