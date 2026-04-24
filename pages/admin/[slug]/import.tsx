@@ -166,14 +166,16 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
   };
 
   // ── fetchAndReview -- calls the server-side scraper ───────────────────────
-  const fetchAndReview = async () => {
+  const fetchAndReview = async (overrideUrl?: string) => {
+    const target = (overrideUrl ?? gameUrl).trim();
+    if (overrideUrl) setGameUrl(overrideUrl);
     setError("");
     setFetching(true);
     try {
       const res = await apiFetch("/api/admin/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: gameUrl.trim() }),
+        body: JSON.stringify({ url: target }),
       });
       const body = await res.json();
       if (!res.ok) { setError(body.error || "Scrape failed"); return; }
@@ -239,6 +241,7 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
     setHighlights({});
     setWarnings([]);
     setGameState(null);
+    fetch("/api/admin/schedule").then(r => r.ok ? r.json() : null).then(d => { if (d) setSchedule(d.schedule ?? []); });
   };
 
   const leagueOptions = seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName }));
@@ -286,7 +289,7 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
                         key={g.id}
                         type="button"
                         disabled={fetching}
-                        onClick={() => setGameUrl(g.sourceUrl!)}
+                        onClick={() => fetchAndReview(g.sourceUrl!)}
                         className="w-full text-left py-[8px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 hover:border-ak-border2 text-[12px] text-ak-text disabled:opacity-50 transition-colors"
                       >
                         <span className="font-black">{g.location === "home" ? "vs" : "@"} {g.opponent}</span>
