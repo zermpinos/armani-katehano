@@ -73,6 +73,7 @@ export function UpcomingGamesSection({ upcomingGames, openRosterId, onToggleRost
                 href={buildGoogleCalendarUrl(featured.opponent, featured.scheduledFor, featVenue)}
                 target="_blank" rel="noopener noreferrer"
                 onClick={e => e.stopPropagation()}
+                aria-label={`Add ${featured.location === "home" ? "vs" : "@"} ${featured.opponent} to Google Calendar`}
                 className="inline-flex items-center gap-1.5 py-[7px] px-3 rounded-lg border border-[#4285F440] bg-[#4285F410] text-[#4285F4] text-[11px] font-bold no-underline cursor-pointer whitespace-nowrap transition-all duration-200 hover:bg-[#4285F420] hover:border-[#4285F465]"
               >
                 <GoogleCalIcon />
@@ -141,7 +142,7 @@ export function UpcomingGamesSection({ upcomingGames, openRosterId, onToggleRost
                       href={buildGoogleCalendarUrl(g.opponent, g.scheduledFor, venue)}
                       target="_blank" rel="noopener noreferrer"
                       onClick={e => e.stopPropagation()}
-                      title="Add to Google Calendar"
+                      aria-label={`Add ${g.location === "home" ? "vs" : "@"} ${g.opponent} to Google Calendar`}
                       className="flex items-center justify-center w-7 h-7 rounded-[7px] border border-ak-border bg-ak-base no-underline transition-all duration-150 hover:border-[#4285F4] hover:bg-[#4285F412]"
                     >
                       <GoogleCalIcon />
