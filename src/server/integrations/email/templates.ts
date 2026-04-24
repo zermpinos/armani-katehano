@@ -37,9 +37,13 @@ export function esc(s: string): string {
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString("el-GR", {
+  const [datePart, timePart] = iso.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  return d.toLocaleString("el-GR", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
-    hour: "2-digit", minute: "2-digit", timeZone: "Europe/Athens",
+    hour: "2-digit", minute: "2-digit", timeZone: "UTC",
   });
 }
 
