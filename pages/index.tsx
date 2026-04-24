@@ -1,11 +1,11 @@
 import { useState } from "react";
-import Layout from "../components/Layout";
-import { StatTile, SectionHeading } from "../components/ui";
+import Layout from "@/components/ui/Layout";
+import { StatTile, SectionHeading } from "@/components/ui";
 import { getAllPublicData, getUpcomingGamesWithAnnouncements } from "@/server/db/repositories";
 import { computeRecord } from "@/domain/games/score";
 import { fmt } from "@/domain/players/format";
-import ErrorBoundary from "../components/ErrorBoundary";
-import { PlayerDetail } from "../components/PlayerDetail";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { PlayerDetail } from "@/client/players/PlayerDetail";
 import { ConfirmToast } from "@/client/home/confirm-toast";
 import { SubscribeForm } from "@/client/home/subscribe-form";
 import { ScoringTrendModal } from "@/client/home/scoring-trend-modal";

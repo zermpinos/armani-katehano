@@ -1,4 +1,4 @@
-/** Shared design tokens -- import as: import { C } from '../lib/theme' */
+
 export interface ColorTokens {
   base:      string;
   surface:   string;

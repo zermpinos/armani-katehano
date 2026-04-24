@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss";
 
-// Color tokens sourced directly from lib/theme.ts so there is one source of truth.
-// During Phase 2, lib/theme.ts will flip to re-export from resolveConfig(this file).
+// Color tokens kept in sync with src/theme/tokens.ts -- one source of truth.
 const C = {
   base:       "#1c1c1e",
   surface:    "#242426",
