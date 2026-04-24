@@ -139,4 +139,23 @@ export async function sendRosterAnnouncement({
   });
 }
 
+export async function sendAdminAlert({
+  subject,
+  body,
+}: {
+  subject: string;
+  body: string;
+}): Promise<void> {
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[email] GMAIL_USER or GMAIL_APP_PASSWORD not set -- skipping admin alert");
+    return;
+  }
+  const to   = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
+  const from = `Armani Katehano <${process.env.GMAIL_USER}>`;
+  await transport.sendMail({ from, to, subject, text: body })
+    .then(() => auditLog("admin_alert_sent",  { subject }))
+    .catch((err: any) => auditLog("admin_alert_failed", { subject, error: err.message }));
+}
+
 export type { SendRosterAnnouncementParams, PlayerSlot, Game, Subscriber } from "./templates";
