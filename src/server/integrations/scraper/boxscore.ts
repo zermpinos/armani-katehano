@@ -50,7 +50,7 @@ export function scrapeGame(html: string, url: string) {
   const $ = cheerio.load(html);
   const baseOrigin = new URL(url).origin;
 
-  const result: { url: string; game: Record<string, any>; teams: any[] } = { url, game: {}, teams: [] };
+  const result: { url: string; game: Record<string, any>; teams: any[] } = { url, game: { pdfUrl: null }, teams: [] };
 
   const nameDivs = $(".name");
   result.game.homeTeam = clean(nameDivs.eq(0).text());
@@ -60,6 +60,13 @@ export function scrapeGame(html: string, url: string) {
   result.game.time  = clean($("#gameTime").text())  || null;
   const venueRaw    = clean($("#stadiumname").text());
   result.game.venue = venueRaw.replace(/^Γήπεδο:\s*/i, "") || null;
+
+  const pdfAnchor = $("#pdfstatistics a").filter((_: any, el: any) => {
+    const href = ($(el).attr("href") || "").toLowerCase();
+    return href.endsWith(".pdf") && !href.includes("_changes") && !href.includes("_corners");
+  }).first();
+  const pdfHref = pdfAnchor.attr("href");
+  if (pdfHref) result.game.pdfUrl = pdfHref.startsWith("http") ? pdfHref : baseOrigin + pdfHref;
 
   result.game.finalScore = {
     home: parseNum($("#gameScoreHome").text()),
