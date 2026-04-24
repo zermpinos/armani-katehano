@@ -176,8 +176,8 @@ export async function importGame(
         const upcoming = await tx.upcomingGame.findUnique({ where: { sourceUrl } });
         if (upcoming) {
           await tx.gameImportJob.updateMany({
-            where: { upcomingGameId: upcoming.id, status: "PENDING" },
-            data:  { status: "IMPORTED", gameId: g.id },
+            where: { upcomingGameId: upcoming.id, state: "PENDING" },
+            data:  { state: "IMPORTED", importedGameId: g.id, importedAt: new Date() },
           });
         }
       }
@@ -189,8 +189,8 @@ export async function importGame(
         const upcoming = await prisma.upcomingGame.findUnique({ where: { sourceUrl } });
         if (upcoming) {
           await prisma.gameImportJob.updateMany({
-            where: { upcomingGameId: upcoming.id, status: "PENDING" },
-            data:  { status: "IMPORTED", gameId: dupGameId },
+            where: { upcomingGameId: upcoming.id, state: "PENDING" },
+            data:  { state: "IMPORTED", importedGameId: dupGameId, importedAt: new Date() },
           });
         }
       }
