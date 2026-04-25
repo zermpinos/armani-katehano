@@ -11,6 +11,12 @@ export function fmtMinutes(dec: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+// Guards against a SyntheticEvent being passed as overrideUrl when a handler is
+// bound as onClick={fn} instead of onClick={() => fn()}.
+export function resolveImportUrl(overrideUrl: unknown, stateUrl: string): string {
+  return (typeof overrideUrl === "string" ? overrideUrl : stateUrl).trim();
+}
+
 export function prodError(err: unknown) {
   return process.env.NODE_ENV === "production"
     ? "Internal server error"
