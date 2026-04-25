@@ -258,13 +258,13 @@ describe("computeTeamAverages — agrees with aggregatesToStatsMap on same fixtu
   // Build expected team totals directly from the fixture for sanity
   const TEAM_GP = 3;
   const ALL_ACTIVE = GAMES.flatMap(g => g.boxScore).filter(r => r.min > 0);
-  const rawSum = (key: string) => ALL_ACTIVE.reduce((a, r: any) => a + (r[key] || 0), 0);
+  const rawSum = (key: string) => ALL_ACTIVE.reduce((a, r: any) => a + (Reflect.get(r, key) as number || 0), 0);
 
   // Build the per-player aggregates the same way aggregatesToStatsMap expects them
   function playerMockAgg(pid: string) {
     const rows = ALL_ACTIVE.filter((r: any) => r.pid === pid);
     const n = rows.length;
-    const s = (k: string) => rows.reduce((a: number, r: any) => a + (r[k] || 0), 0);
+    const s = (k: string) => rows.reduce((a: number, r: any) => a + (Reflect.get(r, k) as number || 0), 0);
     return {
       playerId:  pid,
       gp:        n,
