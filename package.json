@@ -12,6 +12,9 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
+  "engines": {
+    "node": ">=24.15.0"
+  },
   "browserslist": {
     "production": [
       "chrome >= 96",
