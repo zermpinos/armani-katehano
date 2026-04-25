@@ -172,10 +172,8 @@ export async function getStaticProps() {
     for (const player of players) {
       const s = (seasonMap as any)[player.id];
       if (s && s.gp > 0) {
-        // eslint-disable-next-line security/detect-object-injection
-        if (!playerSeasonHistory[player.id]) playerSeasonHistory[player.id] = Object.create(null);
-        // eslint-disable-next-line security/detect-object-injection
-        playerSeasonHistory[player.id][sid] = s;
+        if (!Reflect.has(playerSeasonHistory, player.id)) Reflect.set(playerSeasonHistory, player.id, Object.create(null));
+        Reflect.set(Reflect.get(playerSeasonHistory as object, player.id), sid, s);
       }
     }
   }
