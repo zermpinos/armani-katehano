@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { fmt, slugify } from "@/domain/players/format";
-import { fmtDate } from "@/domain/shared/format";
+import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
 import { parseScore } from "@/domain/games/score";
 
 // ─── fmt ──────────────────────────────────────────────────────────────────────
@@ -95,6 +95,30 @@ describe("slugify", () => {
 
   it("collapses multiple spaces into single hyphen", () => {
     expect(slugify("a  b")).toBe("a-b");
+  });
+});
+
+// ─── resolveImportUrl ─────────────────────────────────────────────────────────
+
+describe("resolveImportUrl", () => {
+  it("uses overrideUrl when it is a string", () => {
+    expect(resolveImportUrl("https://override.com", "https://state.com")).toBe("https://override.com");
+  });
+
+  it("falls back to stateUrl when overrideUrl is undefined", () => {
+    expect(resolveImportUrl(undefined, "https://state.com")).toBe("https://state.com");
+  });
+
+  it("falls back to stateUrl when overrideUrl is a non-string object (SyntheticEvent regression)", () => {
+    // Regression: onClick={fetchAndReview} passed the SyntheticEvent as overrideUrl,
+    // causing (overrideUrl ?? gameUrl).trim() to throw "trim is not a function".
+    expect(resolveImportUrl({} as any, "https://state.com")).toBe("https://state.com");
+    expect(resolveImportUrl(new Event("click") as any, "https://state.com")).toBe("https://state.com");
+  });
+
+  it("trims whitespace from resolved URL", () => {
+    expect(resolveImportUrl("  https://foo.com  ", "https://bar.com")).toBe("https://foo.com");
+    expect(resolveImportUrl(undefined, "  https://bar.com  ")).toBe("https://bar.com");
   });
 });
 

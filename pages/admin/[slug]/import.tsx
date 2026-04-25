@@ -10,7 +10,7 @@ import { AdminLayout, BoxScoreTable, F, Sel, Btn, Spinner, LoginForm, byJersey, 
 import type { Player, SeasonLeague, BoxScoreRow, ScheduledGame } from "@/client/admin";
 import { validateAdminSlug } from '@/server/auth';
 import { parseGreekDate, parseMinutes, detectLeagueSlug } from '@/domain/calendar/greek-date';
-import { fmtDate } from "@/domain/shared/format";
+import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
 
 type ImportDraft = {
   date: string;
@@ -45,6 +45,8 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
   const [warnings,   setWarnings]   = useState<string[]>([]);
   const [error,      setError]      = useState("");
   const [gameState,  setGameState]  = useState<{ state: string; reason: string } | null>(null);
+  const [offRating,  setOffRating]  = useState<number | null>(null);
+  const [defRating,  setDefRating]  = useState<number | null>(null);
 
   const showToast = (msg: string, type = "success") => setToast({ msg, type });
 
@@ -67,7 +69,7 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
   // ── buildDraft — maps scraper JSON to the review UI ──────────────────────
   const buildDraft = (data: Record<string, unknown>) => {
     const { game, teams, url: sourceUrl } = data as {
-      game: { homeTeam: string; awayTeam: string; date: string; finalScore: { home: number; away: number } };
+      game: { homeTeam: string; awayTeam: string; date: string; finalScore: { home: number; away: number }; offRating?: number | null; defRating?: number | null };
       teams: { name: string; players: Record<string, unknown>[] }[];
       url: string;
     };
@@ -111,7 +113,7 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
 
       return {
         playerId: dbPlayer.id,
-        minutes:  mins,
+        min:      mins,
         pts:  scraped.PTS  as number ?? 0,
         reb:  scraped.REB  as number ?? 0,
         orb:  scraped.OREB as number ?? 0,
@@ -162,12 +164,14 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
       } satisfies ImportDraft,
       highlights: hl,
       warnings:   warns,
+      offRating:  game.offRating ?? null,
+      defRating:  game.defRating ?? null,
     };
   };
 
   // ── fetchAndReview — calls the server-side scraper ───────────────────────
   const fetchAndReview = async (overrideUrl?: string) => {
-    const target = (overrideUrl ?? gameUrl).trim();
+    const target = resolveImportUrl(overrideUrl, gameUrl);
     if (overrideUrl) setGameUrl(overrideUrl);
     setError("");
     setFetching(true);
@@ -180,8 +184,9 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
       const body = await res.json();
       if (!res.ok) { setError(body.error || "Scrape failed"); return; }
 
-      const { draft, highlights, warnings } = buildDraft(body.data);
+      const { draft, highlights, warnings, offRating: off, defRating: def } = buildDraft(body.data);
       setDraft(draft); setHighlights(highlights); setWarnings(warnings);
+      setOffRating(off ?? null); setDefRating(def ?? null);
       setGameState(body.gameState ?? null);
       setPhase("review");
     } catch (err) {
@@ -203,7 +208,7 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
       const fg2m = r.fg2m || 0, fg2a = r.fg2a || 0;
       const fg3m = r.fg3m || 0, fg3a = r.fg3a || 0;
       return {
-        playerId: r.playerId, minutes: r.minutes || 0,
+        playerId: r.playerId, minutes: r.min || 0,
         pts: r.pts || 0, reb: r.reb || 0, orb: r.orb || 0, drb: r.drb || 0,
         ast: r.ast || 0, stl: r.stl || 0, blk: r.blk || 0, tov: r.tov || 0,
         pf: r.pf || 0, fg2m, fg2a, fg3m, fg3a, fgm: fg2m + fg3m, fga: fg2a + fg3a,
@@ -241,6 +246,8 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
     setHighlights({});
     setWarnings([]);
     setGameState(null);
+    setOffRating(null);
+    setDefRating(null);
     fetch("/api/admin/schedule").then(r => r.ok ? r.json() : null).then(d => { if (d) setSchedule(d.schedule ?? []); });
   };
 
@@ -394,6 +401,22 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
               />
             </div>
 
+            {(offRating !== null || defRating !== null) && (
+              <div>
+                <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[8px] uppercase">Efficiency ratings (from PDF)</div>
+                <div className="flex gap-[10px]">
+                  <div className="flex-1 py-[10px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 text-center">
+                    <div className="text-[9px] font-black tracking-[0.12em] text-ak-text-dim mb-[4px]">OFF RTG</div>
+                    <div className="text-[18px] font-black text-ak-text">{offRating ?? "—"}</div>
+                  </div>
+                  <div className="flex-1 py-[10px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 text-center">
+                    <div className="text-[9px] font-black tracking-[0.12em] text-ak-text-dim mb-[4px]">DEF RTG</div>
+                    <div className="text-[18px] font-black text-ak-text">{defRating ?? "—"}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Box score — green rows played</div>
               <BoxScoreTable players={players} rows={draft.boxScore} onUpdate={updBox} highlights={highlights} />
@@ -407,7 +430,7 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
               >
                 {phase === "saving" ? "SAVING…" : "SAVE GAME"}
               </Btn>
-              <Btn variant="ghost" onClick={() => { setPhase("idle"); setDraft(null); setGameState(null); }} disabled={phase === "saving"}>BACK</Btn>
+              <Btn variant="ghost" onClick={() => { setPhase("idle"); setDraft(null); setGameState(null); setOffRating(null); setDefRating(null); }} disabled={phase === "saving"}>BACK</Btn>
             </div>
           </div>
         )}
