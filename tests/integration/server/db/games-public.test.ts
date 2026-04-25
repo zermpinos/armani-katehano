@@ -22,7 +22,7 @@ function mockRes() {
     statusCode: 200,
     _headers:   {},
     _body:      undefined,
-    setHeader(k, v) { res._headers[k] = v; return res; },
+    setHeader(k, v) { Reflect.set(res._headers, k, v); return res; },
     status(code)    { res.statusCode = code; return res; },
     json(body)      { res._body = body; return res; },
     end()           { return res; },
