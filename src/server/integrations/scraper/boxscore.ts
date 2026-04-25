@@ -73,6 +73,8 @@ export function scrapeGame(html: string, url: string) {
     away: parseNum($("#gameScoreVisitor").text()),
   };
 
+  const quarterCandidates: { quarter: string; home: any; away: any }[][] = [];
+
   $("table").each((_, table) => {
     const rows = $(table).find("tr").toArray();
     if (rows.length !== 4) return;
@@ -84,24 +86,30 @@ export function scrapeGame(html: string, url: string) {
     });
     if (!ok) return;
 
-    const parsed = rows.map(row => {
+    quarterCandidates.push(rows.map(row => {
       const cells = $(row).find("td");
       return {
         quarter: clean(cells.eq(1).text()),
         home:    parseNum(cells.eq(0).text()),
         away:    parseNum(cells.eq(2).text()),
       };
-    });
-
-    const q4home = parsed[3].home as number;
-    if (!result.game.quarterScores || q4home > result.game.quarterScores[3].home) {
-      result.game.quarterScores = parsed;
-    }
+    }));
   });
 
-  if (result.game.finalScore.home === null && result.game.quarterScores) {
-    result.game.finalScore.home = result.game.quarterScores[3].home;
-    result.game.finalScore.away = result.game.quarterScores[3].away;
+  if (quarterCandidates.length > 0) {
+    const fh = Number(result.game.finalScore.home);
+    const fa = Number(result.game.finalScore.away);
+    const hasScore = Number.isFinite(fh) && Number.isFinite(fa);
+
+    // Prefer the table whose quarter sums equal the final score (per-quarter table).
+    // Cumulative tables have sums much larger than the final score.
+    const sumMatch = hasScore && quarterCandidates.find(qs => {
+      const sh = qs.reduce((acc, q) => acc + Number(q.home), 0);
+      const sa = qs.reduce((acc, q) => acc + Number(q.away), 0);
+      return sh === fh && sa === fa;
+    });
+
+    result.game.quarterScores = sumMatch || quarterCandidates[0];
   }
 
   const SHOT_COLS = ["FT", "2PTS", "3PTS", "FG"];
