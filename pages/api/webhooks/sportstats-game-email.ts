@@ -15,7 +15,7 @@ import { getClientIp } from "@/server/security/client-ip";
 import { parseSubject } from "@/server/services/parse-game-email-subject";
 import { matchUpcomingGame } from "@/server/services/match-upcoming-game";
 import { processJob }  from "@/server/services/import-job";
-import { sendAdminAlert } from "@/server/integrations/email/client";
+import { sendAdminAlert, sendImportNotification } from "@/server/integrations/email/client";
 import prisma           from "@/server/db/client";
 
 export const config = { api: { bodyParser: false } };
@@ -118,9 +118,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   if (!match) {
     auditLog("webhook_no_upcoming_game", { dateStr: parsed.dateStr, opponent: parsed.opponent });
-    await sendAdminAlert({
-      subject: "[AK] Import webhook: no matching upcoming game",
-      body: `Received game-end email for "${parsed.opponent}" on ${parsed.dateStr}, but no matching UpcomingGame was found.\n\nSubject: "${subject}"\n\nPlease schedule the game or import manually.`,
+    await sendImportNotification({
+      kind:         "no-match",
+      dateStr:      parsed.dateStr,
+      opponent:     parsed.opponent,
+      emailSubject: subject,
     });
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
@@ -129,9 +131,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   if (!match.sourceUrl) {
     auditLog("webhook_no_source_url", { upcomingGameId: match.id, opponent: match.opponent });
-    await sendAdminAlert({
-      subject: "[AK] Import webhook: sourceUrl missing",
-      body: `Matched "${match.opponent}" (${match.scheduledFor.toISOString().slice(0, 10)}) to UpcomingGame ${match.id}, but sourceUrl is not set.\n\nSubject: "${subject}"\n\nPlease set the sourceUrl and re-run import.`,
+    await sendImportNotification({
+      kind:           "no-source-url",
+      opponent:       match.opponent,
+      location:       match.location,
+      scheduledFor:   match.scheduledFor.toISOString(),
+      upcomingGameId: match.id,
     });
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));

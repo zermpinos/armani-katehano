@@ -2,6 +2,7 @@ import { randomBytes }      from "crypto";
 import prisma               from "@/server/db/client";
 import { scrapeGameFromUrl, ScrapeError } from "@/server/services/scrape-game";
 import { importGame, ImportError }        from "@/server/services/import-game";
+import { sendImportNotification }         from "@/server/integrations/email/client";
 
 const MAX_ATTEMPTS        = 3;
 const MAX_ERROR_HTML_BYTES = 50_000;
@@ -31,13 +32,42 @@ export async function processJob(jobId: string): Promise<void> {
 
   if (!claimed) return;
 
-  const job = await prisma.gameImportJob.findUniqueOrThrow({ where: { id: jobId } });
+  const job = await prisma.gameImportJob.findUniqueOrThrow({
+    where:   { id: jobId },
+    include: { upcomingGame: true },
+  });
+
+  async function notifySuccess(importedAt: Date) {
+    if (job.successSentAt) return;
+    await sendImportNotification({
+      kind:         "success",
+      opponent:     job.upcomingGame.opponent,
+      location:     job.upcomingGame.location,
+      scheduledFor: job.upcomingGame.scheduledFor.toISOString(),
+      importedAt,
+    }).catch(err => console.error("[import-job notify success]", err));
+    await prisma.gameImportJob.update({ where: { id: jobId }, data: { successSentAt: new Date() } });
+  }
+
+  async function notifyFailure(msg: string) {
+    if (job.failureSentAt) return;
+    await sendImportNotification({
+      kind:         "failure",
+      opponent:     job.upcomingGame.opponent,
+      location:     job.upcomingGame.location,
+      scheduledFor: job.upcomingGame.scheduledFor.toISOString(),
+      attempts:     job.attempts,
+      lastError:    msg,
+    }).catch(err => console.error("[import-job notify failure]", err));
+    await prisma.gameImportJob.update({ where: { id: jobId }, data: { failureSentAt: new Date() } });
+  }
 
   if (!job.sourceUrl) {
     await prisma.gameImportJob.update({
       where: { id: jobId },
       data:  { state: "ERROR", lastError: "No sourceUrl on job", lockedAt: null, lockedBy: null },
     });
+    await notifyFailure("No sourceUrl on job");
     return;
   }
 
@@ -52,6 +82,7 @@ export async function processJob(jobId: string): Promise<void> {
       where: { id: jobId },
       data:  { state: next, lastError: msg, lockedAt: null, lockedBy: null },
     });
+    if (next === "ERROR") await notifyFailure(msg);
     return;
   }
 
@@ -60,45 +91,45 @@ export async function processJob(jobId: string): Promise<void> {
   // Email may have raced the page -- requeue until final
   if (gameState.state !== "final") {
     const next = job.attempts >= MAX_ATTEMPTS ? "ERROR" : "PENDING";
+    const msg  = `Not final after ${job.attempts} attempt(s): ${gameState.reason}`;
     await prisma.gameImportJob.update({
       where: { id: jobId },
-      data:  {
-        state:     next,
-        lastError: `Not final after ${job.attempts} attempt(s): ${gameState.reason}`,
-        lockedAt:  null,
-        lockedBy:  null,
-      },
+      data:  { state: next, lastError: msg, lockedAt: null, lockedBy: null },
     });
+    if (next === "ERROR") await notifyFailure(msg);
     return;
   }
 
   // Import
   try {
-    const result = await importGame({ data });
+    const result    = await importGame({ data });
+    const importedAt = new Date();
     await prisma.gameImportJob.update({
       where: { id: jobId },
       data:  {
         state:          "IMPORTED",
         importedGameId: result.gameId,
-        importedAt:     new Date(),
+        importedAt,
         lastError:      null,
         lockedAt:       null,
         lockedBy:       null,
       },
     });
+    await notifySuccess(importedAt);
   } catch (err) {
     if (err instanceof ImportError && err.status === 409) {
-      // Game already imported -- settle silently
+      const importedAt = new Date();
       await prisma.gameImportJob.update({
         where: { id: jobId },
         data:  {
           state:          "IMPORTED",
           importedGameId: (err as any).gameId ?? null,
-          importedAt:     new Date(),
+          importedAt,
           lockedAt:       null,
           lockedBy:       null,
         },
       });
+      await notifySuccess(importedAt);
       return;
     }
     const msg  = err instanceof ImportError ? err.message : "Unexpected import error";
@@ -107,6 +138,7 @@ export async function processJob(jobId: string): Promise<void> {
       where: { id: jobId },
       data:  { state: next, lastError: msg, lockedAt: null, lockedBy: null },
     });
+    if (next === "ERROR") await notifyFailure(msg);
   }
 }
 
