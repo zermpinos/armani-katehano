@@ -42,8 +42,9 @@ export function scrapeGame(html: string, url: string) {
   while ((match = loadDocRe.exec(html)) !== null) {
     const payload = match[1].replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, "\\");
     const divId   = match[2];
+    // Match any empty element that carries the id (div, span, etc.)
     // eslint-disable-next-line security/detect-non-literal-regexp
-    const divPat = new RegExp(`(<div\\s+id="${escapeRegex(divId)}"\\s*>)(</div>)`);
+    const divPat = new RegExp(`(<[a-z][^>]*\\s+id="${escapeRegex(divId)}"[^>]*>)(</[a-z]+>)`);
     html = html.replace(divPat, `$1${payload}$2`);
   }
 
