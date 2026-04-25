@@ -33,8 +33,10 @@ export function classifyScrapedGame(data: any): ClassifyResult {
   const homeSum = quarterScores.reduce((acc: number, q: any) => acc + Number(q.home), 0);
   const awaySum = quarterScores.reduce((acc: number, q: any) => acc + Number(q.away), 0);
 
-  if (homeSum !== Number(finalScore.home) || awaySum !== Number(finalScore.away))
-    return { state: "live", reason: "quarter sum does not match final score -- page still settling" };
+  // Quarter sum < final score is valid (overtime points not in quarters array).
+  // Quarter sum > final score means the page hasn't settled yet.
+  if (homeSum > Number(finalScore.home) || awaySum > Number(finalScore.away))
+    return { state: "live", reason: "quarter sum exceeds final score -- page still settling" };
 
   return { state: "final", reason: "all 4 quarters complete with consistent final score" };
 }
