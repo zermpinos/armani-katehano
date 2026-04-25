@@ -1,5 +1,4 @@
 import dns        from "dns";
-import { PDFParse }  from "pdf-parse";
 import { scrapeGame } from "@/server/integrations/scraper/boxscore";
 import { ScrapedGameSchema } from "@/schemas";
 import { assertSsrfSafe, isAllowedHostname, isPrivateIp } from "@/server/security/ssrf";
@@ -86,6 +85,7 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
 
       if (pdfResponse.ok) {
         const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
+        const { PDFParse } = await import("pdf-parse");
         const parser = new PDFParse({ data: pdfBuffer });
         const { text } = await parser.getText();
         const { offRating, defRating } = parsePdfEfficiency(text);
