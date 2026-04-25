@@ -28,7 +28,12 @@ const POSTMARK_IPS = new Set([
   "18.217.206.57",
 ]);
 
-const ALLOWED_FROM = "info@sportstats.gr";
+const SPORTSTATS_FROM = "info@sportstats.gr";
+
+function allowedFromAddresses(): Set<string> {
+  const adminFwd = (process.env.ADMIN_FORWARD_EMAIL ?? "webmaster@armani-katehano.com").toLowerCase().trim();
+  return new Set([SPORTSTATS_FROM, adminFwd]);
+}
 
 function allowedIps(): Set<string> {
   const override = process.env.POSTMARK_ALLOWED_IPS;
@@ -91,7 +96,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   // Verify sender
   const from: string = (payload.FromFull?.Email ?? payload.From ?? "").toLowerCase().trim();
-  if (from !== ALLOWED_FROM) {
+  if (!allowedFromAddresses().has(from)) {
     auditLog("webhook_ignored_sender", { from });
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
@@ -106,7 +111,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     auditLog("webhook_subject_unmatched", { subject });
     await sendAdminAlert({
       subject: "[AK] Import webhook: subject could not be parsed",
-      body: `Received email from ${ALLOWED_FROM} with unrecognisable subject:\n\n  "${subject}"\n\nPlease check and import manually if needed.`,
+      body: `Received email from ${SPORTSTATS_FROM} with unrecognisable subject:\n\n  "${subject}"\n\nPlease check and import manually if needed.`,
     });
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));

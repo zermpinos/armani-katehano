@@ -4,19 +4,23 @@ import crypto from "crypto";
 import { Readable } from "stream";
 
 // --- Hoisted mocks ---
-const { mockPrisma, mockMatchUpcomingGame, mockProcessJob, mockSendAdminAlert } = vi.hoisted(() => ({
+const { mockPrisma, mockMatchUpcomingGame, mockProcessJob, mockSendAdminAlert, mockSendImportNotification } = vi.hoisted(() => ({
   mockPrisma: {
     gameImportJob: { create: vi.fn() },
   },
-  mockMatchUpcomingGame: vi.fn(),
-  mockProcessJob:        vi.fn(),
-  mockSendAdminAlert:    vi.fn(),
+  mockMatchUpcomingGame:       vi.fn(),
+  mockProcessJob:              vi.fn(),
+  mockSendAdminAlert:          vi.fn(),
+  mockSendImportNotification:  vi.fn(),
 }));
 
 vi.mock("@/server/db/client",                        () => ({ default: mockPrisma }));
 vi.mock("@/server/services/match-upcoming-game",     () => ({ matchUpcomingGame: mockMatchUpcomingGame }));
 vi.mock("@/server/services/import-job",              () => ({ processJob: mockProcessJob }));
-vi.mock("@/server/integrations/email/client",        () => ({ sendAdminAlert: mockSendAdminAlert }));
+vi.mock("@/server/integrations/email/client",        () => ({
+  sendAdminAlert:         mockSendAdminAlert,
+  sendImportNotification: mockSendImportNotification,
+}));
 vi.mock("@/server/security/audit-log",               () => ({ auditLog: vi.fn() }));
 vi.mock("@/server/security/client-ip",               () => ({ getClientIp: () => "3.134.147.250" }));
 
@@ -62,6 +66,7 @@ beforeEach(() => {
   process.env.POSTMARK_WEBHOOK_SECRET = WEBHOOK_SECRET;
   mockProcessJob.mockResolvedValue(undefined);
   mockSendAdminAlert.mockResolvedValue(undefined);
+  mockSendImportNotification.mockResolvedValue(undefined);
   mockPrisma.gameImportJob.create.mockResolvedValue({ id: "job1", state: "PENDING" });
 });
 
@@ -119,8 +124,8 @@ describe("sportstats-game-email webhook", () => {
     await handler(makeRequest(JSON.stringify(SAMPLE_PAYLOAD)), res);
 
     expect(res.statusCode).toBe(200);
-    expect(mockSendAdminAlert).toHaveBeenCalledWith(
-      expect.objectContaining({ subject: expect.stringContaining("no matching upcoming game") })
+    expect(mockSendImportNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "no-match" })
     );
     expect(mockProcessJob).not.toHaveBeenCalled();
   });
@@ -129,6 +134,7 @@ describe("sportstats-game-email webhook", () => {
     const match = {
       id:          "ug3",
       opponent:    "ΑΡΗΣ",
+      location:    "home",
       scheduledFor: new Date("2025-01-15T18:00:00Z"),
       sourceUrl:   null,
       importJobs:  [],
@@ -139,8 +145,8 @@ describe("sportstats-game-email webhook", () => {
     await handler(makeRequest(JSON.stringify(SAMPLE_PAYLOAD)), res);
 
     expect(res.statusCode).toBe(200);
-    expect(mockSendAdminAlert).toHaveBeenCalledWith(
-      expect.objectContaining({ subject: expect.stringContaining("sourceUrl missing") })
+    expect(mockSendImportNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "no-source-url" })
     );
   });
 
