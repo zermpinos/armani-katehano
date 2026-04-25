@@ -1,5 +1,5 @@
-import crypto      from "crypto";
-import nodemailer   from "nodemailer";
+import crypto    from "crypto";
+import { Resend } from "resend";
 import { auditLog } from "@/server/security/audit-log";
 import prisma       from "@/server/db/client";
 import {
@@ -19,11 +19,12 @@ export type ImportNotificationPayload =
   | { kind: "no-match";      dateStr: string;  opponent: string;  emailSubject: string }
   | { kind: "no-source-url"; opponent: string; location: string; scheduledFor: string; upcomingGameId: string };
 
-function createTransport() {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
-  if (!user || !pass) return null;
-  return nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
+const FROM = "Armani Katehano <noreply@armani-katehano.com>";
+
+function createClient(): Resend | null {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return null;
+  return new Resend(key);
 }
 
 export async function sendConfirmationEmail({
@@ -33,13 +34,12 @@ export async function sendConfirmationEmail({
   email: string;
   confirmUrl: string;
 }): Promise<void> {
-  const transport = createTransport();
-  if (!transport) {
-    console.warn("[email] GMAIL_USER or GMAIL_APP_PASSWORD not set — skipping confirmation email");
+  const client = createClient();
+  if (!client) {
+    console.warn("[email] RESEND_API_KEY not set — skipping confirmation email");
     return;
   }
 
-  const from    = `Armani Katehano <${process.env.GMAIL_USER}>`;
   const subject = "Confirm your subscription — Armani Katehano";
   const safeUrl = esc(confirmUrl);
   const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -86,12 +86,12 @@ export async function sendConfirmationEmail({
   const text = `ARMANI KATEHANO\nConfirm your subscription\n\nClick the link below to confirm your email address:\n\n${confirmUrl}\n\nIf you did not request this, ignore this email.`;
 
   const emailHash = crypto.createHash("sha256").update(email).digest("hex");
-  await transport.sendMail({ from, to: email, subject, html, text })
-    .then(() => auditLog("confirmation_email_sent", { emailHash }))
-    .catch((err: any) => {
-      auditLog("confirmation_email_failed", { emailHash, error: err.message });
-      throw err;
-    });
+  const { error } = await client.emails.send({ from: FROM, to: email, subject, html, text });
+  if (error) {
+    auditLog("confirmation_email_failed", { emailHash, error: error.message });
+    throw new Error(error.message);
+  }
+  auditLog("confirmation_email_sent", { emailHash });
 }
 
 export async function sendRosterAnnouncement({
@@ -100,9 +100,9 @@ export async function sendRosterAnnouncement({
   message,
   subscribers,
 }: SendRosterAnnouncementParams): Promise<void> {
-  const transport = createTransport();
-  if (!transport) {
-    console.warn("[email] GMAIL_USER or GMAIL_APP_PASSWORD not set — skipping email send");
+  const client = createClient();
+  if (!client) {
+    console.warn("[email] RESEND_API_KEY not set — skipping email send");
     return;
   }
   if (subscribers.length === 0) {
@@ -110,11 +110,10 @@ export async function sendRosterAnnouncement({
     return;
   }
 
-  const from    = `Armani Katehano <${process.env.GMAIL_USER}>`;
-  const appUrl  = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const isHome  = game.location === "home";
+  const appUrl       = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const isHome       = game.location === "home";
   const safeOpponent = game.opponent.slice(0, 100).replace(/[\r\n]/g, " ");
-  const subject = `Roster announced: ${isHome ? "vs" : "@"} ${safeOpponent}`;
+  const subject      = `Roster announced: ${isHome ? "vs" : "@"} ${safeOpponent}`;
 
   const results = await Promise.allSettled(
     subscribers.map(sub => {
@@ -122,8 +121,12 @@ export async function sendRosterAnnouncement({
       const unsubscribeUrl = `${appUrl}/unsubscribe?token=${sub.token}`;
       const html = buildHtml(game, players, message, appUrl, unsubscribeUrl);
       const text = buildText(game, players, message, appUrl, unsubscribeUrl);
-      return transport.sendMail({ from, to: sub.email, subject, html, text })
-        .then(() => {
+      return client.emails.send({ from: FROM, to: sub.email, subject, html, text })
+        .then(({ error }) => {
+          if (error) {
+            auditLog("roster_email_failed", { emailHash, error: error.message, opponent: game.opponent });
+            throw new Error(error.message);
+          }
           auditLog("roster_email_delivered", { emailHash, opponent: game.opponent });
           return prisma.subscriber.update({
             where: { id: sub.id },
@@ -156,26 +159,27 @@ export async function sendAdminAlert({
   subject: string;
   body: string;
 }): Promise<void> {
-  const transport = createTransport();
-  if (!transport) {
-    console.warn("[email] GMAIL_USER or GMAIL_APP_PASSWORD not set — skipping admin alert");
+  const client = createClient();
+  if (!client) {
+    console.warn("[email] RESEND_API_KEY not set — skipping admin alert");
     return;
   }
-  const to   = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
-  const from = `Armani Katehano <${process.env.GMAIL_USER}>`;
-  await transport.sendMail({ from, to, subject, text: body })
-    .then(() => auditLog("admin_alert_sent",  { subject }))
-    .catch((err: any) => auditLog("admin_alert_failed", { subject, error: err.message }));
+  const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
+  const { error } = await client.emails.send({ from: FROM, to, subject, text: body });
+  if (error) {
+    auditLog("admin_alert_failed", { subject, error: error.message });
+  } else {
+    auditLog("admin_alert_sent", { subject });
+  }
 }
 
 export async function sendImportNotification(payload: ImportNotificationPayload): Promise<void> {
-  const transport = createTransport();
-  if (!transport) {
-    console.warn("[email] GMAIL creds not set — skipping import notification");
+  const client = createClient();
+  if (!client) {
+    console.warn("[email] RESEND_API_KEY not set — skipping import notification");
     return;
   }
-  const to   = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
-  const from = `Armani Katehano <${process.env.GMAIL_USER}>`;
+  const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
 
   let result: { subject: string; html: string; text: string };
   if (payload.kind === "success") {
@@ -188,9 +192,12 @@ export async function sendImportNotification(payload: ImportNotificationPayload)
     result = buildNoSourceUrlAlert(payload);
   }
 
-  await transport.sendMail({ from, to, subject: result.subject, html: result.html, text: result.text })
-    .then(() => auditLog("import_notification_sent",   { kind: payload.kind }))
-    .catch((err: any) => auditLog("import_notification_failed", { kind: payload.kind, error: err.message }));
+  const { error } = await client.emails.send({ from: FROM, to, subject: result.subject, html: result.html, text: result.text });
+  if (error) {
+    auditLog("import_notification_failed", { kind: payload.kind, error: error.message });
+  } else {
+    auditLog("import_notification_sent", { kind: payload.kind });
+  }
 }
 
 export type { SendRosterAnnouncementParams, PlayerSlot, Game, Subscriber } from "./templates";
