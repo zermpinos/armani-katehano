@@ -7,10 +7,12 @@ import { classifyScrapedGame, type ClassifyResult } from "@/server/services/impo
 const AK_IDENTIFIERS = ["ARMANI", "KATEHANO"];
 
 function parsePdfEfficiency(text: string): { offRating: number | null; defRating: number | null } {
-  const effRegex = /Off\.\/Def\. Efficiency:\s*([\d,]+)\s*\/\s*([\d,]+)/g;
+  // Accept commas or periods as decimal separator; case-insensitive for team name check.
+  const effRegex = /Off\.?\s*\/\s*Def\.?\s+Efficiency:\s*([\d.,]+)\s*\/\s*([\d.,]+)/gi;
+  const upper = text.toUpperCase();
   let m: RegExpExecArray | null;
   while ((m = effRegex.exec(text)) !== null) {
-    const beforeMatch = text.slice(0, m.index);
+    const beforeMatch = upper.slice(0, m.index);
     if (AK_IDENTIFIERS.some(id => beforeMatch.includes(id))) {
       return {
         offRating: parseFloat(m[1].replace(",", ".")),
@@ -92,8 +94,9 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
         if (offRating !== null) data.game.offRating = offRating;
         if (defRating !== null) data.game.defRating = defRating;
       }
-    } catch {
-      // PDF fetch/parse failure is non-fatal — ratings will be omitted
+    } catch (pdfErr) {
+      // Non-fatal — ratings will be omitted, but log so it's diagnosable
+      console.warn("[scrape-game] PDF rating parse failed:", (pdfErr as Error).message);
     }
   }
 
