@@ -11,7 +11,7 @@ function validateSourceUrl(url: string | null | undefined): true | string {
   if (!isAllowedHostname(parsed.hostname))
     return "sourceUrl host is not on the scraper allowlist";
   if (!detectLeagueSlug(url))
-    return "sourceUrl does not contain a recognised league slug (rookie, bc6, wintercup)";
+    return "sourceUrl must be a sportstats game URL containing /men/ or /winter-cup/ (or a recognised league slug)";
   return true;
 }
 
