@@ -17,6 +17,7 @@ const { mockPrisma, mockTx } = vi.hoisted(() => {
 });
 
 vi.mock("@/server/db/client", () => ({ default: mockPrisma }));
+vi.mock("@/server/integrations/email/client", () => ({ sendImportNotification: vi.fn().mockResolvedValue(undefined) }));
 
 vi.mock("@/server/services/scrape-game", () => ({
   scrapeGameFromUrl: vi.fn(),
@@ -40,11 +41,18 @@ const FINAL_GAME_STATE = { state: "final", reason: "all 4 quarters complete with
 const LIVE_GAME_STATE  = { state: "live",  reason: "fewer than 4 quarters recorded" };
 
 const PENDING_JOB = {
-  id:            "job1",
-  upcomingGameId:"ug1",
-  sourceUrl:     "https://basketcity.sportstats.gr/game/123",
-  state:         "PENDING",
-  attempts:      1,
+  id:             "job1",
+  upcomingGameId: "ug1",
+  sourceUrl:      "https://basketcity.sportstats.gr/game/123",
+  state:          "PENDING",
+  attempts:       1,
+  successSentAt:  null,
+  failureSentAt:  null,
+  upcomingGame: {
+    opponent:     "ΑΡΗΣ",
+    location:     "home",
+    scheduledFor: new Date("2025-01-15T18:00:00Z"),
+  },
 };
 
 beforeEach(() => {
