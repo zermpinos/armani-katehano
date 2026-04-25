@@ -39,7 +39,8 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
     .filter((p: any) => (p.stats.gp ?? 0) > 0 || activeSeason === "all-time");
 
   const sorted = [...playersWithStats].sort((a, b) => {
-    const av = a.stats[sortKey] ?? 0, bv = b.stats[sortKey] ?? 0;
+    const av = Reflect.get(a.stats as object, sortKey) ?? 0;
+    const bv = Reflect.get(b.stats as object, sortKey) ?? 0;
     return sortDir === "desc" ? bv - av : av - bv;
   });
 
@@ -103,8 +104,8 @@ export async function getStaticProps() {
     for (const player of players) {
       const s = (seasonMap as any)[player.id];
       if (s && s.gp > 0) {
-        if (!playerSeasonHistory[player.id]) playerSeasonHistory[player.id] = {};
-        playerSeasonHistory[player.id][sid] = s;
+        if (!Reflect.has(playerSeasonHistory, player.id)) Reflect.set(playerSeasonHistory, player.id, {});
+        Reflect.set(Reflect.get(playerSeasonHistory as object, player.id), sid, s);
       }
     }
   }
