@@ -6,8 +6,18 @@ import {
   esc,
   buildHtml,
   buildText,
+  buildImportSuccess,
+  buildImportFailure,
+  buildNoMatchAlert,
+  buildNoSourceUrlAlert,
   type SendRosterAnnouncementParams,
 } from "./templates";
+
+export type ImportNotificationPayload =
+  | { kind: "success";       opponent: string; location: string; scheduledFor: string; importedAt: Date }
+  | { kind: "failure";       opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null }
+  | { kind: "no-match";      dateStr: string;  opponent: string;  emailSubject: string }
+  | { kind: "no-source-url"; opponent: string; location: string; scheduledFor: string; upcomingGameId: string };
 
 function createTransport() {
   const user = process.env.GMAIL_USER;
@@ -156,6 +166,31 @@ export async function sendAdminAlert({
   await transport.sendMail({ from, to, subject, text: body })
     .then(() => auditLog("admin_alert_sent",  { subject }))
     .catch((err: any) => auditLog("admin_alert_failed", { subject, error: err.message }));
+}
+
+export async function sendImportNotification(payload: ImportNotificationPayload): Promise<void> {
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[email] GMAIL creds not set — skipping import notification");
+    return;
+  }
+  const to   = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
+  const from = `Armani Katehano <${process.env.GMAIL_USER}>`;
+
+  let result: { subject: string; html: string; text: string };
+  if (payload.kind === "success") {
+    result = buildImportSuccess(payload);
+  } else if (payload.kind === "failure") {
+    result = buildImportFailure(payload);
+  } else if (payload.kind === "no-match") {
+    result = buildNoMatchAlert(payload);
+  } else {
+    result = buildNoSourceUrlAlert(payload);
+  }
+
+  await transport.sendMail({ from, to, subject: result.subject, html: result.html, text: result.text })
+    .then(() => auditLog("import_notification_sent",   { kind: payload.kind }))
+    .catch((err: any) => auditLog("import_notification_failed", { kind: payload.kind, error: err.message }));
 }
 
 export type { SendRosterAnnouncementParams, PlayerSlot, Game, Subscriber } from "./templates";
