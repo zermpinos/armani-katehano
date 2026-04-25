@@ -332,7 +332,7 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
             )}
 
             <div>
-              <Btn onClick={fetchAndReview} disabled={!gameUrl.trim() || fetching}>
+              <Btn onClick={() => fetchAndReview()} disabled={!gameUrl.trim() || fetching}>
                 {fetching ? "FETCHING..." : "FETCH & REVIEW"}
               </Btn>
             </div>
