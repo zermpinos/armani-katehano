@@ -73,8 +73,8 @@ describe("detectLeagueSlug", () => {
     expect(detectLeagueSlug("https://basketcity.sportstats.gr/wintercup/game/123")).toBe("wintercup");
   });
 
-  it("returns null for winter-cup (hyphenated) — real function only matches 'wintercup' substring", () => {
-    expect(detectLeagueSlug("https://basketcity.sportstats.gr/winter-cup/game/123")).toBeNull();
+  it("detects wintercup from /winter-cup/ path", () => {
+    expect(detectLeagueSlug("https://basketcity.sportstats.gr/winter-cup/game/123")).toBe("wintercup");
   });
 
   it("detects rookie", () => {
@@ -85,8 +85,12 @@ describe("detectLeagueSlug", () => {
     expect(detectLeagueSlug("https://basketcity.sportstats.gr/bc6/game/789")).toBe("bc6");
   });
 
-  it("returns null (not empty string) for unknown URL", () => {
-    expect(detectLeagueSlug("https://basketcity.sportstats.gr/men/gamedetails/id/999")).toBeNull();
+  it("returns 'men' sentinel for /men/ path URLs", () => {
+    expect(detectLeagueSlug("https://basketcity.sportstats.gr/men/gamedetails/id/999")).toBe("men");
+  });
+
+  it("returns null for unknown URL", () => {
+    expect(detectLeagueSlug("https://basketcity.sportstats.gr/other/game/999")).toBeNull();
   });
 
   it("returns null for null input", () => {
