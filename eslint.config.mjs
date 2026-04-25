@@ -15,12 +15,16 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      "lib/generated/**",
     ],
   },
   {
     // Custom rules -- applied to all non-ignored JS/JSX files
     rules: {
       "no-undef": "error", // catches prodError, requireAuth, etc. used without import
+      // Escalate from warn -> error so the lint job fails on new injection sinks
+      // rather than silently passing with annotations.
+      "security/detect-object-injection": "error",
     },
   },
   // ─── Architecture layer enforcement ───────────────────────────────────────

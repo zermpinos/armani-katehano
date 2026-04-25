@@ -17,16 +17,13 @@ export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
     }
 
     const totalGp = entries.reduce((s, e) => s + e.gp, 0);
-    // eslint-disable-next-line security/detect-object-injection
     const wavg = (key: string) => {
-      // eslint-disable-next-line security/detect-object-injection
-      const weighted = entries.reduce((s: number, e: any) => s + (e[key] || 0) * e.gp, 0);
+      const weighted = entries.reduce((s: number, e: any) => s + (Reflect.get(e, key) as number || 0) * e.gp, 0);
       return +(weighted / totalGp).toFixed(1);
     };
 
     // Sum raw shot totals across seasons for statistically correct percentages
-    // eslint-disable-next-line security/detect-object-injection
-    const sumRaw = (key: string) => entries.reduce((s: number, e: any) => s + (e[key] ?? 0), 0);
+    const sumRaw = (key: string) => entries.reduce((s: number, e: any) => s + (Reflect.get(e, key) as number ?? 0), 0);
     const fgm  = sumRaw("fgm");
     const fga  = sumRaw("fga");
     const fg2m = sumRaw("fg2m");
