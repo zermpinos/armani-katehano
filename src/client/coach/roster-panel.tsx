@@ -42,7 +42,6 @@ export function CoachRosterPanel({
             ) : (
               <div className="flex flex-col gap-1">
                 {allPlayers.map((p: any) => {
-                  // eslint-disable-next-line security/detect-object-injection
                   const slot = rosterSlots[p.id] ?? { checked: false, note: "" };
                   return (
                     <div key={p.id} className={[
