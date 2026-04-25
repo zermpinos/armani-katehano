@@ -17,8 +17,8 @@ export function Btn({ onClick, disabled = false, children, variant = "primary", 
   return (
     <button onClick={onClick} disabled={disabled} className={[
       "font-black tracking-[0.12em] rounded-lg border font-sans transition-opacity duration-150",
-      BTN_VARIANT[variant] ?? BTN_VARIANT.primary,
-      BTN_SIZE[size] ?? BTN_SIZE.md,
+      (Reflect.get(BTN_VARIANT, variant) ?? BTN_VARIANT.primary) as string,
+      (Reflect.get(BTN_SIZE, size) ?? BTN_SIZE.md) as string,
       disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer opacity-100",
     ].join(" ")}>
       {children}
