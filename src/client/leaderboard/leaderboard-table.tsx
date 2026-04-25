@@ -82,7 +82,7 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort,
             </thead>
             <tbody>
               {sorted.map((p, idx) => {
-                const medal = idx < 3 ? MEDALS[idx] : null;
+                const medal = idx < 3 ? Reflect.get(MEDALS, idx) as (typeof MEDALS)[0] : null;
                 return (
                   <tr
                     key={p.id}
@@ -134,7 +134,7 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort,
         {MEDALS.map((m, i) => (
           <div key={i} className="flex items-center gap-1.5">
             <span>{m.label}</span>
-            <span className={`text-xs font-bold ${m.textCls}`}>{["1st", "2nd", "3rd"][i]} place</span>
+            <span className={`text-xs font-bold ${m.textCls}`}>{Reflect.get(["1st", "2nd", "3rd"], i) as string} place</span>
           </div>
         ))}
       </div>

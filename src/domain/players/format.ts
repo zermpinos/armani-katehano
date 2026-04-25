@@ -17,7 +17,7 @@ export function slugify(str: string) {
   return str
     .toLowerCase()
     .split("")
-    .map((c: string) => GREEK[c] ?? c)
+    .map((c: string) => (Reflect.get(GREEK as object, c) ?? c) as string)
     .join("")
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]/g, "");
