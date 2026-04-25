@@ -87,12 +87,14 @@ async function reset(req: any, res: any, id: string) {
     await prisma.gameImportJob.update({
       where: { id },
       data:  {
-        state:        "PENDING",
-        attempts:     0,
-        lockedAt:     null,
-        lockedBy:     null,
-        lastError:    null,
+        state:         "PENDING",
+        attempts:      0,
+        lockedAt:      null,
+        lockedBy:      null,
+        lastError:     null,
         lastErrorHtml: null,
+        failureSentAt: null,
+        successSentAt: null,
       },
     });
     auditLog("import_job_reset", { ip, jobId: id });
