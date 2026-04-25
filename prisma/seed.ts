@@ -193,9 +193,10 @@ async function main() {
   // 3. SeasonLeagues -- one per league per season
   const seasonLeagues = {};
   for (const [slug, league] of Object.entries(leagues)) {
-    seasonLeagues[slug] = await prisma.seasonLeague.create({
+    const newSl = await prisma.seasonLeague.create({
       data: { seasonId: season.id, leagueId: league.id },
     });
+    Reflect.set(seasonLeagues, slug, newSl);
   }
   console.log(`✅ SeasonLeagues created`);
 
@@ -298,7 +299,7 @@ async function main() {
       const gp = rows.length;
       if (gp === 0) continue;
 
-      const sum = key => rows.reduce((a, r) => a + (r[key] || 0), 0);
+      const sum = (key: string) => rows.reduce((a, r) => a + (Reflect.get(r as object, key) as number || 0), 0);
       const avg = key => +(sum(key) / gp).toFixed(2);
 
       const totalFgm  = sum("fgm");
