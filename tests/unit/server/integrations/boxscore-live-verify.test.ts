@@ -476,7 +476,7 @@ for (const game of GAMES) {
 
       for (const [numStr, snap] of Object.entries(game.players)) {
         const num = Number(numStr);
-        const p = byNum[num];
+        const p = Reflect.get(byNum, num);
         if (!p || parseMinutes(p.MIN) === 0) continue;
         expect(p.PTS,              `#${num} pts`).toBe(snap.pts);
         expect(p["2PTS"]?.made,    `#${num} fg2m`).toBe(snap.fg2m);
