@@ -149,7 +149,7 @@ async function createGame(req: any, res: any) {
       return g;
     });
     auditLog("game_created", { ip, gameId: game.id, opponent });
-    await Promise.allSettled(ISR_PATHS.map(p => res.revalidate(p)));
+    await Promise.allSettled(ISR_PATHS.map(p => res.revalidate?.(p)));
     return res.status(201).json({ ok: true, gameId: game.id });
   } catch (err) {
     auditLog("game_create_error", { ip, error: (err as any).message });
@@ -199,7 +199,7 @@ async function updateGame(req: any, res: any) {
       }
     });
     auditLog("game_updated", { ip, gameId, opponent });
-    await Promise.allSettled(ISR_PATHS.map(p => res.revalidate(p)));
+    await Promise.allSettled(ISR_PATHS.map(p => res.revalidate?.(p)));
     return res.status(200).json({ ok: true });
   } catch (err) {
     auditLog("game_update_error", { ip, error: (err as any).message });
@@ -220,7 +220,7 @@ async function deleteGame(req: any, res: any) {
       await recalcAggregates(existing.seasonLeagueId, tx);
     });
     auditLog("game_deleted", { ip, gameId });
-    await Promise.allSettled(ISR_PATHS.map(p => res.revalidate(p)));
+    await Promise.allSettled(ISR_PATHS.map(p => res.revalidate?.(p)));
     return res.status(200).json({ ok: true });
   } catch (err) {
     auditLog("game_delete_error", { ip, error: (err as any).message });

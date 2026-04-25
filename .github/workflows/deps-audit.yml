@@ -7,9 +7,9 @@ on:
   pull_request:
     branches: [main]
     paths: [package-lock.json]
-  # Run weekly even if deps haven't changed -- new CVEs appear constantly.
+  # Monday 09:00 Athens (EEST = UTC+3) = 06:00 UTC
   schedule:
-    - cron: "0 9 * * 1" # Monday 09:00 UTC
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: read
@@ -17,6 +17,7 @@ permissions:
 jobs:
   audit-prod:
     name: npm audit (prod)
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -29,6 +30,7 @@ jobs:
 
   audit-dev:
     name: npm audit (dev)
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -37,6 +39,134 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      # Audit devDependencies separately so build-chain CVEs are caught.
-      # --production=false is the default but explicit for clarity.
       - run: npm audit --only=dev
+
+  weekly-report:
+    name: Weekly security report
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      - name: Ensure security-audit label exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create "security-audit" --color "B60205" --description "Automated weekly dependency audit" --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+
+      - name: Generate report and open issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+
+          # Capture audit JSON -- exits 1 when vulnerabilities exist, so || true
+          AUDIT_JSON=$(npm audit --json 2>/dev/null || true)
+          VULN_COUNT=$(node -e "
+            try {
+              const d = JSON.parse(process.env.AUDIT_JSON);
+              const v = d.metadata?.vulnerabilities ?? {};
+              console.log(Object.values(v).reduce((a,b) => a+b, 0));
+            } catch { console.log(0); }
+          " AUDIT_JSON="$AUDIT_JSON")
+
+          # Build vulnerability detail block
+          VULN_DETAIL=$(node -e "
+            try {
+              const d = JSON.parse(process.env.AUDIT_JSON);
+              const vulns = d.vulnerabilities ?? {};
+              const entries = Object.entries(vulns);
+              if (!entries.length) { console.log('No vulnerabilities found.'); process.exit(0); }
+              const seen = new Set();
+              const lines = [];
+              for (const [name, v] of entries) {
+                const advisories = v.via.filter(x => typeof x === 'object' && x.url);
+                if (advisories.length) {
+                  for (const adv of advisories) {
+                    const key = adv.url;
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+                    const fix = v.fixAvailable === true
+                      ? 'non-breaking fix available'
+                      : v.fixAvailable
+                        ? 'breaking fix only (' + v.fixAvailable.name + '@' + v.fixAvailable.version + ')'
+                        : 'no fix available';
+                    lines.push('- **' + name + '** · ' + (adv.severity ?? v.severity) + ' · ' + (adv.title ?? '') + '\n  Advisory: ' + adv.url + '\n  Fix: ' + fix);
+                  }
+                } else {
+                  const fix = v.fixAvailable === true ? 'non-breaking fix available' : 'no non-breaking fix';
+                  lines.push('- **' + name + '** · ' + v.severity + ' (transitive)\n  Fix: ' + fix);
+                }
+              }
+              console.log(lines.join('\n'));
+            } catch(e) { console.log('Could not parse audit output: ' + e.message); }
+          " AUDIT_JSON="$AUDIT_JSON")
+
+          # Check postcss override staleness
+          # Override is needed while next bundles postcss < 8.5.10
+          NEXT_POSTCSS=$(npm view next@latest dependencies.postcss 2>/dev/null || echo "unknown")
+          POSTCSS_STATUS=$(node -e "
+            const raw = '$NEXT_POSTCSS';
+            if (raw === 'unknown') { console.log('unknown'); process.exit(0); }
+            const clean = raw.replace(/[^0-9.]/g, '');
+            const [maj, min, pat] = clean.split('.').map(Number);
+            const needed = maj < 8 || (maj === 8 && min < 5) || (maj === 8 && min === 5 && (pat||0) < 10);
+            console.log(needed ? 'still needed' : 'can be removed');
+          ")
+
+          # Check svix override staleness
+          # Override is needed while resend depends on svix < 1.92.2
+          RESEND_SVIX=$(npm view resend@latest dependencies.svix 2>/dev/null || echo "unknown")
+          SVIX_STATUS=$(node -e "
+            const raw = '$RESEND_SVIX';
+            if (!raw || raw === 'unknown' || raw === 'undefined') { console.log('unknown'); process.exit(0); }
+            const clean = raw.replace(/[^0-9.]/g, '');
+            const [maj, min, pat] = clean.split('.').map(Number);
+            const needed = maj < 1 || (maj === 1 && min < 92) || (maj === 1 && min === 92 && (pat||0) < 2);
+            console.log(needed ? 'still needed' : 'can be removed');
+          ")
+
+          # Title
+          if [ "$VULN_COUNT" = "0" ]; then
+            TITLE="[Security Audit] $DATE -- clean"
+          else
+            TITLE="[Security Audit] $DATE -- $VULN_COUNT vulnerabilities"
+          fi
+
+          # Write body to file to avoid quoting issues
+          cat > /tmp/issue-body.md << ISSUEEOF
+          ## Summary
+
+          $([ "$VULN_COUNT" = "0" ] && echo "**clean** -- \`npm audit\` found no vulnerabilities." || echo "**$VULN_COUNT vulnerabilities found.**")
+
+          ## Vulnerabilities
+
+          $VULN_DETAIL
+
+          ## Override staleness
+
+          These overrides exist in \`package.json\` to patch transitive vulnerabilities while upstream catches up. Remove them once they show "can be removed" -- they become harmless no-ops otherwise, but trimming them keeps the config clean.
+
+          | Override | Upstream status | Action |
+          |---|---|---|
+          | \`postcss ^8.5.10\` | next@latest bundles \`$NEXT_POSTCSS\` | $POSTCSS_STATUS |
+          | \`svix ^1.92.2\` | resend@latest depends on svix \`$RESEND_SVIX\` | $SVIX_STATUS |
+
+          $([ "$POSTCSS_STATUS" = "can be removed" ] && [ "$SVIX_STATUS" = "can be removed" ] && echo "> **Both overrides can now be removed from \`package.json\`.**")
+
+          ---
+          *Weekly audit -- Node $(node --version) · npm $(npm --version)*
+          ISSUEEOF
+
+          gh issue create \
+            --title "$TITLE" \
+            --body-file /tmp/issue-body.md \
+            --label "security-audit"
