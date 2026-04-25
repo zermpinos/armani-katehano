@@ -46,9 +46,9 @@ describe("buildAllTimeStatsMap -- single season", () => {
     };
     const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
 
-    expect(map[P1].gp).toBe(10);
-    expect(map[P1].ppg).toBe(15.0);
-    expect(map[P1].rpg).toBe(5.0);
+    expect(Reflect.get(map, P1).gp).toBe(10);
+    expect(Reflect.get(map, P1).ppg).toBe(15.0);
+    expect(Reflect.get(map, P1).rpg).toBe(5.0);
   });
 
   it("returns zeros for a player with 0 games in a single season", () => {
@@ -57,8 +57,8 @@ describe("buildAllTimeStatsMap -- single season", () => {
     };
     const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
 
-    expect(map[P1].gp).toBe(0);
-    expect(map[P1].ppg).toBe(0);
+    expect(Reflect.get(map, P1).gp).toBe(0);
+    expect(Reflect.get(map, P1).ppg).toBe(0);
   });
 });
 
@@ -75,8 +75,8 @@ describe("buildAllTimeStatsMap -- weighted averages across seasons", () => {
     };
     const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
 
-    expect(map[P1].gp).toBe(20);
-    expect(map[P1].ppg).toBe(15.0);
+    expect(Reflect.get(map, P1).gp).toBe(20);
+    expect(Reflect.get(map, P1).ppg).toBe(15.0);
   });
 
   it("correctly weights when seasons have very different game counts", () => {
@@ -89,8 +89,8 @@ describe("buildAllTimeStatsMap -- weighted averages across seasons", () => {
     };
     const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
 
-    expect(map[P1].gp).toBe(21);
-    expect(map[P1].ppg).toBe(+((30 + 200) / 21).toFixed(1));
+    expect(Reflect.get(map, P1).gp).toBe(21);
+    expect(Reflect.get(map, P1).ppg).toBe(+((30 + 200) / 21).toFixed(1));
   });
 
   it("accumulates total gp correctly across three seasons", () => {
@@ -100,7 +100,7 @@ describe("buildAllTimeStatsMap -- weighted averages across seasons", () => {
       "s-3": { [P1]: seasonStats(12, 18.0) },
     };
     const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
-    expect(map[P1].gp).toBe(25);
+    expect(Reflect.get(map, P1).gp).toBe(25);
   });
 });
 
@@ -122,12 +122,12 @@ describe("buildAllTimeStatsMap -- player missing from some seasons", () => {
     const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }, { id: P2 }]);
 
     // P1: (10*15 + 10*20) / 20 = 17.5
-    expect(map[P1].gp).toBe(20);
-    expect(map[P1].ppg).toBe(17.5);
+    expect(Reflect.get(map, P1).gp).toBe(20);
+    expect(Reflect.get(map, P1).ppg).toBe(17.5);
 
     // P2: only s-2 -- stats should be exactly s-2 stats
-    expect(map[P2].gp).toBe(8);
-    expect(map[P2].ppg).toBe(12.0);
+    expect(Reflect.get(map, P2).gp).toBe(8);
+    expect(Reflect.get(map, P2).ppg).toBe(12.0);
   });
 
   it("returns zeros for a player who never appeared in any season", () => {
@@ -136,9 +136,9 @@ describe("buildAllTimeStatsMap -- player missing from some seasons", () => {
     };
     const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }, { id: P2 }]);
 
-    expect(map[P2].gp).toBe(0);
-    expect(map[P2].ppg).toBe(0);
-    expect(map[P2].gameLog).toEqual([]);
+    expect(Reflect.get(map, P2).gp).toBe(0);
+    expect(Reflect.get(map, P2).ppg).toBe(0);
+    expect(Reflect.get(map, P2).gameLog).toEqual([]);
   });
 });
 
@@ -154,8 +154,8 @@ describe("buildAllTimeStatsMap -- zero-stat seasons excluded from averages", () 
     const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
 
     // Should equal the active season only
-    expect(map[P1].gp).toBe(10);
-    expect(map[P1].ppg).toBe(20.0);
+    expect(Reflect.get(map, P1).gp).toBe(10);
+    expect(Reflect.get(map, P1).ppg).toBe(20.0);
   });
 });
 
@@ -172,8 +172,8 @@ describe("buildAllTimeStatsMap -- gameLog merging", () => {
     };
     const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
 
-    expect(map[P1].gameLog).toHaveLength(2);
-    expect(map[P1].gameLog[0].date).toBe("2024-01-01"); // older first
-    expect(map[P1].gameLog[1].date).toBe("2025-03-15");
+    expect(Reflect.get(map, P1).gameLog).toHaveLength(2);
+    expect(Reflect.get(map, P1).gameLog[0].date).toBe("2024-01-01"); // older first
+    expect(Reflect.get(map, P1).gameLog[1].date).toBe("2025-03-15");
   });
 });
