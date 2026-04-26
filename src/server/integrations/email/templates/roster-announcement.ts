@@ -51,7 +51,7 @@ export function buildHtml(
 
   const rosterBlock = (starters.length > 0 && bench.length > 0)
     ? `${labeledTable("Starters", starters)}
-              <div style="height:18px;line-height:18px;font-size:0;">&nbsp;</div>
+              <div style="height:14px;line-height:14px;font-size:0;">&nbsp;</div>
               ${labeledTable("Bench", bench)}`
     : tableHtml(starters.length > 0 ? starters : bench);
 
@@ -219,6 +219,8 @@ export function buildText(
   if (startersTxt.length > 0 && benchTxt.length > 0) {
     lines.push(`STARTERS · ${startersTxt.length}`);
     lines.push(...startersTxt);
+    lines.push(``);
+    lines.push(`  ${"·".repeat(32)}`);
     lines.push(``);
     lines.push(`BENCH · ${benchTxt.length}`);
     lines.push(...benchTxt);
