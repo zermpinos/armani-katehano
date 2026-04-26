@@ -4,43 +4,31 @@
  * Also accepts an optional YouTube video URL.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, BoxScoreTable, F, Sel, Btn, Spinner, LoginForm, byJersey, useAdminAuth, apiFetch } from "@/client/admin";
-import type { Player, SeasonLeague, BoxScoreRow, ScheduledGame } from "@/client/admin";
+import { AdminLayout, Spinner, LoginForm, useAdminAuth, apiFetch } from "@/client/admin";
 import { validateAdminSlug } from '@/server/auth';
-import { parseGreekDate, parseMinutes, detectLeagueSlug } from '@/domain/calendar/greek-date';
-import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
-
-type ImportDraft = {
-  date: string;
-  opponent: string;
-  home: boolean;
-  result: "W" | "L" | "T";
-  teamScore: number;
-  opponentScore: number;
-  seasonLeagueId: string;
-  sourceUrl: string | null;
-  boxScore: BoxScoreRow[];
-};
+import { resolveImportUrl } from "@/domain/shared/format";
+import { buildDraft } from "@/client/admin/import/build-draft";
+import type { ImportDraft } from "@/client/admin/import/build-draft";
+import { useImportData } from "@/client/admin/import/use-import-data";
+import { IdleForm } from "@/client/admin/import/IdleForm";
+import { ReviewForm } from "@/client/admin/import/ReviewForm";
 
 export default function ImportPage({ validSlug }: { validSlug: boolean }) {
   const router = useRouter();
   const slug = router.query.slug || validSlug;
 
   const { authed, loading: checking, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
+  const { players, seasonLeagues, schedule, setSchedule, dataLoading } = useImportData(authed);
 
-  const [players,       setPlayers]       = useState<Player[]>([]);
-  const [seasonLeagues, setSeasonLeagues] = useState<SeasonLeague[]>([]);
-  const [schedule,      setSchedule]      = useState<ScheduledGame[]>([]);
-  const [dataLoading,   setDataLoading]   = useState(false);
   const [toast, setToast] = useState<{ msg: string; type?: string } | null>(null);
 
   const [gameUrl,    setGameUrl]    = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [fetching,   setFetching]   = useState(false);
   const [phase,      setPhase]      = useState("idle");
-  const [draft, setDraft] = useState<ImportDraft | null>(null);
+  const [draft,      setDraft]      = useState<ImportDraft | null>(null);
   const [highlights, setHighlights] = useState<Record<string, boolean>>({});
   const [warnings,   setWarnings]   = useState<string[]>([]);
   const [error,      setError]      = useState("");
@@ -50,126 +38,6 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
 
   const showToast = (msg: string, type = "success") => setToast({ msg, type });
 
-  const loadBase = async () => {
-    setDataLoading(true);
-    try {
-      const [pRes, slRes, schRes] = await Promise.all([
-        fetch("/api/admin/players"),
-        fetch("/api/admin/season-leagues"),
-        fetch("/api/admin/schedule"),
-      ]);
-      if (pRes.ok)   { const d = await pRes.json();   setPlayers(d.players ?? []); }
-      if (slRes.ok)  { const d = await slRes.json();  setSeasonLeagues(d.seasonLeagues ?? []); }
-      if (schRes.ok) { const d = await schRes.json(); setSchedule(d.schedule ?? []); }
-    } finally { setDataLoading(false); }
-  };
-
-  useEffect(() => { if (authed) loadBase(); }, [authed]);
-
-  // ── buildDraft — maps scraper JSON to the review UI ──────────────────────
-  const buildDraft = (data: Record<string, unknown>) => {
-    const { game, teams, url: sourceUrl } = data as {
-      game: { homeTeam: string; awayTeam: string; date: string; finalScore: { home: number; away: number }; offRating?: number | null; defRating?: number | null };
-      teams: { name: string; players: Record<string, unknown>[] }[];
-      url: string;
-    };
-
-    const akTeam = teams.find(t =>
-      t.name.toUpperCase().includes("ARMANI") ||
-      t.name.toUpperCase().includes("KATEHANO")
-    );
-    if (!akTeam) throw new Error("ARMANI KATEHANO team not found in scraped data");
-
-    const isHome      = game.homeTeam.toUpperCase().includes("ARMANI") ||
-                        game.homeTeam.toUpperCase().includes("KATEHANO");
-    const akScore     = isHome ? game.finalScore.home  : game.finalScore.away;
-    const oppScore    = isHome ? game.finalScore.away  : game.finalScore.home;
-    const oppTeamName = isHome ? game.awayTeam         : game.homeTeam;
-    const result      = akScore > oppScore ? "W" : akScore < oppScore ? "L" : "T" as const;
-    const parsedDate  = parseGreekDate(game.date);
-    const date        = parsedDate ? parsedDate.toISOString().slice(0, 10) : "";
-    const leagueSlug  = detectLeagueSlug(sourceUrl);
-
-    const matchedSL = seasonLeagues.find(sl => sl.leagueSlug === leagueSlug)
-                   ?? seasonLeagues[0];
-
-    const boxScore: BoxScoreRow[] = [...players].sort(byJersey).map(dbPlayer => {
-      const scraped = akTeam.players.find((p: Record<string, unknown>) => p["#"] === Number(dbPlayer.number));
-      const mins    = scraped ? parseMinutes(scraped.MIN as string) : 0;
-
-      if (!scraped || mins === 0) {
-        return {
-          playerId: dbPlayer.id, minutes: 0, pts: 0, reb: 0, orb: 0, drb: 0,
-          ast: 0, stl: 0, blk: 0, tov: 0, pf: 0,
-          fgm: 0, fga: 0, fg2m: 0, fg2a: 0, fg3m: 0, fg3a: 0,
-          ftm: 0, fta: 0, eff: 0,
-        };
-      }
-
-      const fg2m = (scraped["2PTS"] as { made?: number })?.made      ?? 0;
-      const fg2a = (scraped["2PTS"] as { attempted?: number })?.attempted ?? 0;
-      const fg3m = (scraped["3PTS"] as { made?: number })?.made      ?? 0;
-      const fg3a = (scraped["3PTS"] as { attempted?: number })?.attempted ?? 0;
-
-      return {
-        playerId: dbPlayer.id,
-        min:      mins,
-        pts:  scraped.PTS  as number ?? 0,
-        reb:  scraped.REB  as number ?? 0,
-        orb:  scraped.OREB as number ?? 0,
-        drb:  scraped.DREB as number ?? 0,
-        ast:  scraped.AST  as number ?? 0,
-        stl:  scraped.STL  as number ?? 0,
-        blk:  scraped.BLK  as number ?? 0,
-        tov:  scraped.TO   as number ?? 0,
-        pf:   scraped.PF   as number ?? 0,
-        fg2m, fg2a, fg3m, fg3a,
-        fgm:  fg2m + fg3m,
-        fga:  fg2a + fg3a,
-        ftm:  (scraped.FT as { made?: number })?.made      ?? 0,
-        fta:  (scraped.FT as { attempted?: number })?.attempted ?? 0,
-        eff:  scraped.EF   as number ?? 0,
-      };
-    });
-
-    const hl: Record<string, boolean> = {};
-    akTeam.players.forEach((p: Record<string, unknown>) => {
-      if (parseMinutes(p.MIN as string) > 0) {
-        const dbPlayer = players.find(pl => Number(pl.number) === p["#"]);
-        if (dbPlayer) hl[dbPlayer.id] = true;
-      }
-    });
-
-    const warns: string[] = [];
-    akTeam.players.filter((p: Record<string, unknown>) => parseMinutes(p.MIN as string) > 0).forEach((p: Record<string, unknown>) => {
-      const fg2m = (p["2PTS"] as { made?: number })?.made ?? 0;
-      const fg3m = (p["3PTS"] as { made?: number })?.made ?? 0;
-      const ftm  = (p.FT as { made?: number })?.made ?? 0;
-      const expPts = fg2m * 2 + fg3m * 3 + ftm;
-      if ((p.PTS as number ?? 0) !== expPts)
-        warns.push(`#${p["#"]} ${p.Players}: pts=${p.PTS}, expected ${expPts}`);
-    });
-
-    return {
-      draft: {
-        date,
-        opponent:       oppTeamName,
-        home:           isHome,
-        result,
-        teamScore:      akScore,
-        opponentScore:  oppScore,
-        seasonLeagueId: matchedSL?.id ?? "",
-        sourceUrl:      sourceUrl ?? null,
-        boxScore,
-      } satisfies ImportDraft,
-      highlights: hl,
-      warnings:   warns,
-      offRating:  game.offRating ?? null,
-      defRating:  game.defRating ?? null,
-    };
-  };
-
-  // ── fetchAndReview — calls the server-side scraper ───────────────────────
   const fetchAndReview = async (overrideUrl?: string) => {
     const target = resolveImportUrl(overrideUrl, gameUrl);
     if (overrideUrl) setGameUrl(overrideUrl);
@@ -184,8 +52,8 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
       const body = await res.json();
       if (!res.ok) { setError(body.error || "Scrape failed"); return; }
 
-      const { draft, highlights, warnings, offRating: off, defRating: def } = buildDraft(body.data);
-      setDraft(draft); setHighlights(highlights); setWarnings(warnings);
+      const { draft: d, highlights: hl, warnings: w, offRating: off, defRating: def } = buildDraft(body.data, players, seasonLeagues);
+      setDraft(d); setHighlights(hl); setWarnings(w);
       setOffRating(off ?? null); setDefRating(def ?? null);
       setGameState(body.gameState ?? null);
       setPhase("review");
@@ -251,9 +119,7 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
     fetch("/api/admin/schedule").then(r => r.ok ? r.json() : null).then(d => { if (d) setSchedule(d.schedule ?? []); });
   };
 
-  const leagueOptions = seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName }));
-
-  const urlInputCls = "w-full py-[10px] px-3 text-[13px] font-sans rounded-lg border border-ak-border2 bg-ak-base text-ak-text outline-none";
+  const handleBack = () => { setPhase("idle"); setDraft(null); setGameState(null); setOffRating(null); setDefRating(null); };
 
   if (checking) return (
     <div className="min-h-screen bg-ak-base flex items-center justify-center">
@@ -280,159 +146,36 @@ export default function ImportPage({ validSlug }: { validSlug: boolean }) {
         {dataLoading && <div className="flex justify-center py-10"><Spinner /></div>}
 
         {!dataLoading && phase === "idle" && (
-          <div className="flex flex-col gap-[14px]">
-            {(() => {
-              const now = new Date();
-              const candidates = schedule
-                .filter(g => g.sourceUrl && new Date(g.scheduledFor) <= now)
-                .sort((a, b) => new Date(b.scheduledFor).getTime() - new Date(a.scheduledFor).getTime());
-              if (!candidates.length) return null;
-              return (
-                <div>
-                  <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[6px] uppercase">Quick import</div>
-                  <div className="flex flex-col gap-[4px]">
-                    {candidates.map(g => (
-                      <button
-                        key={g.id}
-                        type="button"
-                        disabled={fetching}
-                        onClick={() => fetchAndReview(g.sourceUrl!)}
-                        className="w-full text-left py-[8px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 hover:border-ak-border2 text-[12px] text-ak-text disabled:opacity-50 transition-colors"
-                      >
-                        <span className="font-black">{g.location === "home" ? "vs" : "@"} {g.opponent}</span>
-                        <span className="text-ak-text-dim ml-2">{fmtDate(g.scheduledFor)}{g.competition ? ` · ${g.competition}` : ""}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-
-            <div>
-              <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[6px] uppercase">Game URL</div>
-              <input
-                type="url"
-                value={gameUrl}
-                onChange={e => setGameUrl(e.target.value)}
-                placeholder="https://basketcity.sportstats.gr/men/gamedetails/id/…"
-                disabled={fetching}
-                className={urlInputCls}
-              />
-            </div>
-
-            <div>
-              <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[6px] uppercase">
-                YouTube video URL <span className="font-normal normal-case text-[11px]">(optional)</span>
-              </div>
-              <input
-                type="url"
-                value={youtubeUrl}
-                onChange={e => setYoutubeUrl(e.target.value)}
-                placeholder="https://www.youtube.com/watch?v=…"
-                disabled={fetching}
-                className={urlInputCls}
-              />
-            </div>
-
-            {error && (
-              <div className="text-xs text-ak-red-text py-2 px-3 rounded-lg bg-[#8b1a1a18] border border-[#8b1a1a40]">{error}</div>
-            )}
-
-            <div>
-              <Btn onClick={() => fetchAndReview()} disabled={!gameUrl.trim() || fetching}>
-                {fetching ? "FETCHING…" : "FETCH & REVIEW"}
-              </Btn>
-            </div>
-
-            {fetching && (
-              <div className="flex items-center gap-[10px] text-ak-text-dim text-xs">
-                <Spinner /> Scraping game page…
-              </div>
-            )}
-          </div>
+          <IdleForm
+            schedule={schedule}
+            gameUrl={gameUrl}
+            setGameUrl={setGameUrl}
+            youtubeUrl={youtubeUrl}
+            setYoutubeUrl={setYoutubeUrl}
+            fetching={fetching}
+            error={error}
+            onFetch={fetchAndReview}
+          />
         )}
 
         {!dataLoading && (phase === "review" || phase === "saving") && draft && (
-          <div className="flex flex-col gap-4">
-            {gameState && gameState.state !== "final" && (
-              <div className={[
-                "py-[10px] px-[14px] rounded-lg text-xs border",
-                gameState.state === "scheduled"
-                  ? "bg-[#8b1a1a18] border-[#8b1a1a40] text-ak-red-text"
-                  : "bg-[#8b5a0018] border-[#8b5a0040] text-[#b8860b]",
-              ].join(" ")}>
-                <div className="font-black mb-0.5">
-                  {gameState.state === "scheduled" ? "Game not yet played" : "Game may still be in progress"}
-                </div>
-                <div>{gameState.reason}</div>
-              </div>
-            )}
-
-            {warnings.length > 0 && (
-              <div className="py-[10px] px-[14px] rounded-lg bg-[#8b1a1a18] border border-[#8b1a1a40] text-xs text-ak-red-text">
-                <div className="font-black mb-1">⚠ Warnings — review before saving:</div>
-                {warnings.map((w, i) => <div key={i}>• {w}</div>)}
-              </div>
-            )}
-
-            <div>
-              <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Game info</div>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-[10px]">
-                <F label="DATE"       value={draft.date}          onChange={v => updDraft("date", v)}          placeholder="YYYY-MM-DD" />
-                <F label="OPPONENT"   value={draft.opponent}      onChange={v => updDraft("opponent", v)} />
-                <Sel label="LEAGUE"   value={draft.seasonLeagueId || ""} onChange={v => updDraft("seasonLeagueId", v)} options={leagueOptions} />
-                <Sel label="HOME/AWAY" value={draft.home ? "home" : "away"} onChange={v => updDraft("home", v === "home")} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
-                <Sel label="RESULT"   value={draft.result}        onChange={v => updDraft("result", v)}        options={[{ value: "W", label: "Win" }, { value: "L", label: "Loss" }, { value: "T", label: "Tie" }]} />
-                <F label="OUR SCORE"  value={draft.teamScore}     onChange={v => updDraft("teamScore", v)}     type="number" />
-                <F label="OPP SCORE"  value={draft.opponentScore} onChange={v => updDraft("opponentScore", v)} type="number" />
-              </div>
-            </div>
-
-            <div>
-              <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[6px] uppercase">
-                YouTube video URL <span className="font-normal normal-case text-[11px]">(optional)</span>
-              </div>
-              <input
-                type="url"
-                value={youtubeUrl}
-                onChange={e => setYoutubeUrl(e.target.value)}
-                placeholder="https://www.youtube.com/watch?v=…"
-                className={urlInputCls}
-              />
-            </div>
-
-            {(offRating !== null || defRating !== null) && (
-              <div>
-                <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[8px] uppercase">Efficiency ratings (from PDF)</div>
-                <div className="flex gap-[10px]">
-                  <div className="flex-1 py-[10px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 text-center">
-                    <div className="text-[9px] font-black tracking-[0.12em] text-ak-text-dim mb-[4px]">OFF RTG</div>
-                    <div className="text-[18px] font-black text-ak-text">{offRating ?? "—"}</div>
-                  </div>
-                  <div className="flex-1 py-[10px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 text-center">
-                    <div className="text-[9px] font-black tracking-[0.12em] text-ak-text-dim mb-[4px]">DEF RTG</div>
-                    <div className="text-[18px] font-black text-ak-text">{defRating ?? "—"}</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div>
-              <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Box score — green rows played</div>
-              <BoxScoreTable players={players} rows={draft.boxScore} onUpdate={updBox} highlights={highlights} />
-            </div>
-
-            <div className="flex gap-[10px] pt-1">
-              <Btn
-                onClick={save}
-                variant="green"
-                disabled={phase === "saving" || gameState?.state === "scheduled"}
-              >
-                {phase === "saving" ? "SAVING…" : "SAVE GAME"}
-              </Btn>
-              <Btn variant="ghost" onClick={() => { setPhase("idle"); setDraft(null); setGameState(null); setOffRating(null); setDefRating(null); }} disabled={phase === "saving"}>BACK</Btn>
-            </div>
-          </div>
+          <ReviewForm
+            draft={draft}
+            phase={phase}
+            gameState={gameState}
+            warnings={warnings}
+            offRating={offRating}
+            defRating={defRating}
+            youtubeUrl={youtubeUrl}
+            setYoutubeUrl={setYoutubeUrl}
+            players={players}
+            highlights={highlights}
+            seasonLeagues={seasonLeagues}
+            updDraft={updDraft}
+            updBox={updBox}
+            onSave={save}
+            onBack={handleBack}
+          />
         )}
       </div>
     </AdminLayout>
