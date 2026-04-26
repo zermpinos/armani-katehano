@@ -40,15 +40,34 @@ export function esc(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-export function formatDate(iso: string): string {
+function parseIso(iso: string): Date {
   const [datePart, timePart] = iso.split("T");
   const [year, month, day] = datePart.split("-").map(Number);
   const [hour, minute] = timePart.split(":").map(Number);
-  const d = new Date(Date.UTC(year, month - 1, day, hour, minute));
-  return d.toLocaleString("el-GR", {
+  return new Date(Date.UTC(year, month - 1, day, hour, minute));
+}
+
+export function formatDate(iso: string): string {
+  return parseIso(iso).toLocaleString("el-GR", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
     hour: "2-digit", minute: "2-digit", timeZone: "UTC",
   });
+}
+
+export function formatDateFull(iso: string): string {
+  return parseIso(iso).toLocaleString("en-GB", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+export function formatDayTime(iso: string): string {
+  const d    = parseIso(iso);
+  const day  = d.toLocaleString("en-GB", { weekday: "long", timeZone: "UTC" });
+  const time = d.toLocaleString("en-GB", {
+    hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC",
+  });
+  return `${day}, ${time}`;
 }
 
 export function sanitize(s: string): string {
