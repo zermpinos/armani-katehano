@@ -200,6 +200,23 @@ export function sanitize(s: string): string {
   return s.replace(/[\x00-\x1F\x7F]/g, "").trim().slice(0, 1000);
 }
 
+function isStarter(note: string | null | undefined): boolean {
+  if (!note) return false;
+  return /^start(er|ing)?$/i.test(note.trim());
+}
+
+function renderPlayerRow(p: PlayerSlot, i: number): string {
+  const bg   = i % 2 === 0 ? "#ffffff" : "#f9fafb";
+  const note = p.note
+    ? `<span style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:4px;background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;letter-spacing:0.06em;">${esc(p.note)}</span>`
+    : "";
+  return `
+      <tr style="background:${bg};">
+        <td style="padding:10px 16px;width:44px;font-size:12px;font-weight:900;color:#c92a2a;font-variant-numeric:tabular-nums;">#${p.number}</td>
+        <td style="padding:10px 16px;font-size:14px;color:#111827;font-weight:600;">${esc(p.name)}${note}</td>
+      </tr>`;
+}
+
 export function buildHtml(
   game: Game,
   players: PlayerSlot[],
@@ -213,19 +230,21 @@ export function buildHtml(
   const venueUrl   = game.notes ? getVenueUrl(game.notes) : null;
   const dateStr   = esc(formatDate(game.scheduledFor));
 
-  const sorted = [...players].sort((a, b) => a.number - b.number);
+  const sorted   = [...players].sort((a, b) => a.number - b.number);
+  const starters = sorted.filter(p => isStarter(p.note));
+  const bench    = sorted.filter(p => !isStarter(p.note));
 
-  const playerRows = sorted.map((p, i) => {
-    const bg   = i % 2 === 0 ? "#ffffff" : "#f9fafb";
-    const note = p.note
-      ? `<span style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:4px;background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;letter-spacing:0.06em;">${esc(p.note)}</span>`
-      : "";
-    return `
-      <tr style="background:${bg};">
-        <td style="padding:10px 16px;width:44px;font-size:12px;font-weight:900;color:#c92a2a;font-variant-numeric:tabular-nums;">#${p.number}</td>
-        <td style="padding:10px 16px;font-size:14px;color:#111827;font-weight:600;">${esc(p.name)}${note}</td>
-      </tr>`;
-  }).join("");
+  const tableHtml = (group: PlayerSlot[]): string => `
+              <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                     style="border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">
+                ${group.map((p, i) => renderPlayerRow(p, i)).join("")}
+              </table>`;
+
+  const rosterBlock = (starters.length > 0 && bench.length > 0)
+    ? `${tableHtml(starters)}
+              <div style="height:14px;line-height:14px;font-size:0;">&nbsp;</div>
+              ${tableHtml(bench)}`
+    : tableHtml(starters.length > 0 ? starters : bench);
 
   const coachBlock = message ? `
     <tr>
@@ -315,13 +334,9 @@ export function buildHtml(
             </td>
           </tr>
 
-          <!-- Roster table -->
+          <!-- Roster table(s) -->
           <tr>
-            <td style="padding:0 32px 28px;">
-              <table width="100%" cellpadding="0" cellspacing="0" border="0"
-                     style="border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">
-                ${playerRows}
-              </table>
+            <td style="padding:0 32px 28px;">${rosterBlock}
             </td>
           </tr>
 
@@ -369,14 +384,19 @@ export function buildText(
   const venueLabel = game.notes ?? (isHome ? "Home" : "Away");
   const venueUrl   = game.notes ? getVenueUrl(game.notes) : null;
 
-  const rosterLines = [...players]
-    .sort((a, b) => a.number - b.number)
-    .map(p => {
-      const num  = `#${p.number}`.padEnd(5);
-      const note = p.note ? `   (${p.note})` : "";
-      return `  ${num}  ${p.name}${note}`;
-    })
-    .join("\n");
+  const fmtLine = (p: PlayerSlot): string => {
+    const num  = `#${p.number}`.padEnd(5);
+    const note = p.note ? `   (${p.note})` : "";
+    return `  ${num}  ${p.name}${note}`;
+  };
+
+  const sortedPlayers = [...players].sort((a, b) => a.number - b.number);
+  const startersTxt   = sortedPlayers.filter(p => isStarter(p.note)).map(fmtLine);
+  const benchTxt      = sortedPlayers.filter(p => !isStarter(p.note)).map(fmtLine);
+
+  const rosterLines = (startersTxt.length > 0 && benchTxt.length > 0)
+    ? [...startersTxt, "", `  ${"·".repeat(32)}`, "", ...benchTxt].join("\n")
+    : [...startersTxt, ...benchTxt].join("\n");
 
   const coachMsg = message
     ? `\nNote from the coach\n${"─".repeat(36)}\n${sanitize(message)}\n`
