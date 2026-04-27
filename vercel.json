@@ -5,7 +5,7 @@
       "schedule": "0 3 * * *"
     },
     {
-      "path": "/api/cron/import-sweep",
+      "path": "/api/cron/purge-error-html",
       "schedule": "0 4 * * *"
     }
   ]

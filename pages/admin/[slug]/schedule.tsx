@@ -75,7 +75,7 @@ export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
     const year = now.getFullYear();
     const dateStr = `${day}-${month}-${year}`;
     const timeStr = "20:00";
-    setDraft({ opponent: "", date: dateStr, time: timeStr, location: "home", competition: "", notes: "", sourceUrl: "" });
+    setDraft({ opponent: "", date: dateStr, time: timeStr, location: "home", competition: "", notes: "", sourceUrl: "", listingUrl: "" });
     setEditId("new");
   };
 
@@ -114,6 +114,7 @@ export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
         competition:  draft.competition || null,
         notes:        draft.notes || null,
         sourceUrl:    draft.sourceUrl || null,
+        listingUrl:   draft.listingUrl || null,
       }),
     });
     if (!res.ok) { const d = await res.json(); showToast(d.error, "error"); return; }
@@ -162,7 +163,15 @@ export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
         <F label="COMPETITION" value={draft.competition ?? ""} onChange={v => updGame("competition", v)} placeholder="e.g. Super Winter Cup" />
       </div>
       <div className="mb-3">
-        <F label="SOURCE URL" value={draft.sourceUrl ?? ""} onChange={v => updGame("sourceUrl", v)} placeholder="https://basketcity.sportstats.gr/..." />
+        <F label="SOURCE URL" value={draft.sourceUrl ?? ""} onChange={v => updGame("sourceUrl", v)} placeholder="https://basketcity.sportstats.gr/.../gamedetails/..." />
+      </div>
+      <div className="mb-3">
+        <F label="LISTING URL" value={draft.listingUrl ?? ""} onChange={v => updGame("listingUrl", v)} placeholder="https://basketcity.sportstats.gr/<league>/teamdetails/id/<UUID>" />
+        <div className="text-[10px] text-ak-text-dim mt-1 leading-relaxed">
+          Team fixtures page. Used to auto-discover the source URL ~1h after tip-off.<br />
+          Men: <code>/men/teamdetails/id/BED40AE7-E186-454A-AF1D-9010E46EC048</code><br />
+          Cup: <code>/master-winter-cup/teamdetails/id/bed40ae7-e186-454a-af1d-9010e46ec048</code>
+        </div>
       </div>
       <div className="mb-3">
         <F label="NOTES" value={draft.notes ?? ""} onChange={v => updGame("notes", v)} placeholder="Optional notes" />

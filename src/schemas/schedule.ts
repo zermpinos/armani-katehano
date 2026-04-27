@@ -2,6 +2,9 @@ import { z } from "zod";
 import { isAllowedHostname } from "@/server/security/ssrf";
 import { detectLeagueSlug } from "@/domain/calendar/greek-date";
 
+const LISTING_HOSTNAME = "basketcity.sportstats.gr";
+const LISTING_PATH_RE  = /^\/[^/]+\/teamdetails\/id\/[0-9a-f-]{36}\/?$/i;
+
 function validateSourceUrl(url: string | null | undefined): true | string {
   if (!url) return true;
   let parsed: URL;
@@ -15,6 +18,19 @@ function validateSourceUrl(url: string | null | undefined): true | string {
   return true;
 }
 
+function validateListingUrl(url: string | null | undefined): true | string {
+  if (!url) return true;
+  let parsed: URL;
+  try { parsed = new URL(url); } catch { return "listingUrl must be a valid URL"; }
+  if (parsed.protocol !== "https:")
+    return "listingUrl must use https";
+  if (parsed.hostname !== LISTING_HOSTNAME)
+    return `listingUrl host must be ${LISTING_HOSTNAME}`;
+  if (!LISTING_PATH_RE.test(parsed.pathname))
+    return "listingUrl must look like /<competition>/teamdetails/id/<UUID>";
+  return true;
+}
+
 export const ScheduleWriteSchema = z.object({
   opponent:     z.string().min(1).max(100),
   scheduledFor: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)),
@@ -23,6 +39,12 @@ export const ScheduleWriteSchema = z.object({
   notes:        z.string().max(1000).optional().nullable(),
   sourceUrl:    z.string().max(1000).optional().nullable().superRefine((v, ctx) => {
     const result = validateSourceUrl(v);
+    if (result !== true) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: result });
+    }
+  }),
+  listingUrl:   z.string().max(1000).optional().nullable().superRefine((v, ctx) => {
+    const result = validateListingUrl(v);
     if (result !== true) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: result });
     }
