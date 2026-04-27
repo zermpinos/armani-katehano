@@ -65,6 +65,7 @@ export interface ScheduledGame {
   competition?: string | null;
   notes?: string | null;
   sourceUrl?: string | null;
+  listingUrl?: string | null;
 }
 
 export interface SeasonLeague {

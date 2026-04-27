@@ -189,6 +189,7 @@ model UpcomingGame {
   notes          String?
   seasonLeagueId String?
   sourceUrl      String?                 @unique(where: raw("(\"sourceUrl\" IS NOT NULL)"))
+  listingUrl     String?
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
   announcement   GameRosterAnnouncement?
