@@ -8,16 +8,14 @@ import {
   buildText,
   buildImportSuccess,
   buildImportFailure,
-  buildNoMatchAlert,
-  buildNoSourceUrlAlert,
+  buildImportAbandoned,
   type SendRosterAnnouncementParams,
 } from "./templates";
 
 export type ImportNotificationPayload =
-  | { kind: "success";       opponent: string; location: string; scheduledFor: string; importedAt: Date }
-  | { kind: "failure";       opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null }
-  | { kind: "no-match";      dateStr: string;  opponent: string;  emailSubject: string }
-  | { kind: "no-source-url"; opponent: string; location: string; scheduledFor: string; upcomingGameId: string };
+  | { kind: "success";   opponent: string; location: string; scheduledFor: string; importedAt: Date }
+  | { kind: "failure";   opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null }
+  | { kind: "abandoned"; opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null };
 
 const FROM = "Armani Katehano <noreply@armani-katehano.com>";
 
@@ -186,10 +184,8 @@ export async function sendImportNotification(payload: ImportNotificationPayload)
     result = buildImportSuccess(payload);
   } else if (payload.kind === "failure") {
     result = buildImportFailure(payload);
-  } else if (payload.kind === "no-match") {
-    result = buildNoMatchAlert(payload);
   } else {
-    result = buildNoSourceUrlAlert(payload);
+    result = buildImportAbandoned(payload);
   }
 
   const { error } = await client.emails.send({ from: FROM, to, subject: result.subject, html: result.html, text: result.text });

@@ -36,7 +36,7 @@ export function detectLeagueSlug(url: string | null | undefined): string | null 
   if (!url) return null;
   const lower = url.toLowerCase();
   // Path-based detection (current basketcity.sportstats.gr URL structure)
-  if (lower.includes('/winter-cup/')) return 'wintercup';
+  if (lower.includes('/winter-cup/') || lower.includes('/master-winter-cup/')) return 'wintercup';
   if (lower.includes('/men/'))        return 'men';       // resolved by date at import time
   // Legacy slug-in-URL (backward compat)
   const known = ['rookie', 'bc6', 'wintercup'];
