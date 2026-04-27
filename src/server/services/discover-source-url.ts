@@ -27,7 +27,7 @@ const GREEK_TO_LATIN: Record<string, string> = {
 
 function normalize(s: string): string {
   const stripped = s.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().trim();
-  return stripped.replace(/[Α-Ω]/g, ch => GREEK_TO_LATIN[ch] ?? ch);
+  return stripped.replace(/[Α-Ω]/g, ch => (Reflect.get(GREEK_TO_LATIN, ch) as string | undefined) ?? ch);
 }
 
 function levenshtein(a: string, b: string): number {
