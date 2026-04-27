@@ -79,6 +79,40 @@ describe("discoverSourceUrl", () => {
     expect(result.gameUrl).toBe("https://basketcity.sportstats.gr/men/gamedetails/id/BBB");
   });
 
+  it("matches a Latin opponent against a Greek listing row via transliteration", async () => {
+    fetchMock.mockResolvedValue(htmlOk(`<ul>${rowHtml({
+      href:  "/master-winter-cup/gamedetails/id/XLEG",
+      date:  "Πέμπτη, 9 Απριλίου 2026",
+      left:  "ARMANI KATEHANO",
+      right: "ΧΛΑΤΣΕΡΣ LEGENDS",
+    })}</ul>`));
+
+    const result = await discoverSourceUrl({
+      listingUrl:   LISTING_URL,
+      scheduledFor: new Date(Date.UTC(2026, 3, 9, 19, 0)),
+      opponent:     "Xlatsers Legends",
+    });
+
+    expect(result.gameUrl).toBe("https://basketcity.sportstats.gr/master-winter-cup/gamedetails/id/XLEG");
+  });
+
+  it("matches a Greek opponent against a Latin listing row via transliteration", async () => {
+    fetchMock.mockResolvedValue(htmlOk(`<ul>${rowHtml({
+      href:  "/men/gamedetails/id/SHRK",
+      date:  "Σάββατο, 1 Νοεμβρίου 2025",
+      left:  "ARMANI KATEHANO",
+      right: "SHARKS",
+    })}</ul>`));
+
+    const result = await discoverSourceUrl({
+      listingUrl:   LISTING_URL,
+      scheduledFor: new Date(Date.UTC(2025, 10, 1, 19, 0)),
+      opponent:     "ΣΑΡΚΣ",
+    });
+
+    expect(result.gameUrl).toBe("https://basketcity.sportstats.gr/men/gamedetails/id/SHRK");
+  });
+
   it("returns null when the listing has no rows", async () => {
     fetchMock.mockResolvedValue(htmlOk(`<html><body></body></html>`));
 
