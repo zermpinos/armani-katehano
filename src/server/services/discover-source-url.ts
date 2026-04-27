@@ -16,8 +16,18 @@ export class ListingFetchError extends Error {
   }
 }
 
+// Maps each uppercase Greek letter to its conventional Latin transliteration
+// so that team names entered in one script can match listings written in the
+// other (e.g. "Xlatsers Legends" ↔ "ΧΛΑΤΣΕΡΣ LEGENDS").
+const GREEK_TO_LATIN: Record<string, string> = {
+  Α: "A",  Β: "V",  Γ: "G",  Δ: "D",  Ε: "E",  Ζ: "Z",  Η: "I",  Θ: "TH",
+  Ι: "I",  Κ: "K",  Λ: "L",  Μ: "M",  Ν: "N",  Ξ: "X",  Ο: "O",  Π: "P",
+  Ρ: "R",  Σ: "S",  Τ: "T",  Υ: "Y",  Φ: "F",  Χ: "X",  Ψ: "PS", Ω: "O",
+};
+
 function normalize(s: string): string {
-  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().trim();
+  const stripped = s.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().trim();
+  return stripped.replace(/[Α-Ω]/g, ch => GREEK_TO_LATIN[ch] ?? ch);
 }
 
 function levenshtein(a: string, b: string): number {
