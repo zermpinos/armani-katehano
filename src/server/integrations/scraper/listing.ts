@@ -63,8 +63,8 @@ export function parseListingHtml(html: string, listingUrl: string): ListingRow[]
     const candidate = {
       gameUrl,
       playedOn,
-      homeTeam: isHome ? right : left,
-      awayTeam: isHome ? left  : right,
+      homeTeam: right,
+      awayTeam: left,
       opponent,
       isHome,
     };
