@@ -55,7 +55,7 @@ async function main(): Promise<void> {
 
   const targets: [string, string][] =
     which === "all" ? [["men", LISTINGS.men], ["cup", LISTINGS.cup]]
-                    : [[which, LISTINGS[which]]];
+                    : [[which, Reflect.get(LISTINGS, which) as string]];
 
   for (const [label, url] of targets) await dumpListing(label, url);
 
