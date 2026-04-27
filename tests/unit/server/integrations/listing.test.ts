@@ -35,6 +35,8 @@ describe("parseListingHtml", () => {
       gameUrl:  "https://basketcity.sportstats.gr/men/gamedetails/id/AAA",
       opponent: "Παναθηναϊκός",
       isHome:   false,
+      homeTeam: "Παναθηναϊκός",
+      awayTeam: "ARMANI KATEHANO",
     });
     expect(rows[0].playedOn.toISOString().slice(0, 10)).toBe("2026-04-25");
   });
@@ -51,6 +53,8 @@ describe("parseListingHtml", () => {
     expect(rows[0]).toMatchObject({
       opponent: "ΑΡΗΣ",
       isHome:   true,
+      homeTeam: "ΑΡΜΑΝΙ ΚΑΤΕΧΑΝΟ",
+      awayTeam: "ΑΡΗΣ",
     });
   });
 
