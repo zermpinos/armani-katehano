@@ -1,6 +1,7 @@
-import crypto    from "crypto";
+import "@/server/_internal/node-only";
+import crypto    from "node:crypto";
 import { Resend } from "resend";
-import { auditLog } from "@/server/security/audit-log";
+import { auditLog } from "@/server/security/node/audit-log";
 import prisma       from "@/server/db/client";
 import {
   esc,

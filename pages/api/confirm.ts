@@ -5,7 +5,8 @@
  */
 
 import prisma from "@/server/db/client";
-import { securityHeaders, auditLog } from "@/server/security";
+import { securityHeaders } from "@/server/security/edge";
+import { auditLog } from "@/server/security/node";
 import { TokenSchema } from "@/schemas/subscriber";
 
 const CONFIRM_TTL_MS = 86_400_000; // 1 day

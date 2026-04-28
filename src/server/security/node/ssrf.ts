@@ -1,4 +1,5 @@
-import dns from "dns";
+import "@/server/_internal/node-only";
+import dns from "node:dns";
 
 const ALLOWLIST: string[] = (
   process.env.SCRAPE_HOSTNAME_ALLOWLIST ?? "basketcity.sportstats.gr,basketaki.com,reports.sportstats.gr"

@@ -1,3 +1,4 @@
+import "@/server/_internal/node-only";
 export type GameState = "scheduled" | "live" | "final";
 
 export interface ClassifyResult {

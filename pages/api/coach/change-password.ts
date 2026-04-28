@@ -12,7 +12,7 @@
 import bcrypt from "bcryptjs";
 import { requireCoachAuth } from "@/server/auth";
 import { verifyCoachPassword, setCoachPasswordHash, incrementCoachSessionVersion, clearCoachSessionCookie } from "@/server/auth";
-import { auditLog, getClientIp } from "@/server/security";
+import { auditLog, getClientIp } from "@/server/security/node";
 import { prodError } from "@/domain/shared/format";
 import { ChangePasswordSchema } from "@/schemas/coach";
 

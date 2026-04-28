@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isAllowedHostname } from "@/server/security/ssrf";
+import { isAllowedHostname } from "@/server/security/node/ssrf";
 import { detectLeagueSlug } from "@/domain/calendar/greek-date";
 
 const LISTING_HOSTNAME = "basketcity.sportstats.gr";

@@ -1,8 +1,9 @@
+import "@/server/_internal/node-only";
 import { verifyPayload, getSessionToken, SESSION_TTL_S } from "@/server/auth/session";
-import { securityHeaders }                              from "@/server/security/headers";
-import { auditLog }                                     from "@/server/security/audit-log";
+import { securityHeaders }                              from "@/server/security/edge/headers";
+import { auditLog }                                     from "@/server/security/node/audit-log";
 import { csrfCheck, csrfTokenCheck }                    from "@/server/auth/csrf";
-import { getClientIp }                                  from "@/server/security/client-ip";
+import { getClientIp }                                  from "@/server/security/node/client-ip";
 
 export function requireAuth(handler: (req: any, res: any) => any) {
   return async function (req: any, res: any) {

@@ -9,7 +9,8 @@
  */
 
 import prisma from "@/server/db/client";
-import { securityHeaders, auditLog } from "@/server/security";
+import { securityHeaders } from "@/server/security/edge";
+import { auditLog } from "@/server/security/node";
 
 const UNCONFIRMED_TTL     = 86_400;         // 1 day in seconds
 const CONFIRMED_RETENTION = 365 * 86_400;   // 1 year in seconds

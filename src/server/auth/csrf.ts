@@ -1,4 +1,5 @@
-import crypto from "crypto";
+import "@/server/_internal/node-only";
+import crypto from "node:crypto";
 
 const CSRF_METHODS     = new Set(["POST", "PUT", "DELETE", "PATCH"]);
 const CSRF_COOKIE_NAME = "__Host-ak_csrf";

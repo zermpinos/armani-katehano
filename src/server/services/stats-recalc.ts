@@ -1,4 +1,5 @@
-import { randomUUID } from "crypto";
+import "@/server/_internal/node-only";
+import { randomUUID } from "node:crypto";
 import prisma          from "@/server/db/client";
 import { Prisma }      from "../../../lib/generated/prisma/client";
 import { calcEff }     from "@/domain/stats";

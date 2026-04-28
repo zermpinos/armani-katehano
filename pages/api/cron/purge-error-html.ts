@@ -1,5 +1,6 @@
 import { purgeStaleErrorHtml }       from "@/server/services/import-job";
-import { securityHeaders, auditLog } from "@/server/security";
+import { securityHeaders } from "@/server/security/edge";
+import { auditLog }        from "@/server/security/node";
 
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));

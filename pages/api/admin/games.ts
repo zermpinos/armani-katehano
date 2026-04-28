@@ -9,7 +9,7 @@
 import { z }                              from "zod";
 import { GameWriteSchema, GameUpdateSchema, GameDeleteSchema } from "@/schemas/game";
 import { requireAuth }                    from "@/server/auth";
-import { auditLog, getClientIp }          from "@/server/security";
+import { auditLog, getClientIp }          from "@/server/security/node";
 import prisma                             from "@/server/db/client";
 import { recalcAggregates }               from "@/server/services/stats-recalc";
 import { MAX_GAMES_PER_PAGE }             from "@/domain/shared/constants";
