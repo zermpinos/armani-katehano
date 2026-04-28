@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { C } from "@/theme/tokens";
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "@/components/Charts";
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 
 export function SkillRadar({ s }: any) {
   const [showInfo, setShowInfo] = useState(false);
