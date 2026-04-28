@@ -12,9 +12,33 @@ import { SubscribeForm } from "@/client/home/subscribe-form";
 import { RecentResultsCard } from "@/client/home/recent-results-card";
 import { EfficiencyLeaderCard } from "@/client/home/efficiency-leader-card";
 
+function UpcomingGamesSkeleton() {
+  return (
+    <div className="rounded-2xl py-5 px-4 border border-ak-border bg-ak-surface mb-6" aria-hidden="true">
+      <div className="mb-[14px]">
+        <div className="h-[11px] w-20 rounded bg-ak-border2 mb-2" />
+        <div className="h-[18px] w-36 rounded bg-ak-border" />
+      </div>
+      <div className="rounded-[14px] py-[18px] px-5 border border-ak-border2 bg-ak-surface2">
+        <div className="h-[10px] w-16 rounded bg-ak-border2 mb-3" />
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 space-y-2">
+            <div className="h-6 w-48 rounded bg-ak-border2" />
+            <div className="h-3 w-32 rounded bg-ak-border" />
+          </div>
+          <div className="h-7 w-20 rounded-full bg-ak-border2" />
+        </div>
+        <div className="mt-3 pt-[10px] border-t border-ak-border">
+          <div className="h-[11px] w-28 rounded bg-ak-border" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const UpcomingGamesSection = dynamic(
   () => import("@/client/home/upcoming-games-section").then(m => ({ default: m.UpcomingGamesSection })),
-  { ssr: false }
+  { ssr: false, loading: () => <UpcomingGamesSkeleton /> }
 );
 const ScoringTrendChart = dynamic(
   () => import("@/client/home/scoring-trend-chart").then(m => ({ default: m.ScoringTrendChart })),
