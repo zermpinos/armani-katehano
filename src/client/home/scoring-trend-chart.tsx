@@ -1,5 +1,5 @@
 import { C, chartTooltipStyle } from "@/theme/tokens";
-import { LineChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "@/components/Charts";
+import { LineChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { ShowMoreButton } from "./show-more-button";
 
 interface TrendPoint {

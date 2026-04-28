@@ -1,5 +1,5 @@
 import { C, chartTooltipStyle } from "@/theme/tokens";
-import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "@/components/Charts";
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { ShowMoreButton } from "./show-more-button";
 
 export function TopScorersChart({ topScorers }: { topScorers: { name: string; ppg: number }[] }) {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C, chartTooltipStyle } from "@/theme/tokens";
 import { fmtMinutes } from "@/domain/shared/format";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "@/components/Charts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const STAT_OPTIONS = [
   { key:"pts", label:"PTS", color:C.redBright, activeClass:"border-[#c0392b80] bg-[#c0392b20] text-[#c0392b]" },
