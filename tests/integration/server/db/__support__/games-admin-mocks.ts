@@ -49,14 +49,16 @@ export function mockReq({ method = "GET", headers = {}, body = {}, query = {}, c
   return { method, headers, body, query, cookies };
 }
 
+const TEST_CSRF_TOKEN = "test-csrf-token-32bytes-xxxxxxxxx";
+
 export function authCookie() {
   return signSession(JSON.stringify({ ts: Date.now(), role: "admin" }));
 }
 
 export function authedReq(overrides = {}) {
   return mockReq({
-    headers: { host: "example.com", origin: "https://example.com" },
-    cookies: { "__Host-ak_session": authCookie() },
+    headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": TEST_CSRF_TOKEN },
+    cookies: { "__Host-ak_session": authCookie(), "__Host-ak_csrf": TEST_CSRF_TOKEN },
     ...overrides,
   });
 }
