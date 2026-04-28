@@ -30,7 +30,7 @@ export function csrfTokenCheck(req: any): boolean {
   if (!CSRF_METHODS.has(req.method)) return true;
   // eslint-disable-next-line security/detect-object-injection
   const cookie = req.cookies?.[CSRF_COOKIE_NAME];
-  if (!cookie) return true;
+  if (!cookie) return false;
   const header = req.headers["x-csrf-token"];
   if (!header || typeof header !== "string") return false;
   try {
