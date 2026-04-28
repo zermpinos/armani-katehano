@@ -74,7 +74,7 @@ export function UpcomingGamesSection({ upcomingGames, openRosterId, onToggleRost
                 target="_blank" rel="noopener noreferrer"
                 onClick={e => e.stopPropagation()}
                 aria-label={`Add ${featured.location === "home" ? "vs" : "@"} ${featured.opponent} to Google Calendar`}
-                className="inline-flex items-center gap-1.5 py-[7px] px-3 rounded-lg border border-[#4285F440] bg-[#4285F410] text-[#4285F4] text-[11px] font-bold no-underline cursor-pointer whitespace-nowrap transition-all duration-200 hover:bg-[#4285F420] hover:border-[#4285F465]"
+                className="inline-flex items-center gap-1.5 py-[7px] px-3 rounded-lg border border-[#539AF540] bg-[#539AF510] text-[#539AF5] text-[11px] font-bold no-underline cursor-pointer whitespace-nowrap transition-all duration-200 hover:bg-[#539AF520] hover:border-[#539AF565]"
               >
                 <GoogleCalIcon />
                 Google
