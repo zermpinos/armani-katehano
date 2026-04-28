@@ -1,4 +1,5 @@
-import { randomBytes }      from "crypto";
+import "@/server/_internal/node-only";
+import { randomBytes }      from "node:crypto";
 import prisma               from "@/server/db/client";
 import { scrapeGameFromUrl, ScrapeError } from "@/server/services/scrape-game";
 import { importGame, ImportError }        from "@/server/services/import-game";

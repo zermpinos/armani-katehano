@@ -8,7 +8,7 @@
  */
 
 import { requireAuth }                            from "@/server/auth";
-import { auditLog, getClientIp }                  from "@/server/security";
+import { auditLog, getClientIp }                  from "@/server/security/node";
 import prisma                                     from "@/server/db/client";
 import { processJob }                             from "@/server/services/import-job";
 import { handleError }                            from "@/server/http/handle-error";

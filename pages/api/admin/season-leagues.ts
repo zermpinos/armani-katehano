@@ -6,7 +6,7 @@
  */
 
 import { requireAuth }               from "@/server/auth";
-import { auditLog }                  from "@/server/security";
+import { auditLog }                  from "@/server/security/node";
 import { prodError }                 from "@/domain/shared/format";
 import prisma                        from "@/server/db/client";
 

@@ -9,7 +9,7 @@
  */
 
 import { requireCoachAuth } from "@/server/auth";
-import { auditLog, getClientIp } from "@/server/security";
+import { auditLog, getClientIp } from "@/server/security/node";
 import { rlKey } from "@/server/auth";
 import prisma from "@/server/db/client";
 import { prodError } from "@/domain/shared/format";
