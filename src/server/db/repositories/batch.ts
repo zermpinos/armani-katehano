@@ -1,3 +1,4 @@
+import "@/server/_internal/node-only";
 import { getConfig } from "./config";
 import { getSeasons } from "./seasons";
 import { getPlayers } from "./players";

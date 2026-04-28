@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { describe, it, expect } from "vitest";
-import { generateNonce, buildCsp } from "@/server/security";
+import { generateNonce, buildCsp } from "@/server/security/edge";
 
 describe("generateNonce", () => {
   it("returns a non-empty string", () => {

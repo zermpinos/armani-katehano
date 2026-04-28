@@ -1,3 +1,4 @@
+import "@/server/_internal/node-only";
 import prisma from "@/server/db/client";
 
 export async function getPlayers() {

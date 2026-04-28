@@ -7,7 +7,7 @@
  */
 
 import { requireAuth } from "@/server/auth";
-import { auditLog, getClientIp } from "@/server/security";
+import { auditLog, getClientIp } from "@/server/security/node";
 import prisma from "@/server/db/client";
 import { prodError } from "@/domain/shared/format";
 import { AnnouncementWriteSchema, AnnouncementDeleteSchema } from "@/schemas/roster-announcement";

@@ -1,3 +1,4 @@
+import "@/server/_internal/node-only";
 export interface ImportNotificationResult {
   subject: string;
   html:    string;

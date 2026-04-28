@@ -1,3 +1,4 @@
+import "@/server/_internal/node-only";
 import { TOTP, Secret } from "otpauth";
 
 export function verifyTotp(secret: string, token: string): boolean {

@@ -1,12 +1,12 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
-vi.mock("@/server/security/ssrf", () => ({
+vi.mock("@/server/security/node/ssrf", () => ({
   assertSsrfSafe: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { discoverSourceUrl, ListingFetchError } from "@/server/services/discover-source-url";
-import { assertSsrfSafe } from "@/server/security/ssrf";
+import { assertSsrfSafe } from "@/server/security/node/ssrf";
 
 const LISTING_URL = "https://basketcity.sportstats.gr/men/teamdetails/id/BED40AE7-E186-454A-AF1D-9010E46EC048";
 

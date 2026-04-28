@@ -7,7 +7,7 @@
  */
 
 import { requireAuth } from "@/server/auth";
-import { auditLog, getClientIp } from "@/server/security";
+import { auditLog, getClientIp } from "@/server/security/node";
 import prisma from "@/server/db/client";
 import { ScheduleWriteSchema, ScheduleUpdateSchema, ScheduleDeleteSchema } from "@/schemas/schedule";
 import { handleError }  from "@/server/http/handle-error";

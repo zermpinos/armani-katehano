@@ -13,7 +13,8 @@
 import * as Sentry from "@sentry/nextjs";
 import { isLockedOut, recordAttempt, clearAttempts, getFailureCount } from "@/server/auth";
 import { getSessionToken, verifyPayload, verifyCredentials, getAdminUser, verifyTotp, buildSessionCookie, clearSessionCookie, generateCsrfToken, buildCsrfCookie, clearCsrfCookie, csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha } from "@/server/auth";
-import { securityHeaders, auditLog, getClientIp } from "@/server/security";
+import { securityHeaders } from "@/server/security/edge";
+import { auditLog, getClientIp } from "@/server/security/node";
 
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));

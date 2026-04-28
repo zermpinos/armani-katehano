@@ -19,7 +19,7 @@
  */
 
 import prisma from "@/server/db/client";
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 
 // Rows older than this window are safe to delete.

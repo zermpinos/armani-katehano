@@ -6,7 +6,7 @@
  */
 
 import { requireAuth }               from "@/server/auth";
-import { auditLog, getClientIp }     from "@/server/security";
+import { auditLog, getClientIp }     from "@/server/security/node";
 import prisma                        from "@/server/db/client";
 import { slugify }                   from "@/domain/players/format";
 import { PlayerWriteSchema, PlayerUpdateSchema } from "@/schemas/player";

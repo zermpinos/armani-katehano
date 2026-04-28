@@ -1,4 +1,5 @@
-import crypto from "crypto";
+import "@/server/_internal/node-only";
+import crypto from "node:crypto";
 
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const COOKIE_NAME    = "__Host-ak_session";

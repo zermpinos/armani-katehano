@@ -1,3 +1,4 @@
+import "@/server/_internal/node-only";
 import prisma               from "@/server/db/client";
 import { recalcAggregates } from "@/server/services/stats-recalc";
 import { BoxScoreRowSchema } from "@/schemas/box-score";

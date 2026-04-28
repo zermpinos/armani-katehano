@@ -1,3 +1,4 @@
+import "@/server/_internal/node-only";
 import { getVenueUrl } from "@/domain/shared/venues";
 import { esc, formatDateFull, formatDayTime, sanitize, type Game, type PlayerSlot } from "./shared";
 
