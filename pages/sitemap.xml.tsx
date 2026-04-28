@@ -1,4 +1,4 @@
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://armani-katehano.vercel.app";
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://armani-katehano.com";
 
 const PAGES = [
   { url: "/",            priority: "1.0", changefreq: "daily"  },
