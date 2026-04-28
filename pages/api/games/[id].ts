@@ -4,11 +4,15 @@
  * Public read-only endpoint; no auth required.
  */
 
-import { z }           from "zod";
-import { getBoxScore } from "@/server/db/repositories";
-import { prodError }   from "@/domain/shared/format";
+import { z }                from "zod";
+import { getBoxScore }      from "@/server/db/repositories";
+import { prodError }        from "@/domain/shared/format";
+import { securityHeaders }  from "@/server/security/edge";
 
 export default async function handler(req: any, res: any) {
+  const { "Cache-Control": _cc, ...baseHeaders } = securityHeaders();
+  Object.entries(baseHeaders).forEach(([k, v]) => res.setHeader(k, v));
+
   if (req.method !== "GET") return res.status(405).end();
 
   const { id } = req.query;
@@ -18,7 +22,6 @@ export default async function handler(req: any, res: any) {
 
   try {
     const boxScore = await getBoxScore(id);
-    // Cache for 10 minutes — box scores are immutable once written
     res.setHeader("Cache-Control", "public, s-maxage=600, stale-while-revalidate=3600");
     return res.status(200).json({ boxScore });
   } catch (err) {
