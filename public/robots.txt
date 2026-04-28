@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 
-Sitemap: https://armanikatehano.gr/sitemap.xml
+Sitemap: https://armani-katehano.com/sitemap.xml
