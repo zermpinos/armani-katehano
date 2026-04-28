@@ -3,6 +3,7 @@
  * Exports scrapeGame(html, url) -> structured game + player data.
  */
 
+import "@/server/_internal/node-only";
 import * as cheerio from "cheerio";
 
 function escapeRegex(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }

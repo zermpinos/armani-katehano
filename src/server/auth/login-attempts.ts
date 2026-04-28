@@ -1,4 +1,5 @@
-import { createHash } from "crypto";
+import "@/server/_internal/node-only";
+import { createHash } from "node:crypto";
 import prisma from "@/server/db/client";
 import { LOCKOUT_TTL_S, MAX_LOGIN_ATTEMPTS } from "@/server/auth/password";
 

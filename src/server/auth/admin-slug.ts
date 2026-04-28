@@ -1,4 +1,5 @@
-import crypto from "crypto";
+import "@/server/_internal/node-only";
+import crypto from "node:crypto";
 
 export async function validateAdminSlug(slug: string | undefined): Promise<boolean> {
   const expected = process.env.ADMIN_SLUG;

@@ -6,7 +6,8 @@
  * The public site calls this from getStaticProps / getServerSideProps.
  */
 import { getAllPublicData } from "@/server/db/repositories";
-import { securityHeaders, getClientIp } from "@/server/security";
+import { securityHeaders } from "@/server/security/edge";
+import { getClientIp }     from "@/server/security/node";
 import { rlKey } from "@/server/auth";
 import { prodError }       from "@/domain/shared/format";
 import prisma              from "@/server/db/client";

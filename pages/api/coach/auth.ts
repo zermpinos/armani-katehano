@@ -12,7 +12,8 @@
 import * as Sentry from "@sentry/nextjs";
 import { isLockedOut, recordAttempt, clearAttempts, getFailureCount } from "@/server/auth";
 import { csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha, generateCsrfToken, buildCsrfCookie, clearCsrfCookie } from "@/server/auth";
-import { securityHeaders, auditLog, getClientIp } from "@/server/security";
+import { securityHeaders } from "@/server/security/edge";
+import { auditLog, getClientIp } from "@/server/security/node";
 import {
   getCoachSessionToken,
   verifyCoachSession,

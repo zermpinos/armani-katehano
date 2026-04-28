@@ -4,7 +4,8 @@
  * gamedetails URL the listing exposes for it (or null if not yet published).
  */
 
-import { assertSsrfSafe }   from "@/server/security/ssrf";
+import "@/server/_internal/node-only";
+import { assertSsrfSafe }   from "@/server/security/node/ssrf";
 import { parseListingHtml } from "@/server/integrations/scraper/listing";
 
 const LEVENSHTEIN_MAX_RATIO = 0.40;

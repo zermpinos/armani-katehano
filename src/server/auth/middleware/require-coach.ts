@@ -1,7 +1,8 @@
-import { securityHeaders }                                                            from "@/server/security/headers";
-import { auditLog }                                                                   from "@/server/security/audit-log";
+import "@/server/_internal/node-only";
+import { securityHeaders }                                                            from "@/server/security/edge/headers";
+import { auditLog }                                                                   from "@/server/security/node/audit-log";
 import { csrfCheck, csrfTokenCheck }                                                  from "@/server/auth/csrf";
-import { getClientIp }                                                                from "@/server/security/client-ip";
+import { getClientIp }                                                                from "@/server/security/node/client-ip";
 import { getCoachSessionToken, verifyCoachSession, getCoachSessionVersion, COACH_SESSION_TTL_S } from "@/server/auth/coach";
 
 export function requireCoachAuth(handler: (req: any, res: any) => any) {

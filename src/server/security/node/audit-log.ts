@@ -1,3 +1,4 @@
+import "@/server/_internal/node-only";
 import * as Sentry from "@sentry/nextjs";
 
 const SECURITY_ALERT_EVENTS = new Set([

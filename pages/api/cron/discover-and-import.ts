@@ -13,7 +13,8 @@ import prisma                              from "@/server/db/client";
 import { processJob }                       from "@/server/services/import-job";
 import { discoverSourceUrl, ListingFetchError } from "@/server/services/discover-source-url";
 import { sendImportNotification }           from "@/server/integrations/email/client";
-import { securityHeaders, auditLog }        from "@/server/security";
+import { securityHeaders }                   from "@/server/security/edge";
+import { auditLog }                          from "@/server/security/node";
 
 const WINDOW_DAYS         = 7;
 const MAX_DISCOVERY_TRIES = 2;

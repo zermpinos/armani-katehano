@@ -1,3 +1,4 @@
+import "@/server/_internal/node-only";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../../../lib/generated/prisma/client";
 import { Pool } from "pg";

@@ -1,4 +1,5 @@
-import crypto from "crypto";
+import "@/server/_internal/node-only";
+import crypto from "node:crypto";
 import bcrypt  from "bcryptjs";
 import prisma  from "@/server/db/client";
 

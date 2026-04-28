@@ -24,8 +24,10 @@ vi.mock("@/server/services/discover-source-url",    () => ({
   },
 }));
 vi.mock("@/server/integrations/email/client",       () => ({ sendImportNotification: vi.fn().mockResolvedValue(undefined) }));
-vi.mock("@/server/security",                        () => ({
+vi.mock("@/server/security/edge",                   () => ({
   securityHeaders: () => ({ "X-Test": "1" }),
+}));
+vi.mock("@/server/security/node",                   () => ({
   auditLog:        vi.fn(),
 }));
 

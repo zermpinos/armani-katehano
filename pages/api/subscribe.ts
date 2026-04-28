@@ -5,11 +5,12 @@
  * DELETE { token }              -> unsubscribe via token (linked from emails)
  */
 
-import { randomBytes } from "crypto";
+import { randomBytes } from "node:crypto";
 import prisma from "@/server/db/client";
 import { prodError } from "@/domain/shared/format";
 import { csrfCheck } from "@/server/auth";
-import { securityHeaders, getClientIp, auditLog } from "@/server/security";
+import { securityHeaders } from "@/server/security/edge";
+import { getClientIp, auditLog } from "@/server/security/node";
 import { rlKey } from "@/server/auth";
 import { sendConfirmationEmail } from "@/server/integrations/email/client";
 import { SubscribeSchema, UnsubscribeSchema } from "@/schemas/subscriber";

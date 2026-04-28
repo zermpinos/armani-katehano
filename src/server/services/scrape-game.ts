@@ -1,7 +1,8 @@
-import dns        from "dns";
+import "@/server/_internal/node-only";
+import dns        from "node:dns";
 import { scrapeGame } from "@/server/integrations/scraper/boxscore";
 import { ScrapedGameSchema } from "@/schemas";
-import { assertSsrfSafe, isAllowedHostname, isPrivateIp } from "@/server/security/ssrf";
+import { assertSsrfSafe, isAllowedHostname, isPrivateIp } from "@/server/security/node/ssrf";
 import { classifyScrapedGame, type ClassifyResult } from "@/server/services/import-classifier";
 
 const AK_IDENTIFIERS = ["ARMANI", "KATEHANO"];

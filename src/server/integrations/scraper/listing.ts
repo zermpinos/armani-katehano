@@ -6,6 +6,7 @@
  * after the game has been published (which happens shortly before/after tip-off).
  */
 
+import "@/server/_internal/node-only";
 import * as cheerio from "cheerio";
 import { z } from "zod";
 import { parseGreekDate } from "@/domain/calendar/greek-date";

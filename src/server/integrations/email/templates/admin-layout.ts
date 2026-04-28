@@ -1,3 +1,4 @@
+import "@/server/_internal/node-only";
 export function adminHtml(opts: {
   title:       string;
   accentColor: string;
