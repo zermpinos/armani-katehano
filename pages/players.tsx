@@ -85,13 +85,18 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
         right={`${players.length} Players`}
       />
       <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search players..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full max-w-[260px] py-[7px] px-[14px] rounded-lg border border-ak-border2 bg-ak-surface2 text-ak-text text-xs outline-none"
-        />
+        <label className="relative inline-flex items-center w-full max-w-[260px]">
+          <svg className="absolute left-3 text-ak-text-dim pointer-events-none shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="Search players..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full py-[7px] pl-[30px] pr-[14px] rounded-lg border border-ak-border2 bg-ak-surface2 text-ak-text text-xs outline-none"
+          />
+        </label>
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-[14px]">
         {displayed.map(p => <PlayerCard key={p.id} player={p} onClick={() => setSelected(p)} />)}

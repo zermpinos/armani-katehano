@@ -11,9 +11,9 @@ import { RecordBreakdown } from "@/client/team-stats/record-breakdown";
 import { ShootingSplits } from "@/client/team-stats/shooting-splits";
 import { MinutesChart } from "@/client/team-stats/minutes-chart";
 
-const TAB_BASE = "px-4 py-[6px] text-[11px] font-black tracking-[0.12em] uppercase rounded-lg cursor-pointer border transition-all duration-150";
-const TAB_ACTIVE   = "border-ak-red bg-ak-red text-ak-text";
-const TAB_INACTIVE = "border-ak-border bg-transparent text-ak-text-dim";
+const TAB_BASE = "px-[10px] py-[3px] text-[10px] font-black tracking-[0.1em] uppercase rounded-md cursor-pointer border transition-all duration-150";
+const TAB_ACTIVE   = "border-[#c0392b60] bg-[#8b1a1a25] text-ak-red-text";
+const TAB_INACTIVE = "border-ak-border bg-transparent text-ak-text-dim hover:text-ak-text";
 
 export default function TeamPage({ players, games, seasons, currentSeason }: any) {
   const [league, setLeague] = useState("all");
@@ -122,20 +122,44 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-3 mb-6">
-            <StatTile label="PPG"          value={rec.ppg}              sub="" highlight />
-            <StatTile label="OPP PPG"      value={rec.oppPpg}           sub="" />
-            <StatTile label="RPG"          value={teamAvg.rpg}          sub="" />
-            <StatTile label="APG"          value={teamAvg.apg}          sub="" />
-            <StatTile label="SPG"          value={teamAvg.spg}          sub="" />
-            <StatTile label="BPG"          value={teamAvg.bpg}          sub="" />
-            <StatTile label="TOV"          value={teamAvg.tpg}          sub="" />
-            <StatTile label="Assists/TOV"  value={teamAvg.atRatio}      sub="" />
-            <StatTile label="OFF RTG"      value={offRtgAvg ?? "--"}     sub="" />
-            <StatTile label="DEF RTG"      value={defRtgAvg ?? "--"}     sub="" />
-            <StatTile label="FG%"          value={`${teamAvg.fgPct}%`}  sub="" />
-            <StatTile label="3P%"          value={`${teamAvg.fg3Pct}%`} sub="" />
-            <StatTile label="FT%"          value={`${teamAvg.ftPct}%`}  sub="" />
+          <div className="space-y-4 mb-6">
+            {/* Scoring */}
+            <div>
+              <div className="text-[10px] font-black tracking-[0.18em] text-ak-text-dim uppercase mb-2">Scoring</div>
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+                <StatTile label="PPG"     value={rec.ppg}     sub="points per game"  highlight />
+                <StatTile label="OPP PPG" value={rec.oppPpg}  sub="allowed per game" />
+              </div>
+            </div>
+            {/* Defence */}
+            <div>
+              <div className="text-[10px] font-black tracking-[0.18em] text-ak-text-dim uppercase mb-2">Defence &amp; Ball Control</div>
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+                <StatTile label="RPG"        value={teamAvg.rpg}     sub="rebounds" />
+                <StatTile label="SPG"        value={teamAvg.spg}     sub="steals" />
+                <StatTile label="BPG"        value={teamAvg.bpg}     sub="blocks" />
+                <StatTile label="TOV"        value={teamAvg.tpg}     sub="turnovers" />
+              </div>
+            </div>
+            {/* Playmaking & Efficiency */}
+            <div>
+              <div className="text-[10px] font-black tracking-[0.18em] text-ak-text-dim uppercase mb-2">Playmaking &amp; Efficiency</div>
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+                <StatTile label="APG"         value={teamAvg.apg}          sub="assists" />
+                <StatTile label="AST/TOV"     value={teamAvg.atRatio}      sub="ratio" />
+                <StatTile label="OFF RTG"     value={offRtgAvg ?? "--"}     sub="offensive rating" />
+                <StatTile label="DEF RTG"     value={defRtgAvg ?? "--"}     sub="defensive rating" />
+              </div>
+            </div>
+            {/* Shooting */}
+            <div>
+              <div className="text-[10px] font-black tracking-[0.18em] text-ak-text-dim uppercase mb-2">Shooting</div>
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+                <StatTile label="FG%"  value={`${teamAvg.fgPct}%`}  sub="field goal %" />
+                <StatTile label="3P%"  value={`${teamAvg.fg3Pct}%`} sub="three-point %" />
+                <StatTile label="FT%"  value={`${teamAvg.ftPct}%`}  sub="free throw %" />
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-5 mb-5">
