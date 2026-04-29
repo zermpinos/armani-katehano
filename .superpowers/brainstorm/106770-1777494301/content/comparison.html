@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Index vs Roster Announcement — Visual Hierarchy</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #111;
+    font-family: 'Trebuchet MS', 'Gill Sans', system-ui, sans-serif;
+    color: #f0ede8;
+    padding: 24px 16px 48px;
+  }
+  h1 {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.18em;
+    text-transform: uppercase; color: #919196; text-align: center; margin-bottom: 6px;
+  }
+  .tagline { text-align: center; font-size: 12px; color: #636368; margin-bottom: 24px; }
+
+  .split {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 960px; margin: 0 auto;
+  }
+  @media (max-width: 700px) { .split { grid-template-columns: 1fr; } }
+
+  .col-label {
+    font-size: 10px; font-weight: 900; letter-spacing: 0.2em;
+    text-transform: uppercase; color: #636368; margin-bottom: 10px; text-align: center;
+  }
+
+  /* ── CURRENT INDEX HERO ── */
+  .hero-current {
+    border-radius: 16px; padding: 32px 28px;
+    border: 1px solid #333336; background: #242426;
+    position: relative; overflow: hidden;
+  }
+  .hero-current::before {
+    content: ''; position: absolute; inset: 0; opacity: 0.15;
+    background: repeating-linear-gradient(135deg,#8b1a1a 0px,#8b1a1a 1px,transparent 1px,transparent 20px);
+  }
+  .hero-current .orb {
+    position: absolute; top: 0; right: 0; width: 220px; height: 220px;
+    border-radius: 50%; background: #8b1a1a18;
+    transform: translate(35%, -35%);
+  }
+  .hero-current .inner { position: relative; }
+
+  .season-label { font-size: 11px; font-weight: 900; letter-spacing: 0.18em; text-transform: uppercase; color: #ec6666; margin-bottom: 8px; }
+  .hero-title { font-size: clamp(32px, 5vw, 52px); font-weight: 900; line-height: 1; letter-spacing: -0.02em; text-transform: uppercase; }
+  .hero-title .red { color: #c0392b; }
+  .hero-sub { margin-top: 10px; font-size: 13px; font-weight: 600; color: #a8a8ac; }
+  .hero-sub .accent { color: #ec6666; }
+
+  /* ── STAT TILES ── */
+  .stat-tiles {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px;
+  }
+  .tile {
+    background: #242426; border: 1px solid #333336; border-radius: 12px;
+    padding: 14px 12px; text-align: center;
+  }
+  .tile-label { font-size: 9px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: #919196; margin-bottom: 6px; }
+  .tile-val { font-size: 20px; font-weight: 900; color: #f0ede8; line-height: 1; }
+  .tile-sub { font-size: 9px; color: #636368; margin-top: 4px; }
+
+  /* ── EMAIL CARD ── */
+  .email-card {
+    border-radius: 12px; overflow: hidden; border: 1px solid #333336;
+    background: #fff; color: #111827;
+  }
+  .email-header {
+    background: #111; padding: 24px 24px 20px;
+  }
+  .email-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #c92a2a; }
+  .email-matchup { font-size: 28px; font-weight: 900; color: #fff; letter-spacing: -0.02em; line-height: 1.15; margin-top: 12px; }
+  .email-daytime { font-size: 13px; font-weight: 600; color: #d1d5db; margin-top: 6px; }
+
+  .email-info { padding: 18px 24px 14px; border-bottom: 1px solid #e5e7eb; }
+  .info-row { padding: 7px 0; border-top: 1px solid #f3f4f6; }
+  .info-row:first-child { border-top: none; }
+  .info-label { font-size: 10px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.1em; }
+  .info-val { font-size: 13px; font-weight: 600; color: #111827; margin-top: 3px; }
+
+  .email-roster { padding: 18px 24px 8px; }
+  .roster-section-label { font-size: 10px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px; }
+  .roster-table { width: 100%; border-radius: 6px; overflow: hidden; border: 1px solid #e5e7eb; }
+  .roster-row { display: flex; gap: 12px; padding: 8px 12px; font-size: 12px; }
+  .roster-row:nth-child(even) { background: #f9fafb; }
+  .roster-row:nth-child(odd) { background: #fff; }
+  .r-num { font-weight: 900; color: #c92a2a; width: 28px; font-variant-numeric: tabular-nums; }
+  .r-name { font-weight: 600; color: #111827; flex: 1; }
+
+  .email-cta { padding: 12px 24px 24px; text-align: center; }
+  .cta-btn {
+    display: inline-block; padding: 11px 24px;
+    background: #c92a2a; color: #fff;
+    font-size: 13px; font-weight: 700; border-radius: 8px; letter-spacing: 0.02em;
+    text-decoration: none;
+  }
+
+  /* ── CALLOUT ANNOTATIONS ── */
+  .gap { height: 10px; }
+  .annotation {
+    margin-top: 14px; padding: 12px 14px;
+    background: #1c1c1e; border: 1px solid #333336; border-radius: 10px;
+    font-size: 11px; color: #919196; line-height: 1.6;
+  }
+  .annotation strong { color: #ec6666; }
+  .annotation .good { color: #4caf7d; }
+  .annotation .gap-marker { color: #c9a84c; }
+</style>
+</head>
+<body>
+
+<h1>Visual Hierarchy Comparison</h1>
+<p class="tagline">Current Index Page &nbsp;vs&nbsp; Roster Announcement Email</p>
+
+<div class="split">
+
+  <!-- LEFT: Current index -->
+  <div>
+    <div class="col-label">Current — Index Page</div>
+
+    <div class="hero-current">
+      <div class="orb"></div>
+      <div class="inner">
+        <div class="season-label">2025–26 · Regular Season</div>
+        <div class="hero-title">Armani<br><span class="red">Katehano</span></div>
+        <div class="hero-sub">
+          8–4 · <span class="accent">4-game win streak</span> · <span class="accent">66.7%</span> win rate
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-tiles">
+      <div class="tile">
+        <div class="tile-label">Record</div>
+        <div class="tile-val">8–4</div>
+        <div class="tile-sub">66.7% win rate</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Streak</div>
+        <div class="tile-val" style="color:#4caf7d;">4W</div>
+        <div class="tile-sub">current streak</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">PPG</div>
+        <div class="tile-val">72.3</div>
+        <div class="tile-sub">points per game</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">OPP PPG</div>
+        <div class="tile-val">61.1</div>
+        <div class="tile-sub">allowed per game</div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <strong>Hierarchy issues:</strong><br>
+      · Record <span class="gap-marker">duplicated</span> in hero subtitle AND first tile<br>
+      · Streak <span class="gap-marker">duplicated</span> in hero subtitle AND second tile<br>
+      · Hero sub has 3 facts competing on one line<br>
+      · Tiles use value-first layout; email uses label-first rows<br>
+      · No clear visual separation between season context and live stats
+    </div>
+  </div>
+
+  <!-- RIGHT: Email announcement -->
+  <div>
+    <div class="col-label">Reference — Roster Announcement Email</div>
+
+    <div class="email-card">
+      <div class="email-header">
+        <div class="email-eyebrow">Armani Katehano · Game Day Roster</div>
+        <div class="email-matchup">vs Northside Nets</div>
+        <div class="email-daytime">Fri, May 2 · 7:00 PM</div>
+      </div>
+
+      <div class="email-info">
+        <div class="info-row">
+          <div class="info-label">Date</div>
+          <div class="info-val">Friday, May 2, 2025</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">Location</div>
+          <div class="info-val">Home · Rupp Arena</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">Competition</div>
+          <div class="info-val">Division I League Play</div>
+        </div>
+      </div>
+
+      <div class="email-roster">
+        <div class="roster-section-label">Starters · 5</div>
+        <div class="roster-table">
+          <div class="roster-row"><span class="r-num">#3</span><span class="r-name">DeShawn Morris</span></div>
+          <div class="roster-row"><span class="r-num">#11</span><span class="r-name">Armani Katehano</span></div>
+          <div class="roster-row"><span class="r-num">#23</span><span class="r-name">Tyler Okafor</span></div>
+          <div class="roster-row"><span class="r-num">#31</span><span class="r-name">Malik Stevens</span></div>
+          <div class="roster-row"><span class="r-num">#44</span><span class="r-name">Jaylon Cruz</span></div>
+        </div>
+      </div>
+
+      <div class="email-cta">
+        <a class="cta-btn">View full schedule →</a>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <span class="good">Strengths to bring to index:</span><br>
+      · <span class="good">Eyebrow → Giant heading → Subtitle</span> — clear 3-tier reading order<br>
+      · Label-above-value rows for structured facts (no cramming inline)<br>
+      · Each piece of info <span class="good">lives once</span>, in one place<br>
+      · Section labels: 10–11px, uppercase, tracked, muted — consistent<br>
+      · Dark header anchors the page; stat content sits below it cleanly
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

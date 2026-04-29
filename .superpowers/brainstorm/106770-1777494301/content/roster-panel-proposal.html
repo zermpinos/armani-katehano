@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RosterPanel — Before / After</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1c1c1e;
+    font-family: 'Trebuchet MS', 'Gill Sans', system-ui, sans-serif;
+    color: #f0ede8;
+    padding: 24px 16px 48px;
+  }
+  h1 { font-size: 11px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; color: #636368; text-align: center; margin-bottom: 4px; }
+  .tagline { text-align: center; font-size: 11px; color: #636368; margin-bottom: 24px; }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 760px; margin: 0 auto; }
+  @media (max-width: 600px) { .split { grid-template-columns: 1fr; } }
+  .col-label { font-size: 9px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; color: #636368; margin-bottom: 10px; text-align: center; }
+
+  /* shared game card shell */
+  .game-card {
+    background: #242426; border: 1px solid #e0555535; border-radius: 14px;
+    padding: 18px 20px; box-shadow: 0 4px 16px #e0555512;
+  }
+  .next-label { font-size: 10px; font-weight: 900; letter-spacing: 0.18em; text-transform: uppercase; color: #ec6666; margin-bottom: 12px; }
+  .matchup { font-size: 22px; font-weight: 900; color: #f0ede8; line-height: 1.15; }
+  .game-meta { font-size: 11px; color: #919196; margin-top: 4px; }
+  .divider { border: none; border-top: 1px solid #333336; margin: 12px 0; }
+
+  /* BEFORE: flat list */
+  .roster-heading { font-size: 9px; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; color: #636368; margin-bottom: 8px; }
+  .player-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #333336; }
+  .player-row:last-child { border-bottom: none; }
+  .p-num { font-size: 11px; font-weight: 900; color: #919196; min-width: 28px; font-variant-numeric: tabular-nums; }
+  .p-name { font-size: 13px; color: #f0ede8; flex: 1; }
+  .p-pos { font-size: 10px; color: #636368; }
+  .p-badge {
+    font-size: 9px; font-weight: 900; letter-spacing: 0.08em;
+    padding: 2px 6px; border-radius: 4px;
+    background: #4caf7d20; color: #4caf7d; border: 1px solid #4caf7d40;
+  }
+
+  /* AFTER: starters / bench split */
+  .section-label {
+    font-size: 9px; font-weight: 900; letter-spacing: 0.15em;
+    text-transform: uppercase; color: #636368; margin-bottom: 6px; margin-top: 10px;
+  }
+  .section-label:first-of-type { margin-top: 0; }
+  .section-label .count { color: #4caf7d; }
+  .starter-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #333336; }
+  .starter-row:last-child { border-bottom: none; }
+  .bench-row   { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #2a2a2c; }
+  .bench-row:last-child { border-bottom: none; }
+  .starter-num { font-size: 11px; font-weight: 900; color: #ec6666; min-width: 28px; font-variant-numeric: tabular-nums; }
+  .starter-name { font-size: 13px; font-weight: 700; color: #f0ede8; flex: 1; }
+  .bench-num  { font-size: 11px; font-weight: 900; color: #636368; min-width: 28px; font-variant-numeric: tabular-nums; }
+  .bench-name { font-size: 13px; color: #a8a8ac; flex: 1; }
+  .bench-pos  { font-size: 10px; color: #636368; }
+  .starter-pos { font-size: 10px; color: #919196; }
+
+  .section-divider {
+    border: none; border-top: 1px solid #2a2a2c; margin: 8px 0;
+  }
+
+  .note { margin-top: 14px; font-size: 11px; color: #636368; line-height: 1.6; background: #1c1c1e; border: 1px solid #2a2a2c; border-radius: 8px; padding: 10px 12px; }
+  .note strong { color: #4caf7d; }
+</style>
+</head>
+<body>
+
+<h1>RosterPanel — Before / After</h1>
+<p class="tagline">Starters / bench split matching the email template</p>
+
+<div class="split">
+
+  <!-- BEFORE -->
+  <div>
+    <div class="col-label">Before — Flat List</div>
+    <div class="game-card">
+      <div class="next-label">Next Game</div>
+      <div class="matchup">vs Northside Nets</div>
+      <div class="game-meta">Fri, May 2 · 7:00 PM</div>
+      <hr class="divider" />
+      <div class="roster-heading">Announced Roster</div>
+      <div class="player-row"><span class="p-num">#3</span><span class="p-name">DeShawn Morris</span><span class="p-pos">PG</span><span class="p-badge">starting</span></div>
+      <div class="player-row"><span class="p-num">#11</span><span class="p-name">Armani Katehano</span><span class="p-pos">SG</span><span class="p-badge">starting</span></div>
+      <div class="player-row"><span class="p-num">#23</span><span class="p-name">Tyler Okafor</span><span class="p-pos">SF</span><span class="p-badge">starting</span></div>
+      <div class="player-row"><span class="p-num">#31</span><span class="p-name">Malik Stevens</span><span class="p-pos">PF</span><span class="p-badge">starting</span></div>
+      <div class="player-row"><span class="p-num">#44</span><span class="p-name">Jaylon Cruz</span><span class="p-pos">C</span><span class="p-badge">starting</span></div>
+      <div class="player-row"><span class="p-num">#7</span><span class="p-name">Darius Webb</span><span class="p-pos">SG</span></div>
+      <div class="player-row"><span class="p-num">#15</span><span class="p-name">Chris Booker</span><span class="p-pos">PG</span></div>
+      <div class="player-row"><span class="p-num">#22</span><span class="p-name">Jordan Lee</span><span class="p-pos">SF</span></div>
+    </div>
+  </div>
+
+  <!-- AFTER -->
+  <div>
+    <div class="col-label">After — Starters / Bench</div>
+    <div class="game-card">
+      <div class="next-label">Next Game</div>
+      <div class="matchup">vs Northside Nets</div>
+      <div class="game-meta">Fri, May 2 · 7:00 PM</div>
+      <hr class="divider" />
+      <div class="section-label">Starters &nbsp;<span class="count">· 5</span></div>
+      <div class="starter-row"><span class="starter-num">#3</span><span class="starter-name">DeShawn Morris</span><span class="starter-pos">PG</span></div>
+      <div class="starter-row"><span class="starter-num">#11</span><span class="starter-name">Armani Katehano</span><span class="starter-pos">SG</span></div>
+      <div class="starter-row"><span class="starter-num">#23</span><span class="starter-name">Tyler Okafor</span><span class="starter-pos">SF</span></div>
+      <div class="starter-row"><span class="starter-num">#31</span><span class="starter-name">Malik Stevens</span><span class="starter-pos">PF</span></div>
+      <div class="starter-row"><span class="starter-num">#44</span><span class="starter-name">Jaylon Cruz</span><span class="starter-pos">C</span></div>
+      <hr class="section-divider" />
+      <div class="section-label">Bench &nbsp;<span class="count">· 3</span></div>
+      <div class="bench-row"><span class="bench-num">#7</span><span class="bench-name">Darius Webb</span><span class="bench-pos">SG</span></div>
+      <div class="bench-row"><span class="bench-num">#15</span><span class="bench-name">Chris Booker</span><span class="bench-pos">PG</span></div>
+      <div class="bench-row"><span class="bench-num">#22</span><span class="bench-name">Jordan Lee</span><span class="bench-pos">SF</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div style="max-width:760px;margin:16px auto 0;">
+  <div class="note">
+    <strong>Logic:</strong> same <code>isStarter(note)</code> check the email already uses — matches "start", "starter", "starting". If no starters are tagged the panel falls back to a single "Roster" heading (no change from today). Only <code>src/client/home/roster-panel.tsx</code> changes.
+  </div>
+</div>
+
+</body>
+</html>
