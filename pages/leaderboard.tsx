@@ -68,15 +68,9 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
                 {m.toUpperCase()}
               </button>
             ))}
-            <span className="text-[11px] text-ak-text-dim ml-1">Click column to sort</span>
           </div>
         }
       />
-
-      <div className="text-xs text-ak-text-dim mb-4">
-        Sorted by: <span className="text-ak-red-text font-black">{activeCols.find(c => c.key === sortKey)?.title}</span>
-        <span className="text-ak-text-dim"> {sortDir === "desc" ? "↓" : "↑"}</span>
-      </div>
 
       <ErrorBoundary label="Leaderboard table failed to load">
         <LeaderboardTable

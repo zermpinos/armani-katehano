@@ -40,9 +40,12 @@ export function PlayerDetail({ player, onClose, activeSeason }: any) {
           </div>
           <button
             onClick={onClose}
-            className="text-[28px] font-black text-ak-text-dim bg-transparent border-0 cursor-pointer self-start"
+            aria-label="Close"
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-transparent border-0 cursor-pointer text-ak-text-dim transition-colors duration-150 hover:text-ak-text hover:bg-[#ffffff10] self-start shrink-0"
           >
-            ×
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
           </button>
         </div>
 

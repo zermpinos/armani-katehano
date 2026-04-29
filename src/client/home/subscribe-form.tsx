@@ -59,9 +59,9 @@ export function SubscribeForm() {
             </button>
           </form>
           {status === "error" && <div className="mt-[7px] text-xs text-ak-red-text">{errMsg}</div>}
-          <div className="mt-2 text-[10px] text-ak-text-dim">
-            Your email is used solely for roster announcements. It is never shared with third parties and is deleted immediately when you unsubscribe. Unconfirmed addresses are removed after 24 hours.{" "}
-            <Link href="/privacy" className="underline text-ak-text-dim">Privacy notice</Link>.
+          <div className="mt-2 text-[10px] text-ak-text-dim space-y-0.5">
+            <div>Used only for roster announcements — never shared. Deleted on unsubscribe. Unconfirmed addresses removed after 24 hours.</div>
+            <div><Link href="/privacy" className="underline text-ak-text-dim hover:text-ak-text-sub transition-colors duration-150">Privacy notice</Link></div>
           </div>
         </>
       )}
