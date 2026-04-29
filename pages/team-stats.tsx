@@ -125,7 +125,10 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
           <div className="space-y-4 mb-6">
             {/* Scoring */}
             <div>
-              <div className="text-[10px] font-black tracking-[0.18em] text-ak-text-dim uppercase mb-2">Scoring</div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-[3px] self-stretch rounded-sm bg-ak-red-bright min-h-[16px]" />
+                <div className="text-[11px] font-black tracking-[0.15em] text-ak-red-text uppercase">Scoring</div>
+              </div>
               <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
                 <StatTile label="PPG"     value={rec.ppg}     sub="points per game"  highlight />
                 <StatTile label="OPP PPG" value={rec.oppPpg}  sub="allowed per game" />
@@ -133,7 +136,10 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
             </div>
             {/* Defence */}
             <div>
-              <div className="text-[10px] font-black tracking-[0.18em] text-ak-text-dim uppercase mb-2">Defence &amp; Ball Control</div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-[3px] self-stretch rounded-sm bg-ak-red-bright min-h-[16px]" />
+                <div className="text-[11px] font-black tracking-[0.15em] text-ak-red-text uppercase">Defence &amp; Ball Control</div>
+              </div>
               <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
                 <StatTile label="RPG"        value={teamAvg.rpg}     sub="rebounds" />
                 <StatTile label="SPG"        value={teamAvg.spg}     sub="steals" />
@@ -143,7 +149,10 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
             </div>
             {/* Playmaking & Efficiency */}
             <div>
-              <div className="text-[10px] font-black tracking-[0.18em] text-ak-text-dim uppercase mb-2">Playmaking &amp; Efficiency</div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-[3px] self-stretch rounded-sm bg-ak-red-bright min-h-[16px]" />
+                <div className="text-[11px] font-black tracking-[0.15em] text-ak-red-text uppercase">Playmaking &amp; Efficiency</div>
+              </div>
               <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
                 <StatTile label="APG"         value={teamAvg.apg}          sub="assists" />
                 <StatTile label="AST/TOV"     value={teamAvg.atRatio}      sub="ratio" />
@@ -153,7 +162,10 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
             </div>
             {/* Shooting */}
             <div>
-              <div className="text-[10px] font-black tracking-[0.18em] text-ak-text-dim uppercase mb-2">Shooting</div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-[3px] self-stretch rounded-sm bg-ak-red-bright min-h-[16px]" />
+                <div className="text-[11px] font-black tracking-[0.15em] text-ak-red-text uppercase">Shooting</div>
+              </div>
               <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
                 <StatTile label="FG%"  value={`${teamAvg.fgPct}%`}  sub="field goal %" />
                 <StatTile label="3P%"  value={`${teamAvg.fg3Pct}%`} sub="three-point %" />

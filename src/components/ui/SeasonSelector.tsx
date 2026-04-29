@@ -35,7 +35,7 @@ export default function SeasonSelector({ seasons, currentSeason, onChange, showA
                 className={[
                   "py-[5px] px-[14px] text-[11px] font-black tracking-[0.12em] uppercase rounded-lg border cursor-pointer font-sans transition-all duration-150",
                   active
-                    ? "border-ak-red bg-ak-red text-ak-text"
+                    ? "border-[#c0392b] bg-[#8b1a1a30] text-ak-red-text"
                     : "border-ak-border bg-transparent text-ak-text-dim",
                 ].join(" ")}
               >

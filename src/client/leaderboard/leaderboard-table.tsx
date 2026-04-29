@@ -8,6 +8,7 @@ export const MEDALS = [
 ];
 
 export const COLS = [
+  { key: "gp",     label: "GP",  title: "Games Played",           dec: 0 },
   { key: "mpg",    label: "MPG", title: "Minutes Per Game",       dec: 1, min: true },
   { key: "ppg",    label: "PPG", title: "Points Per Game",        dec: 1 },
   { key: "ftPct",  label: "FT%", title: "Free Throw %",           dec: 1, pct: true, denom: "fta" },
@@ -56,7 +57,8 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort,
   return (
     <>
       <div className="rounded-xl border border-ak-border overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="relative">
+          <div className="overflow-x-auto">
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr className="bg-ak-base border-b border-ak-border2">
@@ -127,8 +129,11 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort,
               })}
             </tbody>
           </table>
+          </div>
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-r from-transparent to-[#242426] sm:hidden" />
         </div>
       </div>
+      <div className="sm:hidden text-[10px] text-ak-text-dim text-center mt-2 tracking-[0.1em]">← scroll for more →</div>
 
       <div className="flex gap-5 flex-wrap mt-4">
         {MEDALS.map((m, i) => (
