@@ -1,6 +1,6 @@
 import "@/server/_internal/node-only";
-import crypto    from "node:crypto";
-import { Resend } from "resend";
+import crypto       from "node:crypto";
+import nodemailer   from "nodemailer";
 import { auditLog } from "@/server/security/node/audit-log";
 import prisma       from "@/server/db/client";
 import {
@@ -20,10 +20,16 @@ export type ImportNotificationPayload =
 
 const FROM = "Armani Katehano <noreply@armani-katehano.com>";
 
-function createClient(): Resend | null {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return null;
-  return new Resend(key);
+function createTransport(): nodemailer.Transporter | null {
+  const user = process.env.BREVO_SMTP_USER;
+  const pass = process.env.BREVO_SMTP_PASS;
+  if (!user || !pass) return null;
+  return nodemailer.createTransport({
+    host: "smtp-relay.brevo.com",
+    port: 587,
+    secure: false,
+    auth: { user, pass },
+  });
 }
 
 export async function sendConfirmationEmail({
@@ -33,9 +39,9 @@ export async function sendConfirmationEmail({
   email: string;
   confirmUrl: string;
 }): Promise<void> {
-  const client = createClient();
-  if (!client) {
-    console.warn("[email] RESEND_API_KEY not set — skipping confirmation email");
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[email] BREVO_SMTP_USER/PASS not set — skipping confirmation email");
     return;
   }
 
@@ -85,12 +91,13 @@ export async function sendConfirmationEmail({
   const text = `ARMANI KATEHANO\nConfirm your subscription\n\nClick the link below to confirm your email address:\n\n${confirmUrl}\n\nIf you did not request this, ignore this email.`;
 
   const emailHash = crypto.createHash("sha256").update(email).digest("hex");
-  const { error } = await client.emails.send({ from: FROM, to: email, subject, html, text });
-  if (error) {
-    auditLog("confirmation_email_failed", { emailHash, error: error.message });
-    throw new Error(error.message);
+  try {
+    await transport.sendMail({ from: FROM, to: email, subject, html, text });
+    auditLog("confirmation_email_sent", { emailHash });
+  } catch (err: any) {
+    auditLog("confirmation_email_failed", { emailHash, error: err.message });
+    throw err;
   }
-  auditLog("confirmation_email_sent", { emailHash });
 }
 
 export async function sendRosterAnnouncement({
@@ -99,9 +106,9 @@ export async function sendRosterAnnouncement({
   message,
   subscribers,
 }: SendRosterAnnouncementParams): Promise<void> {
-  const client = createClient();
-  if (!client) {
-    console.warn("[email] RESEND_API_KEY not set — skipping email send");
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[email] BREVO_SMTP_USER/PASS not set — skipping email send");
     return;
   }
   if (subscribers.length === 0) {
@@ -120,12 +127,8 @@ export async function sendRosterAnnouncement({
       const unsubscribeUrl = `${appUrl}/unsubscribe?token=${sub.token}`;
       const html = buildHtml(game, players, message, appUrl, unsubscribeUrl);
       const text = buildText(game, players, message, appUrl, unsubscribeUrl);
-      return client.emails.send({ from: FROM, to: sub.email, subject, html, text })
-        .then(({ error }) => {
-          if (error) {
-            auditLog("roster_email_failed", { emailHash, error: error.message, opponent: game.opponent });
-            throw new Error(error.message);
-          }
+      return transport.sendMail({ from: FROM, to: sub.email, subject, html, text })
+        .then(() => {
           auditLog("roster_email_delivered", { emailHash, opponent: game.opponent });
           return prisma.subscriber.update({
             where: { id: sub.id },
@@ -158,24 +161,24 @@ export async function sendAdminAlert({
   subject: string;
   body: string;
 }): Promise<void> {
-  const client = createClient();
-  if (!client) {
-    console.warn("[email] RESEND_API_KEY not set — skipping admin alert");
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[email] BREVO_SMTP_USER/PASS not set — skipping admin alert");
     return;
   }
   const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
-  const { error } = await client.emails.send({ from: FROM, to, subject, text: body });
-  if (error) {
-    auditLog("admin_alert_failed", { subject, error: error.message });
-  } else {
+  try {
+    await transport.sendMail({ from: FROM, to, subject, text: body });
     auditLog("admin_alert_sent", { subject });
+  } catch (err: any) {
+    auditLog("admin_alert_failed", { subject, error: err.message });
   }
 }
 
 export async function sendImportNotification(payload: ImportNotificationPayload): Promise<void> {
-  const client = createClient();
-  if (!client) {
-    console.warn("[email] RESEND_API_KEY not set — skipping import notification");
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[email] BREVO_SMTP_USER/PASS not set — skipping import notification");
     return;
   }
   const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
@@ -189,11 +192,11 @@ export async function sendImportNotification(payload: ImportNotificationPayload)
     result = buildImportAbandoned(payload);
   }
 
-  const { error } = await client.emails.send({ from: FROM, to, subject: result.subject, html: result.html, text: result.text });
-  if (error) {
-    auditLog("import_notification_failed", { kind: payload.kind, error: error.message });
-  } else {
+  try {
+    await transport.sendMail({ from: FROM, to, subject: result.subject, html: result.html, text: result.text });
     auditLog("import_notification_sent", { kind: payload.kind });
+  } catch (err: any) {
+    auditLog("import_notification_failed", { kind: payload.kind, error: err.message });
   }
 }
 

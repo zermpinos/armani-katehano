@@ -90,7 +90,7 @@ export default function PrivacyPage() {
             <p>We share your email address with the following third-party services to operate the subscription feature:</p>
             <div className="rounded-xl overflow-hidden border border-ak-border divide-y divide-ak-border mt-3">
               <Row label="Neon (database)" value="Stores subscriber records. Hosted on AWS eu-central-1 (Frankfurt, EU)." />
-              <Row label="Resend (email)" value="Delivers confirmation and roster emails. Resend Inc., United States. Transfer based on Resend's Standard Contractual Clauses." />
+              <Row label="Brevo (email)" value="Delivers confirmation and roster emails. Brevo SAS (Sendinblue), Paris, France. EU-based, subject to GDPR." />
               <Row label="Vercel (hosting & analytics)" value="Serves the web application and provides aggregated analytics. Vercel Inc., United States. Transfer based on Vercel's Standard Contractual Clauses." />
             </div>
           </Section>
