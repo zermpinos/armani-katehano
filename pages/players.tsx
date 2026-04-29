@@ -98,9 +98,22 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
           />
         </label>
       </div>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-[14px]">
-        {displayed.map(p => <PlayerCard key={p.id} player={p} onClick={() => setSelected(p)} />)}
-      </div>
+      {search.trim() && displayed.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="text-[40px] mb-3">🏀</div>
+          <div className="text-[15px] font-bold text-ak-text">No players match &ldquo;{search}&rdquo;</div>
+          <button
+            onClick={() => setSearch("")}
+            className="mt-3 text-[12px] text-ak-red-text underline cursor-pointer bg-transparent border-0"
+          >
+            Clear search
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-[14px]">
+          {displayed.map(p => <PlayerCard key={p.id} player={p} onClick={() => setSelected(p)} />)}
+        </div>
+      )}
       {selected && <PlayerDetail player={selected} onClose={() => setSelected(null)} activeSeason={activeSeason} />}
     </Layout>
   );

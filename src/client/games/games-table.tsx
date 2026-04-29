@@ -83,7 +83,7 @@ export function GamesTable({ items, loadingBoxScore, onGameClick, onUpcomingClic
                   <div className="text-lg font-black text-ak-text">{g.score}</div>
                   {topScorer && <div className="text-[11px] text-ak-text-dim">{topScorer}</div>}
                 </div>
-                <div className="text-[11px] text-ak-text-dim">BOX SCORE -></div>
+                <div className="text-[11px] text-ak-red-text font-bold">BOX SCORE -></div>
               </div>
             </button>
           );
