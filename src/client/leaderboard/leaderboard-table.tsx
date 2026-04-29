@@ -87,7 +87,7 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort,
                   <tr
                     key={p.id}
                     onClick={() => onSelect(p)}
-                    className={`border-b border-ak-border cursor-pointer ${medal ? medal.rowBgCls : idx % 2 === 0 ? "bg-ak-surface" : "bg-ak-surface2"}`}
+                    className={`border-b border-ak-border cursor-pointer transition-colors duration-100 hover:bg-[#c0392b12] ${medal ? medal.rowBgCls : idx % 2 === 0 ? "bg-ak-surface" : "bg-ak-surface2"}`}
                   >
                     <td className="px-[14px] py-[10px] text-center">
                       {medal
