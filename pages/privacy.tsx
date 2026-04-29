@@ -69,12 +69,29 @@ export default function PrivacyPage() {
             </div>
           </Section>
 
+          <Section title="Cookies">
+            <p>
+              We do not use tracking or advertising cookies. The site sets two functional cookies, both strictly necessary for security:
+            </p>
+            <div className="rounded-xl overflow-hidden border border-ak-border divide-y divide-ak-border mt-3">
+              <Row label="Session cookie" value="Set only when you log in to the admin or coach portal. Expires on sign-out. Never set for public visitors." />
+              <Row label="CSRF token" value="Set alongside the session cookie to prevent cross-site request forgery. Expires with the session." />
+            </div>
+            <p className="mt-2">No consent banner is shown because no tracking cookies are set for public visitors.</p>
+          </Section>
+
+          <Section title="Analytics">
+            <p>
+              This site uses <strong className="text-ak-text">Vercel Analytics</strong>, a privacy-friendly analytics tool. It collects aggregated page view counts with no cookies, no cross-site tracking, and no personally identifiable information. We use it solely to understand which pages are visited.
+            </p>
+          </Section>
+
           <Section title="Sub-processors">
             <p>We share your email address with the following third-party services to operate the subscription feature:</p>
             <div className="rounded-xl overflow-hidden border border-ak-border divide-y divide-ak-border mt-3">
               <Row label="Neon (database)" value="Stores subscriber records. Hosted on AWS eu-central-1 (Frankfurt, EU)." />
               <Row label="Resend (email)" value="Delivers confirmation and roster emails. Resend Inc., United States. Transfer based on Resend's Standard Contractual Clauses." />
-              <Row label="Vercel (hosting)" value="Serves the web application. Vercel Inc., United States. Transfer based on Vercel's Standard Contractual Clauses." />
+              <Row label="Vercel (hosting & analytics)" value="Serves the web application and provides aggregated analytics. Vercel Inc., United States. Transfer based on Vercel's Standard Contractual Clauses." />
             </div>
           </Section>
 
@@ -94,6 +111,9 @@ export default function PrivacyPage() {
             <p>
               Subscription tokens are stripped from browser history and error reports. Unconfirmed addresses are
               purged daily. All data is transmitted over TLS.
+            </p>
+            <p>
+              Roster announcement emails contain no tracking pixels, no open-rate monitoring, and no click tracking. We do not know whether you read them.
             </p>
           </Section>
         </div>
