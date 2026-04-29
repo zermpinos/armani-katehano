@@ -129,9 +129,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
             Armani<br /><span className="text-ak-red-bright">Katehano</span>
           </h1>
           <p className="mt-3 text-[13px] font-semibold text-ak-text-sub">
-            {record.wins}–{record.losses}
-            {record.streak.count > 0 && <> · <span className="text-ak-red-text">{record.streak.count}-game {record.streak.type === "W" ? "win" : "loss"} streak</span></>}
-            {" "}· <span className="text-ak-red-text">{winPct}%</span> win rate
+            Basketball Club · Season Stats
           </p>
         </div>
       </div>
