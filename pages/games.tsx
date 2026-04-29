@@ -123,6 +123,17 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
       <LeagueFilter leagues={seasonLeagues} selected={selectedLeague} onChange={setSelectedLeague} />
       <ResultFilter selected={selectedResult} onChange={setSelectedResult} />
 
+      {(selectedLeague !== "all" || selectedResult !== "all") && (
+        <div className="mb-4">
+          <button
+            onClick={() => { setSelectedLeague("all"); setSelectedResult("all"); }}
+            className="border border-[#c0392b55] bg-[#8b1a1a15] text-ak-red-text text-[10px] font-black rounded-md px-[10px] py-[3px] cursor-pointer"
+          >
+            ✕ Clear filters
+          </button>
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <div className="text-center p-12 text-ak-text-dim">
           <div className="text-4xl mb-3">📋</div>
