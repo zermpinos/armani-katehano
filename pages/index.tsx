@@ -175,7 +175,9 @@ export default function HomePage({ players, games, stats, upcomingGames, current
         </div>
       )}
 
-      <SubscribeForm />
+      <div className="mt-5">
+        <SubscribeForm />
+      </div>
 
       <ScoringTrendModal
         show={showTrendModal}
