@@ -73,7 +73,7 @@ export default function PrivacyPage() {
             <p>We share your email address with the following third-party services to operate the subscription feature:</p>
             <div className="rounded-xl overflow-hidden border border-ak-border divide-y divide-ak-border mt-3">
               <Row label="Neon (database)" value="Stores subscriber records. Hosted on AWS eu-central-1 (Frankfurt, EU)." />
-              <Row label="Gmail / Google Workspace (email)" value="Delivers confirmation and roster emails. Google LLC, United States. Transfer based on Google's Standard Contractual Clauses." />
+              <Row label="Resend (email)" value="Delivers confirmation and roster emails. Resend Inc., United States. Transfer based on Resend's Standard Contractual Clauses." />
               <Row label="Vercel (hosting)" value="Serves the web application. Vercel Inc., United States. Transfer based on Vercel's Standard Contractual Clauses." />
             </div>
           </Section>
