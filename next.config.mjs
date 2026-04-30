@@ -1,4 +1,8 @@
 import { withSentryConfig } from "@sentry/nextjs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function sentryReportUri() {
   const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
@@ -20,6 +24,29 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com" },
     ],
+  },
+
+  // Strip Next.js's hardcoded `require("next/dist/build/polyfills/polyfill-module")`
+  // from the client bundle. The module ships ~14 KiB of conditional polyfills
+  // for browsers below the production browserslist target (Chrome >=96,
+  // Firefox >=94, Safari >=15.4, Edge >=96) -- every method is natively
+  // supported there, so the bytes are dead code on every page load.
+  //
+  // Turbopack (Next 16's default build bundler) ignores resolveAlias for the
+  // relative require originating inside node_modules, so the actual stripping
+  // is done by scripts/strip-next-polyfills.mjs (wired into `npm run build`).
+  // The webpack alias below covers webpack-only invocations.
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        "next/dist/build/polyfills/polyfill-module": path.resolve(
+          __dirname,
+          "lib/empty-polyfill-module.js"
+        ),
+      };
+    }
+    return config;
   },
 
   async headers() {
