@@ -69,4 +69,19 @@ describe("sentry client init", () => {
       readIfExists("instrumentation-client.ts");
     expect(src!).toMatch(/sendDefaultPii:\s*false/);
   });
+
+  // Sentry's default integrations bundle BrowserTracing, Replay,
+  // BrowserSession, BrowserApiErrors, etc. -- tens of KiB of code that runs
+  // even when tracesSampleRate / replaysSessionSampleRate are 0. Disabling
+  // the defaults and re-adding only globalHandlers (uncaught-exception
+  // capture is the whole point of Sentry on the client) keeps error
+  // reporting working while dropping the bundle weight.
+  it("disables default integrations and keeps an explicit minimal set", () => {
+    const src =
+      readIfExists("instrumentation-client.js") ??
+      readIfExists("instrumentation-client.ts");
+    const stripped = stripComments(src!);
+    expect(stripped).toMatch(/defaultIntegrations:\s*false/);
+    expect(stripped).toMatch(/globalHandlersIntegration/);
+  });
 });
