@@ -1,17 +1,25 @@
 import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import SeasonSelector from "@/components/ui/SeasonSelector";
 import { getAllGames, getPlayers, getSeasons, getConfig, getAllUpcomingGames, getAllSeasonsStats } from "@/server/db/repositories";
 import { buildAllTimeStatsMap } from "@/domain/stats";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { PlayerDetail } from "@/client/players/PlayerDetail";
 import { BoxScore } from "@/client/games/box-score";
 import { UpcomingGameModal } from "@/client/games/upcoming-game-modal";
 import { LeagueFilter } from "@/client/games/league-filter";
 import { ResultFilter } from "@/client/games/result-filter";
 import { CalendarView } from "@/client/games/calendar-view";
 import { GamesTable } from "@/client/games/games-table";
+
+// PlayerDetail transitively pulls in recharts (via GameLogPanel + SkillRadar);
+// loading it dynamically keeps recharts out of this page's chunk and the
+// chunks Next.js prefetches for any <Link> pointing here.
+const PlayerDetail = dynamic(
+  () => import("@/client/players/PlayerDetail").then(m => ({ default: m.PlayerDetail })),
+  { ssr: false }
+);
 
 export default function GamesPage({ allGames, players, seasons, currentSeason, upcomingGames, allTimeStatsMap, playerSeasonHistory }: any) {
   const [selectedSeason, setSelectedSeason] = useState(currentSeason);

@@ -6,7 +6,6 @@ import { getAllPublicData, getUpcomingGamesWithAnnouncements } from "@/server/db
 import { computeRecord } from "@/domain/games/score";
 import { fmt } from "@/domain/players/format";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { PlayerDetail } from "@/client/players/PlayerDetail";
 import { ConfirmToast } from "@/client/home/confirm-toast";
 import { SubscribeForm } from "@/client/home/subscribe-form";
 import { RecentResultsCard } from "@/client/home/recent-results-card";
@@ -55,6 +54,13 @@ const TopScorersChart = dynamic(
 );
 const ScoringTrendModal = dynamic(
   () => import("@/client/home/scoring-trend-modal").then(m => ({ default: m.ScoringTrendModal })),
+  { ssr: false }
+);
+// PlayerDetail transitively pulls in recharts (via GameLogPanel + SkillRadar);
+// loading it dynamically keeps recharts out of this page's chunk and the
+// chunks Next.js prefetches for any <Link> pointing here.
+const PlayerDetail = dynamic(
+  () => import("@/client/players/PlayerDetail").then(m => ({ default: m.PlayerDetail })),
   { ssr: false }
 );
 
