@@ -1,12 +1,20 @@
 import { useState } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import { getAllPublicData, getAllSeasonsStats } from "@/server/db/repositories";
 import { buildAllTimeStatsMap } from "@/domain/stats";
 import { fmt } from "@/domain/players/format";
 import SeasonSelector from "@/components/ui/SeasonSelector";
-import { PlayerDetail } from "@/client/players/PlayerDetail";
+
+// PlayerDetail transitively pulls in recharts (via GameLogPanel + SkillRadar);
+// loading it dynamically keeps recharts out of this page's chunk and the
+// chunks Next.js prefetches for any <Link> pointing here.
+const PlayerDetail = dynamic(
+  () => import("@/client/players/PlayerDetail").then(m => ({ default: m.PlayerDetail })),
+  { ssr: false }
+);
 
 const playerImg = (player: any) => player.photoUrl || null;
 

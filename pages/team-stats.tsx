@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading, StatTile } from "@/components/ui";
 import { getAllPublicData } from "@/server/db/repositories";
@@ -9,7 +10,13 @@ import SeasonSelector from "@/components/ui/SeasonSelector";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { RecordBreakdown } from "@/client/team-stats/record-breakdown";
 import { ShootingSplits } from "@/client/team-stats/shooting-splits";
-import { MinutesChart } from "@/client/team-stats/minutes-chart";
+
+// MinutesChart pulls in recharts; loading it dynamically keeps recharts out
+// of this page's chunk and any chunk Next.js prefetches for a <Link> here.
+const MinutesChart = dynamic(
+  () => import("@/client/team-stats/minutes-chart").then(m => ({ default: m.MinutesChart })),
+  { ssr: false }
+);
 
 const TAB_BASE = "px-[10px] py-[3px] text-[10px] font-black tracking-[0.1em] uppercase rounded-md cursor-pointer border transition-all duration-150";
 const TAB_ACTIVE   = "border-[#c0392b60] bg-[#8b1a1a25] text-ak-red-text";

@@ -1,12 +1,20 @@
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import { getAllPublicData, getAllSeasonsStats } from "@/server/db/repositories";
 import { buildAllTimeStatsMap } from "@/domain/stats";
 import SeasonSelector from "@/components/ui/SeasonSelector";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { PlayerDetail } from "@/client/players/PlayerDetail";
 import { LeaderboardTable, COLS, TOTAL_COLS } from "@/client/leaderboard/leaderboard-table";
+
+// PlayerDetail transitively pulls in recharts (via GameLogPanel + SkillRadar);
+// loading it dynamically keeps recharts out of this page's chunk and the
+// chunks Next.js prefetches for any <Link> pointing here.
+const PlayerDetail = dynamic(
+  () => import("@/client/players/PlayerDetail").then(m => ({ default: m.PlayerDetail })),
+  { ssr: false }
+);
 
 export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }: any) {
   const [sortKey, setSortKey] = useState("ppg");
