@@ -19,12 +19,15 @@ interface LayoutProps {
   ogDescription?: string;
 }
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://armani-katehano.com";
+
 export default function Layout({ children, title = SITE_NAME, ogDescription }: LayoutProps) {
   const router      = useRouter();
   const [open, setOpen] = useState(false);
 
   const pageTitle = title === SITE_NAME ? title : `${title} · ${SITE_NAME}`;
   const desc      = ogDescription ?? `${SITE_NAME} Basketball — Season Stats ${CURRENT_SEASON}`;
+  const canonical = `${BASE_URL}${router.pathname}`;
 
   return (
     <>
@@ -33,9 +36,11 @@ export default function Layout({ children, title = SITE_NAME, ogDescription }: L
         <meta name="description" content={desc} />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#1c1c1e" />
+        <link rel="canonical" href={canonical} />
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={desc} />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content={canonical} />
         <meta property="og:image" content="/logo.png" />
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content={pageTitle} />
