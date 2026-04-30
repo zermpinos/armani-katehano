@@ -5,6 +5,11 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import {
+  globalHandlersIntegration,
+  inboundFiltersIntegration,
+  dedupeIntegration,
+} from "@sentry/nextjs";
 
 const PII_PATTERNS = [
   /token=[0-9a-f]+/gi,
@@ -25,12 +30,24 @@ function scrubEvent(event) {
   return event;
 }
 
+// Sentry's default integrations bundle BrowserTracing, Replay,
+// BrowserSession, BrowserApiErrors, Breadcrumbs, HttpContext, etc. — tens
+// of KiB of code that runs even when tracesSampleRate /
+// replaysSessionSampleRate are 0. We only need uncaught-exception capture
+// (globalHandlers), the noise filter that honors ignoreErrors above
+// (inboundFilters), and dedupe to suppress duplicate reports.
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   sendDefaultPii: false,
   tracesSampleRate: 0,
   replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 0,
+  defaultIntegrations: false,
+  integrations: [
+    globalHandlersIntegration(),
+    inboundFiltersIntegration(),
+    dedupeIntegration(),
+  ],
   beforeSend: scrubEvent,
   ignoreErrors: [
     "ResizeObserver loop limit exceeded",
