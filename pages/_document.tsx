@@ -22,7 +22,9 @@ export default class MyDocument extends Document<Props> {
     const { nonce } = this.props;
     return (
       <Html lang="en">
-        <Head nonce={nonce} />
+        <Head nonce={nonce}>
+          <link rel="icon" href="/logo.png" />
+        </Head>
         <body>
           <Main />
           <NextScript nonce={nonce} />
