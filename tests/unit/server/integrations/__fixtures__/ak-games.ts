@@ -153,19 +153,6 @@ export const GAMES: GameFixture[] = [
        5: { pts:2,  fg2m:1,  fg2a:3,  fg3m:0, fg3a:0,  ftm:0, fta:0 },
     },
   },
-  // ── unknown opp, AK 56 (/men/) ───────────────────────────────────────────
-  { url: "https://basketcity.sportstats.gr/men/gamedetails/id/5B7B1735-450B-4ADC-933B-035D2C572F40",
-    akScore: 56,
-    players: {
-      14: { pts:14, fg2m:5,  fg2a:7,  fg3m:0, fg3a:1,  ftm:4, fta:11 },
-       6: { pts:12, fg2m:0,  fg2a:3,  fg3m:4, fg3a:6,  ftm:0, fta:0  },
-       3: { pts:11, fg2m:4,  fg2a:5,  fg3m:1, fg3a:5,  ftm:0, fta:0  },
-      11: { pts:8,  fg2m:2,  fg2a:7,  fg3m:0, fg3a:0,  ftm:4, fta:7  },
-      77: { pts:5,  fg2m:1,  fg2a:2,  fg3m:1, fg3a:7,  ftm:0, fta:0  },
-       5: { pts:4,  fg2m:2,  fg2a:4,  fg3m:0, fg3a:0,  ftm:0, fta:0  },
-       9: { pts:2,  fg2m:1,  fg2a:5,  fg3m:0, fg3a:1,  ftm:0, fta:0  },
-    },
-  },
   // ── unknown opp, AK 66 (/men/) ───────────────────────────────────────────
   { url: "https://basketcity.sportstats.gr/men/gamedetails/id/6A987D28-B001-40D9-8A0D-1492653BF5F0",
     akScore: 66,

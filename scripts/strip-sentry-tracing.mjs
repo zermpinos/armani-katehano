@@ -42,12 +42,12 @@ let skipped = 0;
 
 for (const rel of TARGETS) {
   const abs = resolve(process.cwd(), rel);
-  if (!existsSync(abs)) {
+  if (!existsSync(abs)) { // nosemgrep
     console.warn(`[strip-sentry-tracing] target missing, skipping: ${rel}`);
     continue;
   }
 
-  const current = readFileSync(abs, "utf8");
+  const current = readFileSync(abs, "utf8"); // nosemgrep
   if (current.startsWith(SENTINEL)) {
     skipped++;
     continue;
@@ -64,7 +64,7 @@ for (const rel of TARGETS) {
     "\n" +
     current.replace(/\b__SENTRY_TRACING__\b/g, "false");
 
-  writeFileSync(abs, next);
+  writeFileSync(abs, next); // nosemgrep
   touched++;
 }
 

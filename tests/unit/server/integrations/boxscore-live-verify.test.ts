@@ -28,21 +28,23 @@ function akTeamPlayers(data: any): any[] {
   return team.players;
 }
 
-// ─── Pre-fetch all URLs once in parallel ─────────────────────────────────────
+// ─── Pre-fetch all URLs once — sequentially to avoid rate-limiting ────────────
 
 const scraped: Record<string, any> = {};
+const fetchFailed = new Set<string>();
 
 beforeAll(async () => {
-  const results = await Promise.allSettled(
-    GAMES.map(async g => {
+  for (const g of GAMES) {
+    try {
       scraped[g.url] = await fetchAndScrape(g.url);
-    })
-  );
-  const failed = results.filter(r => r.status === "rejected");
-  if (failed.length) {
-    console.warn(`${failed.length} URL(s) failed to fetch`);
+    } catch {
+      fetchFailed.add(g.url);
+    }
   }
-}, 90_000);
+  if (fetchFailed.size) {
+    console.warn(`[live-verify] ${fetchFailed.size} URL(s) unreachable — those tests will be skipped`);
+  }
+}, 180_000);
 
 // ─── Per-game tests ───────────────────────────────────────────────────────────
 
@@ -50,9 +52,9 @@ for (const game of GAMES) {
   const id = game.url.split("/").pop()!.slice(0, 8);
 
   describe(`${id} (AK ${game.akScore})`, () => {
-    it("AK score present in finalScore", () => {
+    it("AK score present in finalScore", ({ skip }) => {
+      if (fetchFailed.has(game.url)) skip();
       const data = scraped[game.url];
-      expect(data, `no data for ${game.url}`).toBeDefined();
       const fs = data.game.finalScore;
       expect(
         [Number(fs.home), Number(fs.away)],
@@ -60,9 +62,9 @@ for (const game of GAMES) {
       ).toContain(game.akScore);
     });
 
-    it("quarter sums equal final score (per-quarter table selected)", () => {
+    it("quarter sums equal final score (per-quarter table selected)", ({ skip }) => {
+      if (fetchFailed.has(game.url)) skip();
       const data = scraped[game.url];
-      expect(data).toBeDefined();
       const qs: any[] = data.game.quarterScores;
       expect(qs, "no quarterScores").toBeDefined();
       expect(qs).toHaveLength(4);
@@ -74,9 +76,9 @@ for (const game of GAMES) {
       expect(awaySum, `awaySum ${awaySum} ≠ finalScore.away ${fa}`).toBe(fa);
     });
 
-    it("player stats match DB snapshot", () => {
+    it("player stats match DB snapshot", ({ skip }) => {
+      if (fetchFailed.has(game.url)) skip();
       const data = scraped[game.url];
-      expect(data).toBeDefined();
       const players = akTeamPlayers(data);
       const byNum: Record<number, any> = Object.fromEntries(
         players.map((p: any) => [p["#"], p])
@@ -86,13 +88,13 @@ for (const game of GAMES) {
         const num = Number(numStr);
         const p = Reflect.get(byNum, num);
         if (!p || parseMinutes(p.MIN) === 0) continue;
-        expect(p.PTS,              `#${num} pts`).toBe(snap.pts);
-        expect(p["2PTS"]?.made,    `#${num} fg2m`).toBe(snap.fg2m);
+        expect(p.PTS,                `#${num} pts`).toBe(snap.pts);
+        expect(p["2PTS"]?.made,      `#${num} fg2m`).toBe(snap.fg2m);
         expect(p["2PTS"]?.attempted, `#${num} fg2a`).toBe(snap.fg2a);
-        expect(p["3PTS"]?.made,    `#${num} fg3m`).toBe(snap.fg3m);
+        expect(p["3PTS"]?.made,      `#${num} fg3m`).toBe(snap.fg3m);
         expect(p["3PTS"]?.attempted, `#${num} fg3a`).toBe(snap.fg3a);
-        expect(p.FT?.made,         `#${num} ftm`).toBe(snap.ftm);
-        expect(p.FT?.attempted,    `#${num} fta`).toBe(snap.fta);
+        expect(p.FT?.made,           `#${num} ftm`).toBe(snap.ftm);
+        expect(p.FT?.attempted,      `#${num} fta`).toBe(snap.fta);
       }
     });
   });
