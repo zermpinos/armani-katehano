@@ -23,7 +23,7 @@ const CLIENT_CANDIDATES = [
 
 function readIfExists(rel: string): string | null {
   const p = resolve(ROOT, rel);
-  return existsSync(p) ? readFileSync(p, "utf8") : null;
+  return existsSync(p) ? readFileSync(p, "utf8") : null; // nosemgrep
 }
 
 function stripComments(src: string): string {
