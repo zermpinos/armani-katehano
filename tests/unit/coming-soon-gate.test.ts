@@ -9,24 +9,24 @@ function read(rel: string): string {
 }
 
 describe("coming-soon gate", () => {
-  describe("middleware.ts", () => {
+  describe("proxy.ts", () => {
     it("exists at the project root", () => {
-      expect(() => read("middleware.ts")).not.toThrow();
+      expect(() => read("proxy.ts")).not.toThrow();
     });
 
     it("compares Date.now() against the 2026-05-03 UTC threshold", () => {
-      const src = read("middleware.ts");
+      const src = read("proxy.ts");
       expect(src).toMatch(/2026-05-03/);
     });
 
     it("rewrites to /coming-soon when before launch", () => {
-      const src = read("middleware.ts");
+      const src = read("proxy.ts");
       expect(src).toMatch(/coming-soon/);
       expect(src).toMatch(/rewrite/i);
     });
 
     it("excludes _next and api paths from the matcher", () => {
-      const src = read("middleware.ts");
+      const src = read("proxy.ts");
       expect(src).toMatch(/_next/);
       expect(src).toMatch(/api/);
     });
