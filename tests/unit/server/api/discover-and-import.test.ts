@@ -179,6 +179,68 @@ describe("backoff timing", () => {
     expect(discoverSourceUrl).toHaveBeenCalledTimes(1);
   });
 
+  it("does not run a 3rd attempt before T+3h", async () => {
+    // 2.5h after tip-off, attempts=2 → next due at +3h = NOW + 0.5h, not due yet
+    const job  = { id: "jobA", state: "PENDING", attempts: 2, failureSentAt: null };
+    const game = makeGame({
+      scheduledFor: new Date(NOW.getTime() - 150 * 60 * 1000),
+      importJobs:   [job],
+    });
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
+
+    const res = mockRes();
+    await handler(mockReq() as any, res as any);
+
+    expect(discoverSourceUrl).not.toHaveBeenCalled();
+    expect(res.body).toMatchObject({ skipped: 1 });
+  });
+
+  it("runs the 3rd attempt at T+3h", async () => {
+    const job  = { id: "jobA", state: "PENDING", attempts: 2, failureSentAt: null };
+    const game = makeGame({
+      scheduledFor: new Date(NOW.getTime() - 3 * HOUR),
+      importJobs:   [job],
+    });
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
+    vi.mocked(discoverSourceUrl).mockResolvedValue({ gameUrl: null, reason: "still no row" });
+
+    const res = mockRes();
+    await handler(mockReq() as any, res as any);
+
+    expect(discoverSourceUrl).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not run a 4th attempt before T+4h", async () => {
+    // 3.5h after tip-off, attempts=3 → next due at +4h = NOW + 0.5h, not due yet
+    const job  = { id: "jobA", state: "PENDING", attempts: 3, failureSentAt: null };
+    const game = makeGame({
+      scheduledFor: new Date(NOW.getTime() - 210 * 60 * 1000),
+      importJobs:   [job],
+    });
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
+
+    const res = mockRes();
+    await handler(mockReq() as any, res as any);
+
+    expect(discoverSourceUrl).not.toHaveBeenCalled();
+    expect(res.body).toMatchObject({ skipped: 1 });
+  });
+
+  it("runs the 4th attempt at T+4h", async () => {
+    const job  = { id: "jobA", state: "PENDING", attempts: 3, failureSentAt: null };
+    const game = makeGame({
+      scheduledFor: new Date(NOW.getTime() - 4 * HOUR),
+      importJobs:   [job],
+    });
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
+    vi.mocked(discoverSourceUrl).mockResolvedValue({ gameUrl: null, reason: "still no row" });
+
+    const res = mockRes();
+    await handler(mockReq() as any, res as any);
+
+    expect(discoverSourceUrl).toHaveBeenCalledTimes(1);
+  });
+
   it("skips a game that has already exhausted MAX_DISCOVERY_TRIES", async () => {
     const job  = { id: "jobA", state: "PENDING", attempts: 4, failureSentAt: null };
     const game = makeGame({

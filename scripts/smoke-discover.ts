@@ -19,7 +19,7 @@ import { discoverSourceUrl }  from "@/server/services/discover-source-url";
 
 const LISTINGS = {
   men: "https://basketcity.sportstats.gr/men/teamdetails/id/BED40AE7-E186-454A-AF1D-9010E46EC048",
-  cup: "https://basketcity.sportstats.gr/master-winter-cup/teamdetails/id/bed40ae7-e186-454a-af1d-9010e46ec048",
+  cup: "https://basketcity.sportstats.gr/winter-cup/teamdetails/id/BED40AE7-E186-454A-AF1D-9010E46EC048",
 } as const;
 
 function arg(name: string): string | null {
