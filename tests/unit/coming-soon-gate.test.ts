@@ -30,6 +30,12 @@ describe("coming-soon gate", () => {
       expect(src).toMatch(/_next/);
       expect(src).toMatch(/api/);
     });
+
+    it("passes static asset extensions through the gate", () => {
+      const src = read("proxy.ts");
+      expect(src).toMatch(/STATIC_ASSET/);
+      expect(src).toMatch(/png/);
+    });
   });
 
   describe("pages/coming-soon.tsx", () => {
@@ -42,14 +48,14 @@ describe("coming-soon gate", () => {
       expect(src).not.toMatch(/import.*Layout/);
     });
 
+    it("does not include SubscribeForm", () => {
+      const src = read("pages/coming-soon.tsx");
+      expect(src).not.toMatch(/SubscribeForm/);
+    });
+
     it("displays the launch date text", () => {
       const src = read("pages/coming-soon.tsx");
       expect(src).toMatch(/3 May 2026/);
-    });
-
-    it("includes the SubscribeForm", () => {
-      const src = read("pages/coming-soon.tsx");
-      expect(src).toMatch(/SubscribeForm/);
     });
 
     it("uses the high-res logo", () => {
