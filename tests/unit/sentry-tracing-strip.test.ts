@@ -19,7 +19,7 @@ import { resolve } from "node:path";
 const ROOT = resolve(__dirname, "..", "..");
 
 function read(rel: string): string {
-  return readFileSync(resolve(ROOT, rel), "utf8");
+  return readFileSync(resolve(ROOT, rel), "utf8"); // nosemgrep
 }
 
 describe("sentry tracing stripper", () => {
