@@ -17,7 +17,7 @@ import { securityHeaders }                   from "@/server/security/edge";
 import { auditLog }                          from "@/server/security/node";
 
 const WINDOW_DAYS         = 7;
-const MAX_DISCOVERY_TRIES = 2;
+const MAX_DISCOVERY_TRIES = 4;
 const HOUR_MS             = 60 * 60 * 1000;
 
 interface RunSummary {
