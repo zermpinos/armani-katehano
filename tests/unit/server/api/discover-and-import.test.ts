@@ -180,7 +180,7 @@ describe("backoff timing", () => {
   });
 
   it("skips a game that has already exhausted MAX_DISCOVERY_TRIES", async () => {
-    const job  = { id: "jobA", state: "PENDING", attempts: 2, failureSentAt: null };
+    const job  = { id: "jobA", state: "PENDING", attempts: 4, failureSentAt: null };
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - 5 * HOUR),
       importJobs:   [job],
@@ -243,16 +243,36 @@ describe("discovery outcomes", () => {
     expect(res.body).toMatchObject({ abandoned: 0 });
   });
 
-  it("on second miss, marks ABANDONED and sends abandoned email", async () => {
-    const job  = { id: "jobA", state: "PENDING", attempts: 1, failureSentAt: null };
+  it("does not abandon on a 3rd miss — records PENDING with attempts=3", async () => {
+    const job  = { id: "jobA", state: "PENDING", attempts: 2, failureSentAt: null };
     const game = makeGame({
-      scheduledFor: new Date(NOW.getTime() - 2 * HOUR),
+      scheduledFor: new Date(NOW.getTime() - 3 * HOUR),
+      importJobs:   [job],
+    });
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
+    vi.mocked(discoverSourceUrl).mockResolvedValue({ gameUrl: null, reason: "not yet" });
+
+    const res = mockRes();
+    await handler(mockReq() as any, res as any);
+
+    expect(mockPrisma.gameImportJob.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "jobA" },
+      data:  expect.objectContaining({ state: "PENDING", attempts: 3 }),
+    }));
+    expect(sendImportNotification).not.toHaveBeenCalled();
+    expect(res.body).toMatchObject({ abandoned: 0 });
+  });
+
+  it("on 4th miss, marks ABANDONED and sends abandoned email", async () => {
+    const job  = { id: "jobA", state: "PENDING", attempts: 3, failureSentAt: null };
+    const game = makeGame({
+      scheduledFor: new Date(NOW.getTime() - 4 * HOUR),
       importJobs:   [job],
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
     vi.mocked(discoverSourceUrl).mockResolvedValue({ gameUrl: null, reason: "still nothing" });
     mockPrisma.gameImportJob.update.mockResolvedValueOnce({
-      id: "jobA", state: "ABANDONED", attempts: 2, failureSentAt: null,
+      id: "jobA", state: "ABANDONED", attempts: 4, failureSentAt: null,
     });
 
     const res = mockRes();
@@ -260,14 +280,13 @@ describe("discovery outcomes", () => {
 
     expect(mockPrisma.gameImportJob.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "jobA" },
-      data:  expect.objectContaining({ state: "ABANDONED", attempts: 2 }),
+      data:  expect.objectContaining({ state: "ABANDONED", attempts: 4 }),
     }));
     expect(sendImportNotification).toHaveBeenCalledWith(expect.objectContaining({
       kind:     "abandoned",
       opponent: "Παναθηναϊκός",
-      attempts: 2,
+      attempts: 4,
     }));
-    // failureSentAt stamped after sending
     expect(mockPrisma.gameImportJob.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "jobA" },
       data:  expect.objectContaining({ failureSentAt: expect.any(Date) }),
@@ -276,15 +295,15 @@ describe("discovery outcomes", () => {
   });
 
   it("does not re-send the abandoned email if failureSentAt is already set", async () => {
-    const job  = { id: "jobA", state: "PENDING", attempts: 1, failureSentAt: null };
+    const job  = { id: "jobA", state: "PENDING", attempts: 3, failureSentAt: null };
     const game = makeGame({
-      scheduledFor: new Date(NOW.getTime() - 2 * HOUR),
+      scheduledFor: new Date(NOW.getTime() - 4 * HOUR),
       importJobs:   [job],
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
     vi.mocked(discoverSourceUrl).mockResolvedValue({ gameUrl: null, reason: "still nothing" });
     mockPrisma.gameImportJob.update.mockResolvedValueOnce({
-      id: "jobA", state: "ABANDONED", attempts: 2, failureSentAt: new Date(),
+      id: "jobA", state: "ABANDONED", attempts: 4, failureSentAt: new Date(),
     });
 
     const res = mockRes();
