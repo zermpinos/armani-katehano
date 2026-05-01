@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { generateNonce, buildCsp } from "@/server/security/edge/csp";
 
+const LAUNCH = new Date("2026-05-03T00:00:00Z").getTime();
+
 export function proxy(request: NextRequest) {
+  if (Date.now() < LAUNCH && request.nextUrl.pathname !== "/coming-soon") {
+    return NextResponse.rewrite(new URL("/coming-soon", request.url));
+  }
+
   const nonce = generateNonce();
   const csp   = buildCsp(nonce);
 
