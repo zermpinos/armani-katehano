@@ -121,6 +121,18 @@ describe("auth", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toMatchObject({ ok: true, candidates: 0 });
   });
+
+  it("returns 401 when Authorization header is shorter than expected (no crash)", async () => {
+    const res = mockRes();
+    await handler(mockReq({ headers: { authorization: "Bearer x" } }) as any, res as any);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("returns 401 when Authorization header is empty", async () => {
+    const res = mockRes();
+    await handler(mockReq({ headers: { authorization: "" } }) as any, res as any);
+    expect(res.statusCode).toBe(401);
+  });
 });
 
 describe("backoff timing", () => {
