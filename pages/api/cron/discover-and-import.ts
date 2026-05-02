@@ -9,6 +9,7 @@
  * then ABANDONED + admin email.
  */
 
+import { timingSafeEqual }                  from "node:crypto";
 import prisma                              from "@/server/db/client";
 import { processJob }                       from "@/server/services/import-job";
 import { discoverSourceUrl, ListingFetchError } from "@/server/services/discover-source-url";
@@ -36,9 +37,15 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: "Method not allowed" });
 
   const cronSecret = process.env.CRON_SECRET;
-  const authHeader = req.headers["authorization"] ?? "";
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`)
+  const authHeader = String(req.headers["authorization"] ?? "");
+  const expected   = `Bearer ${cronSecret ?? ""}`;
+  if (
+    !cronSecret ||
+    authHeader.length !== expected.length ||
+    !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))
+  ) {
     return res.status(401).json({ error: "Unauthorized" });
+  }
 
   const now         = new Date();
   const windowStart = new Date(now.getTime() - WINDOW_DAYS * 24 * HOUR_MS);
