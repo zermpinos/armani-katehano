@@ -237,6 +237,15 @@ model Setting {
   updatedAt DateTime @updatedAt
 }
 
+model OpponentAlias {
+  id          String   @id @default(cuid())
+  myName      String   @unique
+  listingName String
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 enum ImportJobState {
   PENDING
   IMPORTED
