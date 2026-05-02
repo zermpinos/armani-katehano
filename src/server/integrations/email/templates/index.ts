@@ -3,3 +3,4 @@ export type { ImportNotificationResult, PlayerSlot, Game, Subscriber, SendRoster
 export { esc, formatDate, sanitize } from "./shared";
 export { buildImportSuccess, buildImportFailure, buildImportAbandoned } from "./admin-notifications";
 export { buildHtml, buildText } from "./roster-announcement";
+export { buildImportHeartbeat, type HeartbeatPayload } from "./import-heartbeat";
