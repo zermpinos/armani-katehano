@@ -10,7 +10,9 @@ import {
   buildImportSuccess,
   buildImportFailure,
   buildImportAbandoned,
+  buildImportHeartbeat,
   type SendRosterAnnouncementParams,
+  type HeartbeatPayload,
 } from "./templates";
 
 export type ImportNotificationPayload =
@@ -197,6 +199,22 @@ export async function sendImportNotification(payload: ImportNotificationPayload)
     auditLog("import_notification_sent", { kind: payload.kind });
   } catch (err: any) {
     auditLog("import_notification_failed", { kind: payload.kind, error: err.message });
+  }
+}
+
+export async function sendImportHeartbeat(payload: HeartbeatPayload): Promise<void> {
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[email] BREVO_SMTP_USER/PASS not set -- skipping heartbeat");
+    return;
+  }
+  const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
+  const { subject, html, text } = buildImportHeartbeat(payload);
+  try {
+    await transport.sendMail({ from: FROM, to, subject, html, text });
+    auditLog("import_heartbeat_sent", { runs: payload.runs.length, dropouts: payload.dropouts.length });
+  } catch (err: any) {
+    auditLog("import_heartbeat_failed", { error: err.message });
   }
 }
 
