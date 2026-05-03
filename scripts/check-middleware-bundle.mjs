@@ -104,6 +104,6 @@ for (const v of violations) {
 }
 console.error("");
 console.error("  This means a Node-only module reached the Edge bundle.");
-console.error("  Check imports in middleware.ts and any of its transitive dependencies.");
+console.error("  Check imports in proxy.ts and any of its transitive dependencies.");
 console.error("  See docs/architecture.md §2 for the runtime-split rules.");
 process.exit(1);
