@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { generateNonce, buildCsp } from "@/server/security/edge/csp";
 
-const LAUNCH = new Date("2026-05-04T00:00:00Z").getTime();
+const LAUNCH = new Date("2026-05-03T00:00:00Z").getTime();
 const STATIC_ASSET = /\.(?:png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|otf|eot)$/i;
 const BYPASS_GATE = /^\/(?:admin|coach)(\/|$)/;
 
