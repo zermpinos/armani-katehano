@@ -16,6 +16,7 @@ import { discoverSourceUrl, ListingFetchError } from "@/server/services/discover
 import { sendImportNotification }           from "@/server/integrations/email/client";
 import { securityHeaders }                   from "@/server/security/edge";
 import { auditLog }                          from "@/server/security/node";
+import { startCronRun, finishCronRun }       from "@/server/services/cron-run";
 
 const WINDOW_DAYS         = 7;
 const MAX_DISCOVERY_TRIES = 4;
@@ -47,6 +48,8 @@ export default async function handler(req: any, res: any) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  const runId = await startCronRun("discover-and-import");
+
   const now         = new Date();
   const windowStart = new Date(now.getTime() - WINDOW_DAYS * 24 * HOUR_MS);
   const windowEnd   = new Date(now.getTime() - HOUR_MS);
@@ -59,9 +62,12 @@ export default async function handler(req: any, res: any) {
     const candidates = await prisma.upcomingGame.findMany({
       where: {
         scheduledFor: { gte: windowStart, lte: windowEnd },
-        importJobs:   { none: { state: "IMPORTED" } },
+        OR: [
+          { importJob: null },
+          { importJob: { isNot: { state: "IMPORTED" } } },
+        ],
       },
-      include: { importJobs: true },
+      include: { importJob: true },
       orderBy: { scheduledFor: "asc" },
     });
 
@@ -82,15 +88,17 @@ export default async function handler(req: any, res: any) {
     }
 
     auditLog("cron_discover_and_import", { ...summary });
+    await finishCronRun(runId, { ok: true, summary: summary as unknown as Record<string, unknown> });
     return res.status(200).json({ ok: true, ...summary });
   } catch (err) {
     console.error("[discover-and-import]", err);
+    await finishCronRun(runId, { ok: false, error: (err as Error).message }).catch(() => {});
     return res.status(500).json({ error: "Internal server error" });
   }
 }
 
 type Candidate = Awaited<ReturnType<typeof prisma.upcomingGame.findMany>>[number] & {
-  importJobs: Awaited<ReturnType<typeof prisma.gameImportJob.findMany>>;
+  importJob: Awaited<ReturnType<typeof prisma.gameImportJob.findUnique>> | null;
 };
 
 async function handleCandidate(
@@ -98,8 +106,16 @@ async function handleCandidate(
   now:     Date,
   summary: RunSummary,
 ): Promise<boolean> {
-  const job = game.importJobs[0] ?? null;
-  if (job?.state === "ABANDONED") return false;
+  const job = game.importJob ?? null;
+
+  if (job?.state === "ABANDONED") {
+    auditLog("discover_skip", {
+      reason:         "abandoned",
+      upcomingGameId: game.id,
+      opponent:       game.opponent,
+    });
+    return false;
+  }
 
   // sourceUrl already known → straight to processJob
   if (game.sourceUrl) {
@@ -111,18 +127,39 @@ async function handleCandidate(
       await processJob(ensuredJob.id);
       const after = await prisma.gameImportJob.findUniqueOrThrow({ where: { id: ensuredJob.id } });
       if (after.state === "IMPORTED") summary.imported++;
+    } else {
+      auditLog("discover_skip", {
+        reason:         `job-state-${ensuredJob.state}`,
+        upcomingGameId: game.id,
+        opponent:       game.opponent,
+        jobId:          ensuredJob.id,
+      });
     }
     return true;
   }
 
-  // Discovery phase — admin must have set listingUrl
-  if (!game.listingUrl) return false;
+  if (!game.listingUrl) {
+    auditLog("discover_skip", {
+      reason:         "no-listing-url",
+      upcomingGameId: game.id,
+      opponent:       game.opponent,
+    });
+    return false;
+  }
 
   const attempts = job?.attempts ?? 0;
-  if (attempts >= MAX_DISCOVERY_TRIES) return false;
+  if (attempts >= MAX_DISCOVERY_TRIES) {
+    auditLog("discover_skip", {
+      reason:         "max-tries-exhausted",
+      upcomingGameId: game.id,
+      opponent:       game.opponent,
+      attempts,
+    });
+    return false;
+  }
 
   const dueAt = new Date(game.scheduledFor.getTime() + (attempts + 1) * HOUR_MS);
-  if (dueAt > now) return false;
+  if (dueAt > now) return false; // intentionally NOT logged — fires every hour
 
   let discovered: Awaited<ReturnType<typeof discoverSourceUrl>>;
   try {
@@ -133,12 +170,12 @@ async function handleCandidate(
     });
   } catch (err) {
     const reason = err instanceof ListingFetchError ? err.message : (err as Error).message;
-    await recordDiscoveryMiss(game, job, reason, attempts + 1, summary);
+    await recordDiscoveryMiss(game, job, reason, attempts + 1, summary, /*transient*/ err instanceof ListingFetchError);
     return true;
   }
 
   if (!discovered.gameUrl) {
-    await recordDiscoveryMiss(game, job, discovered.reason, attempts + 1, summary);
+    await recordDiscoveryMiss(game, job, discovered.reason, attempts + 1, summary, false);
     return true;
   }
 
@@ -170,6 +207,7 @@ async function handleCandidate(
     upcomingGameId: game.id,
     opponent:       game.opponent,
     gameUrl:        discovered.gameUrl,
+    matchReason:    discovered.reason,
   });
 
   await processJob(liveJob.id);
@@ -180,15 +218,20 @@ async function handleCandidate(
 
 async function recordDiscoveryMiss(
   game:        Candidate,
-  job:         Candidate["importJobs"][number] | null,
+  job:         Candidate["importJob"] | null,
   reason:      string,
   newAttempts: number,
   summary:     RunSummary,
+  transient:   boolean,
 ): Promise<void> {
-  const isAbandoned = newAttempts >= MAX_DISCOVERY_TRIES;
+  // Transient upstream failure: keep attempts unchanged so a Cloudflare blip
+  // doesn't burn the 4-hour discovery window. Only genuine misses (parsed listing,
+  // no row) count toward MAX_DISCOVERY_TRIES.
+  const attempts    = transient ? (job?.attempts ?? 0) : newAttempts;
+  const isAbandoned = !transient && newAttempts >= MAX_DISCOVERY_TRIES;
   const data = {
     state:         isAbandoned ? "ABANDONED" as const : "PENDING" as const,
-    attempts:      newAttempts,
+    attempts,
     lastError:     `discovery: ${reason}`,
     lastAttemptAt: new Date(),
     lockedAt:      null,
@@ -204,8 +247,9 @@ async function recordDiscoveryMiss(
   auditLog("discover_source_url_miss", {
     upcomingGameId: game.id,
     opponent:       game.opponent,
-    attempts:       newAttempts,
+    attempts,
     reason,
+    transient,
     abandoned:      isAbandoned,
   });
 
@@ -217,8 +261,9 @@ async function recordDiscoveryMiss(
         opponent:     game.opponent,
         location:     game.location,
         scheduledFor: game.scheduledFor.toISOString(),
-        attempts:     newAttempts,
+        attempts,
         lastError:    `discovery: ${reason}`,
+        matchReason:  reason,  // NEW
       }).catch(err => console.error("[discover-and-import notify abandoned]", err));
       await prisma.gameImportJob.update({
         where: { id: updatedJob.id },
