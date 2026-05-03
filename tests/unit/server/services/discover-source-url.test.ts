@@ -1,6 +1,11 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
+const { mockPrisma } = vi.hoisted(() => ({
+  mockPrisma: { opponentAlias: { findUnique: vi.fn() } },
+}));
+
+vi.mock("@/server/db/client", () => ({ default: mockPrisma }));
 vi.mock("@/server/security/node/ssrf", () => ({
   assertSsrfSafe: vi.fn().mockResolvedValue(undefined),
 }));
@@ -34,6 +39,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("fetch", fetchMock);
   vi.mocked(assertSsrfSafe).mockResolvedValue(undefined);
+  mockPrisma.opponentAlias.findUnique.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -216,5 +222,48 @@ describe("discoverSourceUrl", () => {
       scheduledFor: new Date(Date.UTC(2026, 3, 25, 19, 0)),
       opponent:     "ΑΡΗΣ",
     })).rejects.toMatchObject({ name: "ListingFetchError", status: 502 });
+  });
+});
+
+describe("opponent alias dictionary", () => {
+  it("matches via the alias listingName when the original opponent doesn't", async () => {
+    mockPrisma.opponentAlias.findUnique.mockResolvedValue({
+      id: "a1", myName: "ΠΑΟ", listingName: "ΠΑΝΑΘΗΝΑΪΚΟΣ Α.Ο.",
+      notes: null, createdAt: new Date(), updatedAt: new Date(),
+    });
+
+    fetchMock.mockResolvedValue(htmlOk(`<ul>${rowHtml({
+      href:  "/men/gamedetails/id/PAO",
+      date:  "Σάββατο, 25 Απριλίου 2026",
+      left:  "ARMANI KATEHANO",
+      right: "ΠΑΝΑΘΗΝΑΪΚΟΣ Α.Ο.",
+    })}</ul>`));
+
+    const result = await discoverSourceUrl({
+      listingUrl:   LISTING_URL,
+      scheduledFor: new Date(Date.UTC(2026, 3, 25, 19, 0)),
+      opponent:     "ΠΑΟ",
+    });
+
+    expect(result.gameUrl).toBe("https://basketcity.sportstats.gr/men/gamedetails/id/PAO");
+  });
+
+  it("still matches via the original opponent when no alias exists", async () => {
+    mockPrisma.opponentAlias.findUnique.mockResolvedValue(null);
+
+    fetchMock.mockResolvedValue(htmlOk(`<ul>${rowHtml({
+      href:  "/men/gamedetails/id/AAA",
+      date:  "Σάββατο, 25 Απριλίου 2026",
+      left:  "ARMANI KATEHANO",
+      right: "Παναθηναϊκός",
+    })}</ul>`));
+
+    const result = await discoverSourceUrl({
+      listingUrl:   LISTING_URL,
+      scheduledFor: new Date(Date.UTC(2026, 3, 25, 19, 0)),
+      opponent:     "Παναθηναϊκός",
+    });
+
+    expect(result.gameUrl).toBe("https://basketcity.sportstats.gr/men/gamedetails/id/AAA");
   });
 });

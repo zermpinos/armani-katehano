@@ -224,10 +224,15 @@ export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
                   {(() => {
                     const job = jobMap.get(g.id);
                     if (!job) return null;
+                    const tooltip =
+                      job.state === "IMPORTED"  ? "If you deleted the imported game, click RESET to re-import." :
+                      job.state === "ABANDONED" ? "Discovery gave up after 4 attempts. RESET to try again."     :
+                      job.state === "ERROR"     ? "Last scrape attempt errored. RESET to try again."            :
+                      job.lastError ?? undefined;
                     return (
                       <div className="flex items-center gap-[6px] flex-wrap">
                         <span className={`text-[10px] font-black tracking-[0.12em] ${JOB_BADGE[job.state] ?? "text-ak-text-dim"}`}
-                              title={job.lastError ?? undefined}>
+                              title={tooltip}>
                           {job.state}
                           {job.attempts > 0 && <> ×{job.attempts}</>}
                         </span>
@@ -237,7 +242,7 @@ export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
                         {(job.state === "PENDING" || job.state === "ERROR") && (
                           <Btn size="sm" variant="ghost" onClick={() => doJobAction(job.id, "abandon")}>ABANDON</Btn>
                         )}
-                        {(job.state === "ERROR" || job.state === "ABANDONED") && (
+                        {(job.state === "ERROR" || job.state === "ABANDONED" || job.state === "IMPORTED") && (
                           <Btn size="sm" variant="ghost" onClick={() => doJobAction(job.id, "reset")}>RESET</Btn>
                         )}
                       </div>
