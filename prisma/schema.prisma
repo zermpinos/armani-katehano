@@ -193,7 +193,7 @@ model UpcomingGame {
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
   announcement   GameRosterAnnouncement?
-  importJobs     GameImportJob[]
+  importJob      GameImportJob?
 
   @@index([scheduledFor])
 }
@@ -235,6 +235,18 @@ model Setting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model CronRun {
+  id          String    @id @default(cuid())
+  job         String
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+  ok          Boolean   @default(false)
+  summary     Json?
+  error       String?
+
+  @@index([job, startedAt])
 }
 
 model OpponentAlias {

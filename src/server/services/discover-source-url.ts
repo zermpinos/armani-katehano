@@ -7,6 +7,7 @@
 import "@/server/_internal/node-only";
 import { assertSsrfSafe }   from "@/server/security/node/ssrf";
 import { parseListingHtml } from "@/server/integrations/scraper/listing";
+import prisma               from "@/server/db/client";
 
 const LEVENSHTEIN_MAX_RATIO = 0.40;
 
@@ -103,22 +104,35 @@ export async function discoverSourceUrl(input: DiscoverInput): Promise<DiscoverR
   if (sameDay.length === 0)
     return { gameUrl: null, reason: `no listing row for ${new Date(targetDay).toISOString().slice(0, 10)}` };
 
-  const normTarget = normalize(input.opponent);
+  // Try the original opponent string AND any registered alias listingName.
+  // The matcher takes the global minimum Levenshtein distance across both candidates.
+  const alias = await prisma.opponentAlias.findUnique({ where: { myName: input.opponent } }).catch(() => null);
+  const candidates: string[] = [input.opponent];
+  if (alias?.listingName) candidates.push(alias.listingName);
+
   let best: typeof sameDay[number] | null = null;
   let bestDist = Infinity;
+  let bestCandidate = "";
 
-  for (const row of sameDay) {
-    const normRow = normalize(row.opponent);
-    const dist    = levenshtein(normTarget, normRow);
-    const ratio   = dist / Math.max(normTarget.length, normRow.length, 1);
-    if (ratio <= LEVENSHTEIN_MAX_RATIO && dist < bestDist) {
-      bestDist = dist;
-      best     = row;
+  for (const candidate of candidates) {
+    const normTarget = normalize(candidate);
+    for (const row of sameDay) {
+      const normRow = normalize(row.opponent);
+      const dist    = levenshtein(normTarget, normRow);
+      const ratio   = dist / Math.max(normTarget.length, normRow.length, 1);
+      if (ratio <= LEVENSHTEIN_MAX_RATIO && dist < bestDist) {
+        bestDist      = dist;
+        best          = row;
+        bestCandidate = candidate;
+      }
     }
   }
 
   if (!best)
-    return { gameUrl: null, reason: `${sameDay.length} row(s) on that date but none matched opponent "${input.opponent}"` };
+    return { gameUrl: null, reason: `${sameDay.length} row(s) on that date but none matched opponent "${input.opponent}"${alias ? ` (alias "${alias.listingName}" also tried)` : ""}` };
 
-  return { gameUrl: best.gameUrl, reason: `matched listing row (opponent="${best.opponent}", dist=${bestDist})` };
+  return {
+    gameUrl: best.gameUrl,
+    reason:  `matched listing row (opponent="${best.opponent}", via="${bestCandidate}", dist=${bestDist})`,
+  };
 }

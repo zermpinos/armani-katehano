@@ -1,0 +1,3 @@
+-- This migration is a Prisma relation rename only -- no DDL changes needed.
+-- The uniqueness constraint on GameImportJob.upcomingGameId was already
+-- present (migration 20260424000002_rebuild_game_import_job).

@@ -30,6 +30,10 @@ vi.mock("@/server/security/edge",                   () => ({
 vi.mock("@/server/security/node",                   () => ({
   auditLog:        vi.fn(),
 }));
+vi.mock("@/server/services/cron-run", () => ({
+  startCronRun:  vi.fn().mockResolvedValue("run-test"),
+  finishCronRun: vi.fn().mockResolvedValue(undefined),
+}));
 
 import handler from "../../../../pages/api/cron/discover-and-import";
 import { processJob }            from "@/server/services/import-job";
@@ -64,7 +68,7 @@ function makeGame(overrides: Partial<{
   scheduledFor:  Date;
   sourceUrl:     string | null;
   listingUrl:    string | null;
-  importJobs:    any[];
+  importJob:     any | null;
 }> = {}) {
   return {
     id:           overrides.id           ?? "game1",
@@ -73,7 +77,7 @@ function makeGame(overrides: Partial<{
     scheduledFor: overrides.scheduledFor ?? new Date("2026-04-25T19:00:00Z"),
     sourceUrl:    "sourceUrl"  in overrides ? overrides.sourceUrl  : null,
     listingUrl:   "listingUrl" in overrides ? overrides.listingUrl : "https://basketcity.sportstats.gr/men/teamdetails/id/UUID",
-    importJobs:   overrides.importJobs   ?? [],
+    importJob:    overrides.importJob    ?? null,
   };
 }
 
@@ -133,6 +137,17 @@ describe("auth", () => {
     await handler(mockReq({ headers: { authorization: "" } }) as any, res as any);
     expect(res.statusCode).toBe(401);
   });
+
+  it("records a CronRun row on successful run", async () => {
+    const { startCronRun, finishCronRun } = await import("@/server/services/cron-run");
+    const res = mockRes();
+    await handler(mockReq() as any, res as any);
+    expect(vi.mocked(startCronRun)).toHaveBeenCalledWith("discover-and-import");
+    expect(vi.mocked(finishCronRun)).toHaveBeenCalledWith(
+      "run-test",
+      expect.objectContaining({ ok: true, summary: expect.any(Object) })
+    );
+  });
 });
 
 describe("backoff timing", () => {
@@ -165,7 +180,7 @@ describe("backoff timing", () => {
     const job  = { id: "jobA", state: "PENDING", attempts: 1, failureSentAt: null };
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - 90 * 60 * 1000),
-      importJobs:   [job],
+      importJob:    job,
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
 
@@ -180,7 +195,7 @@ describe("backoff timing", () => {
     const job  = { id: "jobA", state: "PENDING", attempts: 1, failureSentAt: null };
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - 2 * HOUR),
-      importJobs:   [job],
+      importJob:    job,
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
     vi.mocked(discoverSourceUrl).mockResolvedValue({ gameUrl: null, reason: "still no row" });
@@ -196,7 +211,7 @@ describe("backoff timing", () => {
     const job  = { id: "jobA", state: "PENDING", attempts: 2, failureSentAt: null };
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - 150 * 60 * 1000),
-      importJobs:   [job],
+      importJob:    job,
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
 
@@ -211,7 +226,7 @@ describe("backoff timing", () => {
     const job  = { id: "jobA", state: "PENDING", attempts: 2, failureSentAt: null };
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - 3 * HOUR),
-      importJobs:   [job],
+      importJob:    job,
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
     vi.mocked(discoverSourceUrl).mockResolvedValue({ gameUrl: null, reason: "still no row" });
@@ -227,7 +242,7 @@ describe("backoff timing", () => {
     const job  = { id: "jobA", state: "PENDING", attempts: 3, failureSentAt: null };
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - 210 * 60 * 1000),
-      importJobs:   [job],
+      importJob:    job,
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
 
@@ -242,7 +257,7 @@ describe("backoff timing", () => {
     const job  = { id: "jobA", state: "PENDING", attempts: 3, failureSentAt: null };
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - 4 * HOUR),
-      importJobs:   [job],
+      importJob:    job,
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
     vi.mocked(discoverSourceUrl).mockResolvedValue({ gameUrl: null, reason: "still no row" });
@@ -257,7 +272,7 @@ describe("backoff timing", () => {
     const job  = { id: "jobA", state: "PENDING", attempts: 4, failureSentAt: null };
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - 5 * HOUR),
-      importJobs:   [job],
+      importJob:    job,
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
 
@@ -271,7 +286,7 @@ describe("backoff timing", () => {
     const job  = { id: "jobA", state: "ABANDONED", attempts: 2, failureSentAt: new Date() };
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - 5 * HOUR),
-      importJobs:   [job],
+      importJob:    job,
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
 
@@ -293,6 +308,60 @@ describe("backoff timing", () => {
 
     expect(discoverSourceUrl).not.toHaveBeenCalled();
     expect(res.body).toMatchObject({ skipped: 1 });
+  });
+
+  it("logs an audit entry when a game has no listingUrl", async () => {
+    const { auditLog } = await import("@/server/security/node");
+    const game = makeGame({
+      scheduledFor: new Date(NOW.getTime() - 2 * HOUR),
+      listingUrl:   null,
+    });
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
+
+    const res = mockRes();
+    await handler(mockReq() as any, res as any);
+
+    expect(vi.mocked(auditLog)).toHaveBeenCalledWith(
+      "discover_skip",
+      expect.objectContaining({ reason: "no-listing-url", upcomingGameId: "game1" })
+    );
+  });
+
+  it("logs an audit entry for an ERROR job with sourceUrl already set", async () => {
+    const { auditLog } = await import("@/server/security/node");
+    const job  = { id: "jobA", state: "ERROR", attempts: 3, failureSentAt: new Date() };
+    const game = makeGame({
+      scheduledFor: new Date(NOW.getTime() - 5 * HOUR),
+      sourceUrl:    "https://basketcity.sportstats.gr/men/gamedetails/id/STUCK",
+      importJob:    job,
+    });
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
+
+    const res = mockRes();
+    await handler(mockReq() as any, res as any);
+
+    expect(vi.mocked(auditLog)).toHaveBeenCalledWith(
+      "discover_skip",
+      expect.objectContaining({ reason: "job-state-ERROR", upcomingGameId: "game1" })
+    );
+  });
+
+  it("logs an audit entry when MAX_DISCOVERY_TRIES has been exhausted", async () => {
+    const { auditLog } = await import("@/server/security/node");
+    const job  = { id: "jobA", state: "PENDING", attempts: 4, failureSentAt: null };
+    const game = makeGame({
+      scheduledFor: new Date(NOW.getTime() - 5 * HOUR),
+      importJob:    job,
+    });
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
+
+    const res = mockRes();
+    await handler(mockReq() as any, res as any);
+
+    expect(vi.mocked(auditLog)).toHaveBeenCalledWith(
+      "discover_skip",
+      expect.objectContaining({ reason: "max-tries-exhausted", upcomingGameId: "game1" })
+    );
   });
 });
 
@@ -321,7 +390,7 @@ describe("discovery outcomes", () => {
     const job  = { id: "jobA", state: "PENDING", attempts: 2, failureSentAt: null };
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - 3 * HOUR),
-      importJobs:   [job],
+      importJob:    job,
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
     vi.mocked(discoverSourceUrl).mockResolvedValue({ gameUrl: null, reason: "not yet" });
@@ -341,7 +410,7 @@ describe("discovery outcomes", () => {
     const job  = { id: "jobA", state: "PENDING", attempts: 3, failureSentAt: null };
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - 4 * HOUR),
-      importJobs:   [job],
+      importJob:    job,
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
     vi.mocked(discoverSourceUrl).mockResolvedValue({ gameUrl: null, reason: "still nothing" });
@@ -372,7 +441,7 @@ describe("discovery outcomes", () => {
     const job  = { id: "jobA", state: "PENDING", attempts: 3, failureSentAt: null };
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - 4 * HOUR),
-      importJobs:   [job],
+      importJob:    job,
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
     vi.mocked(discoverSourceUrl).mockResolvedValue({ gameUrl: null, reason: "still nothing" });
@@ -407,7 +476,47 @@ describe("discovery outcomes", () => {
     expect(res.body).toMatchObject({ discovered: 1, imported: 1 });
   });
 
-  it("treats a ListingFetchError as a miss (records attempt, does not throw)", async () => {
+  it("does not increment attempts on a transient ListingFetchError", async () => {
+    const job  = { id: "jobA", state: "PENDING", attempts: 1, failureSentAt: null };
+    const game = makeGame({
+      scheduledFor: new Date(NOW.getTime() - 2 * HOUR),
+      importJob:    job,
+    });
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
+    vi.mocked(discoverSourceUrl).mockRejectedValue(new ListingFetchError("upstream 502", 502));
+
+    const res = mockRes();
+    await handler(mockReq() as any, res as any);
+
+    expect(mockPrisma.gameImportJob.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "jobA" },
+      data:  expect.objectContaining({
+        state:    "PENDING",
+        attempts: 1,    // unchanged
+        lastError: expect.stringContaining("upstream 502"),
+      }),
+    }));
+  });
+
+  it("increments attempts on a genuine miss (listing parsed OK, no row matched)", async () => {
+    const job  = { id: "jobA", state: "PENDING", attempts: 1, failureSentAt: null };
+    const game = makeGame({
+      scheduledFor: new Date(NOW.getTime() - 2 * HOUR),
+      importJob:    job,
+    });
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
+    vi.mocked(discoverSourceUrl).mockResolvedValue({ gameUrl: null, reason: "no row for that date" });
+
+    const res = mockRes();
+    await handler(mockReq() as any, res as any);
+
+    expect(mockPrisma.gameImportJob.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "jobA" },
+      data:  expect.objectContaining({ state: "PENDING", attempts: 2 }),
+    }));
+  });
+
+  it("treats a ListingFetchError as a transient miss (does not increment attempts, does not throw)", async () => {
     const game = makeGame({ scheduledFor: new Date(NOW.getTime() - HOUR) });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
     vi.mocked(discoverSourceUrl).mockRejectedValue(new ListingFetchError("upstream 500", 502));
@@ -418,7 +527,7 @@ describe("discovery outcomes", () => {
     expect(mockPrisma.gameImportJob.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         state:     "PENDING",
-        attempts:  1,
+        attempts:  0,   // transient: attempts unchanged (job was null -> job?.attempts ?? 0 = 0)
         lastError: expect.stringContaining("upstream 500"),
       }),
     }));
@@ -432,7 +541,7 @@ describe("sourceUrl already known", () => {
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - HOUR),
       sourceUrl:    "https://basketcity.sportstats.gr/men/gamedetails/id/EXISTING",
-      importJobs:   [job],
+      importJob:    job,
     });
     mockPrisma.upcomingGame.findMany.mockResolvedValue([game]);
     mockPrisma.gameImportJob.findUniqueOrThrow.mockResolvedValue({ id: "jobA", state: "IMPORTED" });

@@ -29,11 +29,15 @@ export function buildImportFailure(p: {
   scheduledFor: string;
   attempts:     number;
   lastError:    string | null;
+  matchReason?: string | null;
 }): ImportNotificationResult {
   const vsAt    = p.location === "home" ? "vs" : "@";
   const subject = `[AK] Import failed: ${vsAt} ${p.opponent}`;
   const errorNote = p.lastError
     ? `<div style="margin-top:16px;padding:12px 16px;background:#fef2f2;border-left:3px solid #c92a2a;border-radius:0 6px 6px 0;font-size:13px;color:#7f1d1d;font-family:monospace;">${esc(p.lastError)}</div>`
+    : "";
+  const matchReasonNote = p.matchReason
+    ? `<p style="margin:8px 0 0;font-size:12px;color:#9ca3af;">Last match attempt: ${esc(p.matchReason)}</p>`
     : "";
   const html = adminHtml({
     title:       "Import Failed",
@@ -43,9 +47,9 @@ export function buildImportFailure(p: {
       { label: "Scheduled",value: esc(formatDate(p.scheduledFor)) },
       { label: "Attempts", value: String(p.attempts) },
     ],
-    extra: errorNote,
+    extra: errorNote + matchReasonNote,
   });
-  const text = `[AK] Import Failed\n\nMatch: ${vsAt} ${p.opponent}\nScheduled: ${p.scheduledFor}\nAttempts: ${p.attempts}\nError: ${p.lastError ?? "--"}`;
+  const text = `[AK] Import Failed\n\nMatch: ${vsAt} ${p.opponent}\nScheduled: ${p.scheduledFor}\nAttempts: ${p.attempts}\nError: ${p.lastError ?? "--"}${p.matchReason ? `\nLast match attempt: ${p.matchReason}` : ""}`;
   return { subject, html, text };
 }
 
@@ -55,11 +59,15 @@ export function buildImportAbandoned(p: {
   scheduledFor: string;
   attempts:     number;
   lastError:    string | null;
+  matchReason?: string | null;
 }): ImportNotificationResult {
   const vsAt    = p.location === "home" ? "vs" : "@";
   const subject = `[AK] Import abandoned: ${vsAt} ${p.opponent}`;
   const errorNote = p.lastError
     ? `<div style="margin-top:16px;padding:12px 16px;background:#fef2f2;border-left:3px solid #c92a2a;border-radius:0 6px 6px 0;font-size:13px;color:#7f1d1d;font-family:monospace;">${esc(p.lastError)}</div>`
+    : "";
+  const matchReasonNote = p.matchReason
+    ? `<p style="margin:8px 0 0;font-size:12px;color:#9ca3af;">Last match attempt: ${esc(p.matchReason)}</p>`
     : "";
   const html = adminHtml({
     title:       "Import Abandoned",
@@ -69,9 +77,9 @@ export function buildImportAbandoned(p: {
       { label: "Scheduled",value: esc(formatDate(p.scheduledFor)) },
       { label: "Attempts", value: String(p.attempts) },
     ],
-    extra: errorNote + `<p style="margin:16px 0 0;font-size:12px;color:#6b7280;">No further automatic attempts will be made. Set the sourceUrl manually and use RUN to retry.</p>`,
+    extra: errorNote + matchReasonNote + `<p style="margin:16px 0 0;font-size:12px;color:#6b7280;">No further automatic attempts will be made. Set the sourceUrl manually and use RUN to retry.</p>`,
   });
-  const text = `[AK] Import Abandoned\n\nMatch: ${vsAt} ${p.opponent}\nScheduled: ${p.scheduledFor}\nAttempts: ${p.attempts}\nError: ${p.lastError ?? "--"}\n\nNo further automatic attempts. Set sourceUrl manually and re-run.`;
+  const text = `[AK] Import Abandoned\n\nMatch: ${vsAt} ${p.opponent}\nScheduled: ${p.scheduledFor}\nAttempts: ${p.attempts}\nError: ${p.lastError ?? "--"}${p.matchReason ? `\nLast match attempt: ${p.matchReason}` : ""}\n\nNo further automatic attempts. Set sourceUrl manually and re-run.`;
   return { subject, html, text };
 }
 

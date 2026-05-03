@@ -17,8 +17,8 @@ import {
 
 export type ImportNotificationPayload =
   | { kind: "success";   opponent: string; location: string; scheduledFor: string; importedAt: Date }
-  | { kind: "failure";   opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null }
-  | { kind: "abandoned"; opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null };
+  | { kind: "failure";   opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null; matchReason?: string | null }
+  | { kind: "abandoned"; opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null; matchReason?: string | null };
 
 const FROM = "Armani Katehano <noreply@armani-katehano.com>";
 
