@@ -122,18 +122,6 @@ jobs:
             console.log(needed ? 'still needed' : 'can be removed');
           ")
 
-          # Check svix override staleness
-          # Override is needed while resend depends on svix < 1.92.2
-          RESEND_SVIX=$(npm view resend@latest dependencies.svix 2>/dev/null || echo "unknown")
-          SVIX_STATUS=$(node -e "
-            const raw = '$RESEND_SVIX';
-            if (!raw || raw === 'unknown' || raw === 'undefined') { console.log('unknown'); process.exit(0); }
-            const clean = raw.replace(/[^0-9.]/g, '');
-            const [maj, min, pat] = clean.split('.').map(Number);
-            const needed = maj < 1 || (maj === 1 && min < 92) || (maj === 1 && min === 92 && (pat||0) < 2);
-            console.log(needed ? 'still needed' : 'can be removed');
-          ")
-
           # Title
           if [ "$VULN_COUNT" = "0" ]; then
             TITLE="[Security Audit] $DATE -- clean"
@@ -158,9 +146,8 @@ jobs:
           | Override | Upstream status | Action |
           |---|---|---|
           | \`postcss ^8.5.10\` | next@latest bundles \`$NEXT_POSTCSS\` | $POSTCSS_STATUS |
-          | \`svix ^1.92.2\` | resend@latest depends on svix \`$RESEND_SVIX\` | $SVIX_STATUS |
 
-          $([ "$POSTCSS_STATUS" = "can be removed" ] && [ "$SVIX_STATUS" = "can be removed" ] && echo "> **Both overrides can now be removed from \`package.json\`.**")
+          $([ "$POSTCSS_STATUS" = "can be removed" ] && echo "> **postcss override can now be removed from \`package.json\`.**")
 
           ---
           *Weekly audit -- Node $(node --version) · npm $(npm --version)*

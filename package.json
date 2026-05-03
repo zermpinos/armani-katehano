@@ -53,7 +53,6 @@
     "hono": ">=4.12.14",
     "@hono/node-server": ">=1.19.13",
     "postcss": "^8.5.10",
-    "svix": "^1.92.2",
     "encoding-sniffer": "^1.0.2"
   },
   "devDependencies": {
