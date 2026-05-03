@@ -14,9 +14,9 @@ describe("coming-soon gate", () => {
       expect(() => read("proxy.ts")).not.toThrow();
     });
 
-    it("compares Date.now() against the 2026-05-03 UTC threshold", () => {
+    it("compares Date.now() against the 2026-05-04 UTC threshold", () => {
       const src = read("proxy.ts");
-      expect(src).toMatch(/2026-05-03/);
+      expect(src).toMatch(/2026-05-04/);
     });
 
     it("rewrites to /coming-soon when before launch", () => {
