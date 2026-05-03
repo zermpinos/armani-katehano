@@ -39,7 +39,7 @@ The codebase is a Next.js (Pages Router) monolith with a strict layered architec
 ### Layer boundaries
 
 ```
-pages, middleware    ← entry points
+pages, proxy        ← entry points
    │
    ├── src/features    ← page-scoped components, hooks
    │      └── src/components, src/client  ← UI primitives
@@ -53,7 +53,7 @@ Imports may only flow downward and the rule is enforced by `import/no-restricted
 
 ### Edge vs Node runtime split
 
-`middleware.ts` runs on the Vercel **Edge runtime** (V8 isolate, no Node built-ins); the rest of the app runs on the **Node runtime**. Three layers of defense keep them apart:
+`proxy.ts` runs on the Vercel **Edge runtime** (V8 isolate, no Node built-ins); the rest of the app runs on the **Node runtime**. Three layers of defense keep them apart:
 
 1. **Structural** — `src/server/security/` is split into `edge/` (CSP, headers — runtime-agnostic) and `node/` (SSRF guard, audit log, client-IP). There is no top-level barrel; importers must declare a zone.
 2. **Runtime poison-pill** — every Node-only file begins with `import "@/server/_internal/node-only";`, a custom marker that throws at module load if it is ever bundled into the browser or Edge runtime.
@@ -94,7 +94,7 @@ PostgreSQL via Prisma. Core entities: `Season`, `League`, `SeasonLeague`, `Playe
 - CSP with per-request nonce, SSRF allow-list, audit log
 
 **Integrations**
-- Resend (transactional email)
+- Nodemailer + Brevo SMTP (transactional email)
 - Cheerio + `pdf-parse` (box-score scraping)
 - Sentry (`@sentry/nextjs`) — server, edge, and client
 - Vercel Analytics & Speed Insights
@@ -113,7 +113,7 @@ PostgreSQL via Prisma. Core entities: `Season`, `League`, `SeasonLeague`, `Playe
 |-------------------------|----------------------------------------------------------|
 | **Vercel**              | Hosting, Edge middleware, cron, deployment               |
 | **Neon (PostgreSQL)**   | Primary database                                         |
-| **Resend**              | Transactional email (subscribe confirm, roster, admin)   |
+| **Brevo (SMTP/Nodemailer)** | Transactional email (subscribe confirm, roster, admin) |
 | **Sentry**              | Error tracking and performance monitoring                |
 | **Cloudflare Turnstile**| CAPTCHA on the public subscribe form                     |
 | **GitHub Actions**      | CI (lint, build, tests), nightly secret scans, hourly discover-and-import heartbeat |
@@ -143,7 +143,8 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - **Manual stats import** (paste box-score URL or upload).
 - **Auto-discovery import** — admin enqueues an `UpcomingGame`; a background job (cron-triggered via Vercel cron and a GitHub Actions hourly heartbeat) discovers the matching listing URL, scrapes the box score, classifies, and persists.
 - **Aggregate recompute** endpoint for backfills.
-- **Roster announcements** — pick the upcoming game, pick the active roster, write a note; the system emails confirmed subscribers via Resend.
+- **Roster announcements** — pick the upcoming game, pick the active roster, write a note; the system emails confirmed subscribers via Brevo.
+- **Opponent aliases** — manage alternate name mappings so the discovery matcher can resolve opponent names that differ from the league listing.
 - **Subscriber management** with cleanup endpoints.
 
 ### Coach portal (`/coach/<token>`)
@@ -178,7 +179,9 @@ armani-katehano/
 ├── pages/                          Next.js Pages Router entry points
 │   ├── index.tsx, players.tsx, games.tsx, leaderboard.tsx,
 │   │   team-stats.tsx, privacy.tsx, sitemap.xml.tsx, unsubscribe.tsx
+│   ├── coming-soon.tsx             Pre-launch gate page
 │   ├── admin/[slug]/               Admin portal pages (slug-randomized)
+│   │   └── opponent-aliases.tsx    Alternate opponent-name mappings
 │   ├── coach/[token].tsx           Coach portal page (token-routed)
 │   └── api/                        API routes
 │       ├── auth.ts, subscribe.ts, confirm.ts
@@ -190,9 +193,10 @@ armani-katehano/
 │
 ├── src/
 │   ├── client/                     Page-scoped client components & hooks
-│   │   ├── home/, players/, games/, leaderboard/, team-stats/,
+│   │   ├── home/                   home page components + defer-dynamic.ts
+│   │   ├── players/, games/, leaderboard/, team-stats/,
 │   │   │   admin/, coach/
-│   ├── components/                 Shared UI primitives (Layout, StatTile, Charts, ErrorBoundary)
+│   ├── components/                 Shared UI primitives (Layout, StatTile, ErrorBoundary)
 │   ├── domain/                     Pure logic — no I/O, no React, no Prisma
 │   │   ├── games/score.ts, players/format.ts, players/positions.ts,
 │   │   │   stats/{aggregate,allTime,efficiency}.ts, calendar/, shared/
@@ -206,7 +210,7 @@ armani-katehano/
 │   │   ├── db/                     Prisma client + repositories
 │   │   ├── http/                   method-router, parse-body, handle-error
 │   │   ├── integrations/
-│   │   │   ├── email/              Resend client + templates
+│   │   │   ├── email/              Nodemailer/Brevo client + templates
 │   │   │   └── scraper/            listing + boxscore scrapers
 │   │   ├── security/
 │   │   │   ├── edge/               CSP, headers (runtime-agnostic)
@@ -222,10 +226,14 @@ armani-katehano/
 │   ├── migrations/                 Prisma migrations
 │   ├── seed.ts, seed-data/         Seed data
 │
-├── lib/generated/prisma/           Prisma client output (generated)
+├── lib/
+│   ├── generated/prisma/           Prisma client output (generated)
+│   └── empty-polyfill-module.js    Webpack stub for Next.js polyfill alias
 │
 ├── scripts/
 │   ├── check-middleware-bundle.mjs Post-build assertion: no Node built-ins in Edge bundle
+│   ├── strip-next-polyfills.mjs    Prebuild: stubs out Next.js polyfill-module for Turbopack
+│   ├── strip-sentry-tracing.mjs    Prebuild: replaces __SENTRY_TRACING__ → false in SDK files
 │   ├── preview-roster-email.ts     Local preview for roster announcement template
 │   └── smoke-discover.ts           Smoke-test the discover-source-url matcher
 │
@@ -243,7 +251,7 @@ armani-katehano/
 │
 ├── public/                         Static assets
 ├── styles/                         Global styles
-├── middleware.ts                   Edge middleware: CSP nonce + header
+├── proxy.ts                        Edge middleware: coming-soon gate, CSP nonce + headers
 ├── next.config.mjs
 ├── tailwind.config.ts
 ├── eslint.config.mjs
@@ -252,7 +260,7 @@ armani-katehano/
 ├── prisma.config.ts
 ├── vercel.json                     Vercel cron schedule
 ├── instrumentation.js              Sentry server init
-├── instrumentation-client.js       Sentry client init
+├── instrumentation-client.js       Sentry client init (sole client entry point)
 ├── sentry.server.config.js
 ├── sentry.edge.config.js
 ├── tsconfig.json
@@ -268,7 +276,7 @@ armani-katehano/
 ### Prerequisites
 - Node.js ≥ 24.14 (`.nvmrc` pins the version)
 - A PostgreSQL database (locally or via Neon)
-- A Resend API key (optional in development; required for email flows)
+- Brevo SMTP credentials (optional in development; required for email flows)
 
 ### First-time setup
 
@@ -322,7 +330,8 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | `COACH_PASSWORD`                  | Coach auth             | bcrypt hash of the coach password                          |
 | `COACH_TOKEN`                     | Coach auth             | URL token for the coach portal entry                       |
 | `COACH_SESSION_SECRET`            | Coach auth             | HMAC key for the coach session cookie                      |
-| `RESEND_API_KEY`                  | Email                  | Resend transactional email API key                         |
+| `BREVO_SMTP_USER`                 | Email                  | Brevo SMTP login (email address)                           |
+| `BREVO_SMTP_PASS`                 | Email                  | Brevo SMTP password / API key                              |
 | `TURNSTILE_SECRET_KEY`            | Subscribe form         | Cloudflare Turnstile server-side verification              |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`  | Subscribe form         | Cloudflare Turnstile client-side site key                  |
 
@@ -351,7 +360,7 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | Script              | What it does                                                        |
 |---------------------|---------------------------------------------------------------------|
 | `dev`               | `next dev` — local dev server                                       |
-| `build`             | `prisma generate && next build` — production build                  |
+| `build`             | prebuild polyfill/Sentry stubs → `prisma generate` → `next build`   |
 | `start`             | `next start` — serve the production build                           |
 | `lint`              | `eslint .` — flat-config lint over the whole repo                   |
 | `test`              | `vitest run` — unit + integration tests                             |
@@ -362,6 +371,8 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 
 | File                            | Purpose                                                                |
 |---------------------------------|------------------------------------------------------------------------|
+| `strip-next-polyfills.mjs`      | Prebuild: stubs out Next.js polyfill-module so Turbopack doesn't bundle it |
+| `strip-sentry-tracing.mjs`      | Prebuild: replaces `__SENTRY_TRACING__` → `false` in Sentry SDK files  |
 | `check-middleware-bundle.mjs`   | Post-build CI guard: greps `.next/server/middleware.js` for Node built-ins |
 | `preview-roster-email.ts`       | Renders the roster-announcement email template to disk for review       |
 | `smoke-discover.ts`             | Runs the discover-source-url matcher against fixture listings           |
@@ -393,7 +404,7 @@ The app is deployed to **Vercel**. Production data is in **Neon Postgres**.
 
 ### Vercel configuration
 
-- **Build command** — `npm run build` (runs `prisma generate` then `next build` and the post-build middleware-bundle guard).
+- **Build command** — `npm run build` (runs prebuild polyfill/Sentry stubs, `prisma generate`, `next build`, and the post-build middleware-bundle guard).
 - **Node version** — pinned via `.nvmrc` (≥ 24.14).
 - **Crons** — declared in [`vercel.json`](vercel.json):
   - `0 3 * * *` → `/api/cron/purge-subscribers`
@@ -423,7 +434,7 @@ Operational procedures live in `docs/`:
 ### Design decisions worth knowing
 
 - **Pages Router, not App Router.** The runtime poison-pill (`src/server/_internal/node-only.ts`) is a custom marker because the npm `server-only` package is gated on the `react-server` export condition, which only resolves inside App Router server components. If the codebase migrates to App Router, swap the custom marker for `import "server-only";`.
-- **No top-level barrel under `src/server/security/`.** Importers must declare `edge` or `node` explicitly; this is what stopped a regression where `middleware.ts` dragged `node:dns` into the Edge bundle via a transitive barrel re-export.
+- **No top-level barrel under `src/server/security/`.** Importers must declare `edge` or `node` explicitly; this is what stopped a regression where `proxy.ts` dragged `node:dns` into the Edge bundle via a transitive barrel re-export.
 - **Totals are stored, not derived.** `PlayerSeasonAggregate` keeps both `*Avg` and `*Total` columns; totals must come from raw `PlayerGameStat` sums (`stats-recalc.ts`), never approximated from `avg × gp`.
 - **Greek↔Latin transliteration** in opponent matching: Levenshtein over raw codepoints fails across scripts, so `discover-source-url.ts` collapses both sides to a canonical Latin form before computing distance.
 - **Validation at the boundary.** Every API route and external scrape parses inputs through Zod schemas in `src/schemas/` before they reach business logic; `z.string().cuid()` is used directly (no custom wrappers).
@@ -432,7 +443,7 @@ Operational procedures live in `docs/`:
 
 - Single-team scope. The data model has seasons, leagues, and season-leagues, but the UI assumes one home team.
 - Box-score scraping is tied to the formats of the league listing pages currently in use; new sources require a new classifier in `import-classifier.ts`.
-- Email delivery currently goes through a single Resend domain; there is no per-subscriber language selection.
+- Email delivery currently goes through a single Brevo SMTP account; there is no per-subscriber language selection.
 - The admin and coach portals share the same Postgres connection; there is no read-replica routing.
 
 ### Reporting issues
