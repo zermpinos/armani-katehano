@@ -12,7 +12,7 @@ than disabling the rule.
 The codebase is split into five layers. Imports may only flow downward.
 
 ```
-pages, middleware    ← entry points
+pages, proxy        ← entry points
    │
    ├── src/features  ← page-scoped components, hooks
    │      │
@@ -31,7 +31,7 @@ Enforced by `eslint.config.mjs` → `import/no-restricted-paths`:
 | `src/client/**`     | `src/server/**`                                      |
 | `src/features/**`   | `src/server/**`                                      |
 | `src/domain/**`     | `src/server/**`, `src/components/**`, `src/features/**` |
-| `middleware.ts`, `middleware/**` | `src/server/security/node/**`, `src/server/db/**`, `src/server/auth/**`, `src/server/services/**`, `src/server/integrations/**` |
+| `proxy.ts`, `middleware/**` | `src/server/security/node/**`, `src/server/db/**`, `src/server/auth/**`, `src/server/services/**`, `src/server/integrations/**` |
 
 If a client component needs server data, it goes through an API route in
 `pages/api/**`, not through a direct import.
@@ -40,7 +40,7 @@ If a client component needs server data, it goes through an API route in
 
 ## 2. Runtime split: Edge vs Node
 
-`middleware.ts` runs on the Vercel **Edge runtime**, which is V8-isolate-
+`proxy.ts` runs on the Vercel **Edge runtime**, which is V8-isolate-
 based and has **no Node built-ins** (`dns`, `crypto`, `fs`, `net`, …).
 The rest of the app runs on the **Node runtime**.
 
@@ -64,7 +64,7 @@ There is **no top-level barrel**. Importers must declare which zone
 they're pulling from:
 
 ```ts
-// middleware.ts (Edge):
+// proxy.ts (Edge):
 import { generateNonce, buildCsp } from "@/server/security/edge";
 
 // pages/api/auth.ts (Node):
@@ -112,7 +112,7 @@ bundler enforcement.
 ### 2.3 ESLint zone — Edge import boundary
 
 `eslint.config.mjs` declares an `import/no-restricted-paths` zone that
-forbids `middleware.ts` (and any future `middleware/**`) from
+forbids `proxy.ts` (and any future `middleware/**`) from
 importing any of the Node-only directories listed above. This catches
 mistakes in the editor before the developer ever runs `next build`.
 
