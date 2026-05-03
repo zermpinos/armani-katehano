@@ -2,21 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { generateNonce, buildCsp } from "@/server/security/edge/csp";
 
-const LAUNCH = new Date("2026-05-03T00:00:00Z").getTime();
-const STATIC_ASSET = /\.(?:png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|otf|eot)$/i;
-const BYPASS_GATE = /^\/(?:admin|coach)(\/|$)/;
-
 export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  if (
-    Date.now() < LAUNCH &&
-    pathname !== "/coming-soon" &&
-    !STATIC_ASSET.test(pathname) &&
-    !BYPASS_GATE.test(pathname)
-  ) {
-    return NextResponse.rewrite(new URL("/coming-soon", request.url));
-  }
-
   const nonce = generateNonce();
   const csp   = buildCsp(nonce);
 
