@@ -43,10 +43,10 @@ export default function PrivacyPage() {
               Armani Katehano Basketball Club (&quot;we&quot;, &quot;us&quot;) operates this site to publish
               season statistics and roster announcements. For questions about this notice, contact us at{" "}
               <a
-                href="mailto:p.zermpinos@proton.me"
+                href="mailto:webmaster@armani-katehano.com"
                 className="text-ak-red-text underline"
               >
-                p.zermpinos@proton.me
+                webmaster@armani-katehano.com
               </a>
               .
             </p>
@@ -100,8 +100,8 @@ export default function PrivacyPage() {
             <p>To <strong className="text-ak-text">unsubscribe</strong>, use the link at the bottom of any roster announcement email. Your record is deleted immediately. </p>
             <p>
               For any other request, email{" "}
-              <a href="mailto:p.zermpinos@proton.me" className="text-ak-red-text underline">
-                p.zermpinos@proton.me
+              <a href="mailto:webmaster@armani-katehano.com" className="text-ak-red-text underline">
+                webmaster@armani-katehano.com
               </a>
               .
             </p>
