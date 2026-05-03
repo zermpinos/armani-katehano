@@ -57,7 +57,9 @@ export async function getUpcomingGamesWithAnnouncements() {
 }
 
 export async function getAllUpcomingGames() {
+  const now = new Date();
   const rows = await prisma.upcomingGame.findMany({
+    where: { scheduledFor: { gte: now } },
     orderBy: { scheduledFor: "asc" },
   });
   return rows.map(g => ({
