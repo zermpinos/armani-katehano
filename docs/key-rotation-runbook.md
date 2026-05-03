@@ -8,7 +8,8 @@
 | `COACH_SESSION_SECRET` | Coach portal (`__Host-ak_coach`) | Vercel env var |
 | `ADMIN_PASSWORD` | Admin login (`/api/auth`) — bcrypt hash | Vercel env var |
 | `COACH_PASSWORD` | Coach login fallback (`/api/coach/auth`) — bcrypt hash | Vercel env var |
-| `RESEND_API_KEY` | Outbound email via Resend | Vercel env var |
+| `BREVO_SMTP_USER` | Outbound email via Brevo SMTP (login) | Vercel env var |
+| `BREVO_SMTP_PASS` | Outbound email via Brevo SMTP (password/API key) | Vercel env var |
 | `CRON_SECRET` | Cron endpoint bearer auth (`/api/cron/*`, `/api/admin/cleanup`) | Vercel env var |
 
 Generate a new HMAC secret (SESSION_SECRET / COACH_SESSION_SECRET / CRON_SECRET):
@@ -65,12 +66,12 @@ Effect: the env-var fallback coach password stops working immediately on next de
 4. Redeploy.
 5. Verify: old password rejected at `/api/coach/auth`; new password accepted.
 
-### 5. Resend API key (`RESEND_API_KEY`)
+### 5. Brevo SMTP credentials (`BREVO_SMTP_USER` / `BREVO_SMTP_PASS`)
 
-Effect: outbound emails (confirmation, roster announcements, admin alerts) stop sending until the new key is deployed.
+Effect: outbound emails (confirmation, roster announcements, admin alerts) stop sending until the new credentials are deployed.
 
-1. In the Resend dashboard → API Keys, revoke the current key and create a new one.
-2. Update `RESEND_API_KEY` in Vercel env vars.
+1. In the Brevo dashboard → SMTP & API → SMTP, generate a new SMTP key or rotate the password.
+2. Update `BREVO_SMTP_USER` and `BREVO_SMTP_PASS` in Vercel env vars.
 3. Redeploy.
 4. Verify: trigger a test subscription and confirm delivery from `noreply@armani-katehano.com`.
 
@@ -92,7 +93,7 @@ Rotate **quarterly** (every ~90 days) or immediately after any of:
 - A secret is suspected compromised.
 - A team member with env-var access leaves.
 - An unplanned production incident involving session tokens or credentials.
-- A Resend API key is suspected compromised (rotate `RESEND_API_KEY`).
+- Brevo SMTP credentials are suspected compromised (rotate `BREVO_SMTP_USER` / `BREVO_SMTP_PASS`).
 
 Emergency trigger matrix:
 
@@ -100,7 +101,7 @@ Emergency trigger matrix:
 |---|---|
 | Unauthorized admin access | `ADMIN_PASSWORD`, `SESSION_SECRET` |
 | Unauthorized coach access | `COACH_PASSWORD`, `COACH_SESSION_SECRET` |
-| Email sending abuse | `RESEND_API_KEY` |
+| Email sending abuse | `BREVO_SMTP_PASS` |
 | Cron endpoint abuse | `CRON_SECRET` |
 | Secret committed to git | All secrets — treat as fully compromised |
 

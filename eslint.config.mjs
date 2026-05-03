@@ -97,7 +97,7 @@ const eslintConfig = [
               message:
                 "domain/* must be pure — no server, component, or feature imports.",
             },
-            // Edge runtime boundary: middleware.ts and anything under
+            // Edge runtime boundary: proxy.ts and anything under
             // ./middleware/** runs on Vercel's Edge runtime, which has no
             // Node built-ins. Anything that touches Node primitives (dns,
             // crypto, fs, prisma, sentry server) MUST stay in src/server/**
@@ -105,7 +105,7 @@ const eslintConfig = [
             // src/server/security/edge/** (CSP nonce, header builders) and
             // from pure domain code.
             {
-              target: ["./middleware.ts", "./middleware/**"],
+              target: ["./proxy.ts", "./middleware/**"],
               from: [
                 "./src/server/security/node/**",
                 "./src/server/db/**",
