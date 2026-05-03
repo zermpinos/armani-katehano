@@ -59,6 +59,7 @@ export async function processJob(jobId: string): Promise<void> {
       scheduledFor: job.upcomingGame.scheduledFor.toISOString(),
       attempts:     job.attempts,
       lastError:    msg,
+      matchReason:  null,  // scrape failures have no opponent-match reason
     }).catch(err => console.error("[import-job notify failure]", err));
     await prisma.gameImportJob.update({ where: { id: jobId }, data: { failureSentAt: new Date() } });
   }
