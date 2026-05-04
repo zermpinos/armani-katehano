@@ -68,20 +68,23 @@ jobs:
         run: |
           DATE=$(date +%Y-%m-%d)
 
-          # Capture audit JSON -- exits 1 when vulnerabilities exist, so || true
-          AUDIT_JSON=$(npm audit --json 2>/dev/null || true)
+          # Capture audit JSON to a temp file -- exits 1 when vulnerabilities exist, so || true
+          npm audit --json > /tmp/audit.json 2>/dev/null || true
+
           VULN_COUNT=$(node -e "
+            const fs = require('fs');
             try {
-              const d = JSON.parse(process.env.AUDIT_JSON);
+              const d = JSON.parse(fs.readFileSync('/tmp/audit.json', 'utf8'));
               const v = d.metadata?.vulnerabilities ?? {};
               console.log(Object.values(v).reduce((a,b) => a+b, 0));
             } catch { console.log(0); }
-          " AUDIT_JSON="$AUDIT_JSON")
+          ")
 
           # Build vulnerability detail block
           VULN_DETAIL=$(node -e "
+            const fs = require('fs');
             try {
-              const d = JSON.parse(process.env.AUDIT_JSON);
+              const d = JSON.parse(fs.readFileSync('/tmp/audit.json', 'utf8'));
               const vulns = d.vulnerabilities ?? {};
               const entries = Object.entries(vulns);
               if (!entries.length) { console.log('No vulnerabilities found.'); process.exit(0); }
@@ -108,7 +111,7 @@ jobs:
               }
               console.log(lines.join('\n'));
             } catch(e) { console.log('Could not parse audit output: ' + e.message); }
-          " AUDIT_JSON="$AUDIT_JSON")
+          ")
 
           # Check postcss override staleness
           # Override is needed while next bundles postcss < 8.5.10
