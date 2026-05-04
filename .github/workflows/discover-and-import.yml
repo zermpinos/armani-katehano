@@ -1,11 +1,9 @@
 name: Discover and import games
 
-# Hourly heartbeat. The endpoint decides whether there is work to do
-# (admin-scheduled UpcomingGame in window with no IMPORTED job).
-#
-# Required repository secrets:
-#   CRON_SECRET    -- same value as the Vercel env var
-#   APP_BASE_URL   -- e.g. https://armani-katehano.com (no trailing slash)
+# This workflow is intentionally a no-op.
+# The discover-and-import cron is now managed by Vercel (vercel.json)
+# which runs the endpoint from Vercel's own infrastructure, bypassing
+# the WAF rate-limiting that caused 429 errors from GitHub-hosted runners.
 
 on:
   schedule:
@@ -22,20 +20,9 @@ concurrency:
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 1
     steps:
-      - name: Trigger discover-and-import
-        env:
-          CRON_SECRET:  ${{ secrets.CRON_SECRET }}
-          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+      - name: Cron managed by Vercel
         run: |
-          set -euo pipefail
-          if [ -z "${CRON_SECRET:-}" ] || [ -z "${APP_BASE_URL:-}" ]; then
-            echo "::error::CRON_SECRET and APP_BASE_URL repository secrets must be set"
-            exit 1
-          fi
-          curl --fail-with-body --silent --show-error \
-            --max-time 120 \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            "${APP_BASE_URL}/api/cron/discover-and-import"
-          echo
+          echo "discover-and-import is triggered by Vercel cron (vercel.json)."
+          echo "This GitHub Actions workflow is kept as a schedule placeholder only."

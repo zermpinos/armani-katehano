@@ -1,11 +1,12 @@
 {
   "crons": [
+    { "path": "/api/cron/discover-and-import", "schedule": "0 * * * *" },
     { "path": "/api/cron/purge-subscribers", "schedule": "0 3 * * *" },
-    { "path": "/api/cron/purge-error-html",  "schedule": "0 4 * * *" },
-    { "path": "/api/cron/import-heartbeat",  "schedule": "5 5 * * *" }
+    { "path": "/api/cron/purge-error-html", "schedule": "0 4 * * *" },
+    { "path": "/api/cron/import-heartbeat", "schedule": "5 5 * * *" }
   ],
   "functions": {
     "pages/api/cron/discover-and-import.ts": { "maxDuration": 60 },
-    "pages/api/cron/import-heartbeat.ts":    { "maxDuration": 30 }
+    "pages/api/cron/import-heartbeat.ts": { "maxDuration": 30 }
   }
 }
