@@ -106,7 +106,7 @@ export default async function handler(req: any, res: any) {
     await Promise.all([clearAttempts(ip), clearAttempts(ACCOUNT_KEY)]);
     const payload = JSON.stringify({ ts: Date.now(), role: "admin", user: username });
     res.setHeader("Set-Cookie", [buildSessionCookie(payload), buildCsrfCookie(generateCsrfToken())]);
-    auditLog("login_success", { ip, slug, username });
+    auditLog("login_success", { ip, slugValid: true, username });
     return res.status(200).json({ ok: true });
   }
 
