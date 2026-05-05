@@ -44,7 +44,13 @@ export function requireCoachAuth(handler: (req: any, res: any) => any) {
       return res.status(401).json({ error: "Session expired" });
     }
 
-    const currentVersion = await getCoachSessionVersion();
+    let currentVersion: number;
+    try {
+      currentVersion = await getCoachSessionVersion();
+    } catch {
+      auditLog("coach_session_version_db_error", { ip, path: req.url });
+      return res.status(503).json({ error: "Service unavailable" });
+    }
     if ((parsed.v ?? 0) !== currentVersion) {
       auditLog("coach_session_revoked", { ip, sessionV: parsed.v, currentV: currentVersion });
       return res.status(401).json({ error: "Session revoked. Please log in again." });
