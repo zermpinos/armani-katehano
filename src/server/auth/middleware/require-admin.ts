@@ -39,6 +39,11 @@ export function requireAuth(handler: (req: any, res: any) => any) {
       return res.status(401).json({ error: "Session expired" });
     }
 
+    if (parsed?.role !== "admin") {
+      auditLog("forbidden_role", { ip, path: req.url, role: parsed?.role, user: parsed?.user });
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     req.adminUser = parsed.user ?? "admin";
     return handler(req, res);
   };
