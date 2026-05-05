@@ -7,7 +7,9 @@ export const PlayerWriteSchema = z.object({
   position: z.enum(POSITIONS as [string, ...string[]]),
   height:   z.string().max(10).optional().nullable(),
   weight:   z.string().max(10).optional().nullable(),
-  photoUrl: z.string().max(255).optional().nullable(),
+  photoUrl: z.string().url().max(255)
+    .refine((u) => /^https?:\/\//i.test(u), { message: "photoUrl must use http or https" })
+    .optional().nullable(),
 });
 
 export const PlayerUpdateSchema = PlayerWriteSchema.extend({
