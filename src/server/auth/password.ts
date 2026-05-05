@@ -5,6 +5,11 @@ export const LOCKOUT_TTL_S      = 60 * 15;
 export const MAX_LOGIN_ATTEMPTS = 5;
 export const CAPTCHA_THRESHOLD  = 3;
 
+// Equalises response time for unknown usernames -- without this, the missing-user
+// branch returns in ~0ms while a valid username runs bcrypt (~100ms), leaking
+// which usernames exist.
+const _sentinelHash: Promise<string> = bcrypt.hash("__sentinel__", 12);
+
 export async function verifyPassword(plaintext: string) {
   const hash = process.env.ADMIN_PASSWORD;
   if (!hash) { console.error("[security] ADMIN_PASSWORD is not set"); return false; }
@@ -24,7 +29,7 @@ export async function verifyCredentials(username: string, plaintext: string): Pr
       return false;
     }
     const user = users.find(u => u.username === username);
-    if (!user) return false;
+    if (!user) { await bcrypt.compare(plaintext, await _sentinelHash); return false; }
     if (!user.passwordHash.startsWith("$2b$") && !user.passwordHash.startsWith("$2a$")) {
       console.error(`[security] passwordHash for "${username}" is not a bcrypt hash`);
       return false;
