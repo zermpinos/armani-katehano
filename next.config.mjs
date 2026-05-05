@@ -54,7 +54,8 @@ const nextConfig = {
     const cspFallback = [
       "default-src 'self'",
       "script-src 'self' https://*.sentry-cdn.com",
-      "style-src 'self' 'unsafe-inline'",
+      "style-src 'self'",
+      "object-src 'none'",
       "img-src 'self' data: https://res.cloudinary.com",
       "connect-src 'self' https://*.sentry.io",
       "frame-ancestors 'none'",
