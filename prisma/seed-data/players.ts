@@ -1,7 +1,7 @@
 export const RAW_PLAYERS = [
   { id: "p1",  number: 0,  name: "Alexandros Kougianos",      position: "PF/C"     },
   { id: "p2",  number: 3,  name: "Stathis Christofilopoulos", position: "SG"       },
-  { id: "p3",  number: 5,  name: "Webmaster",      position: "C"        },
+  { id: "p3",  number: 5,  name: "P. Zermpinos",               position: "C"        },
   { id: "p4",  number: 6,  name: "Nikos Tsiardakas",          position: "PG/SG"    },
   { id: "p5",  number: 8,  name: "Spyros Papaspyrou",         position: "PG"       },
   { id: "p6",  number: 9,  name: "Dimitris Alevizos",         position: "SG"       },
