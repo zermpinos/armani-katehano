@@ -20,6 +20,7 @@
 
 import prisma from "@/server/db/client";
 import crypto from "node:crypto";
+import { purgeUnconfirmedSubscribers } from "@/server/services/subscriber";
 
 
 // Rows older than this window are safe to delete.
@@ -62,21 +63,21 @@ export default async function handler(req: any, res: any) {
   try {
     const cutoff = new Date(Date.now() - LOCKOUT_TTL_MS);
 
-    const result = await prisma.loginAttempt.deleteMany({
-      where: {
-        attemptedAt: { lt: cutoff },
-      },
-    });
+    const [loginResult, unconfirmedCount] = await Promise.all([
+      prisma.loginAttempt.deleteMany({ where: { attemptedAt: { lt: cutoff } } }),
+      purgeUnconfirmedSubscribers(),
+    ]);
 
-    console.log(`[cleanup] Purged ${result.count} expired LoginAttempt rows`);
+    console.log(`[cleanup] Purged ${loginResult.count} LoginAttempt rows, ${unconfirmedCount} unconfirmed Subscriber rows`);
 
     return res.status(200).json({
-      ok:      true,
-      deleted: result.count,
-      cutoff:  cutoff.toISOString(),
+      ok:                   true,
+      deletedLoginAttempts: loginResult.count,
+      deletedSubscribers:   unconfirmedCount,
+      cutoff:               cutoff.toISOString(),
     });
   } catch (err) {
-    console.error("[cleanup] LoginAttempt purge failed:", err);
+    console.error("[cleanup] Purge failed:", err);
     return res.status(500).json({ error: "Cleanup failed" });
   }
 }
