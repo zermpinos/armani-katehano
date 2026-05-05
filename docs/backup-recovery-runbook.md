@@ -1,7 +1,7 @@
 # Backup & Recovery Runbook
 
 **Control:** ISO 27001 A.8.13 / A1.2
-**Owner:** @zermpinos
+**Owner:** @armani-katehano
 **Review cadence:** Quarterly (align with key-rotation schedule)
 
 ---

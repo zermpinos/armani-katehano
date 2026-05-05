@@ -21,7 +21,7 @@ Control: A.5.24 / CC7.3 — Incident Response Readiness
 |------|--------|----------------|
 | Incident Commander | Webmaster | Owns the incident end-to-end; makes go/no-go decisions |
 | Technical Lead | Webmaster | Diagnoses, patches, deploys fixes |
-| Data Protection Contact | p.zermpinos@proton.me | Assesses personal-data impact; triggers GDPR notification |
+| Data Protection Contact | webmaster@armani-katehano.com | Assesses personal-data impact; triggers GDPR notification |
 
 (Single-person team — these roles collapse to one person. Revisit if team grows.)
 
@@ -32,7 +32,7 @@ Control: A.5.24 / CC7.3 — Incident Response Readiness
 - **Sentry** — runtime exceptions and unhandled errors
 - **Vercel** — deployment failures, function timeouts
 - **Neon console** — DB connection spikes, query errors
-- **User reports** — via p.zermpinos@proton.me
+- **User reports** — via webmaster@armani-katehano.com
 
 ---
 
@@ -68,7 +68,7 @@ If full scope is unknown within 72h, notify with available information and suppl
 
 | Audience | Channel | Trigger |
 |----------|---------|---------|
-| Affected users | Email from p.zermpinos@proton.me | P1 confirmed personal data exposure |
+| Affected users | Email from webmaster@armani-katehano.com | P1 confirmed personal data exposure |
 | Supervisory authority | ICO / EU DPA portal | Any personal data breach (72h clock) |
 | Subscribers/public | Status note on site | P1/P2 outage > 1h |
 
