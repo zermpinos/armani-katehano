@@ -60,10 +60,8 @@ export function clearCoachSessionCookie(): string {
 const SESSION_VERSION_KEY = "coach_session_version";
 
 export async function getCoachSessionVersion(): Promise<number> {
-  try {
-    const setting = await prisma.setting.findUnique({ where: { key: SESSION_VERSION_KEY } });
-    return setting ? parseInt(setting.value, 10) || 0 : 0;
-  } catch { return 0; }
+  const setting = await prisma.setting.findUnique({ where: { key: SESSION_VERSION_KEY } });
+  return setting ? parseInt(setting.value, 10) || 0 : 0;
 }
 
 export async function incrementCoachSessionVersion(): Promise<void> {
