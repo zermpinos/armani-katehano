@@ -6,11 +6,14 @@ import { importGame, ImportError }        from "@/server/services/import-game";
 import { sendImportNotification }         from "@/server/integrations/email/client";
 
 const MAX_ATTEMPTS        = 3;
-const MAX_ERROR_HTML_BYTES = 50_000;
+// Must match @db.VarChar(2000) on GameImportJob.lastErrorHtml
+const MAX_ERROR_PLAIN_CHARS = 2_000;
 
+// Strip HTML tags to a plain-text digest so lastErrorHtml is safe to render.
 export function truncateHtml(html: string): string {
-  if (html.length <= MAX_ERROR_HTML_BYTES) return html;
-  return html.slice(0, MAX_ERROR_HTML_BYTES) + "\n[truncated]";
+  const plain = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  if (plain.length <= MAX_ERROR_PLAIN_CHARS) return plain;
+  return plain.slice(0, MAX_ERROR_PLAIN_CHARS) + "...";
 }
 
 export async function processJob(jobId: string): Promise<void> {
@@ -144,9 +147,9 @@ export async function processJob(jobId: string): Promise<void> {
   }
 }
 
-// Called from the daily sweep -- clears lastErrorHtml older than 30 days to keep the table lean
+// Called from the daily sweep -- clears lastErrorHtml older than 7 days (GDPR storage limitation).
 export async function purgeStaleErrorHtml(): Promise<void> {
-  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   await prisma.gameImportJob.updateMany({
     where: { lastErrorHtml: { not: null }, updatedAt: { lt: cutoff } },
     data:  { lastErrorHtml: null },

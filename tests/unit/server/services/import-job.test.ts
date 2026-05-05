@@ -33,9 +33,9 @@ vi.mock("@/server/services/import-game", () => ({
   },
 }));
 
-import { processJob }        from "@/server/services/import-job";
-import { scrapeGameFromUrl } from "@/server/services/scrape-game";
-import { importGame }        from "@/server/services/import-game";
+import { processJob, truncateHtml } from "@/server/services/import-job";
+import { scrapeGameFromUrl }         from "@/server/services/scrape-game";
+import { importGame }                from "@/server/services/import-game";
 
 const FINAL_GAME_STATE = { state: "final", reason: "all 4 quarters complete with consistent final score" };
 const LIVE_GAME_STATE  = { state: "live",  reason: "fewer than 4 quarters recorded" };
@@ -119,5 +119,31 @@ describe("processJob", () => {
         data: expect.objectContaining({ state: "ERROR" }),
       })
     );
+  });
+});
+
+describe("truncateHtml", () => {
+  it("strips HTML tags, returning plain text", () => {
+    expect(truncateHtml("<b>Error</b>: <i>page not found</i>")).toBe("Error : page not found");
+  });
+
+  it("collapses whitespace produced by tag removal", () => {
+    expect(truncateHtml("<div>  hello  </div><span>world</span>")).toBe("hello world");
+  });
+
+  it("truncates plain text beyond 2 000 chars and appends ellipsis", () => {
+    const long = "a".repeat(2500);
+    const result = truncateHtml(long);
+    expect(result.length).toBe(2001); // 2000 chars + "..."
+    expect(result.endsWith("...")).toBe(true);
+  });
+
+  it("returns short strings unchanged", () => {
+    expect(truncateHtml("simple error")).toBe("simple error");
+  });
+
+  it("strips script tags (XSS vector)", () => {
+    const xss = '<script>alert("xss")</script>An error occurred';
+    expect(truncateHtml(xss)).toBe('alert("xss") An error occurred');
   });
 });
