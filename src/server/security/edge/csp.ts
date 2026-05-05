@@ -19,6 +19,7 @@ export function buildCsp(nonce: string): string {
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' https://*.sentry-cdn.com${isPreview ? " https://vercel.live" : ""}`,
     `style-src 'self' 'nonce-${nonce}'`,
+    `style-src-attr 'unsafe-inline'`,
     `object-src 'none'`,
     `img-src 'self' data: https://res.cloudinary.com`,
     `connect-src 'self' https://*.sentry.io${isPreview ? " https://vercel.live wss://ws-us3.pusher.com https://sockjs-us3.pusher.com" : ""}`,

@@ -55,6 +55,7 @@ const nextConfig = {
       "default-src 'self'",
       "script-src 'self' https://*.sentry-cdn.com",
       "style-src 'self'",
+      "style-src-attr 'unsafe-inline'",
       "object-src 'none'",
       "img-src 'self' data: https://res.cloudinary.com",
       "connect-src 'self' https://*.sentry.io",
