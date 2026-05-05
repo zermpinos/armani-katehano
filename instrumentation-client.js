@@ -12,14 +12,14 @@ import {
 } from "@sentry/nextjs";
 
 const PII_PATTERNS = [
-  /token=[0-9a-f]+/gi,
-  /admin\/[^?#\s]+/gi,
-  /coach\/[^?#\s]+/gi,
+  [/token=[0-9a-f]+/gi,  "token=[redacted]"],
+  [/admin\/[^?#\s]+/gi,  "admin/[redacted]"],
+  [/coach\/[^?#\s]+/gi,  "coach/[redacted]"],
 ];
 
 function scrubUrl(url) {
   return PII_PATTERNS.reduce(
-    (u, re) => u.replace(re, (m) => m.split("=")[0] + "=[redacted]"),
+    (u, [re, replacement]) => u.replace(re, replacement),
     url
   );
 }
