@@ -8,7 +8,8 @@ import { classifyScrapedGame, type ClassifyResult } from "@/server/services/impo
 
 // Node.js's native fetch (undici-backed) accepts a non-standard `dispatcher` option
 // that pins the connection to an already-resolved IP, closing the TOCTOU gap.
-type NodeRequestInit = RequestInit & { dispatcher: Agent };
+// Derived from fetch's own signature to avoid referencing RequestInit as a bare global.
+type NodeRequestInit = NonNullable<Parameters<typeof fetch>[1]> & { dispatcher: Agent };
 
 const AK_IDENTIFIERS = ["ARMANI", "KATEHANO"];
 
