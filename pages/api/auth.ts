@@ -97,6 +97,7 @@ export default async function handler(req: any, res: any) {
     const userRecord = getAdminUser(username);
     if (userRecord?.totpSecret) {
       if (!totpToken || typeof totpToken !== "string" || !verifyTotp(userRecord.totpSecret, totpToken)) {
+        await Promise.all([recordAttempt(ip), recordAttempt(ACCOUNT_KEY)]);
         auditLog("login_totp_failed", { ip, username });
         return res.status(401).json({ error: "Invalid authenticator code" });
       }
