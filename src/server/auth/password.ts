@@ -50,11 +50,15 @@ export function getAdminUser(username: string): AdminUser | null {
   return hash ? { username: "admin", passwordHash: hash } : null;
 }
 
+if (process.env.NODE_ENV !== "development" && !process.env.TURNSTILE_SECRET_KEY) {
+  throw new Error("[security] TURNSTILE_SECRET_KEY must be set in non-development environments");
+}
+
 export async function verifyCaptcha(token: string, ip?: string): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) {
-    console.warn("[captcha] TURNSTILE_SECRET_KEY not set -- skipping verification");
-    return true;
+    console.error("[captcha] TURNSTILE_SECRET_KEY not set -- denying CAPTCHA");
+    return false;
   }
   const body = new URLSearchParams({ secret, response: token });
   if (ip) body.set("remoteip", ip);
