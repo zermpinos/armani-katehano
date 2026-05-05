@@ -2,9 +2,23 @@ title = "armani-katehano gitleaks config"
 
 [allowlist]
   description = "Known test fixtures and CI placeholders — not real secrets"
-  # Test files use fake strings to exercise HMAC/session logic
+  # Test files that set fake SESSION_SECRET / COACH_SESSION_SECRET / CSRF values
+  # to exercise HMAC/session logic — enumerated explicitly so real credentials
+  # committed elsewhere under tests/ are still caught.
   paths = [
-    '''tests/'''
+    '''tests/integration/server/auth/auth\.login\.test\.ts''',
+    '''tests/integration/server/auth/auth\.logout\.test\.ts''',
+    '''tests/integration/server/auth/auth\.session\.test\.ts''',
+    '''tests/integration/server/auth/coach-auth\.test\.ts''',
+    '''tests/integration/server/auth/coach-revocation\.test\.ts''',
+    '''tests/integration/server/db/__support__/games-admin-mocks\.ts''',
+    '''tests/integration/server/db/games-admin\.auth\.test\.ts''',
+    '''tests/integration/server/db/games-admin\.get\.test\.ts''',
+    '''tests/integration/server/db/games-admin\.isr\.test\.ts''',
+    '''tests/integration/server/db/games-admin\.post\.test\.ts''',
+    '''tests/integration/server/db/games-admin\.put-delete\.test\.ts''',
+    '''tests/unit/server/auth/coach\.test\.ts''',
+    '''tests/unit/server/auth/security\.test\.ts''',
   ]
   # CI unit-test job uses an explicit placeholder value (not a real secret)
   regexes = [
