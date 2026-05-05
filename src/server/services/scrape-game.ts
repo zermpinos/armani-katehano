@@ -1,9 +1,14 @@
 import "@/server/_internal/node-only";
 import dns        from "node:dns";
+import type { Agent } from "undici";
 import { scrapeGame } from "@/server/integrations/scraper/boxscore";
 import { ScrapedGameSchema } from "@/schemas";
-import { assertSsrfSafe, isAllowedHostname, isPrivateIp } from "@/server/security/node/ssrf";
+import { assertSsrfSafe, isAllowedHostname, isPrivateIp, makeLockedDispatcher } from "@/server/security/node/ssrf";
 import { classifyScrapedGame, type ClassifyResult } from "@/server/services/import-classifier";
+
+// Node.js's native fetch (undici-backed) accepts a non-standard `dispatcher` option
+// that pins the connection to an already-resolved IP, closing the TOCTOU gap.
+type NodeRequestInit = RequestInit & { dispatcher: Agent };
 
 const AK_IDENTIFIERS = ["ARMANI", "KATEHANO"];
 
@@ -40,10 +45,12 @@ export interface ScrapeResult {
 }
 
 export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
-  await assertSsrfSafe(url).catch(() => {
+  const { address } = await assertSsrfSafe(url).catch(() => {
     throw new ScrapeError("URL not allowed", 400);
   });
 
+  // Connect directly to the pre-validated IP — no second DNS resolution at fetch time.
+  const dispatcher = makeLockedDispatcher(address);
   let response: Response;
   try {
     response = await fetch(url, {
@@ -52,9 +59,12 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
         "User-Agent": "BoxScoreScraper/1.0",
         "Accept":     "text/html,application/xhtml+xml",
       },
-    });
+      dispatcher,
+    } as NodeRequestInit);
   } catch (err) {
     throw new ScrapeError(`Upstream unreachable: ${(err as Error).message}`, 502);
+  } finally {
+    await dispatcher.destroy().catch(() => {});
   }
 
   if (response.status >= 300 && response.status < 400)
@@ -78,13 +88,21 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
       const pdfUrlObj = new URL(pdfUrl);
       if (!isAllowedHostname(pdfUrlObj.hostname)) throw new Error("PDF host not allowed");
 
-      const { address: pdfAddress } = await dns.promises.lookup(pdfUrlObj.hostname);
-      if (isPrivateIp(pdfAddress)) throw new Error("PDF host resolves to private IP");
+      const { address: pdfIp } = await dns.promises.lookup(pdfUrlObj.hostname);
+      if (isPrivateIp(pdfIp)) throw new Error("PDF host resolves to private IP");
 
-      const pdfResponse = await fetch(pdfUrl, {
-        redirect: "manual",
-        headers: { "User-Agent": "BoxScoreScraper/1.0" },
-      });
+      // Pin the PDF fetch to the validated IP, same TOCTOU fix as the main fetch.
+      const pdfDispatcher = makeLockedDispatcher(pdfIp);
+      let pdfResponse: Response;
+      try {
+        pdfResponse = await fetch(pdfUrl, {
+          redirect: "manual",
+          headers: { "User-Agent": "BoxScoreScraper/1.0" },
+          dispatcher: pdfDispatcher,
+        } as NodeRequestInit);
+      } finally {
+        await pdfDispatcher.destroy().catch(() => {});
+      }
 
       if (pdfResponse.ok) {
         const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
