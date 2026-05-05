@@ -27,10 +27,14 @@ export function isPrivateIp(ip: string): boolean {
   ) return true;
 
   if (
-    ip === "::1"                  ||
-    /^::ffff:127\./i.test(ip)     ||
-    /^fe80:/i.test(ip)            ||
-    /^fc00:/i.test(ip)            ||
+    ip === "::1"                                                ||
+    /^::ffff:127\./i.test(ip)                                   ||
+    /^::ffff:10\./i.test(ip)                                    ||
+    /^::ffff:172\.(1[6-9]|2\d|3[01])\./i.test(ip)              ||
+    /^::ffff:192\.168\./i.test(ip)                              ||
+    /^::ffff:169\.254\./i.test(ip)                              ||
+    /^fe80:/i.test(ip)                                          ||
+    /^fc00:/i.test(ip)                                          ||
     /^fd[0-9a-f]{2}:/i.test(ip)
   ) return true;
 
