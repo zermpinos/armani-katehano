@@ -51,7 +51,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout:             60_000,
     env: {
-      SESSION_SECRET: process.env.SESSION_SECRET ?? "e2e-local-test-secret",
+      SESSION_SECRET: process.env.SESSION_SECRET,
     },
   },
 });
