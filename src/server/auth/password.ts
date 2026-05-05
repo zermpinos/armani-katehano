@@ -50,7 +50,7 @@ export function getAdminUser(username: string): AdminUser | null {
   return hash ? { username: "admin", passwordHash: hash } : null;
 }
 
-if (process.env.NODE_ENV !== "development" && !process.env.TURNSTILE_SECRET_KEY) {
+if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test" && !process.env.TURNSTILE_SECRET_KEY) {
   throw new Error("[security] TURNSTILE_SECRET_KEY must be set in non-development environments");
 }
 
