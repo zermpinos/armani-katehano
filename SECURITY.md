@@ -4,7 +4,7 @@
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Email: p.zermpinos@proton.me
+Email: webmaster@armani-katehano.com
 
 Include:
 - Description of the vulnerability and affected component
@@ -39,4 +39,4 @@ Out of scope:
 
 ## Contact
 
-Security contact: p.zermpinos@proton.me
+Security contact: webmaster@armani-katehano.com

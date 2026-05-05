@@ -1,4 +1,4 @@
-Contact: mailto:p.zermpinos@proton.me
+Contact: mailto:webmaster@armani-katehano.com
 Expires: 2027-04-23T00:00:00.000Z
 Preferred-Languages: en
 Policy: https://armani-katehano.com/SECURITY.md

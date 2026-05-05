@@ -9,7 +9,7 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
   expires.setFullYear(expires.getFullYear() + 1);
 
   const body = [
-    `Contact: mailto:p.zermpinos@proton.me`,
+    `Contact: mailto:webmaster@armani-katehano.com`,
     `Expires: ${expires.toISOString().replace(/\.\d{3}Z$/, ".000Z")}`,
     `Preferred-Languages: en`,
     `Policy: ${base}/SECURITY.md`,
