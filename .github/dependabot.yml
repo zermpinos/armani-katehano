@@ -7,16 +7,13 @@ updates:
       day: monday
       time: "09:00"
       timezone: UTC
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 1
     labels:
       - dependencies
-    # Group all non-major dev-dependency bumps into one PR per week.
     groups:
-      dev-dependencies:
-        dependency-type: development
-        update-types:
-          - minor
-          - patch
+      all-npm:
+        patterns:
+          - "*"
 
   - package-ecosystem: github-actions
     directory: /
@@ -25,5 +22,10 @@ updates:
       day: monday
       time: "09:00"
       timezone: UTC
+    open-pull-requests-limit: 1
     labels:
       - dependencies
+    groups:
+      all-actions:
+        patterns:
+          - "*"
