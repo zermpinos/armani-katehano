@@ -5,7 +5,7 @@ import { detectLeagueSlug } from "@/domain/calendar/greek-date";
 const LISTING_HOSTNAME = "basketcity.sportstats.gr";
 const LISTING_PATH_RE  = /^\/[^/]+\/teamdetails\/id\/[0-9a-f-]{36}\/?$/i;
 
-function validateSourceUrl(url: string | null | undefined): true | string {
+export function validateSourceUrl(url: string | null | undefined): true | string {
   if (!url) return true;
   let parsed: URL;
   try { parsed = new URL(url); } catch { return "sourceUrl must be a valid URL"; }
