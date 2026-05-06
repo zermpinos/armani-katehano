@@ -26,6 +26,17 @@ const nextConfig = {
     ],
   },
 
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.armani-katehano.com" }],
+        destination: "https://armani-katehano.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
+
   // Strip Next.js's hardcoded `require("next/dist/build/polyfills/polyfill-module")`
   // from the client bundle. The module ships ~14 KiB of conditional polyfills
   // for browsers below the production browserslist target (Chrome >=96,
