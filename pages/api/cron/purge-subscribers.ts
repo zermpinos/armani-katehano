@@ -8,6 +8,7 @@
  * Auth: Vercel sends Authorization: Bearer <CRON_SECRET> automatically.
  */
 
+import { timingSafeEqual } from "node:crypto";
 import prisma from "@/server/db/client";
 import { securityHeaders } from "@/server/security/edge";
 import { auditLog } from "@/server/security/node";
@@ -22,9 +23,14 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = req.headers["authorization"] ?? "";
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  const secret   = process.env.CRON_SECRET;
+  const auth     = String(req.headers["authorization"] ?? "");
+  const expected = `Bearer ${secret ?? ""}`;
+  if (
+    !secret ||
+    auth.length !== expected.length ||
+    !timingSafeEqual(Buffer.from(auth), Buffer.from(expected))
+  ) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
