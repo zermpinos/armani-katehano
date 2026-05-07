@@ -18,9 +18,9 @@ import { parseListingHtml }   from "@/server/integrations/scraper/listing";
 import { discoverSourceUrl }  from "@/server/services/discover-source-url";
 
 const LISTINGS = {
-  men: "https://basketcity.sportstats.gr/men/teamdetails/id/BED40AE7-E186-454A-AF1D-9010E46EC048",
-  cup: "https://basketcity.sportstats.gr/winter-cup/teamdetails/id/BED40AE7-E186-454A-AF1D-9010E46EC048",
-} as const;
+  men: process.env.SCRAPE_LISTING_URL_MEN ?? "https://basketcity.sportstats.gr/men/teamdetails/id/BED40AE7-E186-454A-AF1D-9010E46EC048",
+  cup: process.env.SCRAPE_LISTING_URL_CUP ?? "https://basketcity.sportstats.gr/winter-cup/teamdetails/id/BED40AE7-E186-454A-AF1D-9010E46EC048",
+};
 
 function arg(name: string): string | null {
   const m = process.argv.find(a => a.startsWith(`--${name}=`));
