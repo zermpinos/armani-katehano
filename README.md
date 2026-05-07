@@ -331,7 +331,6 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | `SESSION_SECRET`                  | Admin auth             | HMAC key for the admin session cookie                      |
 | `ADMIN_USERS`                     | Admin auth             | JSON array of `{ username, passwordHash, totpSecret }`     |
 | `ADMIN_SLUG`                      | Admin auth             | Random URL segment for the admin entry path                |
-| `IMPORT_SECRET`                   | Import endpoints       | Bearer token authorizing programmatic imports              |
 | `COACH_PASSWORD`                  | Coach auth             | bcrypt hash of the coach password                          |
 | `COACH_TOKEN`                     | Coach auth             | URL token for the coach portal entry                       |
 | `COACH_SESSION_SECRET`            | Coach auth             | HMAC key for the coach session cookie                      |
