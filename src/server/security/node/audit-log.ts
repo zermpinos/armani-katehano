@@ -1,5 +1,7 @@
 import "@/server/_internal/node-only";
+import { createHash } from "node:crypto";
 import * as Sentry from "@sentry/nextjs";
+import prisma from "@/server/db/client";
 
 const SECURITY_ALERT_EVENTS = new Set([
   "login_account_locked",
@@ -13,18 +15,32 @@ const SECURITY_ALERT_EVENTS = new Set([
   "coach_csrf_token_blocked",
 ]);
 
+function sanitize(data: Record<string, unknown>): Record<string, unknown> {
+  if (typeof data.ip !== "string") return data;
+  return { ...data, ip: createHash("sha256").update(data.ip).digest("hex") };
+}
+
 export function auditLog(event: string, data: Record<string, unknown> = {}) {
+  const sanitized = sanitize(data);
+
   console.log(JSON.stringify({
     type:      "[AUDIT]",
     event,
     timestamp: new Date().toISOString(),
-    ...data,
+    ...sanitized,
   }));
+
   if (SECURITY_ALERT_EVENTS.has(event)) {
     Sentry.captureMessage(`[AUDIT] ${event}`, {
       level: "warning",
       tags:  { audit_event: event },
-      extra: data,
+      extra: sanitized,
     });
   }
+
+  prisma.auditLog.create({
+    data: { event, data: sanitized },
+  }).catch((err: Error) => {
+    console.error(JSON.stringify({ type: "[AUDIT_DB_ERROR]", event, error: err.message }));
+  });
 }
