@@ -12,7 +12,7 @@ import { resolve } from "node:path";
 const ROOT = resolve(__dirname, "..", "..");
 
 function read(rel: string): string {
-  return readFileSync(resolve(ROOT, rel), "utf8"); // nosemgrep
+  return readFileSync(resolve(ROOT, rel), "utf8"); // eslint-disable-line security/detect-non-literal-fs-filename
 }
 
 describe("tailwind url.parse patcher", () => {
