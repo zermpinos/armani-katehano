@@ -24,8 +24,9 @@ export function AdminLayout({
     { href: `/admin/${slug}/games`, label: "Games" },
     { href: `/admin/${slug}/roster`, label: "Roster" },
     { href: `/admin/${slug}/seasons`, label: "Seasons" },
-    { href: `/admin/${slug}/schedule`, label: "Schedule" },
-    { href: `/admin/${slug}/opponent-aliases`, label: "Aliases" },
+    { href: `/admin/${slug}/schedule`,         label: "Schedule"    },
+    { href: `/admin/${slug}/subscribers`,      label: "Subscribers" },
+    { href: `/admin/${slug}/opponent-aliases`, label: "Aliases"     },
     { href: `/admin/${slug}/import`, label: "Import" },
   ];
 
