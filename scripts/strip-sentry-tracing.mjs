@@ -42,12 +42,12 @@ let skipped = 0;
 
 for (const rel of TARGETS) {
   const abs = resolve(process.cwd(), rel);
-  if (!existsSync(abs)) { // nosemgrep
+  if (!existsSync(abs)) { // eslint-disable-line security/detect-non-literal-fs-filename
     console.warn(`[strip-sentry-tracing] target missing, skipping: ${rel}`);
     continue;
   }
 
-  const current = readFileSync(abs, "utf8"); // nosemgrep
+  const current = readFileSync(abs, "utf8"); // eslint-disable-line security/detect-non-literal-fs-filename
   if (current.startsWith(SENTINEL)) {
     skipped++;
     continue;
@@ -64,7 +64,7 @@ for (const rel of TARGETS) {
     "\n" +
     current.replace(/\b__SENTRY_TRACING__\b/g, "false");
 
-  writeFileSync(abs, next); // nosemgrep
+  writeFileSync(abs, next); // eslint-disable-line security/detect-non-literal-fs-filename
   touched++;
 }
 
