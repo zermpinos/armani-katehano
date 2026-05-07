@@ -50,6 +50,21 @@ describe("import-heartbeat auth", () => {
 });
 
 describe("import-heartbeat content", () => {
+  it("upcomingNext7d query excludes IMPORTED rows", async () => {
+    const res = mockRes();
+    await handler(mockReq(), res);
+    expect(res.statusCode).toBe(200);
+    // calls[0]=inWindow, calls[1]=dropouts, calls[2]=upcomingNext7d
+    const next7dArgs = mockPrisma.upcomingGame.findMany.mock.calls[2][0];
+    expect(next7dArgs.where).toEqual({
+      scheduledFor: { gte: expect.any(Date), lte: expect.any(Date) },
+      OR: [
+        { importJob: null },
+        { importJob: { isNot: { state: "IMPORTED" } } },
+      ],
+    });
+  });
+
   it("sends an email with runs, in-window, dropouts and next-7-days sections", async () => {
     mockPrisma.cronRun.findMany.mockResolvedValue([
       { id: "r1", job: "discover-and-import", startedAt: new Date(NOW.getTime() - 3600_000), ok: true, summary: { candidates: 1, imported: 1 }, error: null, finishedAt: new Date() },
