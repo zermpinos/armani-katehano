@@ -54,7 +54,13 @@ export default async function handler(req: any, res: any) {
     });
 
     const upcomingNext7d = await prisma.upcomingGame.findMany({
-      where:   { scheduledFor: { gte: now, lte: sevenDaysAhead } },
+      where: {
+        scheduledFor: { gte: now, lte: sevenDaysAhead },
+        OR: [
+          { importJob: null },
+          { importJob: { isNot: { state: "IMPORTED" } } },
+        ],
+      },
       include: { importJob: true },
       orderBy: { scheduledFor: "asc" },
     });
