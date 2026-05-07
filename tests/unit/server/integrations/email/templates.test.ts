@@ -9,8 +9,8 @@ const game: Game = {
   notes:        null,
 };
 
-const APP_URL    = "https://armanikatehano.gr";
-const UNSUB_URL  = "https://armanikatehano.gr/unsubscribe?token=demo";
+const APP_URL    = "https://armani-katehano.com";
+const UNSUB_URL  = "https://armani-katehano.com/unsubscribe?token=demo";
 
 function rosterRowOrder(html: string): number[] {
   const out: number[] = [];

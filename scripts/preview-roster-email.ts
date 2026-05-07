@@ -86,7 +86,7 @@ async function main() {
     process.exit(1);
   }
 
-  const appUrl         = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "https://armanikatehano.gr";
+  const appUrl         = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "https://armani-katehano.com";
   const unsubscribeUrl = `${appUrl}/unsubscribe?token=preview`;
 
   const html = buildHtml(data.game, data.players, data.message, appUrl, unsubscribeUrl);
