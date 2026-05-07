@@ -15,6 +15,7 @@ const { mockPrisma } = vi.hoisted(() => {
       findUniqueOrThrow: vi.fn(),
     },
     playerGameStat: { createMany: vi.fn(), deleteMany: vi.fn() },
+    auditLog: { create: vi.fn().mockResolvedValue(undefined) },
     $transaction: vi.fn(),
   };
   mp.$transaction.mockImplementation(async (fn) => fn(mp));
