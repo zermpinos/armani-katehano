@@ -14,7 +14,7 @@ Two alert surfaces are in use:
 | Sentry (Issues) | Unhandled exceptions, runtime errors, security audit events |
 | Vercel log drain | Full `[AUDIT]` JSON stream (all events, including lower-severity ones) |
 
-Security-critical audit events are forwarded to Sentry by `auditLog()` in `lib/security.ts` so that Sentry alert rules can page on them without requiring manual log inspection.
+Security-critical audit events are forwarded to Sentry by `auditLog()` in `src/server/security/node/audit-log.ts` so that Sentry alert rules can page on them without requiring manual log inspection.
 
 ---
 
@@ -73,7 +73,7 @@ All rules should notify the **#security-alerts** Slack channel (or equivalent on
 
 ## How Security Events Reach Sentry
 
-`lib/security.ts -> auditLog()` calls `Sentry.captureMessage("[AUDIT] <event>", { level: "warning" })` for every event in `SECURITY_ALERT_EVENTS`. The full event `data` object (IP, path, etc.) is attached as Sentry `extra` and the event name is set as a `tags.audit_event` tag for easy filtering.
+`src/server/security/node/audit-log.ts -> auditLog()` calls `Sentry.captureMessage("[AUDIT] <event>", { level: "warning" })` for every event in `SECURITY_ALERT_EVENTS`. The full event `data` object (IP, path, etc.) is attached as Sentry `extra` and the event name is set as a `tags.audit_event` tag for easy filtering.
 
 Events **not** in `SECURITY_ALERT_EVENTS` (e.g. normal login success, roster emails) are logged to stdout only and do not appear in Sentry.
 
