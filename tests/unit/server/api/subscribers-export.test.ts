@@ -13,12 +13,12 @@ vi.mock("@/server/auth",      () => ({ requireAuth: (h: any) => h }));
 import handler from "../../../../pages/api/admin/subscribers/export";
 
 function mockRes() {
-  const headers: Record<string, string> = {};
+  const headers = new Map<string, string>();
   return {
     statusCode: 0,
     body: null,
     headers,
-    setHeader: vi.fn((k: string, v: string) => { headers[k] = v; }),
+    setHeader: vi.fn((k: string, v: string) => { headers.set(k, v); }),
     status(c: number) { this.statusCode = c; return this; },
     send(b: any)      { this.body = b;       return this; },
     json(b: any)      { this.body = b;       return this; },
@@ -40,14 +40,14 @@ describe("GET /api/admin/subscribers/export", () => {
     mockPrisma.subscriber.findMany.mockResolvedValue([]);
     const res = mockRes();
     await handler({ method: "GET" }, res);
-    expect(res.headers["Content-Type"]).toBe("text/csv");
+    expect(res.headers.get("Content-Type")).toBe("text/csv");
   });
 
   it("sets Content-Disposition to attachment with filename subscribers.csv", async () => {
     mockPrisma.subscriber.findMany.mockResolvedValue([]);
     const res = mockRes();
     await handler({ method: "GET" }, res);
-    expect(res.headers["Content-Disposition"]).toBe('attachment; filename="subscribers.csv"');
+    expect(res.headers.get("Content-Disposition")).toBe('attachment; filename="subscribers.csv"');
   });
 
   it("includes the CSV header row", async () => {
