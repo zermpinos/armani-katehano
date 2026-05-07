@@ -12,6 +12,7 @@ async function handler(req: any, res: any) {
 
   try {
     const schedule = await prisma.upcomingGame.findMany({
+      where:   { scheduledFor: { gte: new Date() } },
       orderBy: { scheduledFor: "asc" },
     });
     return res.status(200).json({ schedule });
