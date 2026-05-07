@@ -6,8 +6,6 @@ name: Discover and import games
 # the WAF rate-limiting that caused 429 errors from GitHub-hosted runners.
 
 on:
-  schedule:
-    - cron: "0 * * * *"
   workflow_dispatch:
 
 permissions:
