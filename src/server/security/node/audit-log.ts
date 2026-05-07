@@ -39,7 +39,7 @@ export function auditLog(event: string, data: Record<string, unknown> = {}) {
   }
 
   prisma.auditLog.create({
-    data: { event, data: sanitized },
+    data: { event, data: sanitized as object },
   }).catch((err: Error) => {
     console.error(JSON.stringify({ type: "[AUDIT_DB_ERROR]", event, error: err.message }));
   });
