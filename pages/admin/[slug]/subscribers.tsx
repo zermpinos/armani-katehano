@@ -81,7 +81,7 @@ export default function SubscribersPage({ validSlug }: { validSlug: boolean }) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => void loadFirst(search, status), 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [search, status, authed, slug]);
+  }, [search, status, authed, slug, loadFirst]);
 
   const handleLoadMore = async () => {
     setLoadingMore(true);
@@ -158,6 +158,7 @@ export default function SubscribersPage({ validSlug }: { validSlug: boolean }) {
             {loading ? "—" : total}
           </div>
         </div>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API route that streams a CSV download; <Link /> does client-side nav and would swallow the response */}
         <a
           href="/api/admin/subscribers/export"
           className="py-[9px] px-[18px] text-[13px] font-black tracking-[0.12em] rounded-lg border border-ak-border bg-ak-surface text-ak-text font-sans no-underline"
