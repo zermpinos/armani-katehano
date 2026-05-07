@@ -254,6 +254,17 @@ model CronRun {
   @@index([job, startedAt])
 }
 
+// Retention: rows older than 90 days are purged by the purgeAuditLog cron job.
+model AuditLog {
+  id        String   @id @default(cuid())
+  event     String   @db.VarChar(100)
+  data      Json     @default("{}")
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([createdAt])
+  @@index([event, createdAt])
+}
+
 model OpponentAlias {
   id          String   @id @default(cuid())
   myName      String   @unique
