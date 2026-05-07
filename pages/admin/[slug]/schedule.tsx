@@ -169,8 +169,8 @@ export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
         <F label="LISTING URL" value={draft.listingUrl ?? ""} onChange={v => updGame("listingUrl", v)} placeholder="https://basketcity.sportstats.gr/<league>/teamdetails/id/<UUID>" />
         <div className="text-[10px] text-ak-text-dim mt-1 leading-relaxed">
           Team fixtures page. Used to auto-discover the source URL ~1h after tip-off.<br />
-          Men: <code>/men/teamdetails/id/BED40AE7-E186-454A-AF1D-9010E46EC048</code><br />
-          Cup: <code>/master-winter-cup/teamdetails/id/bed40ae7-e186-454a-af1d-9010e46ec048</code>
+          Men: <code>/men/teamdetails/id/&lt;uuid&gt;</code><br />
+          Cup: <code>/master-winter-cup/teamdetails/id/&lt;uuid&gt;</code>
         </div>
       </div>
       <div className="mb-3">
