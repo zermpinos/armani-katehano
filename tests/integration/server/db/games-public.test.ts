@@ -8,6 +8,18 @@
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
+const { mockPrisma } = vi.hoisted(() => {
+  const mp = {
+    loginAttempt: {
+      count:  vi.fn().mockResolvedValue(0),
+      create: vi.fn().mockResolvedValue(undefined),
+    },
+  };
+  return { mockPrisma: mp };
+});
+
+vi.mock("@/server/db/client", () => ({ default: mockPrisma, prisma: mockPrisma }));
+
 vi.mock("@/server/db/repositories", () => ({
   getBoxScore: vi.fn(),
 }));

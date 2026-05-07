@@ -23,7 +23,7 @@ const CLIENT_CANDIDATES = [
 
 function readIfExists(rel: string): string | null {
   const p = resolve(ROOT, rel);
-  return existsSync(p) ? readFileSync(p, "utf8") : null; // nosemgrep
+  return existsSync(p) ? readFileSync(p, "utf8") : null; // eslint-disable-line security/detect-non-literal-fs-filename
 }
 
 function stripComments(src: string): string {
