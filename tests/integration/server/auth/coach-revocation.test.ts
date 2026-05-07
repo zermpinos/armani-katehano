@@ -15,7 +15,10 @@ vi.hoisted(() => {
   process.env.COACH_SESSION_SECRET = "test-coach-secret-revocation-xx";
 });
 
-vi.mock("@/server/db/client", () => ({ default: {}, prisma: {} }));
+vi.mock("@/server/db/client", () => ({
+  default: { auditLog: { create: vi.fn().mockResolvedValue(undefined) } },
+  prisma:  { auditLog: { create: vi.fn().mockResolvedValue(undefined) } },
+}));
 
 vi.mock("@/server/auth/coach", async (importOriginal) => {
   const actual = await importOriginal();
