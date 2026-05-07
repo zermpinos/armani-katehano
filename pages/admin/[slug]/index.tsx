@@ -25,10 +25,6 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
   const [loading, setLoading] = useState(false);
   const [toast,   setToast]   = useState<{ type?: string; msg: string } | null>(null);
   const [recalcing, setRecalcing] = useState(false);
-  const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
-  const [subscribers, setSubscribers] = useState<{ email: string; createdAt: string }[]>([]);
-  const [showSubscribers, setShowSubscribers] = useState(false);
-
   const handleRecalc = async () => {
     setRecalcing(true);
     try {
@@ -49,12 +45,8 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      const [dashRes, subRes] = await Promise.all([
-        fetch("/api/admin/dashboard"),
-        fetch("/api/admin/subscribers"),
-      ]);
+      const dashRes = await fetch("/api/admin/dashboard");
       if (dashRes.ok) setData(await dashRes.json());
-      if (subRes.ok) { const s = await subRes.json(); setSubscriberCount(s.count ?? 0); setSubscribers(s.subscribers ?? []); }
     } finally {
       setLoading(false);
     }
@@ -96,10 +88,11 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
   const apg = data?.apg ?? "—";
 
   const navItems = [
-    { href: `/admin/${slug}/import`,  label: "Import game",   icon: "↓", desc: "Add a new game from sportstats.gr" },
-    { href: `/admin/${slug}/games`,   label: "Game results",  icon: "◉", desc: `${data?.totalGames ?? "—"} games recorded` },
-    { href: `/admin/${slug}/roster`,  label: "Roster",        icon: "◎", desc: `${data?.totalPlayers ?? "—"} players` },
-    { href: `/admin/${slug}/seasons`, label: "Seasons",       icon: "◇", desc: `${data?.totalSeasonLeagues ?? "—"} active leagues` },
+    { href: `/admin/${slug}/import`,      label: "Import game",   icon: "↓", desc: "Add a new game from sportstats.gr" },
+    { href: `/admin/${slug}/games`,       label: "Game results",  icon: "◉", desc: `${data?.totalGames ?? "—"} games recorded` },
+    { href: `/admin/${slug}/roster`,      label: "Roster",        icon: "◎", desc: `${data?.totalPlayers ?? "—"} players` },
+    { href: `/admin/${slug}/seasons`,     label: "Seasons",       icon: "◇", desc: `${data?.totalSeasonLeagues ?? "—"} active leagues` },
+    { href: `/admin/${slug}/subscribers`, label: "Subscribers",   icon: "✉", desc: "Manage subscriber list" },
   ];
 
   return (
@@ -118,7 +111,6 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
               ["PPG",         ppg],
               ["RPG",         rpg],
               ["APG",         apg],
-              ["SUBSCRIBERS", subscriberCount !== null ? String(subscriberCount) : "—"],
             ].map(([label, value]) => (
               <div key={label} className="rounded-[10px] px-[14px] py-3 text-center border border-ak-border bg-ak-surface">
                 <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-1">{label}</div>
@@ -126,40 +118,6 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
               </div>
             ))}
           </div>
-
-          {/* Subscriber list */}
-          {subscribers.length > 0 && (
-            <div className="mb-7">
-              <button
-                onClick={() => setShowSubscribers(v => !v)}
-                className={["flex items-center gap-2 bg-transparent border-0 cursor-pointer p-0", showSubscribers ? "mb-[10px]" : "mb-0"].join(" ")}
-              >
-                <span className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase">
-                  Subscriber emails
-                </span>
-                <span className="text-[10px] text-ak-text-dim">{showSubscribers ? "▲" : "▼"}</span>
-              </button>
-              {showSubscribers && (
-                <div className="border border-ak-border rounded-[10px] overflow-hidden">
-                  {subscribers.map((s, i) => (
-                    <div
-                      key={s.email}
-                      className={[
-                        "flex justify-between items-center py-[9px] px-[14px]",
-                        i % 2 === 0 ? "bg-ak-surface" : "bg-ak-surface2",
-                        i === 0 ? "" : "border-t border-ak-border",
-                      ].join(" ")}
-                    >
-                      <span className="text-[13px] text-ak-text font-mono">{s.email}</span>
-                      <span className="text-[11px] text-ak-text-dim whitespace-nowrap ml-4">
-                        {s.createdAt?.slice(0, 10)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Quick links */}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 mb-7">
