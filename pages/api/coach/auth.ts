@@ -10,7 +10,7 @@
  */
 
 import * as Sentry from "@sentry/nextjs";
-import { isLockedOut, recordAttempt, clearAttempts, getFailureCount } from "@/server/auth";
+import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount } from "@/server/auth";
 import { csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha, generateCsrfToken, buildCsrfCookie, clearCsrfCookie } from "@/server/auth";
 import { securityHeaders } from "@/server/security/edge";
 import { auditLog, getClientIp } from "@/server/security/node";
@@ -94,7 +94,18 @@ export default async function handler(req: any, res: any) {
       }
       const captchaOk = await verifyCaptcha(captchaToken, ip);
       if (!captchaOk) {
-        await Promise.all([recordAttempt(ip), recordAttempt(ACCOUNT_KEY)]);
+        const [ipRes, accountRes] = await Promise.all([
+          atomicRecordAndCheck(ip),
+          atomicRecordAndCheck(ACCOUNT_KEY, 25, 3600),
+        ]);
+        if (ipRes.locked) {
+          auditLog("coach_login_locked", { ip });
+          return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
+        }
+        if (accountRes.locked) {
+          auditLog("coach_login_account_locked", { ip });
+          return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
+        }
         auditLog("coach_login_captcha_failed", { ip });
         return res.status(401).json({ error: "Captcha verification failed", requiresCaptcha: true });
       }
@@ -102,7 +113,18 @@ export default async function handler(req: any, res: any) {
 
     const valid = await verifyCoachPassword(password);
     if (!valid) {
-      await Promise.all([recordAttempt(ip), recordAttempt(ACCOUNT_KEY)]);
+      const [ipRes, accountRes] = await Promise.all([
+        atomicRecordAndCheck(ip),
+        atomicRecordAndCheck(ACCOUNT_KEY, 25, 3600),
+      ]);
+      if (ipRes.locked) {
+        auditLog("coach_login_locked", { ip });
+        return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
+      }
+      if (accountRes.locked) {
+        auditLog("coach_login_account_locked", { ip });
+        return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
+      }
       auditLog("coach_login_failed", { ip });
       return res.status(401).json({ error: "Invalid credentials" });
     }
