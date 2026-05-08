@@ -37,6 +37,12 @@ const nextConfig = {
     ];
   },
 
+  async rewrites() {
+    return [
+      { source: "/humans.txt", destination: "/api/humans-txt" },
+    ];
+  },
+
   // Strip Next.js's hardcoded `require("next/dist/build/polyfills/polyfill-module")`
   // from the client bundle. The module ships ~14 KiB of conditional polyfills
   // for browsers below the production browserslist target (Chrome >=96,
