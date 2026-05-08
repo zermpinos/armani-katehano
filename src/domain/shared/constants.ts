@@ -4,3 +4,6 @@ export const COPYRIGHT_YEAR = "2026";
 
 /** Hard cap on games returned per page/request. Change here to affect all callers. */
 export const MAX_GAMES_PER_PAGE = 200;
+
+export const DEVELOPER_NAME      = "p.zermpinos";
+export const DEVELOPER_PORTFOLIO = "https://zermpinos.vercel.app";
