@@ -9,24 +9,32 @@ vi.mock("@/server/auth", async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    verifyCredentials: vi.fn(),
-    getAdminUser:      vi.fn(),
-    verifyTotp:        vi.fn(),
-    verifyCaptcha:     vi.fn(),
-    isLockedOut:       vi.fn().mockResolvedValue(false),
-    recordAttempt:     vi.fn().mockResolvedValue(undefined),
-    clearAttempts:     vi.fn().mockResolvedValue(undefined),
-    getFailureCount:   vi.fn().mockResolvedValue(0),
+    verifyCredentials:    vi.fn(),
+    getAdminUser:         vi.fn(),
+    verifyTotp:           vi.fn(),
+    verifyCaptcha:        vi.fn(),
+    isLockedOut:          vi.fn().mockResolvedValue(false),
+    atomicRecordAndCheck: vi.fn().mockResolvedValue({ locked: false, count: 1 }),
+    clearAttempts:        vi.fn().mockResolvedValue(undefined),
+    getFailureCount:      vi.fn().mockResolvedValue(0),
   };
 });
 
-import { isLockedOut, recordAttempt, clearAttempts, getFailureCount, verifyCredentials, getAdminUser, verifyTotp, verifyCaptcha } from "@/server/auth";
+vi.mock("@sentry/nextjs", () => ({ captureMessage: vi.fn() }));
+vi.mock("@/server/security/node", () => ({
+  auditLog:    vi.fn(),
+  getClientIp: vi.fn().mockReturnValue("1.2.3.4"),
+}));
+
+import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount, verifyCredentials, getAdminUser, verifyTotp, verifyCaptcha } from "@/server/auth";
 import handler from "../../../../pages/api/auth";
 import { mockRes, mockReq } from "./__support__/auth-mocks";
+import { auditLog } from "@/server/security/node";
 
 beforeEach(() => {
   vi.clearAllMocks();
   isLockedOut.mockResolvedValue(false);
+  atomicRecordAndCheck.mockResolvedValue({ locked: false, count: 1 });
   getFailureCount.mockResolvedValue(0);
   verifyCredentials.mockResolvedValue(false);
   getAdminUser.mockReturnValue(null);
@@ -122,13 +130,13 @@ describe("POST /api/auth (login)", () => {
     const res = mockRes();
     await handler(req, res);
     expect(res.statusCode).toBe(401);
-    expect(recordAttempt).toHaveBeenCalledTimes(2);
+    expect(atomicRecordAndCheck).toHaveBeenCalledTimes(2);
     expect(clearAttempts).not.toHaveBeenCalled();
   });
 
   it("returns 200 and sets session cookie on correct credentials (no TOTP configured)", async () => {
     verifyCredentials.mockResolvedValue(true);
-    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$..." }); // no totpSecret
+    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$..." });
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
@@ -142,7 +150,7 @@ describe("POST /api/auth (login)", () => {
     expect(loginCookies).toContain("__Host-ak_session=");
     expect(loginCookies).toContain("HttpOnly");
     expect(clearAttempts).toHaveBeenCalledTimes(2);
-    expect(recordAttempt).not.toHaveBeenCalled();
+    expect(atomicRecordAndCheck).not.toHaveBeenCalled();
   });
 
   it("returns 401 when TOTP is configured but code is missing", async () => {
@@ -216,7 +224,7 @@ describe("POST /api/auth (login)", () => {
     await handler(req, res);
     expect(res.statusCode).toBe(401);
     expect(res._body).toMatchObject({ requiresCaptcha: true });
-    expect(recordAttempt).toHaveBeenCalledTimes(2);
+    expect(atomicRecordAndCheck).toHaveBeenCalledTimes(2);
     expect(verifyCredentials).not.toHaveBeenCalled();
   });
 
@@ -233,5 +241,74 @@ describe("POST /api/auth (login)", () => {
     await handler(req, res);
     expect(res.statusCode).toBe(401);
     expect(verifyCredentials).toHaveBeenCalledOnce();
+  });
+
+  it("returns 429 when IP lockout is triggered on credential failure -- emits login_locked audit event", async () => {
+    verifyCredentials.mockResolvedValue(false);
+    atomicRecordAndCheck.mockImplementation(async (key: string) =>
+      key.startsWith("account_")
+        ? { locked: false, count: 1 }
+        : { locked: true, count: 5 },
+    );
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { username: "admin", password: "wrong" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(429);
+    expect(res._body.retryAfter).toBe(900);
+    expect(auditLog).toHaveBeenCalledWith("login_locked", expect.objectContaining({ ip: expect.any(String) }));
+  });
+
+  it("returns 429 when account lockout is triggered on credential failure -- emits login_account_locked audit event", async () => {
+    verifyCredentials.mockResolvedValue(false);
+    atomicRecordAndCheck.mockImplementation(async (key: string) =>
+      key.startsWith("account_")
+        ? { locked: true, count: 25 }
+        : { locked: false, count: 1 },
+    );
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { username: "admin", password: "wrong" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(429);
+    expect(res._body.retryAfter).toBe(3600);
+    expect(res._body.error).toMatch(/across all clients/i);
+    expect(auditLog).toHaveBeenCalledWith("login_account_locked", expect.objectContaining({ ip: expect.any(String) }));
+  });
+
+  it("returns 429 when IP lockout is triggered on TOTP failure", async () => {
+    verifyCredentials.mockResolvedValue(true);
+    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$...", totpSecret: "BASE32" });
+    verifyTotp.mockReturnValue(false);
+    atomicRecordAndCheck.mockResolvedValue({ locked: true, count: 5 });
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { username: "admin", password: "correct", totpToken: "000000" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(429);
+  });
+
+  it("429 body does not expose the attempt count", async () => {
+    verifyCredentials.mockResolvedValue(false);
+    atomicRecordAndCheck.mockResolvedValue({ locked: true, count: 5 });
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { username: "admin", password: "wrong" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(429);
+    expect(JSON.stringify(res._body)).not.toContain("count");
+    expect(JSON.stringify(res._body)).not.toContain("5");
   });
 });

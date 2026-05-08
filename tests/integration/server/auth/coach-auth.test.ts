@@ -22,17 +22,24 @@ vi.mock("@/server/auth", async (importOriginal) => {
     verifyCoachPassword:    vi.fn(),
     getCoachSessionVersion: vi.fn(),
     isLockedOut:            vi.fn().mockResolvedValue(false),
-    recordAttempt:          vi.fn().mockResolvedValue(undefined),
+    atomicRecordAndCheck:   vi.fn().mockResolvedValue({ locked: false, count: 1 }),
     clearAttempts:          vi.fn().mockResolvedValue(undefined),
     getFailureCount:        vi.fn().mockResolvedValue(0),
   };
 });
 
-import { isLockedOut, recordAttempt, clearAttempts, getFailureCount } from "@/server/auth";
+vi.mock("@sentry/nextjs", () => ({ captureMessage: vi.fn() }));
+vi.mock("@/server/security/node", () => ({
+  auditLog:    vi.fn(),
+  getClientIp: vi.fn().mockReturnValue("1.2.3.4"),
+}));
+
+import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount } from "@/server/auth";
 import { verifyCaptcha }                                               from "@/server/auth";
 import { verifyCoachPassword, getCoachSessionVersion,
          buildCoachSessionCookie }                                     from "@/server/auth";
 import handler                                                         from "../../../../pages/api/coach/auth";
+import { auditLog } from "@/server/security/node";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -64,6 +71,7 @@ function validCoachCookie(version = 0) {
 beforeEach(() => {
   vi.clearAllMocks();
   isLockedOut.mockResolvedValue(false);
+  atomicRecordAndCheck.mockResolvedValue({ locked: false, count: 1 });
   getFailureCount.mockResolvedValue(0);
   verifyCoachPassword.mockResolvedValue(false);
   getCoachSessionVersion.mockResolvedValue(0);
@@ -174,7 +182,7 @@ describe("POST /api/coach/auth (login)", () => {
     const res = mockRes();
     await handler(req, res);
     expect(res.statusCode).toBe(401);
-    expect(recordAttempt).toHaveBeenCalledTimes(2);
+    expect(atomicRecordAndCheck).toHaveBeenCalledTimes(2);
     expect(clearAttempts).not.toHaveBeenCalled();
   });
 
@@ -193,7 +201,7 @@ describe("POST /api/coach/auth (login)", () => {
     expect(loginCookies).toContain("__Host-ak_coach=");
     expect(loginCookies).toContain("HttpOnly");
     expect(clearAttempts).toHaveBeenCalledTimes(2);
-    expect(recordAttempt).not.toHaveBeenCalled();
+    expect(atomicRecordAndCheck).not.toHaveBeenCalled();
   });
 
   it("returns 401 with requiresCaptcha when IP has 3+ failures and no captchaToken", async () => {
@@ -222,7 +230,7 @@ describe("POST /api/coach/auth (login)", () => {
     await handler(req, res);
     expect(res.statusCode).toBe(401);
     expect(res._body).toMatchObject({ requiresCaptcha: true });
-    expect(recordAttempt).toHaveBeenCalledTimes(2);
+    expect(atomicRecordAndCheck).toHaveBeenCalledTimes(2);
     expect(verifyCoachPassword).not.toHaveBeenCalled();
   });
 
@@ -239,6 +247,60 @@ describe("POST /api/coach/auth (login)", () => {
     await handler(req, res);
     expect(res.statusCode).toBe(401);
     expect(verifyCoachPassword).toHaveBeenCalledOnce();
+  });
+
+  it("returns 429 when IP lockout is triggered -- emits coach_login_locked audit event", async () => {
+    verifyCoachPassword.mockResolvedValue(false);
+    atomicRecordAndCheck.mockImplementation(async (key: string) =>
+      key.startsWith("account_")
+        ? { locked: false, count: 1 }
+        : { locked: true, count: 5 },
+    );
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { password: "wrong" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(429);
+    expect(res._body.retryAfter).toBe(900);
+    expect(auditLog).toHaveBeenCalledWith("coach_login_locked", expect.objectContaining({ ip: expect.any(String) }));
+  });
+
+  it("returns 429 when account lockout is triggered -- emits coach_login_account_locked audit event", async () => {
+    verifyCoachPassword.mockResolvedValue(false);
+    atomicRecordAndCheck.mockImplementation(async (key: string) =>
+      key.startsWith("account_")
+        ? { locked: true, count: 25 }
+        : { locked: false, count: 1 },
+    );
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { password: "wrong" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(429);
+    expect(res._body.retryAfter).toBe(3600);
+    expect(res._body.error).toMatch(/across all clients/i);
+    expect(auditLog).toHaveBeenCalledWith("coach_login_account_locked", expect.objectContaining({ ip: expect.any(String) }));
+  });
+
+  it("429 body does not expose the attempt count", async () => {
+    verifyCoachPassword.mockResolvedValue(false);
+    atomicRecordAndCheck.mockResolvedValue({ locked: true, count: 5 });
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { password: "wrong" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(429);
+    expect(JSON.stringify(res._body)).not.toContain("count");
+    expect(JSON.stringify(res._body)).not.toContain("5");
   });
 });
 
