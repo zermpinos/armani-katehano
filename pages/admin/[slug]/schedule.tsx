@@ -81,10 +81,12 @@ export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
 
   const startEdit = (g: ScheduledGame) => {
     const iso = g.scheduledFor;
+    // UTC accessors give the Athens digits directly — stored times follow the convention
+    // where UTC timestamp digits equal the Athens local time the admin originally entered.
     const date = new Date(iso);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
+    const day   = String(date.getUTCDate()).padStart(2, "0");
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const year  = date.getUTCFullYear();
     const dateStr = `${day}-${month}-${year}`;
     const timeStr = iso.slice(11, 16);
     setDraft({ ...g, date: dateStr, time: timeStr });
