@@ -52,9 +52,9 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
 
   // Connect directly to the pre-validated IP — no second DNS resolution at fetch time.
   const dispatcher = makeLockedDispatcher(address);
-  let response: Response;
+  let html: string;
   try {
-    response = await fetch(url, {
+    const response = await fetch(url, {
       redirect: "manual",
       headers: {
         "User-Agent": "BoxScoreScraper/1.0",
@@ -62,19 +62,20 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
       },
       dispatcher,
     } as NodeRequestInit);
+
+    if (response.status >= 300 && response.status < 400)
+      throw new ScrapeError("Upstream redirected — refusing to follow.", 502);
+
+    if (!response.ok)
+      throw new ScrapeError(`Upstream returned ${response.status}`, 502);
+
+    html = await response.text();
   } catch (err) {
+    if (err instanceof ScrapeError) throw err;
     throw new ScrapeError(`Upstream unreachable: ${(err as Error).message}`, 502);
   } finally {
     await dispatcher.destroy().catch(() => {});
   }
-
-  if (response.status >= 300 && response.status < 400)
-    throw new ScrapeError("Upstream redirected — refusing to follow.", 502);
-
-  if (!response.ok)
-    throw new ScrapeError(`Upstream returned ${response.status}`, 502);
-
-  const html = await response.text();
 
   let data: any;
   try {
@@ -94,19 +95,21 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
 
       // Pin the PDF fetch to the validated IP, same TOCTOU fix as the main fetch.
       const pdfDispatcher = makeLockedDispatcher(pdfIp);
-      let pdfResponse: Response;
+      let pdfBuffer: Buffer | null = null;
       try {
-        pdfResponse = await fetch(pdfUrl, {
+        const pdfResponse = await fetch(pdfUrl, {
           redirect: "manual",
           headers: { "User-Agent": "BoxScoreScraper/1.0" },
           dispatcher: pdfDispatcher,
         } as NodeRequestInit);
+
+        if (pdfResponse.ok)
+          pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
       } finally {
         await pdfDispatcher.destroy().catch(() => {});
       }
 
-      if (pdfResponse.ok) {
-        const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
+      if (pdfBuffer !== null) {
         const { PDFParse } = await import("pdf-parse");
         const parser = new PDFParse({ data: pdfBuffer });
         const { text } = await parser.getText();
