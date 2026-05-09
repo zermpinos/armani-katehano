@@ -3,10 +3,12 @@ import { fmtDate } from "@/domain/shared/format";
 export function getCountdownInfo(isoStr: string): { label: string; tier: "today" | "week" | "future" } {
   const now = new Date();
   const gameTime = new Date(isoStr);
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const gameDay = new Date(gameTime.getFullYear(), gameTime.getMonth(), gameTime.getDate());
-  const daysUntil = Math.ceil((gameDay.getTime() - todayStart.getTime()) / 86400000);
-  const fmtTime = () => isoStr.slice(11, 16);
+  // Times are stored with UTC digits equal to the Athens time the admin entered.
+  // Use UTC accessors throughout so the digits are read as Athens values directly.
+  const todayStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const gameDay    = Date.UTC(gameTime.getUTCFullYear(), gameTime.getUTCMonth(), gameTime.getUTCDate());
+  const daysUntil  = Math.ceil((gameDay - todayStart) / 86400000);
+  const fmtTime    = () => isoStr.slice(11, 16);
   if (daysUntil === 0) return { label: `Today at ${fmtTime()}`, tier: "today" };
   if (daysUntil === 1) return { label: `Tomorrow at ${fmtTime()}`, tier: "week" };
   if (daysUntil <= 6)  return { label: `In ${daysUntil} days`, tier: "week" };

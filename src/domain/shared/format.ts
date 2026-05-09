@@ -2,7 +2,7 @@ export function fmtDate(isoStr: string | null | undefined) {
   if (!isoStr) return "";
   const d = new Date(isoStr);
   if (isNaN(d.getTime())) return isoStr; // graceful fallback for legacy format
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
 }
 
 export function fmtMinutes(dec: number): string {
