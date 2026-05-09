@@ -11,7 +11,7 @@
  */
 
 import * as Sentry from "@sentry/nextjs";
-import { isLockedOut, recordAttempt, clearAttempts, getFailureCount } from "@/server/auth";
+import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount } from "@/server/auth";
 import { getSessionToken, verifyPayload, verifyCredentials, getAdminUser, verifyTotp, buildSessionCookie, clearSessionCookie, generateCsrfToken, buildCsrfCookie, clearCsrfCookie, csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha } from "@/server/auth";
 import { securityHeaders } from "@/server/security/edge";
 import { auditLog, getClientIp } from "@/server/security/node";
@@ -80,7 +80,18 @@ export default async function handler(req: any, res: any) {
       }
       const captchaOk = await verifyCaptcha(captchaToken, ip);
       if (!captchaOk) {
-        await Promise.all([recordAttempt(ip), recordAttempt(ACCOUNT_KEY)]);
+        const [ipRes, accountRes] = await Promise.all([
+          atomicRecordAndCheck(ip),
+          atomicRecordAndCheck(ACCOUNT_KEY, 25, 3600),
+        ]);
+        if (ipRes.locked) {
+          auditLog("login_locked", { ip });
+          return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
+        }
+        if (accountRes.locked) {
+          auditLog("login_account_locked", { ip, username });
+          return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
+        }
         auditLog("login_captcha_failed", { ip, username });
         return res.status(401).json({ error: "Captcha verification failed", requiresCaptcha: true });
       }
@@ -88,7 +99,18 @@ export default async function handler(req: any, res: any) {
 
     const valid = await verifyCredentials(username, password);
     if (!valid) {
-      await Promise.all([recordAttempt(ip), recordAttempt(ACCOUNT_KEY)]);
+      const [ipRes, accountRes] = await Promise.all([
+        atomicRecordAndCheck(ip),
+        atomicRecordAndCheck(ACCOUNT_KEY, 25, 3600),
+      ]);
+      if (ipRes.locked) {
+        auditLog("login_locked", { ip });
+        return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
+      }
+      if (accountRes.locked) {
+        auditLog("login_account_locked", { ip, username });
+        return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
+      }
       auditLog("login_failed", { ip, username });
       return res.status(401).json({ error: "Invalid credentials" });
     }
@@ -97,7 +119,18 @@ export default async function handler(req: any, res: any) {
     const userRecord = getAdminUser(username);
     if (userRecord?.totpSecret) {
       if (!totpToken || typeof totpToken !== "string" || !verifyTotp(userRecord.totpSecret, totpToken)) {
-        await Promise.all([recordAttempt(ip), recordAttempt(ACCOUNT_KEY)]);
+        const [ipRes, accountRes] = await Promise.all([
+          atomicRecordAndCheck(ip),
+          atomicRecordAndCheck(ACCOUNT_KEY, 25, 3600),
+        ]);
+        if (ipRes.locked) {
+          auditLog("login_locked", { ip });
+          return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
+        }
+        if (accountRes.locked) {
+          auditLog("login_account_locked", { ip, username });
+          return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
+        }
         auditLog("login_totp_failed", { ip, username });
         return res.status(401).json({ error: "Invalid authenticator code" });
       }
