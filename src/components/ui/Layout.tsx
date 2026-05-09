@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { SITE_NAME, CURRENT_SEASON, COPYRIGHT_YEAR } from "@/domain/shared/constants";
+import { SITE_NAME, CURRENT_SEASON, COPYRIGHT_YEAR, DEVELOPER_NAME, DEVELOPER_PORTFOLIO } from "@/domain/shared/constants";
 
 const NAV_LINKS = [
   { href: "/",            label: "Home"       },
@@ -184,9 +184,14 @@ export default function Layout({ children, title = SITE_NAME, ogDescription }: L
           </a>
 
           {/* Credit */}
-          <div className="text-[11px] font-black tracking-[0.08em] text-[#616166]">
-            made with ❤️‍🔥 by @p.zermpinos
-          </div>
+          <a
+            href={DEVELOPER_PORTFOLIO}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] font-black tracking-[0.08em] text-[#616166] transition-colors duration-150 hover:text-ak-text"
+          >
+            made with ❤️‍🔥 by @{DEVELOPER_NAME}
+          </a>
         </div>
       </footer>
     </>
