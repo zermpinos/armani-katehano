@@ -67,6 +67,10 @@ jobs:
   build:
     name: Build
     needs: [lint, typecheck, test]
+    # Dependabot PRs don't receive repository secrets (DATABASE_URL), so
+    # next build fails at the getStaticProps prerender step with ECONNREFUSED.
+    # Lint, typecheck, and tests still run — skipping only the build is acceptable.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
