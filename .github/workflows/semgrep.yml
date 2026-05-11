@@ -18,7 +18,7 @@ jobs:
     container:
       image: semgrep/semgrep@sha256:326e5f41cc972bb423b764a14febbb62bbad29ee1c01820805d077dd868fea48 # v1.161.0
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Run Semgrep
         run: semgrep scan --config=p/typescript --config=p/nodejs --config=p/secrets --error .
