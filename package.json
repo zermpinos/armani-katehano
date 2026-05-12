@@ -59,7 +59,6 @@
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/nodemailer": "^8.0.0",
-    "autoprefixer": "^10.5.0",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
