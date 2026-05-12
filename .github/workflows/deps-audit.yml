@@ -113,14 +113,17 @@ jobs:
             } catch(e) { console.log('Could not parse audit output: ' + e.message); }
           ")
 
-          # Check postcss override staleness
-          # Override is needed while next bundles postcss < 8.5.10
-          NEXT_POSTCSS=$(npm view next@latest dependencies.postcss 2>/dev/null || echo "unknown")
+          # Check postcss override staleness against the *resolved* version
+          # the project would ship without our override, not next's declared
+          # range. The override is needed while transitive postcss resolves
+          # below 8.5.10. The script does a fresh resolve in a temp dir
+          # (with the override stripped) so the working tree's package.json
+          # and package-lock.json are untouched.
+          NEXT_POSTCSS=$(node scripts/check-postcss-override.mjs 2>/dev/null || echo "unknown")
           POSTCSS_STATUS=$(node -e "
             const raw = '$NEXT_POSTCSS';
-            if (raw === 'unknown') { console.log('unknown'); process.exit(0); }
-            const clean = raw.replace(/[^0-9.]/g, '');
-            const [maj, min, pat] = clean.split('.').map(Number);
+            if (raw === 'unknown' || !raw) { console.log('unknown'); process.exit(0); }
+            const [maj, min, pat] = raw.split('.').map(Number);
             const needed = maj < 8 || (maj === 8 && min < 5) || (maj === 8 && min === 5 && (pat||0) < 10);
             console.log(needed ? 'still needed' : 'can be removed');
           ")
