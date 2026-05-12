@@ -24,3 +24,6 @@ audit.txt
 structure.txt
 test-results/
 docs/superpowers/
+
+# TypeScript incremental build state — regenerated on every tsc run
+*.tsbuildinfo
