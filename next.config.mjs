@@ -34,6 +34,11 @@ const nextConfig = {
         destination: "https://armani-katehano.com/:path*",
         permanent: true,
       },
+      {
+        source: "/coming-soon",
+        destination: "/",
+        permanent: true,
+      },
     ];
   },
 
