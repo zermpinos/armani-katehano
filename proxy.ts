@@ -2,29 +2,29 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { generateNonce, buildCsp } from "@/server/security/edge/csp";
 
-export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+const ADMIN_SESSION_COOKIE = "__Host-ak_session";
+const FLAG_TTL_MS = 10_000;
 
-  // Always allow maintenance page itself
-  const isMaintenancePage = pathname.startsWith("/maintenance");
+let cachedFlag: { value: boolean; ts: number } | null = null;
 
-  // Allow Next.js internal assets (required for the page to load)
-  const isNextAsset =
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon.ico") ||
-    pathname.startsWith("/public") ||
-    pathname.startsWith("/robots.txt") ||
-    pathname.startsWith("/sitemap.xml");
-
-  // If not already on maintenance page or loading assets -> redirect
-  if (!isMaintenancePage && !isNextAsset) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/maintenance";
-    url.search = "";
-    return NextResponse.redirect(url);
+async function isMaintenanceOn(request: NextRequest): Promise<boolean> {
+  if (cachedFlag && Date.now() - cachedFlag.ts < FLAG_TTL_MS) {
+    return cachedFlag.value;
   }
+  try {
+    const url = new URL("/api/public/maintenance", request.url);
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return false;
+    const json = (await res.json()) as { enabled?: boolean };
+    const value = json.enabled === true;
+    cachedFlag = { value, ts: Date.now() };
+    return value;
+  } catch {
+    return false; // fail-open: never lock the site out on a transient error
+  }
+}
 
-  // Generate CSP nonce for allowed requests
+function passThroughWithCsp(request: NextRequest) {
   const nonce = generateNonce();
   const csp = buildCsp(nonce);
 
@@ -34,10 +34,41 @@ export function proxy(request: NextRequest) {
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
-
   response.headers.set("Content-Security-Policy", csp);
-
   return response;
+}
+
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Paths that must always load -- needed for the maintenance page itself,
+  // for the admin to log in and toggle the flag, and for Next's internals.
+  const isMaintenancePage    = pathname.startsWith("/maintenance");
+  const isAdminPath          = pathname.startsWith("/admin");
+  const isMaintenanceFlagApi = pathname === "/api/public/maintenance";
+  const isNextAsset =
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon.ico") ||
+    pathname.startsWith("/public") ||
+    pathname.startsWith("/robots.txt") ||
+    pathname.startsWith("/sitemap.xml");
+
+  if (isMaintenancePage || isAdminPath || isMaintenanceFlagApi || isNextAsset) {
+    return passThroughWithCsp(request);
+  }
+
+  // Authenticated admins see the live site even while maintenance is on,
+  // so they can verify changes before flipping the toggle off.
+  const hasAdminSession = Boolean(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
+
+  if (hasAdminSession || !(await isMaintenanceOn(request))) {
+    return passThroughWithCsp(request);
+  }
+
+  const url = request.nextUrl.clone();
+  url.pathname = "/maintenance";
+  url.search = "";
+  return NextResponse.redirect(url);
 }
 
 export const config = {
