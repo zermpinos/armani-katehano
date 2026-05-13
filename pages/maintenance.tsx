@@ -6,6 +6,7 @@ export default function MaintenancePage() {
     <>
       <Head>
         <title>Under maintenance · Armani Katehano</title>
+        <meta name="description" content="The site is briefly offline for maintenance. We'll be back shortly." />
         <meta name="robots" content="noindex, nofollow" />
         <link rel="icon" type="image/png" href="/logo.png" />
       </Head>
