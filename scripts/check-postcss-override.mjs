@@ -38,11 +38,13 @@ delete stub.overrides.postcss;
 
 const dir = mkdtempSync(join(tmpdir(), 'postcss-probe-'));
 try {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   writeFileSync(join(dir, 'package.json'), JSON.stringify(stub, null, 2));
   execSync('npm install --package-lock-only --ignore-scripts --silent', {
     cwd: dir,
     stdio: ['ignore', 'ignore', 'ignore'],
   });
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   const lock = JSON.parse(readFileSync(join(dir, 'package-lock.json'), 'utf8'));
   const version = lock.packages?.['node_modules/postcss']?.version;
   if (version) process.stdout.write(version);
