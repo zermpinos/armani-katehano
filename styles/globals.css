@@ -1,9 +1,15 @@
 @import "tailwindcss";
 @config "../tailwind.config.ts";
 
-/* ── Reset & base ── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; height: 100%; }
+/* ── Reset & base ──
+   Wrapped in @layer base so Tailwind v4's utility layer can still win.
+   Without the layer, this `* { margin: 0; padding: 0 }` is unlayered and
+   therefore beats every layered .px- and .mx- utility, silently breaking
+   all padding/margin classes site-wide. */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; height: 100%; }
+}
 
 body {
   background: #1c1c1e;
