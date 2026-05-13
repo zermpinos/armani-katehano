@@ -25,6 +25,8 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
   const [loading, setLoading] = useState(false);
   const [toast,   setToast]   = useState<{ type?: string; msg: string } | null>(null);
   const [recalcing, setRecalcing] = useState(false);
+  const [maintenanceOn, setMaintenanceOn] = useState<boolean | null>(null);
+  const [maintenanceBusy, setMaintenanceBusy] = useState(false);
   const handleRecalc = async () => {
     setRecalcing(true);
     try {
@@ -42,11 +44,42 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
     }
   };
 
+  const handleToggleMaintenance = async () => {
+    if (maintenanceOn === null) return;
+    const next = !maintenanceOn;
+    setMaintenanceBusy(true);
+    try {
+      const res = await apiFetch("/api/admin/maintenance", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ enabled: next }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setMaintenanceOn(json.enabled);
+        setToast({
+          type: "success",
+          msg:  json.enabled ? "Maintenance mode ON" : "Maintenance mode OFF",
+        });
+      } else {
+        setToast({ type: "error", msg: json.error ?? "Toggle failed" });
+      }
+    } catch {
+      setToast({ type: "error", msg: "Toggle failed" });
+    } finally {
+      setMaintenanceBusy(false);
+    }
+  };
+
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      const dashRes = await fetch("/api/admin/dashboard");
-      if (dashRes.ok) setData(await dashRes.json());
+      const [dashRes, maintRes] = await Promise.all([
+        fetch("/api/admin/dashboard"),
+        apiFetch("/api/admin/maintenance"),
+      ]);
+      if (dashRes.ok)  setData(await dashRes.json());
+      if (maintRes.ok) setMaintenanceOn((await maintRes.json()).enabled);
     } finally {
       setLoading(false);
     }
@@ -131,7 +164,7 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
           </div>
 
           {/* Recalc */}
-          <div className="mb-7">
+          <div className="mb-3">
             <button
               onClick={handleRecalc}
               disabled={recalcing}
@@ -144,6 +177,42 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
             </button>
             <span className="text-[11px] text-ak-text-dim ml-[10px]">
               Recomputes all player aggregates from raw game data
+            </span>
+          </div>
+
+          {/* Maintenance toggle */}
+          <div className="mb-7">
+            <button
+              onClick={handleToggleMaintenance}
+              disabled={maintenanceBusy || maintenanceOn === null}
+              className={[
+                "py-[10px] px-[18px] text-[12px] font-black tracking-[0.08em] rounded-[9px] border font-sans inline-flex items-center gap-[10px]",
+                maintenanceOn
+                  ? "border-[#8b1a1a55] bg-[#8b1a1a22] text-ak-red-text"
+                  : "border-ak-border bg-ak-surface text-ak-text",
+                (maintenanceBusy || maintenanceOn === null) ? "cursor-not-allowed opacity-70" : "cursor-pointer",
+              ].join(" ")}
+            >
+              <span
+                className={[
+                  "h-2 w-2 rounded-full",
+                  maintenanceOn === null
+                    ? "bg-ak-text-dim"
+                    : maintenanceOn
+                    ? "bg-ak-red-bright animate-ak-pulse"
+                    : "bg-ak-green",
+                ].join(" ")}
+              />
+              {maintenanceBusy
+                ? "Switching…"
+                : maintenanceOn === null
+                ? "Maintenance: …"
+                : maintenanceOn
+                ? "Maintenance: ON — Click to disable"
+                : "Maintenance: OFF — Click to enable"}
+            </button>
+            <span className="text-[11px] text-ak-text-dim ml-[10px]">
+              Redirects all non-admin visitors to /maintenance
             </span>
           </div>
 
