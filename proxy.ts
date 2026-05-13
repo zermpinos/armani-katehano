@@ -5,6 +5,12 @@ import { generateNonce, buildCsp } from "@/server/security/edge/csp";
 const ADMIN_SESSION_COOKIE = "__Host-ak_session";
 const FLAG_TTL_MS = 10_000;
 
+// Files served from /public are reached at the root path (e.g. /logo.png,
+// not /public/logo.png), so a `startsWith('/public')` check misses them.
+// Match common static extensions so they pass through during maintenance —
+// otherwise the maintenance page itself can't load its own logo/favicon.
+const STATIC_ASSET = /\.(?:png|jpe?g|gif|webp|svg|ico|css|js|map|woff2?|ttf|eot|otf|txt|xml|json|mp4|webm)$/i;
+
 let cachedFlag: { value: boolean; ts: number } | null = null;
 
 async function isMaintenanceOn(request: NextRequest): Promise<boolean> {
@@ -49,9 +55,9 @@ export async function proxy(request: NextRequest) {
   const isNextAsset =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
-    pathname.startsWith("/public") ||
     pathname.startsWith("/robots.txt") ||
-    pathname.startsWith("/sitemap.xml");
+    pathname.startsWith("/sitemap.xml") ||
+    STATIC_ASSET.test(pathname);
 
   if (isMaintenancePage || isAdminPath || isMaintenanceFlagApi || isNextAsset) {
     return passThroughWithCsp(request);
