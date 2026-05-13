@@ -116,7 +116,7 @@ PostgreSQL via Prisma. Core entities: `Season`, `League`, `SeasonLeague`, `Playe
 | **Brevo (SMTP/Nodemailer)** | Transactional email (subscribe confirm, roster, admin) |
 | **Sentry**              | Error tracking and performance monitoring                |
 | **Cloudflare Turnstile**| CAPTCHA on the public subscribe form                     |
-| **GitHub Actions**      | CI (lint, build, tests), nightly secret scans, hourly discover-and-import heartbeat |
+| **GitHub Actions**      | CI (lint, build, tests), nightly secret scans                                     |
 | **Box-score sources**   | League listing pages and per-game box-score URLs scraped via Cheerio / `pdf-parse` |
 
 External HTTP fetches that originate from user-supplied URLs are routed through the SSRF guard in `src/server/security/node/ssrf.ts`, which rejects private/loopback ranges via `node:dns` resolution.
@@ -165,7 +165,7 @@ All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECR
 - `/api/cron/purge-subscribers` — daily at 03:00 UTC (Vercel cron). Drops unconfirmed subscribers older than 1 day and confirmed subscribers idle for over a year.
 - `/api/cron/purge-error-html` — daily at 04:00 UTC (Vercel cron). Clears `GameImportJob.lastErrorHtml` older than 7 days (GDPR storage limitation).
 - `/api/cron/purge-upcoming-games` — daily at 04:30 UTC (Vercel cron). Deletes `UpcomingGame` rows whose `scheduledFor` is past **and** whose linked `GameImportJob.state` is `IMPORTED` or `ABANDONED`. Stuck `PENDING` / `ERROR` rows are left for admin review; the imported `Game` is preserved (`importedGameId` uses `onDelete: SetNull`).
-- `/api/cron/discover-and-import` — daily at 20:00 UTC (Vercel cron) **and** hourly via GitHub Actions (`.github/workflows/discover-and-import.yml`). T+1h/T+2h/T+3h/T+4h backoff per game; `ABANDONED` after 4 misses with admin email.
+- `/api/cron/discover-and-import` — hourly 08:00–22:00 UTC (≈ 11:00–01:00 Athens local in EEST) via Vercel cron (`0 8-22 * * *`). T+1h/T+2h/T+3h/T+4h backoff per game; `ABANDONED` after 4 misses with admin email.
 - `/api/cron/import-heartbeat` — daily at 05:05 UTC (Vercel cron). Emails the admin a digest: last 24 h of cron runs, in-window candidates (last 7 days, not yet `IMPORTED`), dropouts (7–14 days back, not `IMPORTED` / `ABANDONED`), and the next 7 days of scheduled games (excluding `IMPORTED`).
 
 ### Security baseline
@@ -347,7 +347,7 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`    | Sentry server / client DSNs                                     |
 | `SENTRY_AUTH_TOKEN`                       | Source-map upload during build                                  |
 | `E2E_ADMIN_PASSWORD`                      | Plain admin password used by Playwright global setup            |
-| `APP_BASE_URL`                            | Used by the GitHub Actions discover-and-import workflow         |
+| `APP_BASE_URL`                            | Public base URL of the deployed app, used by server-side code that builds absolute URLs |
 
 ### Secret hygiene
 
@@ -390,7 +390,6 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | `secret-scan.yml`       | push / PR / nightly | Gitleaks                                               |
 | `semgrep.yml`           | push / PR           | Static analysis                                        |
 | `deps-audit.yml`        | nightly             | `npm audit` + advisory checks                          |
-| `discover-and-import.yml` | hourly cron       | Heartbeat → `/api/cron/discover-and-import`            |
 
 ### Linting
 
@@ -415,12 +414,8 @@ The app is deployed to **Vercel**. Production data is in **Neon Postgres**.
   - `0 4 * * *` → `/api/cron/purge-error-html`
   - `30 4 * * *` → `/api/cron/purge-upcoming-games`
   - `5 5 * * *` → `/api/cron/import-heartbeat`
-  - `0 20 * * *` → `/api/cron/discover-and-import` (also pinged hourly by GitHub Actions)
+  - `0 8-22 * * *` → `/api/cron/discover-and-import`
 - **Environment variables** — set in the Vercel dashboard (Production, Preview, Development scopes).
-
-### External cron (GitHub Actions)
-
-The hourly discover-and-import job is run from `.github/workflows/discover-and-import.yml` rather than Vercel cron, to keep its cadence independent of plan limits. Required repo secrets: `CRON_SECRET`, `APP_BASE_URL`.
 
 ### Database migrations
 
