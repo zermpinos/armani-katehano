@@ -100,6 +100,42 @@ test.describe("Games page box score modal", () => {
     // Wait for the close button to appear
     const closeBtn = page.getByRole("button", { name: "×" });
     await expect(closeBtn).toBeVisible({ timeout: 8000 });
+
+    // TEMP DIAGNOSTIC (remove after root-causing PW 1.60 "outside of viewport" failure).
+    // Captures actual DOM geometry at click time so we can tell whether the button is
+    // genuinely off-viewport or Playwright is mis-reporting it.
+    const diag = await closeBtn.evaluate(el => {
+      const r = el.getBoundingClientRect();
+      let scrollAncestor = el.parentElement;
+      while (scrollAncestor && scrollAncestor !== document.body) {
+        const cs = getComputedStyle(scrollAncestor);
+        if (/(auto|scroll|overlay)/.test(cs.overflowY) || /(auto|scroll|overlay)/.test(cs.overflow)) break;
+        scrollAncestor = scrollAncestor.parentElement;
+      }
+      const sa = scrollAncestor && scrollAncestor !== document.body
+        ? {
+            tag:          scrollAncestor.tagName,
+            cls:          scrollAncestor.className,
+            scrollTop:    scrollAncestor.scrollTop,
+            scrollHeight: scrollAncestor.scrollHeight,
+            clientHeight: scrollAncestor.clientHeight,
+          }
+        : null;
+      return {
+        rect:           { top: r.top, left: r.left, bottom: r.bottom, right: r.right, width: r.width, height: r.height },
+        viewport:       { innerWidth: window.innerWidth, innerHeight: window.innerHeight },
+        scroll:         { x: window.scrollX, y: window.scrollY },
+        bodyOverflow:   document.body.style.overflow,
+        htmlOverflow:   document.documentElement.style.overflow,
+        position:       getComputedStyle(el).position,
+        visibility:     getComputedStyle(el).visibility,
+        display:        getComputedStyle(el).display,
+        scrollAncestor: sa,
+      };
+    });
+    // eslint-disable-next-line no-console
+    console.log("[diag close-button geometry]", JSON.stringify(diag, null, 2));
+
     await closeBtn.click();
 
     // Modal close button should disappear once modal is gone
