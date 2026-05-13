@@ -72,20 +72,47 @@ export function buildImportHeartbeat(p: HeartbeatPayload): { subject: string; ht
   const drops    = sectionGames("DROPOUTS — fell out of window without import or abandon", p.dropouts, "none — clean", true);
   const next7d   = sectionGames("Next 7 days schedule", p.upcomingNext7d, "no upcoming games");
 
-  const runsHtml = p.runs.length === 0
-    ? `<p style="margin:0;color:#9ca3af;font-size:12px;">no runs in the last 24 h</p>`
-    : `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  const failedRuns  = p.runs.filter(r => !r.ok);
+  const latestRunAt = p.runs.length > 0
+    ? new Date(Math.max(...p.runs.map(r => r.startedAt.getTime())))
+    : null;
+
+  const renderRunRowHtml = (r: HeartbeatRun) => `<tr>
+          <td style="padding:6px 8px;border-top:1px solid #e5e7eb;font-size:12px;">${fmtDate(r.startedAt)}</td>
+          <td style="padding:6px 8px;border-top:1px solid #e5e7eb;font-size:12px;color:${r.ok ? "#15803d" : "#c92a2a"};font-weight:700;">${r.ok ? "OK" : "FAIL"}</td>
+          <td style="padding:6px 8px;border-top:1px solid #e5e7eb;font-size:11px;color:#374151;">${esc(r.error ?? JSON.stringify(r.summary ?? {}))}</td>
+        </tr>`;
+
+  let runsHtml: string;
+  let runsText: string;
+
+  if (p.runs.length === 0) {
+    runsHtml = `<p style="margin:0;color:#9ca3af;font-size:12px;">no runs in the last 24 h</p>`;
+    runsText = "  no runs in the last 24 h";
+  } else if (failed === 0) {
+    const when = fmtDate(latestRunAt!);
+    runsHtml = `<p style="margin:0;color:#15803d;font-size:12px;font-weight:600;">All ${ok} runs OK · last at ${when}</p>`;
+    runsText = `  All ${ok} runs OK · last at ${when}`;
+  } else {
+    const tableHtml = `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
         <tr>
           <th align="left" style="padding:6px 8px;font-size:11px;color:#6b7280;">When</th>
           <th align="left" style="padding:6px 8px;font-size:11px;color:#6b7280;">Status</th>
           <th align="left" style="padding:6px 8px;font-size:11px;color:#6b7280;">Summary / Error</th>
         </tr>
-        ${p.runs.map(r => `<tr>
-          <td style="padding:6px 8px;border-top:1px solid #e5e7eb;font-size:12px;">${fmtDate(r.startedAt)}</td>
-          <td style="padding:6px 8px;border-top:1px solid #e5e7eb;font-size:12px;color:${r.ok ? "#15803d" : "#c92a2a"};font-weight:700;">${r.ok ? "OK" : "FAIL"}</td>
-          <td style="padding:6px 8px;border-top:1px solid #e5e7eb;font-size:11px;color:#374151;">${esc(r.error ?? JSON.stringify(r.summary ?? {}))}</td>
-        </tr>`).join("")}
+        ${failedRuns.map(renderRunRowHtml).join("")}
       </table>`;
+    const trailingHtml = ok > 0
+      ? `<p style="margin:8px 0 0;color:#6b7280;font-size:12px;">+${ok} other run${ok === 1 ? "" : "s"} OK</p>`
+      : "";
+    runsHtml = `${tableHtml}${trailingHtml}`;
+
+    const tableText = failedRuns.map(r =>
+      `  ${fmtDate(r.startedAt)} · FAIL · ${r.error ?? JSON.stringify(r.summary ?? {})}`
+    ).join("\n");
+    const trailingText = ok > 0 ? `\n  +${ok} other run${ok === 1 ? "" : "s"} OK` : "";
+    runsText = `${tableText}${trailingText}`;
+  }
 
   const html = `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
     <div style="max-width:720px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
@@ -107,9 +134,7 @@ Auto-import heartbeat
 Last 24 h: ${ok} OK, ${failed} failed
 
 Runs
-${p.runs.length === 0
-  ? "  no runs in the last 24 h"
-  : p.runs.map(r => `  ${fmtDate(r.startedAt)} · ${r.ok ? "OK" : "FAIL"} · ${r.error ?? JSON.stringify(r.summary ?? {})}`).join("\n")}
+${runsText}
 
 ${inWin.text}${drops.text}${next7d.text}`;
 
