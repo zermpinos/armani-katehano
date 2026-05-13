@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/strip-next-polyfills.mjs && node scripts/strip-sentry-tracing.mjs && node scripts/patch-tailwind-url.mjs && prisma generate && next build",
+    "build": "node scripts/strip-next-polyfills.mjs && node scripts/strip-sentry-tracing.mjs && prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
