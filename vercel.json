@@ -1,6 +1,6 @@
 {
   "crons": [
-    { "path": "/api/cron/discover-and-import", "schedule": "0 8-22 * * *" },
+    { "path": "/api/cron/discover-and-import", "schedule": "0 20 * * *" },
     { "path": "/api/cron/purge-subscribers", "schedule": "0 3 * * *" },
     { "path": "/api/cron/purge-error-html", "schedule": "0 4 * * *" },
     { "path": "/api/cron/purge-upcoming-games", "schedule": "30 4 * * *" },

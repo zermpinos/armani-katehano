@@ -165,7 +165,7 @@ All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECR
 - `/api/cron/purge-subscribers` -- daily at 03:00 UTC (Vercel cron). Drops unconfirmed subscribers older than 1 day and confirmed subscribers idle for over a year.
 - `/api/cron/purge-error-html` -- daily at 04:00 UTC (Vercel cron). Clears `GameImportJob.lastErrorHtml` older than 7 days (GDPR storage limitation).
 - `/api/cron/purge-upcoming-games` -- daily at 04:30 UTC (Vercel cron). Deletes `UpcomingGame` rows whose `scheduledFor` is past **and** whose linked `GameImportJob.state` is `IMPORTED` or `ABANDONED`. Stuck `PENDING` / `ERROR` rows are left for admin review; the imported `Game` is preserved (`importedGameId` uses `onDelete: SetNull`).
-- `/api/cron/discover-and-import` -- hourly 08:00-22:00 UTC (≈ 11:00-01:00 Athens local in EEST) via Vercel cron (`0 8-22 * * *`). T+1h/T+2h/T+3h/T+4h backoff per game; `ABANDONED` after 4 misses with admin email.
+- `/api/cron/discover-and-import` -- daily at 20:00 UTC (Vercel cron, `0 20 * * *`). T+1h/T+2h/T+3h/T+4h backoff per game; `ABANDONED` after 4 misses with admin email. (Vercel Hobby caps each cron expression at one firing per day; running closer to hourly requires Pro or an external scheduler.)
 - `/api/cron/import-heartbeat` -- daily at 05:05 UTC (Vercel cron). Emails the admin a digest: last 24 h of cron runs, in-window candidates (last 7 days, not yet `IMPORTED`), dropouts (7-14 days back, not `IMPORTED` / `ABANDONED`), and the next 7 days of scheduled games (excluding `IMPORTED`).
 
 ### Security baseline
@@ -414,7 +414,7 @@ The app is deployed to **Vercel**. Production data is in **Neon Postgres**.
   - `0 4 * * *` -> `/api/cron/purge-error-html`
   - `30 4 * * *` -> `/api/cron/purge-upcoming-games`
   - `5 5 * * *` -> `/api/cron/import-heartbeat`
-  - `0 8-22 * * *` -> `/api/cron/discover-and-import`
+  - `0 20 * * *` -> `/api/cron/discover-and-import`
 - **Environment variables** -- set in the Vercel dashboard (Production, Preview, Development scopes).
 
 ### Database migrations
