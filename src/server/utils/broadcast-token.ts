@@ -38,7 +38,9 @@ export function verify(token: string): VerifyResult {
   if (!secret || !token || !token.includes(".")) {
     return { ok: false, reason: "malformed" };
   }
-  const [body, sig] = token.split(".");
+  const parts = token.split(".");
+  if (parts.length !== 2) return { ok: false, reason: "malformed" };
+  const [body, sig] = parts;
   if (!body || !sig) return { ok: false, reason: "malformed" };
 
   const expected = createHmac("sha256", secret).update(body).digest();

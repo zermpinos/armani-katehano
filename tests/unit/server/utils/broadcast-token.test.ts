@@ -42,6 +42,11 @@ describe("broadcast-token", () => {
     expect(verify("only-one-segment.aaaa")).toEqual({ ok: false, reason: "bad_signature" });
   });
 
+  it("rejects a token with more than two segments", () => {
+    expect(verify("a.b.c")).toEqual({ ok: false, reason: "malformed" });
+    expect(verify("seg.seg.seg.seg")).toEqual({ ok: false, reason: "malformed" });
+  });
+
   it("throws when the secret is missing at sign time", () => {
     delete process.env.BROADCAST_LINK_SECRET;
     expect(() => sign("job_abc123")).toThrow(/BROADCAST_LINK_SECRET/);
