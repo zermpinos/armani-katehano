@@ -39,7 +39,7 @@ jobs:
           node-version-file: '.nvmrc'
           cache: npm
       - run: npm ci
-      - run: npm audit --only=dev
+      - run: npm audit
 
   weekly-report:
     name: Weekly security report
