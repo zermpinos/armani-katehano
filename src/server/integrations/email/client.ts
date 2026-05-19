@@ -76,7 +76,7 @@ export async function sendConfirmationEmail({
           <tr>
             <td style="padding:32px;">
               <p style="margin:0 0 24px;font-size:14px;color:#374151;line-height:1.6;">
-                Click the button below to confirm your email address and start receiving roster announcements.
+                Click the button below to confirm your email address and start receiving Armani Katehano game emails (roster announcements before games and recaps after).
               </p>
               <a href="${safeUrl}"
                  style="display:inline-block;padding:12px 28px;background:#c92a2a;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;">
