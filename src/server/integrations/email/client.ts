@@ -11,12 +11,16 @@ import {
   buildImportFailure,
   buildImportAbandoned,
   buildImportHeartbeat,
+  buildGameImportedHtml,
+  buildGameImportedText,
   type SendRosterAnnouncementParams,
   type HeartbeatPayload,
+  type GameImportedGame,
+  type TopPerformer,
 } from "./templates";
 
 export type ImportNotificationPayload =
-  | { kind: "success";   opponent: string; location: string; scheduledFor: string; importedAt: Date }
+  | { kind: "success";   opponent: string; location: string; scheduledFor: string; importedAt: Date; broadcastLink?: string }
   | { kind: "failure";   opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null; matchReason?: string | null }
   | { kind: "abandoned"; opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null; matchReason?: string | null };
 
@@ -153,6 +157,61 @@ export async function sendRosterAnnouncement({
     sent,
     failed,
     allDelivered: failed === 0,
+  });
+}
+
+export interface SendGameImportedBroadcastParams {
+  game:          GameImportedGame;
+  topPerformers: TopPerformer[];
+  subscribers:   Array<{ id: string; email: string; token: string }>;
+}
+
+export async function sendGameImportedBroadcast({
+  game,
+  topPerformers,
+  subscribers,
+}: SendGameImportedBroadcastParams): Promise<void> {
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[email] BREVO_SMTP_USER/PASS not set -- skipping game-imported broadcast");
+    return;
+  }
+  if (subscribers.length === 0) {
+    auditLog("game_imported_emails_skipped", { reason: "no_confirmed_subscribers", gameId: game.id });
+    return;
+  }
+
+  const appUrl       = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const vsAt         = game.location === "home" ? "vs" : "@";
+  const safeOpponent = game.opponent.slice(0, 100).replace(/[\r\n]/g, " ");
+  const subject      = `${vsAt} ${safeOpponent}: ${game.teamScore}-${game.opponentScore} (${game.result})`;
+
+  const results = await Promise.allSettled(
+    subscribers.map(sub => {
+      const emailHash      = crypto.createHash("sha256").update(sub.email).digest("hex");
+      const unsubscribeUrl = `${appUrl}/unsubscribe?token=${sub.token}`;
+      const html = buildGameImportedHtml(game, topPerformers, appUrl, unsubscribeUrl);
+      const text = buildGameImportedText(game, topPerformers, appUrl, unsubscribeUrl);
+      return transport.sendMail({ from: FROM, to: sub.email, subject, html, text })
+        .then(() => {
+          auditLog("game_imported_email_delivered", { emailHash, gameId: game.id });
+          return prisma.subscriber.update({ where: { id: sub.id }, data: { lastEmailedAt: new Date() } });
+        })
+        .catch((err: any) => {
+          auditLog("game_imported_email_failed", { emailHash, error: err.message, gameId: game.id });
+          throw err;
+        });
+    }),
+  );
+
+  const sent   = results.filter(r => r.status === "fulfilled").length;
+  const failed = results.filter(r => r.status === "rejected").length;
+  auditLog("game_imported_emails_summary", {
+    gameId:        game.id,
+    total:         subscribers.length,
+    sent,
+    failed,
+    allDelivered:  failed === 0,
   });
 }
 

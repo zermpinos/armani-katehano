@@ -3,13 +3,21 @@ import { esc, formatDate, type ImportNotificationResult } from "./shared";
 import { adminHtml } from "./admin-layout";
 
 export function buildImportSuccess(p: {
-  opponent:     string;
-  location:     string;
-  scheduledFor: string;
-  importedAt:   Date;
+  opponent:      string;
+  location:      string;
+  scheduledFor:  string;
+  importedAt:    Date;
+  broadcastLink?: string;
 }): ImportNotificationResult {
   const vsAt    = p.location === "home" ? "vs" : "@";
   const subject = `[AK] Imported: ${vsAt} ${p.opponent}`;
+  const broadcastBlock = p.broadcastLink
+    ? `<div style="margin-top:20px;padding:16px 18px;background:#ecfdf5;border-left:3px solid #10b981;border-radius:0 6px 6px 0;">
+         <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#065f46;text-transform:uppercase;letter-spacing:0.08em;">Broadcast to subscribers</p>
+         <p style="margin:0 0 10px;font-size:13px;color:#065f46;line-height:1.5;">Review the parsed box score on the next page, then confirm to send the recap email to all confirmed subscribers.</p>
+         <a href="${esc(p.broadcastLink)}" style="display:inline-block;padding:10px 22px;background:#10b981;color:#ffffff;font-size:13px;font-weight:700;text-decoration:none;border-radius:6px;">Review &amp; broadcast &rarr;</a>
+       </div>`
+    : "";
   const html = adminHtml({
     title:       "Game Imported",
     accentColor: "#4caf50",
@@ -18,8 +26,12 @@ export function buildImportSuccess(p: {
       { label: "Scheduled",  value: esc(formatDate(p.scheduledFor)) },
       { label: "Imported at",value: esc(p.importedAt.toUTCString()) },
     ],
+    extra: broadcastBlock,
   });
-  const text = `[AK] Game Imported\n\nMatch: ${vsAt} ${p.opponent}\nScheduled: ${p.scheduledFor}\nImported at: ${p.importedAt.toISOString()}`;
+  const broadcastText = p.broadcastLink
+    ? `\n\nBroadcast to subscribers (review then confirm):\n${p.broadcastLink}`
+    : "";
+  const text = `[AK] Game Imported\n\nMatch: ${vsAt} ${p.opponent}\nScheduled: ${p.scheduledFor}\nImported at: ${p.importedAt.toISOString()}${broadcastText}`;
   return { subject, html, text };
 }
 
