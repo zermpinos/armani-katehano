@@ -12,6 +12,7 @@
 | `BREVO_SMTP_USER` | Outbound email via Brevo SMTP (login) | Vercel env var |
 | `BREVO_SMTP_PASS` | Outbound email via Brevo SMTP (password/API key) | Vercel env var |
 | `CRON_SECRET` | Cron endpoint bearer auth (`/api/cron/*`, `/api/admin/cleanup`) | Vercel env var |
+| `BROADCAST_LINK_SECRET` | HMAC key for one-click "broadcast game recap" admin links (`/api/admin/import-jobs/broadcast`) | Vercel env var |
 
 Generate a new HMAC secret (SESSION_SECRET / COACH_SESSION_SECRET / CRON_SECRET):
 ```sh
@@ -108,6 +109,17 @@ Effect: all cron-triggered endpoints (`/api/cron/*`, `/api/admin/cleanup`) stop 
 3. Redeploy — Vercel automatically injects the new value as the `Authorization: Bearer` header on cron requests.
 4. Verify: confirm the next scheduled cron run completes without a 401 in logs.
 
+### 7. Broadcast link secret (`BROADCAST_LINK_SECRET`)
+
+Effect: every outstanding broadcast link in admin import-success emails becomes invalid immediately on next deploy. Already-sent recap emails to subscribers are unaffected. Newly minted links (next time an import succeeds with a recent game) work with the new secret.
+
+1. Generate a new 32-byte hex value (command above).
+2. Update `BROADCAST_LINK_SECRET` in Vercel env vars (Production + Preview).
+3. Redeploy.
+4. Verify: trigger a recent-game import in staging; click the broadcast link in the resulting admin email; confirmation page renders without a 400. Any old link from before rotation must return "Invalid or expired link".
+
+> Unset is valid: if `BROADCAST_LINK_SECRET` is missing, `notifySuccess` silently skips minting the link and the admin email still sends. The feature gracefully disables itself.
+
 ---
 
 ## Rotation schedule
@@ -127,6 +139,7 @@ Emergency trigger matrix:
 | Unauthorized coach access | `COACH_PASSWORD`, `COACH_SESSION_SECRET` |
 | Email sending abuse | `BREVO_SMTP_PASS` |
 | Cron endpoint abuse | `CRON_SECRET` |
+| Broadcast-link brute-force (Sentry: `broadcast_invalid_token` spike) | `BROADCAST_LINK_SECRET` |
 | Secret committed to git | All secrets — treat as fully compromised |
 
 ---
