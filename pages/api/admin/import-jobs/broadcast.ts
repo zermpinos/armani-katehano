@@ -60,6 +60,14 @@ function renderSuccess(recipientCount: number): string {
 </body></html>`;
 }
 
+function renderClaimAlreadyBroadcast(broadcastedAt: Date): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Already broadcast</title></head>
+<body style="font-family:-apple-system,sans-serif;padding:48px;max-width:480px;margin:auto;color:#111">
+  <h1 style="font-size:18px;margin:0 0 12px">Already broadcast</h1>
+  <p style="color:#666;font-size:14px;line-height:1.6">Broadcast already sent at ${esc(broadcastedAt.toUTCString())}.</p>
+</body></html>`;
+}
+
 function clientIp(req: NextApiRequest): string {
   const fwd = req.headers["x-forwarded-for"];
   if (typeof fwd === "string") return fwd.split(",")[0].trim();
@@ -103,7 +111,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return send(res, 400, GENERIC_ERROR_HTML);
     }
     if (result.state === "already_broadcast") {
-      return send(res, 200, `<!DOCTYPE html><html><body style="font-family:-apple-system,sans-serif;padding:48px;max-width:480px;margin:auto;color:#111"><h1 style="font-size:18px">Already broadcast</h1><p style="color:#666;font-size:14px">Broadcast already sent at ${esc(result.broadcastedAt.toUTCString())}.</p></body></html>`);
+      return send(res, 200, renderClaimAlreadyBroadcast(result.broadcastedAt));
     }
     return send(res, 200, renderSuccess(result.recipientCount));
   }
