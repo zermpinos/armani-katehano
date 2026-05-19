@@ -243,13 +243,13 @@ model Setting {
 }
 
 model CronRun {
-  id          String    @id @default(cuid())
-  job         String
-  startedAt   DateTime  @default(now())
-  finishedAt  DateTime?
-  ok          Boolean   @default(false)
-  summary     Json?
-  error       String?
+  id         String    @id @default(cuid())
+  job        String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  ok         Boolean   @default(false)
+  summary    Json?
+  error      String?
 
   @@index([job, startedAt])
 }
@@ -282,26 +282,27 @@ enum ImportJobState {
 }
 
 model GameImportJob {
-  id             String         @id @default(cuid())
-  upcomingGameId String         @unique
-  sourceUrl      String?
-  state          ImportJobState @default(PENDING)
-  attempts       Int            @default(0)
-  lastAttemptAt  DateTime?
-  lockedAt       DateTime?
-  lockedBy       String?
-  importedGameId String?        @unique
-  importedAt     DateTime?
-  lastError      String?
+  id                    String         @id @default(cuid())
+  upcomingGameId        String         @unique
+  sourceUrl             String?
+  state                 ImportJobState @default(PENDING)
+  attempts              Int            @default(0)
+  lastAttemptAt         DateTime?
+  lockedAt              DateTime?
+  lockedBy              String?
+  importedGameId        String?        @unique
+  importedAt            DateTime?
+  lastError             String?
   // Plain-text error digest only -- HTML is stripped before storage. Purged after 7 days.
-  lastErrorHtml  String?        @db.VarChar(2000)
-  warningSentAt  DateTime?
-  successSentAt  DateTime?
-  failureSentAt  DateTime?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  upcomingGame   UpcomingGame   @relation(fields: [upcomingGameId], references: [id], onDelete: Cascade)
-  importedGame   Game?          @relation(fields: [importedGameId], references: [id], onDelete: SetNull)
+  lastErrorHtml         String?        @db.VarChar(2000)
+  warningSentAt         DateTime?
+  successSentAt         DateTime?
+  failureSentAt         DateTime?
+  subscriberBroadcastAt DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  upcomingGame          UpcomingGame   @relation(fields: [upcomingGameId], references: [id], onDelete: Cascade)
+  importedGame          Game?          @relation(fields: [importedGameId], references: [id], onDelete: SetNull)
 
   @@index([state])
 }
