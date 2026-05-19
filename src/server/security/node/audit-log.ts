@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import * as Sentry from "@sentry/nextjs";
 import prisma from "@/server/db/client";
 
-const SECURITY_ALERT_EVENTS = new Set([
+export const SECURITY_ALERT_EVENTS = new Set([
   "login_account_locked",
   "login_locked",
   "login_totp_failed",
@@ -13,6 +13,7 @@ const SECURITY_ALERT_EVENTS = new Set([
   "coach_login_account_locked",
   "coach_csrf_blocked",
   "coach_csrf_token_blocked",
+  "broadcast_invalid_token",
 ]);
 
 function sanitize(data: Record<string, unknown>): Record<string, unknown> {

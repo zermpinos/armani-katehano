@@ -9,7 +9,11 @@ const { mockPrisma, mockTx } = vi.hoisted(() => {
   const mp = {
     gameImportJob: {
       findUniqueOrThrow: vi.fn(),
+      findUnique:        vi.fn().mockResolvedValue(null),
       update:            vi.fn(),
+    },
+    game: {
+      findUnique: vi.fn().mockResolvedValue(null),
     },
     $transaction: vi.fn().mockImplementation(async (fn) => fn(tx)),
   };

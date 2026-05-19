@@ -117,3 +117,10 @@ describe("Sentry integration", () => {
     expect(mockSentry.captureMessage).not.toHaveBeenCalled();
   });
 });
+
+describe("SECURITY_ALERT_EVENTS", () => {
+  it("includes broadcast_invalid_token so brute-force attempts page Sentry", async () => {
+    const { SECURITY_ALERT_EVENTS } = await import("@/server/security/node/audit-log");
+    expect(SECURITY_ALERT_EVENTS.has("broadcast_invalid_token")).toBe(true);
+  });
+});

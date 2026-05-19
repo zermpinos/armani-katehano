@@ -348,6 +348,17 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | `SENTRY_AUTH_TOKEN`                       | Source-map upload during build                                  |
 | `E2E_ADMIN_PASSWORD`                      | Plain admin password used by Playwright global setup            |
 | `APP_BASE_URL`                            | Public base URL of the deployed app, used by server-side code that builds absolute URLs |
+| `BROADCAST_LINK_SECRET`                   | HMAC key for one-click broadcast tokens. Generate with `openssl rand -hex 32`. If unset, the broadcast link is omitted from admin import-success emails (feature gracefully disabled). |
+| `BROADCAST_RECENCY_DAYS`                  | Integer (default `7`). Max age in days for `Game.playedOn` to qualify for a broadcast link; also the token TTL. |
+
+#### Game-imported broadcast -- manual smoke
+
+1. Import a recent test game (any path that lands the `GameImportJob` in `IMPORTED` state).
+2. Confirm the admin import-success email contains a "Review & broadcast" button.
+3. Click it -- a confirmation page renders with the matchup, score, top-3 performers, and "Send to N subscribers" button.
+4. With a 1-subscriber test list, click the button -- verify the subscriber receives the recap.
+5. Click the original email link again -- verify the "Already broadcast" page renders.
+6. Inspect the `AuditLog` table for `broadcast_link_viewed`, `broadcast_emails_summary`, etc.
 
 ### Secret hygiene
 
