@@ -4,6 +4,7 @@ import prisma               from "@/server/db/client";
 import { scrapeGameFromUrl, ScrapeError } from "@/server/services/scrape-game";
 import { importGame, ImportError }        from "@/server/services/import-game";
 import { sendImportNotification }         from "@/server/integrations/email/client";
+import { sign as signBroadcastToken }     from "@/server/utils/broadcast-token";
 
 const MAX_ATTEMPTS        = 3;
 // Must match @db.VarChar(2000) on GameImportJob.lastErrorHtml
@@ -43,12 +44,39 @@ export async function processJob(jobId: string): Promise<void> {
 
   async function notifySuccess(importedAt: Date) {
     if (job.successSentAt) return;
+
+    let broadcastLink: string | undefined;
+    const fresh         = await prisma.gameImportJob.findUnique({ where: { id: jobId }, select: { importedGameId: true } });
+    const importedGameId = fresh?.importedGameId ?? null;
+    const appUrl         = process.env.NEXT_PUBLIC_APP_URL;
+    const secret         = process.env.BROADCAST_LINK_SECRET;
+
+    if (importedGameId && appUrl && secret) {
+      const recencyDays = Number(process.env.BROADCAST_RECENCY_DAYS ?? 7);
+      const game = await prisma.game.findUnique({
+        where:  { id: importedGameId },
+        select: { playedOn: true },
+      });
+      if (game?.playedOn) {
+        const ageMs = Date.now() - game.playedOn.getTime();
+        if (ageMs <= recencyDays * 24 * 60 * 60 * 1000 && ageMs >= 0) {
+          try {
+            const token  = signBroadcastToken(job.id);
+            broadcastLink = `${appUrl}/api/admin/import-jobs/broadcast?token=${token}`;
+          } catch (err) {
+            console.warn("[import-job] failed to mint broadcast token", err);
+          }
+        }
+      }
+    }
+
     await sendImportNotification({
       kind:         "success",
       opponent:     job.upcomingGame.opponent,
       location:     job.upcomingGame.location,
       scheduledFor: job.upcomingGame.scheduledFor.toISOString(),
       importedAt,
+      broadcastLink,
     }).catch(err => console.error("[import-job notify success]", err));
     await prisma.gameImportJob.update({ where: { id: jobId }, data: { successSentAt: new Date() } });
   }
