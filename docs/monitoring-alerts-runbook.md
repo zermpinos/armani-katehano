@@ -69,6 +69,17 @@ All rules should notify the **#security-alerts** Slack channel (or equivalent on
 | Action | Notify: Slack `#security-alerts` |
 | Name | `prod-totp-failures` |
 
+### Rule 6 — Broadcast-link brute-force
+
+| Field | Value |
+|-------|-------|
+| Environment | production |
+| Condition | Issue title contains `[AUDIT] broadcast_invalid_token`; count ≥ **5** in **10 minutes** |
+| Action | Notify: Slack `#security-alerts` |
+| Name | `prod-broadcast-invalid-token` |
+
+Signal: someone is fuzzing the one-click broadcast link at `/api/admin/import-jobs/broadcast`. The IP rate-limit (10 / 5 min via `loginAttempt` table) caps damage; alert investigates source. Consider rotating `BROADCAST_LINK_SECRET` if sustained.
+
 ---
 
 ## How Security Events Reach Sentry
