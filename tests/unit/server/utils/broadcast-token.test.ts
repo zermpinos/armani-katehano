@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { createHmac } from "node:crypto";
 import { sign, verify } from "@/server/utils/broadcast-token";
 
 const SECRET = "test-secret-which-is-long-enough-for-hmac-sha256";
@@ -19,11 +20,34 @@ describe("broadcast-token", () => {
     expect(result).toEqual({ ok: true, jobId: "job_abc123" });
   });
 
-  it("rejects a token whose signature has been tampered with", () => {
-    const token   = sign("job_abc123");
-    const tampered = token.slice(0, -2) + (token.endsWith("a") ? "b" : "a") + token.slice(-1);
-    const result   = verify(tampered);
-    expect(result).toEqual({ ok: false, reason: "bad_signature" });
+  it("rejects a token whose signature bytes have been bit-flipped", () => {
+    const token = sign("job_abc123");
+    const [body, sig] = token.split(".");
+    const sigBytes = Buffer.from(sig, "base64url");
+    sigBytes[0] ^= 0x01;
+    const tampered = `${body}.${sigBytes.toString("base64url")}`;
+    expect(verify(tampered)).toEqual({ ok: false, reason: "bad_signature" });
+  });
+
+  it("rejects a signature minted with a different secret", () => {
+    const token = sign("job_abc123");
+    const [body] = token.split(".");
+    const forgedSig = createHmac("sha256", "attacker-guess-secret")
+      .update(body)
+      .digest()
+      .toString("base64url");
+    expect(verify(`${body}.${forgedSig}`)).toEqual({ ok: false, reason: "bad_signature" });
+  });
+
+  it("rejects a body mutated to extend the TTL (sig unchanged)", () => {
+    const token = sign("job_abc123");
+    const [body, sig] = token.split(".");
+    const payload = Buffer.from(body, "base64url").toString("utf8");
+    const dotIdx  = payload.lastIndexOf(".");
+    const jobId   = payload.slice(0, dotIdx);
+    const farFuture = Date.now() + 365 * 24 * 60 * 60 * 1000;
+    const mutatedBody = Buffer.from(`${jobId}.${farFuture}`, "utf8").toString("base64url");
+    expect(verify(`${mutatedBody}.${sig}`)).toEqual({ ok: false, reason: "bad_signature" });
   });
 
   it("rejects an expired token", () => {
