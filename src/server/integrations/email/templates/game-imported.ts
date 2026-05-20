@@ -1,5 +1,6 @@
 import "@/server/_internal/node-only";
 import { esc, formatDateFull } from "./shared";
+import { getVenueUrl } from "@/domain/shared/venues";
 
 export interface GameImportedGame {
   id:            string;
@@ -41,6 +42,20 @@ function performerRow(p: TopPerformer, i: number): string {
         </tr>`;
 }
 
+function infoRow(label: string, valueHtml: string): string {
+  return `
+                <tr>
+                  <td style="padding:8px 0;border-top:1px solid #f3f4f6;">
+                    <p style="margin:0;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">${esc(label)}</p>
+                    <p style="margin:4px 0 0;font-size:14px;color:#111827;font-weight:600;">${valueHtml}</p>
+                  </td>
+                </tr>`;
+}
+
+function nonEmpty(s: string | null | undefined): s is string {
+  return typeof s === "string" && s.trim() !== "";
+}
+
 export function buildGameImportedHtml(
   game: GameImportedGame,
   top:  TopPerformer[],
@@ -51,6 +66,21 @@ export function buildGameImportedHtml(
   const dateText    = esc(formatDateFull(game.playedOn.toISOString()));
   const venueLine   = game.venueNote ? `<p style="margin:6px 0 0;font-size:12px;color:#6b7280;">${esc(game.venueNote)}</p>` : "";
   const performers  = top.map((p, i) => performerRow(p, i)).join("");
+
+  const resultValue       = `${game.teamScore}-${game.opponentScore} ${resultPill(game.result)}`;
+  const competitionRowStr = nonEmpty(game.competition) ? infoRow("Competition", esc(game.competition)) : "";
+  const venueRowStr       = nonEmpty(game.venueNote)
+    ? infoRow("Venue", `<a href="${esc(getVenueUrl(game.venueNote))}" style="color:#c92a2a;text-decoration:none;">${esc(game.venueNote)}</a>`)
+    : "";
+  const infoBlock = `
+        <!-- Info -->
+        <tr><td style="padding:20px 32px 4px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            ${infoRow("Result", resultValue)}
+            ${competitionRowStr}
+            ${venueRowStr}
+          </table>
+        </td></tr>`;
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
@@ -74,6 +104,7 @@ export function buildGameImportedHtml(
           <p style="margin:10px 0 0;font-size:22px;font-weight:900;color:#ffffff;">${matchup}</p>
           ${venueLine}
         </td></tr>
+${infoBlock}
         <!-- Score -->
         <tr><td style="padding:28px 32px 0;">
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;">Final &middot; ${dateText}</p>
