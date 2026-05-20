@@ -10,6 +10,7 @@ export interface GameImportedGame {
   result:        string;
   playedOn:      Date;
   venueNote:     string | null;
+  competition:   string | null;
 }
 
 export interface TopPerformer {
