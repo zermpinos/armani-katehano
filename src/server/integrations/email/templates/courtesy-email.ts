@@ -18,14 +18,18 @@ export function buildCourtesyEmailHtml(
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
         <tr><td style="background:#111111;padding:28px 32px;">
           <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#c92a2a;">ARMANI KATEHANO &middot; WHAT'S NEW</p>
-          <p style="margin:10px 0 0;font-size:22px;font-weight:900;color:#ffffff;line-height:1.3;">As Armani Katehano keeps improving</p>
+          <p style="margin:10px 0 0;font-size:22px;font-weight:900;color:#ffffff;line-height:1.3;">Armani Katehano keeps improving!</p>
         </td></tr>
         <tr><td style="padding:28px 32px;">
           <p style="margin:0 0 16px;font-size:14px;color:#374151;line-height:1.6;">
             As the site keeps growing and improving, we've added a second kind of subscriber email. After each game you'll get a short recap with the final score, top performers, and a link to the full box score.
           </p>
-          <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">
+          <p style="margin:0 0 24px;font-size:14px;color:#374151;line-height:1.6;">
             Roster announcements before each game still arrive as before.
+          </p>
+          <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;font-style:italic;">
+            With love,<br />
+            PZ
           </p>
         </td></tr>
         <tr><td style="padding:24px 32px;background:#f9fafb;border-top:1px solid #e5e7eb;">
@@ -50,7 +54,7 @@ export function buildCourtesyEmailText(
   const lines: string[] = [];
   lines.push("ARMANI KATEHANO . WHAT'S NEW");
   lines.push("");
-  lines.push("As Armani Katehano keeps improving");
+  lines.push("Armani Katehano keeps improving!");
   lines.push("");
   lines.push("As the site keeps growing and improving,");
   lines.push("we've added a second kind of subscriber email. After each game");
@@ -58,6 +62,9 @@ export function buildCourtesyEmailText(
   lines.push("and a link to the full box score.");
   lines.push("");
   lines.push("Roster announcements before each game still arrive as before.");
+  lines.push("");
+  lines.push("With love,");
+  lines.push("PZ");
   lines.push("");
   lines.push("You subscribed to Armani Katehano game emails.");
   lines.push(`Privacy notice:  ${privacyUrl}`);
