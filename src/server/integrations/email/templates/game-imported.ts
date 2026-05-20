@@ -38,7 +38,9 @@ function performerRow(p: TopPerformer, i: number): string {
         <tr style="background:${bg};">
           <td style="padding:10px 16px;width:44px;font-size:12px;font-weight:900;color:#c92a2a;font-variant-numeric:tabular-nums;">#${p.number}</td>
           <td style="padding:10px 16px;font-size:14px;color:#111827;font-weight:600;">${esc(p.name)}</td>
-          <td style="padding:10px 16px;font-size:12px;color:#374151;text-align:right;font-variant-numeric:tabular-nums;">${p.pts} pts &middot; ${p.reb} reb &middot; ${p.ast} ast</td>
+          <td style="padding:10px 16px;font-size:13px;color:#111827;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;">${p.pts}</td>
+          <td style="padding:10px 16px;font-size:13px;color:#374151;text-align:right;font-variant-numeric:tabular-nums;">${p.reb}</td>
+          <td style="padding:10px 16px;font-size:13px;color:#374151;text-align:right;font-variant-numeric:tabular-nums;">${p.ast}</td>
         </tr>`;
 }
 
@@ -112,9 +114,17 @@ export function buildGameImportedHtml(
         </td></tr>
         <!-- Performers -->
         <tr><td style="padding:24px 32px 0;">
-          <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;">Top performers</p>
-          <p style="margin:0 0 8px;font-size:10px;color:#9ca3af;letter-spacing:0.08em;">${"#"} &middot; Player &middot; Pts &middot; Reb &middot; Ast</p>
-          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">${performers}</table>
+          <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;">Top performers</p>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">
+            <tr style="background:#f3f4f6;">
+              <td style="padding:8px 16px;width:44px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">#</td>
+              <td style="padding:8px 16px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">Player</td>
+              <td style="padding:8px 16px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;text-align:right;width:48px;">Pts</td>
+              <td style="padding:8px 16px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;text-align:right;width:48px;">Reb</td>
+              <td style="padding:8px 16px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;text-align:right;width:48px;">Ast</td>
+            </tr>
+            ${performers}
+          </table>
         </td></tr>
         <!-- CTA -->
         <tr><td align="center" style="padding:8px 32px 32px;">
