@@ -193,4 +193,33 @@ describe("game-imported email template", () => {
     const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
     expect(html).toContain("# &middot; Player &middot; Pts &middot; Reb &middot; Ast");
   });
+
+  it("HTML footer is in its own background-colored block with a top border", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toMatch(/<!-- Footer -->[\s\S]*background:#f9fafb[\s\S]*border-top:1px solid #e5e7eb/);
+  });
+
+  it("HTML footer includes a Privacy notice link beside Unsubscribe", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toContain("Privacy notice");
+    expect(html).toMatch(/href="https:\/\/armani-katehano\.com\/privacy"/);
+    expect(html).toContain(UNSUB);
+  });
+
+  it("HTML footer reads 'You received this email because you subscribed...'", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toContain("You received this email because you subscribed to Armani Katehano game emails");
+  });
+
+  it("HTML CTA uses letter-spacing and 14px 28px padding (matches roster)", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toMatch(/padding:14px 28px[^;]*;[^"]*letter-spacing:0\.02em/);
+  });
+
+  it("HTML escapes ampersands in unsubscribe URL", () => {
+    const evilUnsub = "https://example.com/unsubscribe?a=b&c=d";
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, evilUnsub);
+    expect(html).toContain("a=b&amp;c=d");
+    expect(html).not.toContain("a=b&c=d");
+  });
 });
