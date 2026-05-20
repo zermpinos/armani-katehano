@@ -28,8 +28,8 @@ function vsAt(location: string | null): string {
 
 function resultPill(result: string): string {
   const isWin = result === "W";
-  const bg    = isWin ? "#16a34a" : "#dc2626";
-  return `<span style="display:inline-block;padding:2px 10px;border-radius:999px;background:${bg};color:#fff;font-size:11px;font-weight:800;letter-spacing:0.08em;">${esc(result)}</span>`;
+  const bg    = isWin ? "#16a34a" : "#c92a2a";
+  return `<span style="display:inline-block;padding:6px 14px;border-radius:999px;background:${bg};color:#fff;font-size:14px;font-weight:800;letter-spacing:0.12em;">${esc(result)}</span>`;
 }
 
 function performerRow(p: TopPerformer, i: number): string {
@@ -40,16 +40,6 @@ function performerRow(p: TopPerformer, i: number): string {
           <td style="padding:10px 16px;font-size:14px;color:#111827;font-weight:600;">${esc(p.name)}</td>
           <td style="padding:10px 16px;font-size:12px;color:#374151;text-align:right;font-variant-numeric:tabular-nums;">${p.pts} pts &middot; ${p.reb} reb &middot; ${p.ast} ast</td>
         </tr>`;
-}
-
-function infoRow(label: string, valueHtml: string): string {
-  return `
-                <tr>
-                  <td style="padding:8px 0;border-top:1px solid #f3f4f6;">
-                    <p style="margin:0;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">${esc(label)}</p>
-                    <p style="margin:4px 0 0;font-size:14px;color:#111827;font-weight:600;">${valueHtml}</p>
-                  </td>
-                </tr>`;
 }
 
 function nonEmpty(s: string | null | undefined): s is string {
@@ -71,20 +61,12 @@ export function buildGameImportedHtml(
   const dateText    = esc(formatDateFull(game.playedOn.toISOString()));
   const performers  = top.map((p, i) => performerRow(p, i)).join("");
 
-  const resultValue       = `${game.teamScore}-${game.opponentScore} ${resultPill(game.result)}`;
-  const competitionRowStr = nonEmpty(game.competition) ? infoRow("Competition", esc(game.competition)) : "";
-  const venueRowStr       = nonEmpty(game.venueNote)
-    ? infoRow("Venue", `<a href="${esc(getVenueUrl(game.venueNote))}" style="color:#c92a2a;text-decoration:none;">${esc(game.venueNote)}</a>`)
-    : "";
-  const infoBlock = `
-        <!-- Info -->
-        <tr><td style="padding:20px 32px 4px;">
-          <table width="100%" cellpadding="0" cellspacing="0" border="0">
-            ${infoRow("Result", resultValue)}
-            ${competitionRowStr}
-            ${venueRowStr}
-          </table>
-        </td></tr>`;
+  const metaParts: string[] = [];
+  if (nonEmpty(game.competition)) metaParts.push(esc(game.competition));
+  if (nonEmpty(game.venueNote))   metaParts.push(`<a href="${esc(getVenueUrl(game.venueNote))}" style="color:#6b7280;text-decoration:none;">${esc(game.venueNote)}</a>`);
+  const metaStrip = metaParts.length === 0
+    ? ""
+    : `<p style="margin:18px 0 0;font-size:12px;color:#6b7280;text-align:center;line-height:1.5;">${metaParts.join(" &middot; ")}</p>`;
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
@@ -108,21 +90,25 @@ export function buildGameImportedHtml(
           <p style="margin:14px 0 0;font-size:30px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;line-height:1.15;">${matchup}</p>
           <p style="margin:8px 0 0;font-size:14px;font-weight:600;color:#d1d5db;">${esc(formatDateFull(game.playedOn.toISOString()))}</p>
         </td></tr>
-${infoBlock}
         <!-- Score -->
-        <tr><td style="padding:24px 32px 0;">
+        <tr><td style="padding:28px 32px 8px;">
+          <p style="margin:0 0 18px;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#9ca3af;text-align:center;">Final</p>
           <table width="100%" cellpadding="0" cellspacing="0" border="0">
             <tr>
-              <td align="left" style="width:50%;">
+              <td align="left" style="width:42%;">
                 <p style="margin:0 0 4px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.18em;">AK</p>
-                <p style="margin:0;font-size:36px;font-weight:900;color:#111827;font-variant-numeric:tabular-nums;line-height:1;">${game.teamScore}</p>
+                <p style="margin:0;font-size:44px;font-weight:900;color:#111827;font-variant-numeric:tabular-nums;line-height:1;">${game.teamScore}</p>
               </td>
-              <td align="right" style="width:50%;">
+              <td align="center" style="width:16%;vertical-align:middle;">
+                ${resultPill(game.result)}
+              </td>
+              <td align="right" style="width:42%;">
                 <p style="margin:0 0 4px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.18em;">${esc(shortOpponent(game.opponent))}</p>
-                <p style="margin:0;font-size:36px;font-weight:900;color:#111827;font-variant-numeric:tabular-nums;line-height:1;">${game.opponentScore}</p>
+                <p style="margin:0;font-size:44px;font-weight:900;color:#111827;font-variant-numeric:tabular-nums;line-height:1;">${game.opponentScore}</p>
               </td>
             </tr>
           </table>
+          ${metaStrip}
         </td></tr>
         <!-- Performers -->
         <tr><td style="padding:24px 32px 0;">

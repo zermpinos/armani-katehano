@@ -133,42 +133,6 @@ describe("game-imported email template", () => {
     expect(html).toContain("<![endif]-->");
   });
 
-  it("HTML info block has a Result row containing the score and the W/L pill", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toMatch(/Result[\s\S]*53-73[\s\S]*background:#dc2626[\s\S]*>L</);
-  });
-
-  it("HTML info block has a Competition row when competition is provided", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toContain("Competition");
-    expect(html).toContain("Δ&#39; Εθνική 2025-26");
-  });
-
-  it("HTML info block omits the Competition row when competition is null", () => {
-    const g = { ...GAME, competition: null };
-    const html = buildGameImportedHtml(g, PERFORMERS, APP_URL, UNSUB);
-    expect(html).not.toContain(">Competition<");
-  });
-
-  it("HTML info block has a Venue row with a maps link when venueNote is provided", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toContain("Venue");
-    expect(html).toContain("Basketcity Arena");
-    expect(html).toMatch(/href="https:\/\/maps\.app\.goo\.gl\/[^"]+"/);
-  });
-
-  it("HTML info block omits the Venue row when venueNote is null", () => {
-    const g = { ...GAME, venueNote: null };
-    const html = buildGameImportedHtml(g, PERFORMERS, APP_URL, UNSUB);
-    expect(html).not.toContain(">Venue<");
-  });
-
-  it("HTML info block omits the Competition row when competition is empty/whitespace", () => {
-    const g = { ...GAME, competition: "   " };
-    const html = buildGameImportedHtml(g, PERFORMERS, APP_URL, UNSUB);
-    expect(html).not.toContain(">Competition<");
-  });
-
   it("HTML score block shows 'AK' label and the short opponent label", () => {
     const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
     expect(html).toMatch(/>AK<\/p>[\s\S]*>Dragons<\/p>/);
@@ -180,13 +144,6 @@ describe("game-imported email template", () => {
     // First whitespace-split token of "Panathinaikos B.C." is "Panathinaikos" (13 chars), truncated to 12: "Panathinaiko".
     expect(html).toContain(">Panathinaiko<");
     expect(html).not.toContain(">Panathinaikos<");
-  });
-
-  it("HTML score row no longer contains the W/L pill (it lives in the info block instead)", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    const scoreRowMatch = html.match(/<!-- Score -->[\s\S]*?<\/tr>/);
-    expect(scoreRowMatch).not.toBeNull();
-    expect(scoreRowMatch?.[0] ?? "").not.toContain("background:#dc2626");
   });
 
   it("HTML performer table is preceded by a legend row", () => {
@@ -261,5 +218,44 @@ describe("game-imported email template", () => {
   it("HTML header band shows a date subtitle under the matchup", () => {
     const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
     expect(html).toMatch(/<p[^>]*color:#ffffff[^>]*>@ Dragons<\/p>\s*<p[^>]*color:#d1d5db[^>]*>Saturday, 16 May 2026<\/p>/);
+  });
+
+  it("HTML score block shows a FINAL eyebrow centered above the scores", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toMatch(/<!-- Score -->[\s\S]*<p[^>]*text-align:center[^>]*>Final<\/p>/);
+  });
+
+  it("HTML score block contains the W/L pill between the AK and opponent scores", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    const scoreBlock = html.match(/<!-- Score -->[\s\S]*?<\/td><\/tr>/)?.[0] ?? "";
+    expect(scoreBlock).toMatch(/background:#c92a2a[^"]*"[^>]*>L</);
+    expect(scoreBlock).toMatch(/>AK<\/p>[\s\S]*background:#c92a2a[\s\S]*>Dragons<\/p>/);
+  });
+
+  it("HTML W pill renders with the brand-adjacent green", () => {
+    const g = { ...GAME, result: "W" };
+    const html = buildGameImportedHtml(g, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toMatch(/background:#16a34a[^"]*"[^>]*>W</);
+  });
+
+  it("HTML pill uses 14px font and 6px 14px padding", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toMatch(/padding:6px 14px[^;]*;[^"]*font-size:14px/);
+  });
+
+  it("HTML score block meta strip shows competition and venue joined by a middot", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    const scoreBlock = html.match(/<!-- Score -->[\s\S]*?<\/td><\/tr>/)?.[0] ?? "";
+    expect(scoreBlock).toContain("Δ&#39; Εθνική 2025-26");
+    expect(scoreBlock).toContain("Basketcity Arena");
+    expect(scoreBlock).toMatch(/Δ&#39; Εθνική 2025-26[\s\S]*&middot;[\s\S]*Basketcity Arena/);
+  });
+
+  it("HTML score block omits the meta strip entirely when both competition and venue are null", () => {
+    const g = { ...GAME, competition: null, venueNote: null };
+    const html = buildGameImportedHtml(g, PERFORMERS, APP_URL, UNSUB);
+    const scoreBlock = html.match(/<!-- Score -->[\s\S]*?<\/td><\/tr>/)?.[0] ?? "";
+    expect(scoreBlock).not.toContain("Δ");
+    expect(scoreBlock).not.toContain("Basketcity");
   });
 });
