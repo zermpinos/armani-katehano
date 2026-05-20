@@ -168,4 +168,24 @@ describe("game-imported email template", () => {
     const html = buildGameImportedHtml(g, PERFORMERS, APP_URL, UNSUB);
     expect(html).not.toContain(">Competition<");
   });
+
+  it("HTML score block shows 'AK' label and the short opponent label", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toMatch(/>AK<\/p>[\s\S]*>Dragons<\/p>/);
+  });
+
+  it("HTML score block truncates a long opponent label to 12 chars", () => {
+    const g = { ...GAME, opponent: "Panathinaikos B.C." };
+    const html = buildGameImportedHtml(g, PERFORMERS, APP_URL, UNSUB);
+    // First whitespace-split token of "Panathinaikos B.C." is "Panathinaikos" (13 chars), truncated to 12: "Panathinaiko".
+    expect(html).toContain(">Panathinaiko<");
+    expect(html).not.toContain(">Panathinaikos<");
+  });
+
+  it("HTML score row no longer contains the W/L pill (it lives in the info block instead)", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    const scoreRowMatch = html.match(/<!-- Score -->[\s\S]*?<\/tr>/);
+    expect(scoreRowMatch).not.toBeNull();
+    expect(scoreRowMatch?.[0] ?? "").not.toContain("background:#dc2626");
+  });
 });
