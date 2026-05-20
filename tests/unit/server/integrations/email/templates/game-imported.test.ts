@@ -202,20 +202,6 @@ describe("game-imported email template", () => {
     expect(text).toContain("TOP PERFORMERS · 3");
   });
 
-  it("plain text includes a Result line, a Competition line, and a Venue line", () => {
-    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(text).toMatch(/Result\s+53-73 \(L\)/);
-    expect(text).toMatch(/Competition\s+Δ' Εθνική 2025-26/);
-    expect(text).toMatch(/Venue\s+Basketcity Arena/);
-  });
-
-  it("plain text omits Competition and Venue lines when those fields are null", () => {
-    const g = { ...GAME, competition: null, venueNote: null };
-    const text = buildGameImportedText(g, PERFORMERS, APP_URL, UNSUB);
-    expect(text).not.toContain("Competition");
-    expect(text).not.toContain("Venue");
-  });
-
   it("plain text contains a Privacy notice line and an Unsubscribe line", () => {
     const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
     expect(text).toMatch(/Privacy notice\s+https:\/\/armani-katehano\.com\/privacy/);
@@ -269,5 +255,40 @@ describe("game-imported email template", () => {
     const scoreBlock = html.match(/<!-- Score -->[\s\S]*?<\/td><\/tr>/)?.[0] ?? "";
     expect(scoreBlock).not.toContain("Δ");
     expect(scoreBlock).not.toContain("Basketcity");
+  });
+
+  it("plain text body contains a FINAL line followed by an aligned score grid", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(text).toMatch(/FINAL\n\s+AK\s+Dragons\n\s+53\s+73\s+\(L\)/);
+  });
+
+  it("plain text no longer contains a 'Result 53-73 (L)' line", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(text).not.toMatch(/Result\s+53-73 \(L\)/);
+  });
+
+  it("plain text renders competition and venue on a single meta line joined by ·", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(text).toMatch(/Δ' Εθνική 2025-26 · Basketcity Arena/);
+    expect(text).not.toMatch(/^  Competition\s+/m);
+    expect(text).not.toMatch(/^  Venue\s+/m);
+  });
+
+  it("plain text omits the meta line entirely when both competition and venue are null", () => {
+    const g = { ...GAME, competition: null, venueNote: null };
+    const text = buildGameImportedText(g, PERFORMERS, APP_URL, UNSUB);
+    expect(text).not.toContain("Δ");
+    expect(text).not.toContain("Basketcity");
+  });
+
+  it("plain text performer block includes a header row with Pts Reb Ast", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(text).toMatch(/#\s+Player\s+Pts\s+Reb\s+Ast/);
+  });
+
+  it("plain text performer rows drop the pts/reb/ast suffixes", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(text).not.toContain("16 pts · 7 reb · 1 ast");
+    expect(text).toMatch(/#14\s+Giorgos Tsioulkas\s+16\s+7\s+1/);
   });
 });
