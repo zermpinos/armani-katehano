@@ -1,5 +1,6 @@
 import "@/server/_internal/node-only";
 import { esc, formatDateFull } from "./shared";
+import { getVenueUrl } from "@/domain/shared/venues";
 
 export interface GameImportedGame {
   id:            string;
@@ -10,6 +11,7 @@ export interface GameImportedGame {
   result:        string;
   playedOn:      Date;
   venueNote:     string | null;
+  competition:   string | null;
 }
 
 export interface TopPerformer {
@@ -26,8 +28,22 @@ function vsAt(location: string | null): string {
 
 function resultPill(result: string): string {
   const isWin = result === "W";
-  const bg    = isWin ? "#16a34a" : "#dc2626";
-  return `<span style="display:inline-block;padding:2px 10px;border-radius:999px;background:${bg};color:#fff;font-size:11px;font-weight:800;letter-spacing:0.08em;">${esc(result)}</span>`;
+  const bg    = isWin ? "#16a34a" : "#c92a2a";
+  return `<span style="display:inline-block;padding:6px 14px;border-radius:999px;background:${bg};color:#fff;font-size:14px;font-weight:800;letter-spacing:0.12em;">${esc(result)}</span>`;
+}
+
+type Align = "left" | "right";
+
+function headerCell(label: string, align: Align = "left", widthPx?: number): string {
+  const alignDecl = align === "right" ? "text-align:right;" : "";
+  const widthDecl = widthPx !== undefined ? `width:${widthPx}px;` : "";
+  return `<td style="padding:8px 16px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;${alignDecl}${widthDecl}">${esc(label)}</td>`;
+}
+
+function statCell(value: number, emphasized = false): string {
+  const color  = emphasized ? "#111827" : "#374151";
+  const weight = emphasized ? "font-weight:700;" : "";
+  return `<td style="padding:10px 16px;font-size:13px;color:${color};text-align:right;font-variant-numeric:tabular-nums;${weight}">${value}</td>`;
 }
 
 function performerRow(p: TopPerformer, i: number): string {
@@ -36,8 +52,19 @@ function performerRow(p: TopPerformer, i: number): string {
         <tr style="background:${bg};">
           <td style="padding:10px 16px;width:44px;font-size:12px;font-weight:900;color:#c92a2a;font-variant-numeric:tabular-nums;">#${p.number}</td>
           <td style="padding:10px 16px;font-size:14px;color:#111827;font-weight:600;">${esc(p.name)}</td>
-          <td style="padding:10px 16px;font-size:12px;color:#374151;text-align:right;font-variant-numeric:tabular-nums;">${p.pts} pts &middot; ${p.reb} reb &middot; ${p.ast} ast</td>
+          ${statCell(p.pts, true)}
+          ${statCell(p.reb)}
+          ${statCell(p.ast)}
         </tr>`;
+}
+
+function nonEmpty(s: string | null | undefined): s is string {
+  return typeof s === "string" && s.trim() !== "";
+}
+
+function shortOpponent(opponent: string): string {
+  const first = opponent.trim().split(/\s+/)[0] ?? opponent;
+  return first.slice(0, 12);
 }
 
 export function buildGameImportedHtml(
@@ -48,47 +75,89 @@ export function buildGameImportedHtml(
 ): string {
   const matchup     = `${vsAt(game.location)} ${esc(game.opponent)}`;
   const dateText    = esc(formatDateFull(game.playedOn.toISOString()));
-  const venueLine   = game.venueNote ? `<p style="margin:6px 0 0;font-size:12px;color:#6b7280;">${esc(game.venueNote)}</p>` : "";
   const performers  = top.map((p, i) => performerRow(p, i)).join("");
 
+  const metaParts: string[] = [];
+  if (nonEmpty(game.competition)) metaParts.push(esc(game.competition));
+  if (nonEmpty(game.venueNote))   metaParts.push(`<a href="${esc(getVenueUrl(game.venueNote))}" style="color:#6b7280;text-decoration:none;">${esc(game.venueNote)}</a>`);
+  const metaStrip = metaParts.length === 0
+    ? ""
+    : `<p style="margin:18px 0 0;font-size:12px;color:#6b7280;text-align:center;line-height:1.5;">${metaParts.join(" &middot; ")}</p>`;
+
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="el">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${matchup}</title>
+  <title>${matchup} ${game.teamScore}-${game.opponentScore} (${esc(game.result)})</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f3f4f6;-webkit-font-smoothing:antialiased;">
+  <!--[if mso]><table width="100%"><tr><td><![endif]-->
+
+  <!-- Preheader -->
+  <span style="display:none;max-height:0;overflow:hidden;mso-hide:all;">Final &middot; ${esc(formatDateFull(game.playedOn.toISOString()))} &middot; ${game.teamScore}-${game.opponentScore} (${esc(game.result)})</span>
+
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
     <tr><td align="center" style="padding:40px 16px;">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-        <tr><td style="background:#111111;padding:28px 32px;">
-          <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#c92a2a;">ARMANI KATEHANO</p>
-          <p style="margin:10px 0 0;font-size:22px;font-weight:900;color:#ffffff;">${matchup}</p>
-          ${venueLine}
+        <!-- Header -->
+        <tr><td style="background:#111111;padding:32px 32px 28px;">
+          <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#c92a2a;">Armani Katehano &middot; Game Recap</p>
+          <p style="margin:14px 0 0;font-size:30px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;line-height:1.15;">${matchup}</p>
+          <p style="margin:8px 0 0;font-size:14px;font-weight:600;color:#d1d5db;">${esc(formatDateFull(game.playedOn.toISOString()))}</p>
         </td></tr>
-        <tr><td style="padding:28px 32px 0;">
-          <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;">Final &middot; ${dateText}</p>
-          <p style="margin:0;font-size:36px;font-weight:900;color:#111827;font-variant-numeric:tabular-nums;">
-            ${game.teamScore}<span style="color:#9ca3af;">&ndash;</span>${game.opponentScore} ${resultPill(game.result)}
-          </p>
+        <!-- Score -->
+        <tr><td style="padding:28px 32px 8px;">
+          <p style="margin:0 0 18px;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#9ca3af;text-align:center;">Final</p>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td align="left" style="width:42%;">
+                <p style="margin:0 0 4px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.18em;">AK</p>
+                <p style="margin:0;font-size:44px;font-weight:900;color:#111827;font-variant-numeric:tabular-nums;line-height:1;">${game.teamScore}</p>
+              </td>
+              <td align="center" style="width:16%;vertical-align:middle;">
+                ${resultPill(game.result)}
+              </td>
+              <td align="right" style="width:42%;">
+                <p style="margin:0 0 4px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.18em;">${esc(shortOpponent(game.opponent))}</p>
+                <p style="margin:0;font-size:44px;font-weight:900;color:#111827;font-variant-numeric:tabular-nums;line-height:1;">${game.opponentScore}</p>
+              </td>
+            </tr>
+          </table>
+          ${metaStrip}
         </td></tr>
+        <!-- Performers -->
         <tr><td style="padding:24px 32px 0;">
-          <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;">Top performers</p>
-          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">${performers}</table>
+          <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;">Top performers</p>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">
+            <tr style="background:#f3f4f6;">
+              ${headerCell("#", "left", 44)}
+              ${headerCell("Player")}
+              ${headerCell("Pts", "right", 48)}
+              ${headerCell("Reb", "right", 48)}
+              ${headerCell("Ast", "right", 48)}
+            </tr>
+            ${performers}
+          </table>
         </td></tr>
-        <tr><td style="padding:28px 32px;">
-          <a href="${esc(`${appUrl}/games/${game.id}`)}" style="display:inline-block;padding:12px 28px;background:#c92a2a;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;">View full box score &rarr;</a>
+        <!-- CTA -->
+        <tr><td align="center" style="padding:8px 32px 32px;">
+          <a href="${esc(`${appUrl}/games/${game.id}`)}" style="display:inline-block;padding:14px 28px;background:#c92a2a;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:0.02em;">View full box score &rarr;</a>
         </td></tr>
-        <tr><td style="padding:0 32px 24px;border-top:1px solid #e5e7eb;">
-          <p style="margin:16px 0 0;font-size:11px;color:#9ca3af;line-height:1.6;">
-            You're receiving this because you subscribed to Armani Katehano game emails.<br />
-            <a href="${esc(unsubscribeUrl)}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
+        <!-- Footer -->
+        <tr><td style="padding:24px 32px;background:#f9fafb;border-top:1px solid #e5e7eb;">
+          <p style="margin:0;font-size:11px;color:#6b7280;line-height:1.7;">
+            You received this email because you subscribed to Armani Katehano game emails.<br />
+            <a href="${esc(`${appUrl}/privacy`)}" style="color:#6b7280;text-decoration:underline;">Privacy notice</a>
+            &nbsp;&middot;&nbsp;
+            <a href="${esc(unsubscribeUrl)}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>
           </p>
         </td></tr>
       </table>
     </td></tr>
   </table>
+
+  <!--[if mso]></td></tr></table><![endif]-->
 </body>
 </html>`;
 }
@@ -99,19 +168,46 @@ export function buildGameImportedText(
   appUrl: string,
   unsubscribeUrl: string,
 ): string {
-  const matchup = `${vsAt(game.location)} ${game.opponent}`;
-  const date    = formatDateFull(game.playedOn.toISOString());
-  const lines = [
-    "ARMANI KATEHANO",
-    matchup,
-    `Final ${date}: ${game.teamScore}-${game.opponentScore} (${game.result})`,
-    "",
-    "Top performers:",
-    ...top.map(p => `  #${p.number} ${p.name} — ${p.pts} pts, ${p.reb} reb, ${p.ast} ast`),
-    "",
-    `Full box score: ${appUrl}/games/${game.id}`,
-    "",
-    `Unsubscribe: ${unsubscribeUrl}`,
-  ];
+  const matchup     = `${vsAt(game.location)} ${game.opponent}`;
+  const date        = formatDateFull(game.playedOn.toISOString());
+  const opponentLbl = shortOpponent(game.opponent);
+  const colW        = Math.max(opponentLbl.length, 2);
+  const akCol       = "AK".padEnd(colW);
+  const opCol       = opponentLbl.padEnd(colW);
+
+  const metaParts: string[] = [];
+  if (nonEmpty(game.competition)) metaParts.push(game.competition);
+  if (nonEmpty(game.venueNote))   metaParts.push(game.venueNote);
+
+  const numWidth   = 5;
+  const nameWidth  = Math.max(...top.map(p => p.name.length), "Player".length) + 2;
+  const performerLine = (p: TopPerformer): string =>
+    `  ${`#${p.number}`.padEnd(numWidth)} ${p.name.padEnd(nameWidth)}${String(p.pts).padStart(3)}  ${String(p.reb).padStart(3)}  ${String(p.ast).padStart(3)}`;
+
+  const lines: string[] = [];
+  lines.push("ARMANI KATEHANO · GAME RECAP");
+  lines.push("");
+  lines.push(`  ${matchup}`);
+  lines.push(`  ${date}`);
+  lines.push("");
+  lines.push("  FINAL");
+  lines.push(`  ${akCol}  ${opCol}`);
+  lines.push(`  ${String(game.teamScore).padEnd(colW)}  ${String(game.opponentScore).padEnd(colW)}  (${game.result})`);
+  if (metaParts.length > 0) {
+    lines.push("");
+    lines.push(`  ${metaParts.join(" · ")}`);
+  }
+  lines.push("");
+  lines.push(`TOP PERFORMERS · ${top.length}`);
+  lines.push(`  ${"#".padEnd(numWidth)} ${"Player".padEnd(nameWidth)}Pts  Reb  Ast`);
+  for (const p of top) lines.push(performerLine(p));
+  lines.push("");
+  lines.push(`Full box score:  ${appUrl}/games/${game.id}`);
+  lines.push("");
+  lines.push("You received this email because you subscribed");
+  lines.push("to Armani Katehano game emails.");
+  lines.push("");
+  lines.push(`Privacy notice  ${appUrl}/privacy`);
+  lines.push(`Unsubscribe     ${unsubscribeUrl}`);
   return lines.join("\n");
 }
