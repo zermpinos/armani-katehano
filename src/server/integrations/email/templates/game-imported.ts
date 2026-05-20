@@ -132,14 +132,16 @@ ${infoBlock}
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">${performers}</table>
         </td></tr>
         <!-- CTA -->
-        <tr><td style="padding:28px 32px;">
-          <a href="${esc(`${appUrl}/games/${game.id}`)}" style="display:inline-block;padding:12px 28px;background:#c92a2a;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;">View full box score &rarr;</a>
+        <tr><td align="center" style="padding:8px 32px 32px;">
+          <a href="${esc(`${appUrl}/games/${game.id}`)}" style="display:inline-block;padding:14px 28px;background:#c92a2a;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:0.02em;">View full box score &rarr;</a>
         </td></tr>
         <!-- Footer -->
-        <tr><td style="padding:0 32px 24px;border-top:1px solid #e5e7eb;">
-          <p style="margin:16px 0 0;font-size:11px;color:#9ca3af;line-height:1.6;">
-            You're receiving this because you subscribed to Armani Katehano game emails.<br />
-            <a href="${esc(unsubscribeUrl)}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
+        <tr><td style="padding:24px 32px;background:#f9fafb;border-top:1px solid #e5e7eb;">
+          <p style="margin:0;font-size:11px;color:#6b7280;line-height:1.7;">
+            You received this email because you subscribed to Armani Katehano game emails.<br />
+            <a href="${esc(`${appUrl}/privacy`)}" style="color:#6b7280;text-decoration:underline;">Privacy notice</a>
+            &nbsp;&middot;&nbsp;
+            <a href="${esc(unsubscribeUrl)}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>
           </p>
         </td></tr>
       </table>
