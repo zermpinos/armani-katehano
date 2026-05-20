@@ -170,17 +170,19 @@ export function buildGameImportedText(
 ): string {
   const matchup     = `${vsAt(game.location)} ${game.opponent}`;
   const date        = formatDateFull(game.playedOn.toISOString());
-  const resultLine  = `${game.teamScore}-${game.opponentScore} (${game.result})`;
-  const showComp    = nonEmpty(game.competition);
-  const showVenue   = nonEmpty(game.venueNote);
+  const opponentLbl = shortOpponent(game.opponent);
+  const colW        = Math.max(opponentLbl.length, 2);
+  const akCol       = "AK".padEnd(colW);
+  const opCol       = opponentLbl.padEnd(colW);
 
-  const numWidth  = 5;
-  const nameWidth = Math.max(...top.map(p => p.name.length), 0) + 2;
-  const performerLine = (p: TopPerformer): string => {
-    const num   = `#${p.number}`.padEnd(numWidth);
-    const name  = p.name.padEnd(nameWidth);
-    return `  ${num} ${name}${p.pts} pts · ${p.reb} reb · ${p.ast} ast`;
-  };
+  const metaParts: string[] = [];
+  if (nonEmpty(game.competition)) metaParts.push(game.competition);
+  if (nonEmpty(game.venueNote))   metaParts.push(game.venueNote);
+
+  const numWidth   = 5;
+  const nameWidth  = Math.max(...top.map(p => p.name.length), "Player".length) + 2;
+  const performerLine = (p: TopPerformer): string =>
+    `  ${`#${p.number}`.padEnd(numWidth)} ${p.name.padEnd(nameWidth)}${String(p.pts).padStart(3)}  ${String(p.reb).padStart(3)}  ${String(p.ast).padStart(3)}`;
 
   const lines: string[] = [];
   lines.push("ARMANI KATEHANO · GAME RECAP");
@@ -188,11 +190,16 @@ export function buildGameImportedText(
   lines.push(`  ${matchup}`);
   lines.push(`  ${date}`);
   lines.push("");
-  lines.push(`  Result       ${resultLine}`);
-  if (showComp)  lines.push(`  Competition  ${game.competition}`);
-  if (showVenue) lines.push(`  Venue        ${game.venueNote}`);
+  lines.push("  FINAL");
+  lines.push(`  ${akCol}  ${opCol}`);
+  lines.push(`  ${String(game.teamScore).padEnd(colW)}  ${String(game.opponentScore).padEnd(colW)}  (${game.result})`);
+  if (metaParts.length > 0) {
+    lines.push("");
+    lines.push(`  ${metaParts.join(" · ")}`);
+  }
   lines.push("");
   lines.push(`TOP PERFORMERS · ${top.length}`);
+  lines.push(`  ${"#".padEnd(numWidth)} ${"Player".padEnd(nameWidth)}Pts  Reb  Ast`);
   for (const p of top) lines.push(performerLine(p));
   lines.push("");
   lines.push(`Full box score:  ${appUrl}/games/${game.id}`);
