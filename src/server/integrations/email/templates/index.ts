@@ -10,3 +10,4 @@ export {
   type GameImportedGame,
   type TopPerformer,
 } from "./game-imported";
+export { buildCourtesyEmailHtml, buildCourtesyEmailText } from "./courtesy-email";

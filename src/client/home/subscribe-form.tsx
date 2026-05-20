@@ -60,7 +60,7 @@ export function SubscribeForm() {
           </form>
           {status === "error" && <div className="mt-[7px] text-xs text-ak-red-text">{errMsg}</div>}
           <div className="mt-2 text-[10px] text-ak-text-dim space-y-0.5">
-            <div>Used only for Armani Katehano game emails -- never shared. Deleted on unsubscribe. Unconfirmed addresses removed after 24 hours.</div>
+            <div>Used only for Armani Katehano game emails. Never shared. Deleted on unsubscribe. Unconfirmed addresses removed after 24 hours.</div>
             <div><Link href="/privacy" className="underline text-ak-text-dim hover:text-ak-text-sub transition-colors duration-150">Privacy notice</Link></div>
           </div>
         </>
