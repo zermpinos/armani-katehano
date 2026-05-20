@@ -56,6 +56,11 @@ function nonEmpty(s: string | null | undefined): s is string {
   return typeof s === "string" && s.trim() !== "";
 }
 
+function shortOpponent(opponent: string): string {
+  const first = opponent.trim().split(/\s+/)[0] ?? opponent;
+  return first.slice(0, 12);
+}
+
 export function buildGameImportedHtml(
   game: GameImportedGame,
   top:  TopPerformer[],
@@ -106,11 +111,19 @@ export function buildGameImportedHtml(
         </td></tr>
 ${infoBlock}
         <!-- Score -->
-        <tr><td style="padding:28px 32px 0;">
-          <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;">Final &middot; ${dateText}</p>
-          <p style="margin:0;font-size:36px;font-weight:900;color:#111827;font-variant-numeric:tabular-nums;">
-            ${game.teamScore}<span style="color:#9ca3af;">&ndash;</span>${game.opponentScore} ${resultPill(game.result)}
-          </p>
+        <tr><td style="padding:24px 32px 0;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td align="left" style="width:50%;">
+                <p style="margin:0 0 4px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.18em;">AK</p>
+                <p style="margin:0;font-size:36px;font-weight:900;color:#111827;font-variant-numeric:tabular-nums;line-height:1;">${game.teamScore}</p>
+              </td>
+              <td align="right" style="width:50%;">
+                <p style="margin:0 0 4px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.18em;">${esc(shortOpponent(game.opponent))}</p>
+                <p style="margin:0;font-size:36px;font-weight:900;color:#111827;font-variant-numeric:tabular-nums;line-height:1;">${game.opponentScore}</p>
+              </td>
+            </tr>
+          </table>
         </td></tr>
         <!-- Performers -->
         <tr><td style="padding:24px 32px 0;">
