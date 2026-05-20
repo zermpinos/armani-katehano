@@ -159,19 +159,39 @@ export function buildGameImportedText(
   appUrl: string,
   unsubscribeUrl: string,
 ): string {
-  const matchup = `${vsAt(game.location)} ${game.opponent}`;
-  const date    = formatDateFull(game.playedOn.toISOString());
-  const lines = [
-    "ARMANI KATEHANO",
-    matchup,
-    `Final ${date}: ${game.teamScore}-${game.opponentScore} (${game.result})`,
-    "",
-    "Top performers:",
-    ...top.map(p => `  #${p.number} ${p.name}: ${p.pts} pts · ${p.reb} reb · ${p.ast} ast`),
-    "",
-    `Full box score: ${appUrl}/games/${game.id}`,
-    "",
-    `Unsubscribe: ${unsubscribeUrl}`,
-  ];
+  const matchup     = `${vsAt(game.location)} ${game.opponent}`;
+  const date        = formatDateFull(game.playedOn.toISOString());
+  const resultLine  = `${game.teamScore}-${game.opponentScore} (${game.result})`;
+  const showComp    = nonEmpty(game.competition);
+  const showVenue   = nonEmpty(game.venueNote);
+
+  const numWidth  = 5;
+  const nameWidth = Math.max(...top.map(p => p.name.length), 0) + 2;
+  const performerLine = (p: TopPerformer): string => {
+    const num   = `#${p.number}`.padEnd(numWidth);
+    const name  = p.name.padEnd(nameWidth);
+    return `  ${num} ${name}${p.pts} pts · ${p.reb} reb · ${p.ast} ast`;
+  };
+
+  const lines: string[] = [];
+  lines.push("ARMANI KATEHANO · GAME RECAP");
+  lines.push("");
+  lines.push(`  ${matchup}`);
+  lines.push(`  ${date}`);
+  lines.push("");
+  lines.push(`  Result       ${resultLine}`);
+  if (showComp)  lines.push(`  Competition  ${game.competition}`);
+  if (showVenue) lines.push(`  Venue        ${game.venueNote}`);
+  lines.push("");
+  lines.push(`TOP PERFORMERS · ${top.length}`);
+  for (const p of top) lines.push(performerLine(p));
+  lines.push("");
+  lines.push(`Full box score:  ${appUrl}/games/${game.id}`);
+  lines.push("");
+  lines.push("You received this email because you subscribed");
+  lines.push("to Armani Katehano game emails.");
+  lines.push("");
+  lines.push(`Privacy notice  ${appUrl}/privacy`);
+  lines.push(`Unsubscribe     ${unsubscribeUrl}`);
   return lines.join("\n");
 }

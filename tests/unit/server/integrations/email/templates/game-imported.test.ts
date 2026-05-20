@@ -222,4 +222,39 @@ describe("game-imported email template", () => {
     expect(html).toContain("a=b&amp;c=d");
     expect(html).not.toContain("a=b&c=d");
   });
+
+  it("plain text leads with the ARMANI KATEHANO · GAME RECAP header", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(text.split("\n")[0]).toBe("ARMANI KATEHANO · GAME RECAP");
+  });
+
+  it("plain text contains a TOP PERFORMERS · N section header", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(text).toContain("TOP PERFORMERS · 3");
+  });
+
+  it("plain text includes a Result line, a Competition line, and a Venue line", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(text).toMatch(/Result\s+53-73 \(L\)/);
+    expect(text).toMatch(/Competition\s+Δ' Εθνική 2025-26/);
+    expect(text).toMatch(/Venue\s+Basketcity Arena/);
+  });
+
+  it("plain text omits Competition and Venue lines when those fields are null", () => {
+    const g = { ...GAME, competition: null, venueNote: null };
+    const text = buildGameImportedText(g, PERFORMERS, APP_URL, UNSUB);
+    expect(text).not.toContain("Competition");
+    expect(text).not.toContain("Venue");
+  });
+
+  it("plain text contains a Privacy notice line and an Unsubscribe line", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(text).toMatch(/Privacy notice\s+https:\/\/armani-katehano\.com\/privacy/);
+    expect(text).toMatch(/Unsubscribe\s+https:\/\/armani-katehano\.com\/unsubscribe/);
+  });
+
+  it("plain text contains the full box score URL", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(text).toContain(`Full box score:  ${APP_URL}/games/g1`);
+  });
 });
