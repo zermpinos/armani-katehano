@@ -60,27 +60,37 @@ export function buildGameImportedHtml(
   <title>${matchup} ${game.teamScore}-${game.opponentScore} (${esc(game.result)})</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f3f4f6;-webkit-font-smoothing:antialiased;">
+  <!--[if mso]><table width="100%"><tr><td><![endif]-->
+
+  <!-- Preheader -->
+  <span style="display:none;max-height:0;overflow:hidden;mso-hide:all;">Final &middot; ${esc(formatDateFull(game.playedOn.toISOString()))} &middot; ${game.teamScore}-${game.opponentScore} (${esc(game.result)})</span>
+
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
     <tr><td align="center" style="padding:40px 16px;">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+        <!-- Header -->
         <tr><td style="background:#111111;padding:28px 32px;">
           <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#c92a2a;">Armani Katehano &middot; Game Recap</p>
           <p style="margin:10px 0 0;font-size:22px;font-weight:900;color:#ffffff;">${matchup}</p>
           ${venueLine}
         </td></tr>
+        <!-- Score -->
         <tr><td style="padding:28px 32px 0;">
           <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;">Final &middot; ${dateText}</p>
           <p style="margin:0;font-size:36px;font-weight:900;color:#111827;font-variant-numeric:tabular-nums;">
             ${game.teamScore}<span style="color:#9ca3af;">&ndash;</span>${game.opponentScore} ${resultPill(game.result)}
           </p>
         </td></tr>
+        <!-- Performers -->
         <tr><td style="padding:24px 32px 0;">
           <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;">Top performers</p>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">${performers}</table>
         </td></tr>
+        <!-- CTA -->
         <tr><td style="padding:28px 32px;">
           <a href="${esc(`${appUrl}/games/${game.id}`)}" style="display:inline-block;padding:12px 28px;background:#c92a2a;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;">View full box score &rarr;</a>
         </td></tr>
+        <!-- Footer -->
         <tr><td style="padding:0 32px 24px;border-top:1px solid #e5e7eb;">
           <p style="margin:16px 0 0;font-size:11px;color:#9ca3af;line-height:1.6;">
             You're receiving this because you subscribed to Armani Katehano game emails.<br />
@@ -90,6 +100,8 @@ export function buildGameImportedHtml(
       </table>
     </td></tr>
   </table>
+
+  <!--[if mso]></td></tr></table><![endif]-->
 </body>
 </html>`;
 }
