@@ -27,6 +27,26 @@ const top: TopPerformer[] = [
 const APP_URL          = "https://armani-katehano.com";
 const UNSUBSCRIBE_URL  = "https://armani-katehano.com/unsubscribe?token=unsubtok";
 
+const GAME: GameImportedGame = {
+  id:            "g1",
+  opponent:      "Dragons",
+  location:      "away",
+  teamScore:     53,
+  opponentScore: 73,
+  result:        "L",
+  playedOn:      new Date("2026-05-16T18:00:00Z"),
+  venueNote:     "Basketcity Arena",
+  competition:   "Δ' Εθνική 2025-26",
+};
+
+const PERFORMERS: TopPerformer[] = [
+  { number: 14, name: "Giorgos Tsioulkas",         pts: 16, reb: 7, ast: 1 },
+  { number: 77, name: "Andreas Papadimitriou",     pts: 14, reb: 4, ast: 2 },
+  { number:  3, name: "Stathis Christofilopoulos", pts: 11, reb: 3, ast: 1 },
+];
+
+const UNSUB = `${APP_URL}/unsubscribe?token=t`;
+
 describe("game-imported email template", () => {
   it("buildHtml contains matchup, score, all top performers, CTA, unsubscribe", () => {
     const html = buildGameImportedHtml(game, top, APP_URL, UNSUBSCRIBE_URL);
@@ -79,5 +99,26 @@ describe("game-imported email template", () => {
     expect(text).toContain("Alex Papadopoulos");
     expect(text).toContain(`${APP_URL}/games/${game.id}`);
     expect(text).toContain(UNSUBSCRIBE_URL);
+  });
+
+  it("HTML declares lang=en", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toContain('lang="en"');
+    expect(html).not.toContain('lang="el"');
+  });
+
+  it("HTML <title> includes matchup and final score", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toMatch(/<title>@ Dragons 53-73 \(L\)<\/title>/);
+  });
+
+  it("HTML eyebrow reads 'Armani Katehano · Game Recap'", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toContain("Armani Katehano &middot; Game Recap");
+  });
+
+  it("plain text contains no em-dashes anywhere", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(text).not.toMatch(/—/);
   });
 });
