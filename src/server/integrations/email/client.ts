@@ -13,6 +13,8 @@ import {
   buildImportHeartbeat,
   buildGameImportedHtml,
   buildGameImportedText,
+  buildCourtesyEmailHtml,
+  buildCourtesyEmailText,
   type SendRosterAnnouncementParams,
   type HeartbeatPayload,
   type GameImportedGame,
@@ -213,6 +215,74 @@ export async function sendGameImportedBroadcast({
     failed,
     allDelivered:  failed === 0,
   });
+}
+
+export interface SendCourtesySubscriberEmailParams {
+  subscribers: Array<{ id: string; email: string; token: string }>;
+}
+
+export async function sendCourtesySubscriberEmail({
+  subscribers,
+}: SendCourtesySubscriberEmailParams): Promise<{ total: number; sent: number; failed: number }> {
+  const transport = createTransport();
+  if (!transport) {
+    console.warn("[email] BREVO_SMTP_USER/PASS not set -- skipping courtesy email");
+    return { total: 0, sent: 0, failed: 0 };
+  }
+  if (subscribers.length === 0) {
+    auditLog("courtesy_emails_skipped", { reason: "no_confirmed_subscribers" });
+    return { total: 0, sent: 0, failed: 0 };
+  }
+
+  const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const privacyUrl = `${appUrl}/privacy`;
+  const subject    = "What's new at Armani Katehano";
+
+  const results = await Promise.allSettled(
+    subscribers.map(sub => {
+      const emailHash      = crypto.createHash("sha256").update(sub.email).digest("hex");
+      const unsubscribeUrl = `${appUrl}/unsubscribe?token=${sub.token}`;
+      const html = buildCourtesyEmailHtml(unsubscribeUrl, privacyUrl);
+      const text = buildCourtesyEmailText(unsubscribeUrl, privacyUrl);
+      return transport.sendMail({ from: FROM, to: sub.email, subject, html, text })
+        .then(() => {
+          auditLog("courtesy_email_delivered", { emailHash });
+          return prisma.subscriber.update({
+            where: { id: sub.id },
+            data:  { lastEmailedAt: new Date() },
+          });
+        })
+        .catch((err: any) => {
+          auditLog("courtesy_email_failed", { emailHash, error: err.message });
+          throw err;
+        });
+    }),
+  );
+
+  const sent   = results.filter(r => r.status === "fulfilled").length;
+  const failed = results.filter(r => r.status === "rejected").length;
+  auditLog("courtesy_emails_summary", {
+    total:        subscribers.length,
+    sent,
+    failed,
+    allDelivered: failed === 0,
+  });
+
+  return { total: subscribers.length, sent, failed };
+}
+
+export async function sendCourtesyTestEmail({ to }: { to: string }): Promise<void> {
+  const transport = createTransport();
+  if (!transport) throw new Error("BREVO_SMTP_USER/PASS not configured");
+
+  const appUrl             = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const previewUnsubscribe = `${appUrl}/unsubscribe?token=PREVIEW_TOKEN`;
+  const privacyUrl         = `${appUrl}/privacy`;
+  const subject            = "What's new at Armani Katehano";
+  const html               = buildCourtesyEmailHtml(previewUnsubscribe, privacyUrl);
+  const text               = buildCourtesyEmailText(previewUnsubscribe, privacyUrl);
+
+  await transport.sendMail({ from: FROM, to, subject, html, text });
 }
 
 export async function sendAdminAlert({

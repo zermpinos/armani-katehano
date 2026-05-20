@@ -1,7 +1,7 @@
 /**
  * pages/unsubscribe.tsx
  *
- * Public page — landing target for the unsubscribe link included in every
+ * Public page. Landing target for the unsubscribe link included in every
  * game email (roster announcement or post-game recap).
  *
  * Reads ?token=<hex> from the URL, calls DELETE /api/subscribe, and shows a
