@@ -121,4 +121,15 @@ describe("game-imported email template", () => {
     const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
     expect(text).not.toMatch(/--/);
   });
+
+  it("HTML contains a preheader span with the final-score summary", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toMatch(/<span style="display:none[^"]*">[^<]*Final[^<]*53-73 \(L\)[^<]*<\/span>/);
+  });
+
+  it("HTML wraps the body in an Outlook MSO conditional", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toContain("<!--[if mso]>");
+    expect(html).toContain("<![endif]-->");
+  });
 });
