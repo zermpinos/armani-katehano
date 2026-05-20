@@ -24,6 +24,7 @@ const game = {
   result:        "W",
   playedOn:      new Date("2026-05-15T19:00:00Z"),
   venueNote:     null,
+  competition:   "A2 League",
 };
 const top = [
   { number: 11, name: "Alex P", pts: 24, reb: 7, ast: 5 },
