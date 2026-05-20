@@ -155,7 +155,7 @@ describe("game-imported email template", () => {
     const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
     // Tsioulkas: 16 pts, 7 reb, 1 ast -- should appear as three separate cells, not "16 pts · 7 reb · 1 ast"
     expect(html).not.toContain("16 pts &middot; 7 reb &middot; 1 ast");
-    expect(html).toMatch(/Giorgos Tsioulkas[\s\S]*text-align:right[^>]*>16<\/td>[\s\S]*text-align:right[^>]*>7<\/td>[\s\S]*text-align:right[^>]*>1<\/td>/);
+    expect(html).toMatch(/>Giorgos Tsioulkas<\/td>\s*<td[^>]*text-align:right[^>]*>16<\/td>\s*<td[^>]*text-align:right[^>]*>7<\/td>\s*<td[^>]*text-align:right[^>]*>1<\/td>/);
   });
 
   it("HTML no longer renders the standalone legend paragraph", () => {

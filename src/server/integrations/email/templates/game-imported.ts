@@ -32,15 +32,29 @@ function resultPill(result: string): string {
   return `<span style="display:inline-block;padding:6px 14px;border-radius:999px;background:${bg};color:#fff;font-size:14px;font-weight:800;letter-spacing:0.12em;">${esc(result)}</span>`;
 }
 
+type Align = "left" | "right";
+
+function headerCell(label: string, align: Align = "left", widthPx?: number): string {
+  const alignDecl = align === "right" ? "text-align:right;" : "";
+  const widthDecl = widthPx !== undefined ? `width:${widthPx}px;` : "";
+  return `<td style="padding:8px 16px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;${alignDecl}${widthDecl}">${esc(label)}</td>`;
+}
+
+function statCell(value: number, emphasized = false): string {
+  const color  = emphasized ? "#111827" : "#374151";
+  const weight = emphasized ? "font-weight:700;" : "";
+  return `<td style="padding:10px 16px;font-size:13px;color:${color};text-align:right;font-variant-numeric:tabular-nums;${weight}">${value}</td>`;
+}
+
 function performerRow(p: TopPerformer, i: number): string {
   const bg = i % 2 === 0 ? "#ffffff" : "#f9fafb";
   return `
         <tr style="background:${bg};">
           <td style="padding:10px 16px;width:44px;font-size:12px;font-weight:900;color:#c92a2a;font-variant-numeric:tabular-nums;">#${p.number}</td>
           <td style="padding:10px 16px;font-size:14px;color:#111827;font-weight:600;">${esc(p.name)}</td>
-          <td style="padding:10px 16px;font-size:13px;color:#111827;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;">${p.pts}</td>
-          <td style="padding:10px 16px;font-size:13px;color:#374151;text-align:right;font-variant-numeric:tabular-nums;">${p.reb}</td>
-          <td style="padding:10px 16px;font-size:13px;color:#374151;text-align:right;font-variant-numeric:tabular-nums;">${p.ast}</td>
+          ${statCell(p.pts, true)}
+          ${statCell(p.reb)}
+          ${statCell(p.ast)}
         </tr>`;
 }
 
@@ -117,11 +131,11 @@ export function buildGameImportedHtml(
           <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;">Top performers</p>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">
             <tr style="background:#f3f4f6;">
-              <td style="padding:8px 16px;width:44px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">#</td>
-              <td style="padding:8px 16px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">Player</td>
-              <td style="padding:8px 16px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;text-align:right;width:48px;">Pts</td>
-              <td style="padding:8px 16px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;text-align:right;width:48px;">Reb</td>
-              <td style="padding:8px 16px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;text-align:right;width:48px;">Ast</td>
+              ${headerCell("#", "left", 44)}
+              ${headerCell("Player")}
+              ${headerCell("Pts", "right", 48)}
+              ${headerCell("Reb", "right", 48)}
+              ${headerCell("Ast", "right", 48)}
             </tr>
             ${performers}
           </table>
