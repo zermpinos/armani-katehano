@@ -25,7 +25,7 @@ export default function PrivacyPage() {
   return (
     <Layout
       title="Privacy Notice"
-      ogDescription="How Armani Katehano handles your email address for roster notifications."
+      ogDescription="How Armani Katehano handles your email address for game emails."
     >
       <Head>
         <meta name="robots" content="noindex, nofollow" />
@@ -34,14 +34,14 @@ export default function PrivacyPage() {
       <div className="max-w-[680px] mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-black text-ak-text tracking-[-0.02em] mb-1">Privacy Notice</h1>
-          <p className="text-[12px] text-ak-text-dim">Email subscription · Last updated April 2026</p>
+          <p className="text-[12px] text-ak-text-dim">Email subscription · Last updated May 2026</p>
         </div>
 
         <div className="rounded-2xl border border-ak-border bg-ak-surface p-6 mb-8">
           <Section title="Who we are">
             <p>
               Armani Katehano Basketball Club (&quot;we&quot;, &quot;us&quot;) operates this site to publish
-              season statistics and roster announcements. For questions about this notice, contact us at{" "}
+              season statistics and game emails (roster announcements before games and recaps after). For questions about this notice, contact us at{" "}
               <a
                 href="mailto:webmaster@armani-katehano.com"
                 className="text-ak-red-text underline"
@@ -55,8 +55,8 @@ export default function PrivacyPage() {
           <Section title="What data we collect and why">
             <p>
               We collect only your <strong className="text-ak-text">email address</strong>, submitted voluntarily
-              through the subscribe form on the homepage. We use it solely to send you roster announcement emails
-              when a game lineup is published.
+              through the subscribe form on the homepage. We use it solely to send you Armani Katehano game emails
+              (roster announcements before games and result recaps after).
             </p>
             <p>The legal basis for processing is your explicit consent (GDPR Art. 6(1)(a)), given through the double opt-in confirmation step.</p>
           </Section>
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
           <Section title="How long we keep your data">
             <div className="rounded-xl overflow-hidden border border-ak-border divide-y divide-ak-border">
               <Row label="Unconfirmed" value="Deleted after 24 hours if the confirmation link is never clicked." />
-              <Row label="Active subscriber" value="Kept while you remain subscribed. Deleted automatically if no roster email is sent for 1 year." />
+              <Row label="Active subscriber" value="Kept while you remain subscribed. Deleted automatically if no game email is sent for 1 year." />
               <Row label="Unsubscribed" value="Deleted immediately when you click Unsubscribe." />
             </div>
           </Section>
@@ -90,14 +90,14 @@ export default function PrivacyPage() {
             <p>We share your email address with the following third-party services to operate the subscription feature:</p>
             <div className="rounded-xl overflow-hidden border border-ak-border divide-y divide-ak-border mt-3">
               <Row label="Neon (database)" value="Stores subscriber records. Hosted on AWS eu-central-1 (Frankfurt, EU)." />
-              <Row label="Brevo (email)" value="Delivers confirmation and roster emails. Brevo SAS (Sendinblue), Paris, France. EU-based, subject to GDPR." />
+              <Row label="Brevo (email)" value="Delivers confirmation and game emails. Brevo SAS (Sendinblue), Paris, France. EU-based, subject to GDPR." />
               <Row label="Vercel (hosting & analytics)" value="Serves the web application and provides aggregated analytics. Vercel Inc., United States. Transfer based on Vercel's Standard Contractual Clauses." />
             </div>
           </Section>
 
           <Section title="Your rights">
             <p>Under GDPR you have the right to access, rectify, or erase your personal data, and to withdraw consent at any time.</p>
-            <p>To <strong className="text-ak-text">unsubscribe</strong>, use the link at the bottom of any roster announcement email. Your record is deleted immediately. </p>
+            <p>To <strong className="text-ak-text">unsubscribe</strong>, use the link at the bottom of any game email. Your record is deleted immediately. </p>
             <p>
               For any other request, email{" "}
               <a href="mailto:webmaster@armani-katehano.com" className="text-ak-red-text underline">
@@ -113,7 +113,7 @@ export default function PrivacyPage() {
               purged daily. All data is transmitted over TLS.
             </p>
             <p>
-              Roster announcement emails contain no tracking pixels, no open-rate monitoring, and no click tracking. We do not know whether you read them.
+              Game emails contain no tracking pixels, no open-rate monitoring, and no click tracking. We do not know whether you read them.
             </p>
           </Section>
         </div>

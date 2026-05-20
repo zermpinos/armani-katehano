@@ -240,6 +240,7 @@ armani-katehano/
 │   ├── strip-next-polyfills.mjs    Prebuild: stubs out Next.js polyfill-module for Turbopack
 │   ├── strip-sentry-tracing.mjs    Prebuild: replaces __SENTRY_TRACING__ → false in SDK files
 │   ├── preview-roster-email.ts     Local preview for roster announcement template
+│   ├── send-courtesy-email.ts      One-time courtesy email to existing subscribers
 │   └── smoke-discover.ts           Smoke-test the discover-source-url matcher
 │
 ├── tests/
@@ -309,6 +310,7 @@ npm run dev                        # http://localhost:3000
 | Open Prisma Studio                | `npx prisma studio`                                      |
 | Smoke-test the URL matcher        | `npx tsx scripts/smoke-discover.ts`                      |
 | Preview the roster email template | `npx tsx scripts/preview-roster-email.ts`                |
+| Send the one-time game-emails courtesy notice | `npx tsx scripts/send-courtesy-email.ts [--dry-run \| --to=<email> \| --force]` |
 
 ### Logging in
 
@@ -390,6 +392,7 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | `strip-sentry-tracing.mjs`      | Prebuild: replaces `__SENTRY_TRACING__` → `false` in Sentry SDK files  |
 | `check-middleware-bundle.mjs`   | Post-build CI guard: greps `.next/server/middleware.js` for Node built-ins |
 | `preview-roster-email.ts`       | Renders the roster-announcement email template to disk for review       |
+| `send-courtesy-email.ts`        | One-time CLI dispatcher for the courtesy "What's new" email to existing subscribers |
 | `smoke-discover.ts`             | Runs the discover-source-url matcher against fixture listings           |
 
 ### CI workflows (`.github/workflows/`)

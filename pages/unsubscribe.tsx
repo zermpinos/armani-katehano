@@ -1,8 +1,8 @@
 /**
  * pages/unsubscribe.tsx
  *
- * Public page — landing target for the unsubscribe link included in every
- * roster announcement email.
+ * Public page. Landing target for the unsubscribe link included in every
+ * Armani Katehano game email.
  *
  * Reads ?token=<hex> from the URL, calls DELETE /api/subscribe, and shows a
  * confirmation. No auth required.
@@ -63,7 +63,7 @@ export default function UnsubscribePage() {
             <>
               <div className="text-lg font-black text-ak-text mb-2">You&apos;ve been unsubscribed</div>
               <div className="text-[13px] text-ak-text-dim leading-relaxed">
-                You won&apos;t receive any more roster notifications.<br />
+                You won&apos;t receive any more game emails.<br />
                 You can re-subscribe any time from the homepage.
               </div>
               <Link

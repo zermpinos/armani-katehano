@@ -82,7 +82,7 @@ export function buildGameImportedHtml(
         </td></tr>
         <tr><td style="padding:0 32px 24px;border-top:1px solid #e5e7eb;">
           <p style="margin:16px 0 0;font-size:11px;color:#9ca3af;line-height:1.6;">
-            You're receiving this because you subscribed to Armani Katehano roster announcements.<br />
+            You're receiving this because you subscribed to Armani Katehano game emails.<br />
             <a href="${esc(unsubscribeUrl)}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
           </p>
         </td></tr>

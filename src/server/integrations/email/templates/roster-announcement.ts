@@ -162,7 +162,7 @@ export function buildHtml(
           <tr>
             <td style="padding:24px 32px;background:#f9fafb;border-top:1px solid #e5e7eb;">
               <p style="margin:0;font-size:11px;color:#6b7280;line-height:1.7;">
-                You received this email because you subscribed to roster notifications for Armani Katehano.<br />
+                You received this email because you subscribed to Armani Katehano game emails.<br />
                 <a href="${esc(unsubscribeUrl)}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>
               </p>
             </td>
@@ -244,7 +244,7 @@ export function buildText(
   lines.push(`View full schedule:  ${appUrl}`);
   lines.push(``);
   lines.push(`You received this email because you subscribed`);
-  lines.push(`to roster notifications for Armani Katehano.`);
+  lines.push(`to Armani Katehano game emails.`);
   lines.push(``);
   lines.push(`Unsubscribe  ${unsubscribeUrl}`);
 
