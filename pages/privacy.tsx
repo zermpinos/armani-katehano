@@ -57,7 +57,7 @@ export default function PrivacyPage() {
             <p>
               We collect only your <strong className="text-ak-text">email address</strong>, submitted voluntarily
               through the subscribe form on the homepage. We use it solely to send you Armani Katehano
-              <strong className="text-ak-text"> game emails</strong> -- roster announcements before games and
+              <strong className="text-ak-text"> game emails</strong>: roster announcements before games and
               post-game recap emails after the box score is published.
             </p>
             <p>The legal basis for processing is your explicit consent (GDPR Art. 6(1)(a)), given through the double opt-in confirmation step.</p>
