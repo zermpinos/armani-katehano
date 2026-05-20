@@ -40,7 +40,7 @@ describe("verifyAndPreview", () => {
     (prisma.gameImportJob.findUnique as any).mockResolvedValue({
       id: "job_1", state: "IMPORTED", importedGameId: "game_1",
       subscriberBroadcastAt: new Date("2026-05-10T00:00:00Z"),
-      importedGame: { id: "game_1", opponent: "Opp", location: "home", teamScore: 78, opponentScore: 73, result: "W", playedOn: new Date(), notes: null },
+      importedGame: { id: "game_1", opponent: "Opp", location: "home", teamScore: 78, opponentScore: 73, result: "W", playedOn: new Date(), notes: null, seasonLeague: { league: { name: "Δ' Εθνική 2025-26" } } },
     });
     const result = await verifyAndPreview(token);
     expect(result.ok).toBe(true);
@@ -52,7 +52,7 @@ describe("verifyAndPreview", () => {
     (prisma.gameImportJob.findUnique as any).mockResolvedValue({
       id: "job_1", state: "IMPORTED", importedGameId: "game_1",
       subscriberBroadcastAt: null,
-      importedGame: { id: "game_1", opponent: "Opp", location: "home", teamScore: 78, opponentScore: 73, result: "W", playedOn: new Date(), notes: null },
+      importedGame: { id: "game_1", opponent: "Opp", location: "home", teamScore: 78, opponentScore: 73, result: "W", playedOn: new Date(), notes: null, seasonLeague: { league: { name: "Δ' Εθνική 2025-26" } } },
     });
     (prisma.subscriber.count as any).mockResolvedValue(42);
     (prisma.playerGameStat.findMany as any).mockResolvedValue([
@@ -109,7 +109,7 @@ describe("claimAndBroadcast", () => {
     (prisma.gameImportJob.findUnique as any).mockResolvedValue({
       id: "job_1", state: "IMPORTED", importedGameId: "game_1",
       subscriberBroadcastAt: null,
-      importedGame: { id: "game_1", opponent: "Opp", location: "home", teamScore: 78, opponentScore: 73, result: "W", playedOn: new Date(), notes: null },
+      importedGame: { id: "game_1", opponent: "Opp", location: "home", teamScore: 78, opponentScore: 73, result: "W", playedOn: new Date(), notes: null, seasonLeague: { league: { name: "Δ' Εθνική 2025-26" } } },
     });
     const out = await claimAndBroadcast({ token, ip: "1.1.1.1" });
     expect(out.ok).toBe(false);
@@ -122,7 +122,7 @@ describe("claimAndBroadcast", () => {
       .mockResolvedValueOnce({
         id: "job_1", state: "IMPORTED", importedGameId: "game_1",
         subscriberBroadcastAt: null,
-        importedGame: { id: "game_1", opponent: "Opp", location: "home", teamScore: 78, opponentScore: 73, result: "W", playedOn: new Date(), notes: null },
+        importedGame: { id: "game_1", opponent: "Opp", location: "home", teamScore: 78, opponentScore: 73, result: "W", playedOn: new Date(), notes: null, seasonLeague: { league: { name: "Δ' Εθνική 2025-26" } } },
       })
       .mockResolvedValueOnce({ subscriberBroadcastAt: new Date("2026-05-09T00:00:00Z") });
     (prisma.$executeRaw as any).mockResolvedValue(0);
@@ -137,7 +137,7 @@ describe("claimAndBroadcast", () => {
     (prisma.gameImportJob.findUnique as any).mockResolvedValue({
       id: "job_1", state: "IMPORTED", importedGameId: "game_1",
       subscriberBroadcastAt: null,
-      importedGame: { id: "game_1", opponent: "Opp", location: "home", teamScore: 78, opponentScore: 73, result: "W", playedOn: new Date(), notes: null },
+      importedGame: { id: "game_1", opponent: "Opp", location: "home", teamScore: 78, opponentScore: 73, result: "W", playedOn: new Date(), notes: null, seasonLeague: { league: { name: "Δ' Εθνική 2025-26" } } },
     });
     (prisma.$executeRaw as any).mockResolvedValue(1);
     (prisma.subscriber.findMany as any).mockResolvedValue([
