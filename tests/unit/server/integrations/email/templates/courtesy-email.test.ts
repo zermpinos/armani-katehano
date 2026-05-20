@@ -8,11 +8,13 @@ const UNSUB   = "https://armani-katehano.com/unsubscribe?token=t";
 const PRIVACY = "https://armani-katehano.com/privacy";
 
 describe("courtesy-email template", () => {
-  it("buildHtml contains the locked headline and both body paragraphs", () => {
+  it("buildHtml contains the locked headline, body paragraphs, and sign-off", () => {
     const html = buildCourtesyEmailHtml(UNSUB, PRIVACY);
-    expect(html).toContain("As Armani Katehano keeps improving");
+    expect(html).toContain("Armani Katehano keeps improving!");
     expect(html).toContain("we've added a second kind of subscriber email");
     expect(html).toContain("Roster announcements before each game still arrive as before");
+    expect(html).toContain("With love,");
+    expect(html).toContain("PZ");
   });
 
   it("buildHtml uses the combined ARMANI KATEHANO + WHAT'S NEW eyebrow", () => {
@@ -35,11 +37,13 @@ describe("courtesy-email template", () => {
     expect(html).not.toContain("a=b&c=d");
   });
 
-  it("buildText contains the body paragraphs and both URLs", () => {
+  it("buildText contains the body paragraphs, sign-off, and both URLs", () => {
     const text = buildCourtesyEmailText(UNSUB, PRIVACY);
-    expect(text).toContain("As Armani Katehano keeps improving");
+    expect(text).toContain("Armani Katehano keeps improving!");
     expect(text).toContain("we've added a second kind of subscriber email");
     expect(text).toContain("Roster announcements before each game still arrive as before");
+    expect(text).toContain("With love,");
+    expect(text).toContain("PZ");
     expect(text).toContain(UNSUB);
     expect(text).toContain(PRIVACY);
   });
