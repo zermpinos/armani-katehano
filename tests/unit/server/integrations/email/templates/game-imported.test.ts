@@ -132,4 +132,40 @@ describe("game-imported email template", () => {
     expect(html).toContain("<!--[if mso]>");
     expect(html).toContain("<![endif]-->");
   });
+
+  it("HTML info block has a Result row containing the score and the W/L pill", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toMatch(/Result[\s\S]*53-73[\s\S]*background:#dc2626[\s\S]*>L</);
+  });
+
+  it("HTML info block has a Competition row when competition is provided", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toContain("Competition");
+    expect(html).toContain("Δ&#39; Εθνική 2025-26");
+  });
+
+  it("HTML info block omits the Competition row when competition is null", () => {
+    const g = { ...GAME, competition: null };
+    const html = buildGameImportedHtml(g, PERFORMERS, APP_URL, UNSUB);
+    expect(html).not.toContain(">Competition<");
+  });
+
+  it("HTML info block has a Venue row with a maps link when venueNote is provided", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toContain("Venue");
+    expect(html).toContain("Basketcity Arena");
+    expect(html).toMatch(/href="https:\/\/maps\.app\.goo\.gl\/[^"]+"/);
+  });
+
+  it("HTML info block omits the Venue row when venueNote is null", () => {
+    const g = { ...GAME, venueNote: null };
+    const html = buildGameImportedHtml(g, PERFORMERS, APP_URL, UNSUB);
+    expect(html).not.toContain(">Venue<");
+  });
+
+  it("HTML info block omits the Competition row when competition is empty/whitespace", () => {
+    const g = { ...GAME, competition: "   " };
+    const html = buildGameImportedHtml(g, PERFORMERS, APP_URL, UNSUB);
+    expect(html).not.toContain(">Competition<");
+  });
 });
