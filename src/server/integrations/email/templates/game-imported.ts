@@ -69,7 +69,6 @@ export function buildGameImportedHtml(
 ): string {
   const matchup     = `${vsAt(game.location)} ${esc(game.opponent)}`;
   const dateText    = esc(formatDateFull(game.playedOn.toISOString()));
-  const venueLine   = game.venueNote ? `<p style="margin:6px 0 0;font-size:12px;color:#6b7280;">${esc(game.venueNote)}</p>` : "";
   const performers  = top.map((p, i) => performerRow(p, i)).join("");
 
   const resultValue       = `${game.teamScore}-${game.opponentScore} ${resultPill(game.result)}`;
@@ -104,10 +103,10 @@ export function buildGameImportedHtml(
     <tr><td align="center" style="padding:40px 16px;">
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
         <!-- Header -->
-        <tr><td style="background:#111111;padding:28px 32px;">
+        <tr><td style="background:#111111;padding:32px 32px 28px;">
           <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#c92a2a;">Armani Katehano &middot; Game Recap</p>
-          <p style="margin:10px 0 0;font-size:22px;font-weight:900;color:#ffffff;">${matchup}</p>
-          ${venueLine}
+          <p style="margin:14px 0 0;font-size:30px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;line-height:1.15;">${matchup}</p>
+          <p style="margin:8px 0 0;font-size:14px;font-weight:600;color:#d1d5db;">${esc(formatDateFull(game.playedOn.toISOString()))}</p>
         </td></tr>
 ${infoBlock}
         <!-- Score -->

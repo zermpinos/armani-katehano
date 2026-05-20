@@ -257,4 +257,9 @@ describe("game-imported email template", () => {
     const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
     expect(text).toContain(`Full box score:  ${APP_URL}/games/g1`);
   });
+
+  it("HTML header band shows a date subtitle under the matchup", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toMatch(/<p[^>]*color:#ffffff[^>]*>@ Dragons<\/p>\s*<p[^>]*color:#d1d5db[^>]*>Saturday, 16 May 2026<\/p>/);
+  });
 });
