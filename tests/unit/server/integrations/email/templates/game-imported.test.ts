@@ -15,6 +15,7 @@ const game: GameImportedGame = {
   result:        "W",
   playedOn:      new Date("2026-05-15T19:00:00Z"),
   venueNote:     "Peristeri Arena",
+  competition:   "A2 League",
 };
 
 const top: TopPerformer[] = [

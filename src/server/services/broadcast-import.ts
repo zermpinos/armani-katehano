@@ -13,6 +13,7 @@ export type VerifyAndPreviewResult =
 function toGameImported(g: {
   id: string; opponent: string; location: string | null; teamScore: number;
   opponentScore: number; result: string; playedOn: Date; notes: string | null;
+  seasonLeague: { league: { name: string } };
 }): GameImportedGame {
   return {
     id:            g.id,
@@ -23,6 +24,7 @@ function toGameImported(g: {
     result:        g.result,
     playedOn:      g.playedOn,
     venueNote:     g.notes,
+    competition:   g.seasonLeague.league.name,
   };
 }
 
@@ -31,8 +33,12 @@ export async function verifyAndPreview(token: string): Promise<VerifyAndPreviewR
   if (!v.ok) return { ok: false, reason: v.reason };
 
   const job = await prisma.gameImportJob.findUnique({
-    where:  { id: v.jobId },
-    include: { importedGame: true },
+    where:   { id: v.jobId },
+    include: {
+      importedGame: {
+        include: { seasonLeague: { include: { league: { select: { name: true } } } } },
+      },
+    },
   });
   if (!job) return { ok: false, reason: "not_found" };
   if (job.state !== "IMPORTED") return { ok: false, reason: "not_imported" };
@@ -92,8 +98,12 @@ export async function claimAndBroadcast({ token, ip: _ip }: { token: string; ip:
   }
 
   const job = await prisma.gameImportJob.findUnique({
-    where:  { id: v.jobId },
-    include: { importedGame: true },
+    where:   { id: v.jobId },
+    include: {
+      importedGame: {
+        include: { seasonLeague: { include: { league: { select: { name: true } } } } },
+      },
+    },
   });
   if (!job)                                         return { ok: false, reason: "not_found" };
   if (job.state !== "IMPORTED")                     return { ok: false, reason: "not_imported" };
