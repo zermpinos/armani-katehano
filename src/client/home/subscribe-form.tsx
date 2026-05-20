@@ -31,8 +31,8 @@ export function SubscribeForm() {
   return (
     <div className="rounded-[14px] py-5 px-[22px] border border-ak-border bg-ak-surface mb-6">
       <div className="mb-1.5">
-        <div className="text-[13px] font-black text-ak-text tracking-[0.04em]">Roster notifications</div>
-        <div className="text-[11px] text-ak-text-dim mt-0.5">Get emailed when the game roster is announced</div>
+        <div className="text-[13px] font-black text-ak-text tracking-[0.04em]">Game emails</div>
+        <div className="text-[11px] text-ak-text-dim mt-0.5">Roster announcements before games and recaps after</div>
       </div>
       {status === "done" ? (
         <div className="flex items-center gap-2 mt-3 py-[10px] px-[14px] rounded-lg bg-[#4caf7d14] border border-[#4caf7d35]">
@@ -60,7 +60,7 @@ export function SubscribeForm() {
           </form>
           {status === "error" && <div className="mt-[7px] text-xs text-ak-red-text">{errMsg}</div>}
           <div className="mt-2 text-[10px] text-ak-text-dim space-y-0.5">
-            <div>Used only for roster announcements -- never shared. Deleted on unsubscribe. Unconfirmed addresses removed after 24 hours.</div>
+            <div>Used only for Armani Katehano game emails. Never shared. Deleted on unsubscribe. Unconfirmed addresses removed after 24 hours.</div>
             <div><Link href="/privacy" className="underline text-ak-text-dim hover:text-ak-text-sub transition-colors duration-150">Privacy notice</Link></div>
           </div>
         </>
