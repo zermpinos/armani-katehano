@@ -217,6 +217,29 @@ export async function sendGameImportedBroadcast({
   });
 }
 
+export async function sendGameImportedTestEmail({
+  to,
+  game,
+  topPerformers,
+}: {
+  to:            string;
+  game:          GameImportedGame;
+  topPerformers: TopPerformer[];
+}): Promise<void> {
+  const transport = createTransport();
+  if (!transport) throw new Error("BREVO_SMTP_USER/PASS not configured");
+
+  const appUrl             = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const previewUnsubscribe = `${appUrl}/unsubscribe?token=PREVIEW_TOKEN`;
+  const vsAt               = game.location === "home" ? "vs" : "@";
+  const safeOpponent       = game.opponent.slice(0, 100).replace(/[\r\n]/g, " ");
+  const subject            = `${vsAt} ${safeOpponent}: ${game.teamScore}-${game.opponentScore} (${game.result})`;
+  const html               = buildGameImportedHtml(game, topPerformers, appUrl, previewUnsubscribe);
+  const text               = buildGameImportedText(game, topPerformers, appUrl, previewUnsubscribe);
+
+  await transport.sendMail({ from: FROM, to, subject, html, text });
+}
+
 export interface SendCourtesySubscriberEmailParams {
   subscribers: Array<{ id: string; email: string; token: string }>;
 }
