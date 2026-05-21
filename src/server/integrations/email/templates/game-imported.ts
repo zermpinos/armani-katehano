@@ -127,7 +127,8 @@ ${infoBlock}
         </td></tr>
         <!-- Performers -->
         <tr><td style="padding:24px 32px 0;">
-          <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;">Top performers</p>
+          <p style="margin:0 0 4px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.12em;">Top performers</p>
+          <p style="margin:0 0 8px;font-size:10px;color:#9ca3af;letter-spacing:0.08em;">${"#"} &middot; Player &middot; Pts &middot; Reb &middot; Ast</p>
           <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">${performers}</table>
         </td></tr>
         <!-- CTA -->

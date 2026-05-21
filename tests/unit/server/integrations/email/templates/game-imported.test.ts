@@ -188,4 +188,9 @@ describe("game-imported email template", () => {
     expect(scoreRowMatch).not.toBeNull();
     expect(scoreRowMatch?.[0] ?? "").not.toContain("background:#dc2626");
   });
+
+  it("HTML performer table is preceded by a legend row", () => {
+    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
+    expect(html).toContain("# &middot; Player &middot; Pts &middot; Reb &middot; Ast");
+  });
 });
