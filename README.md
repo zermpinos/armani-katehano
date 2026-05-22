@@ -271,7 +271,6 @@ armani-katehano/
 ├── sentry.edge.config.js
 ├── tsconfig.json
 ├── package.json
-
 └── SECURITY.md                     Vulnerability disclosure policy
 ```
 
