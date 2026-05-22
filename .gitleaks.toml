@@ -24,3 +24,23 @@ title = "armani-katehano gitleaks config"
   regexes = [
     '''ci-placeholder-secret'''
   ]
+
+[[rules]]
+id = "ai-provider-anthropic-key"
+description = "Anthropic API key shape"
+regex = '''sk-ant-[A-Za-z0-9_-]{30,}'''
+
+[[rules]]
+id = "ai-provider-openai-key"
+description = "OpenAI-shape secret key (loose; FPs accepted)"
+regex = '''(^|[^A-Za-z0-9])sk-[A-Za-z0-9]{20,}'''
+
+[[rules]]
+id = "ai-provider-google-key"
+description = "Google AI API key shape"
+regex = '''AIza[0-9A-Za-z\-_]{35}'''
+
+[[rules]]
+id = "ai-provider-url"
+description = "Outbound calls to LLM provider APIs"
+regex = '''api\.(anthropic|openai|cohere|mistral|together|groq)\.com'''

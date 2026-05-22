@@ -1,0 +1,26 @@
+name: internal-config-scan
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  scan:
+    name: block proprietary local config from PRs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head with full history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch origin main
+
+      - name: Use Node from .nvmrc
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Run scan-diff
+        run: bash scripts/scrub/scan-diff.sh origin/main

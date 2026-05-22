@@ -12,6 +12,6 @@ These bumps are intentionally pinned below latest until conditions clear.
 ## typescript (held at ^5.8.0)
 
 **Latest:** 6.0.3
-**Condition to unblock:** `tsconfig.json` no longer uses `baseUrl` — completed 2026-05-13 . Verify no other deprecated options remain.
+**Condition to unblock:** `tsconfig.json` no longer uses `baseUrl` — completed 2026-05-13. Verify no other deprecated options remain.
 **To check:** `npx -y typescript@latest --noEmit` against the repo.
 **To bump:** remove the typescript entry from `.github/dependabot.yml`'s `ignore` block, then update `package.json` `"typescript": "^6"`.
