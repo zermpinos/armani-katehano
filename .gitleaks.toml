@@ -19,6 +19,14 @@ title = "armani-katehano gitleaks config"
     '''tests/integration/server/db/games-admin\.put-delete\.test\.ts''',
     '''tests/unit/server/auth/coach\.test\.ts''',
     '''tests/unit/server/auth/security\.test\.ts''',
+    # Public-release scrub tooling: these files intentionally contain the
+    # provider strings/blocklist regexes they're designed to detect.
+    '''\.gitleaks\.toml''',
+    '''scripts/scrub/.*''',
+    '''scripts/git-hooks/.*\.mjs''',
+    '''scripts/git-hooks/README\.md''',
+    '''tests/unit/scrub/.*''',
+    '''\.github/workflows/internal-config-scan\.yml''',
   ]
   # CI unit-test job uses an explicit placeholder value (not a real secret)
   regexes = [

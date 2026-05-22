@@ -12,6 +12,16 @@ set -euo pipefail
 PHASE="${1:-}"
 FAIL=0
 
+# Retention-aware ref scope.
+# During the post-force-push retention window, the working repo keeps:
+#   - refs/tags/backup/*   (pre-rewrite snapshot tag)
+#   - refs/original/*      (filter-repo safety refs, if any)
+# Those refs intentionally carry pre-scrub content. Audit walks must
+# exclude them so they don't surface as false-positive leaks.
+# (In a fresh mirror clone these refs are absent and EXCLUDE_BACKUP is a no-op.)
+# Note: --exclude=<glob> must precede --all.
+EXCLUDE_BACKUP="--exclude=refs/tags/backup/* --exclude=refs/original/*"
+
 fail() {
   echo "FAIL: $1" >&2
   FAIL=1
@@ -31,18 +41,33 @@ assert_zero_lines() {
 case "$PHASE" in
   1)
     assert_zero_lines "V1: no .claude/superpowers/convert.js paths in history" \
-      "git log --all --pretty=format: --name-only | sort -u | grep -E '^\.claude|^docs/superpowers/|^pages/api/convert\.js$' || true"
+      "git log $EXCLUDE_BACKUP --all --pretty=format: --name-only | sort -u | grep -E '^\.claude|^docs/superpowers/|^pages/api/convert\.js$' || true"
     assert_zero_lines "V2: no claude/superpower in added-files history" \
-      "git log --all --diff-filter=A --pretty=format: --name-only | grep -iE 'claude|superpower' || true"
+      "git log $EXCLUDE_BACKUP --all --diff-filter=A --pretty=format: --name-only | grep -iE 'claude|superpower' || true"
     ;;
   2)
-    for s in 'CLAUDE.md ' 'docs/superpowers' 'P. Zermpinos' 'webmaster@armani-katehano.com' 'webmaster@armani-katehano.com' 'webmaster@armani-katehano.com' 'webmaster@armani-katehano.com' 'api.anthropic.com'; do
-      hits=$(git log --all -p -S "$s" --pickaxe-regex 2>/dev/null | head -1 || true)
+    # V2 checks string-content NOT covered by V1 (paths) and gitleaks (secret shapes).
+    # We intentionally only list strings that SURVIVE Phase 2's substitution rules
+    # — listing post-scrub values (e.g. the new author name/email) would put them
+    # into the verifier's own committed text, and any subsequent Phase 2 run would
+    # re-scrub the verifier, producing spurious failures.
+    # Personal-email shapes are covered by V4d (regex-based, never substituted).
+    # Author identities are covered by V3.
+    # Exclude scrub-config self-references from the pickaxe search.
+    for s in 'CLAUDE.md ' 'docs/superpowers' 'api.anthropic.com'; do
+      hits=$(git log $EXCLUDE_BACKUP --all -p -S "$s" --pickaxe-regex -- \
+        ':(exclude).gitleaks.toml' \
+        ':(exclude).gitignore' \
+        ':(exclude)scripts/scrub/' \
+        ':(exclude)scripts/git-hooks/' \
+        ':(exclude)tests/unit/scrub/' \
+        ':(exclude).github/workflows/internal-config-scan.yml' \
+        2>/dev/null | head -1 || true)
       if [ -z "$hits" ]; then ok "V2: no occurrences of '$s'"; else fail "V2: '$s' still in history"; fi
     done
     ;;
   3)
-    identities=$(git log --all --format='%an <%ae>' | sort -u)
+    identities=$(git log $EXCLUDE_BACKUP --all --format='%an <%ae>' | sort -u)
     count=$(echo "$identities" | wc -l | tr -d ' ')
     if [ "$count" = "2" ]; then
       ok "V3: exactly 2 author identities"
@@ -53,17 +78,28 @@ case "$PHASE" in
     ;;
   4)
     assert_zero_lines "V4a: no file|what|how subjects" \
-      "git log --all --pretty=%s | grep -E ' \| .+ \| ' || true"
+      "git log $EXCLUDE_BACKUP --all --pretty=%s | grep -E ' \| .+ \| ' || true"
     assert_zero_lines "V4b: no anthropic/claude/superpower in subjects" \
-      "git log --all --pretty=%s | grep -iE 'anthropic|\.claude|superpower' || true"
+      "git log $EXCLUDE_BACKUP --all --pretty=%s | grep -iE 'anthropic|\.claude|superpower' || true"
     assert_zero_lines "V4c: no numbered-plan bodies" \
-      "git log --all --pretty=%B | grep -E '^[[:space:]]+[0-9]+\.[[:space:]]' || true"
+      "git log $EXCLUDE_BACKUP --all --pretty=%B | grep -E '^[[:space:]]+[0-9]+\.[[:space:]]' || true"
     assert_zero_lines "V4d: no personal-email shapes in messages" \
-      "git log --all --pretty=%B | grep -iE 'pzermpinos@proton|panoszermpinos@|panos@armani-katehano' || true"
+      "git log $EXCLUDE_BACKUP --all --pretty=%B | grep -iE 'pzermpinos@proton|panoszermpinos@|panos@armani-katehano' || true"
     ;;
   5)
-    tags=$(git tag -l | wc -l | tr -d ' ')
-    if [ "$tags" = "0" ]; then ok "V5a: no tags"; else fail "V5a: $tags tags remain: $(git tag -l)"; fi
+    # V5a: origin must have zero tags. The local repo may keep refs/tags/backup/*
+    # during the retention window — these are private and never pushed.
+    if git ls-remote origin >/dev/null 2>&1; then
+      origin_tags=$(git ls-remote --tags origin 2>/dev/null | wc -l | tr -d ' ')
+      if [ "$origin_tags" = "0" ]; then ok "V5a: origin has 0 tags"; else fail "V5a: origin has $origin_tags tags"; fi
+    fi
+    # Local non-backup tags should also be 0.
+    local_nonbackup_tags=$(git for-each-ref refs/tags/ --format='%(refname)' | grep -v '^refs/tags/backup/' || true)
+    if [ -z "$local_nonbackup_tags" ]; then
+      ok "V5a-local: no local tags outside refs/tags/backup/*"
+    else
+      fail "V5a-local: unexpected local tags: $local_nonbackup_tags"
+    fi
     branches=$(git for-each-ref refs/heads/ --format='%(refname:short)')
     if [ "$branches" = "main" ]; then
       ok "V5b: only refs/heads/main remains"
