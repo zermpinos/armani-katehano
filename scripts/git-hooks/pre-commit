@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Git invokes this file by name. Delegate to the Node implementation.
+set -euo pipefail
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+exec node "$REPO_ROOT/scripts/git-hooks/pre-commit.mjs"

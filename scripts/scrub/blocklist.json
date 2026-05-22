@@ -1,0 +1,26 @@
+{
+  "paths": [
+    "^\\.claude(/|$)",
+    "^docs/superpowers/",
+    "^CLAUDE\\.md$",
+    "^\\.worktrees/",
+    "^audit\\.txt$",
+    "^structure\\.txt$"
+  ],
+  "content_strings": [
+    "anthropic",
+    "openai",
+    "gpt-[0-9]",
+    "claude-(opus|sonnet|haiku)",
+    "superpowers",
+    "api\\.anthropic\\.com",
+    "api\\.openai\\.com",
+    "api\\.cohere\\.com",
+    "api\\.mistral\\.ai",
+    "api\\.together\\.xyz",
+    "api\\.groq\\.com"
+  ],
+  "subject_templates": [
+    "^.+ \\| .+ \\| .+"
+  ]
+}
