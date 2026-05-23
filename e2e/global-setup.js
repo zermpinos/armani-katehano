@@ -15,7 +15,7 @@
 export default async function globalSetup() {
   if (process.env.PLAYWRIGHT_BASE_URL) return;
 
-  const { default: prisma } = await import("../lib/prisma.js");
+  const { default: prisma } = await import("../src/server/db/client.ts");
   await prisma.loginAttempt.deleteMany({});
   await prisma.$disconnect();
 }
