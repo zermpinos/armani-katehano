@@ -2,6 +2,8 @@
 
 A statistics, scheduling, and roster-management web app for the **Armani Katehano** basketball team. The public site surfaces season aggregates, per-game box scores, leaderboards, scoring trends, and upcoming-game roster announcements; an authenticated admin portal handles roster, schedule, and stats ingestion (manual and automated); a separate coach portal lets the head coach publish roster announcements without admin privileges.
 
+> Source-available under [PolyForm Noncommercial 1.0.0](LICENSE). Commercial use requires permission.
+
 ---
 
 ## Table of Contents
