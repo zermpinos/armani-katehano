@@ -1,0 +1,26 @@
+name: Docs link check
+
+on:
+  pull_request:
+    paths:
+      - 'README.md'
+      - 'SECURITY.md'
+      - 'docs/**'
+  schedule:
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lychee:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Lychee link check
+        uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2.8.0
+        with:
+          args: --no-progress --max-redirects 5 --exclude-mail README.md SECURITY.md docs/
+          fail: true
