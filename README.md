@@ -331,9 +331,12 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | `DATABASE_URL`                    | Prisma                 | Postgres connection string                                 |
 | `APP_URL`                         | Server                 | Canonical base URL                                         |
 | `NEXT_PUBLIC_APP_URL`             | Client                 | Public base URL used in emails and OG tags                 |
+| `NEXT_PUBLIC_BASE_URL`            | Client / SEO           | Public base URL used by sitemap, layout, and `security.txt` |
 | `SESSION_SECRET`                  | Admin auth             | HMAC key for the admin session cookie                      |
 | `ADMIN_USERS`                     | Admin auth             | JSON array of `{ username, passwordHash, totpSecret }`     |
 | `ADMIN_SLUG`                      | Admin auth             | Random URL segment for the admin entry path                |
+| `ADMIN_PASSWORD`                  | Admin auth             | bcrypt hash of the admin password                          |
+| `ADMIN_ALERT_EMAIL`               | Ops                    | Destination address for admin operational alert emails     |
 | `COACH_PASSWORD`                  | Coach auth             | bcrypt hash of the coach password                          |
 | `COACH_TOKEN`                     | Coach auth             | URL token for the coach portal entry                       |
 | `COACH_SESSION_SECRET`            | Coach auth             | HMAC key for the coach session cookie                      |
@@ -341,18 +344,23 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | `BREVO_SMTP_PASS`                 | Email                  | Brevo SMTP password / API key                              |
 | `TURNSTILE_SECRET_KEY`            | Subscribe form         | Cloudflare Turnstile server-side verification              |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`  | Subscribe form         | Cloudflare Turnstile client-side site key                  |
+| `BROADCAST_LINK_SECRET`           | Broadcast              | HMAC key for one-click broadcast tokens (generate with `openssl rand -hex 32`) |
+| `BROADCAST_RECENCY_DAYS`          | Broadcast              | Integer (default `7`); max age in days for a game to qualify for a broadcast link, and the token TTL |
+| `CRON_SECRET`                     | Cron                   | Bearer token gating `/api/cron/*` endpoints                |
+| `SCRAPE_HOSTNAME_ALLOWLIST`       | Scrape SSRF guard      | Comma-separated allowlist of hostnames the scraper may reach |
 
 ### Optional / environment-specific
 
 | Variable                                  | Purpose                                                         |
 |-------------------------------------------|-----------------------------------------------------------------|
-| `CRON_SECRET`                             | Bearer token gating `/api/cron/*` endpoints                     |
-| `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`    | Sentry server / client DSNs                                     |
+| `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`    | Sentry server / client DSNs; error reporting is disabled when unset |
+| `SENTRY_ORG`                              | Sentry organisation slug, used at build time for sourcemap upload |
+| `SENTRY_PROJECT`                          | Sentry project slug, used at build time for sourcemap upload    |
 | `SENTRY_AUTH_TOKEN`                       | Source-map upload during build                                  |
+| `SCRAPE_LISTING_URL_CUP`                  | Listing URL for the Cup scrape job; required only when the scrape feature is used |
+| `SCRAPE_LISTING_URL_MEN`                  | Listing URL for the Men's scrape job; required only when the scrape feature is used |
 | `E2E_ADMIN_PASSWORD`                      | Plain admin password used by Playwright global setup            |
 | `APP_BASE_URL`                            | Public base URL of the deployed app, used by server-side code that builds absolute URLs |
-| `BROADCAST_LINK_SECRET`                   | HMAC key for one-click broadcast tokens. Generate with `openssl rand -hex 32`. If unset, the broadcast link is omitted from admin import-success emails (feature gracefully disabled). |
-| `BROADCAST_RECENCY_DAYS`                  | Integer (default `7`). Max age in days for `Game.playedOn` to qualify for a broadcast link; also the token TTL. |
 
 #### Game-imported broadcast -- manual smoke
 
@@ -362,6 +370,19 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 4. With a 1-subscriber test list, click the button -- verify the subscriber receives the recap.
 5. Click the original email link again -- verify the "Already broadcast" page renders.
 6. Inspect the `AuditLog` table for `broadcast_link_viewed`, `broadcast_emails_summary`, etc.
+
+### Platform-supplied
+
+These variables are set by the build/runtime environment automatically. Do not set them manually in `.env.local`.
+
+| Variable | Source |
+|---|---|
+| `CI` | GitHub Actions / CI runners |
+| `NODE_ENV` | Node.js runtime |
+| `NEXT_RUNTIME` | Next.js (`"nodejs"` or `"edge"`) |
+| `VERCEL_ENV` | Vercel (`"production"`, `"preview"`, `"development"`) |
+| `VERCEL_URL` | Vercel deployment URL |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Configured per-project in the Vercel dashboard |
 
 ### Secret hygiene
 
