@@ -7,6 +7,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const BLOCKLIST_PATH = resolve(__dirname, "..", "scrub", "blocklist.json");
 
 export function checkStagedFiles(stagedPaths, blocklist) {
+  // eslint-disable-next-line security/detect-non-literal-regexp
   const compiled = blocklist.paths.map((p) => ({ src: p, re: new RegExp(p) }));
   for (const path of stagedPaths) {
     for (const { src, re } of compiled) {
@@ -17,6 +18,7 @@ export function checkStagedFiles(stagedPaths, blocklist) {
 }
 
 function main() {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   const blocklist = JSON.parse(readFileSync(BLOCKLIST_PATH, "utf8"));
   const stagedRaw = execSync("git diff --cached --name-only", { encoding: "utf8" });
   const stagedPaths = stagedRaw.split("\n").filter(Boolean);

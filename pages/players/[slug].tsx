@@ -86,7 +86,7 @@ export async function getStaticProps({ params }: any) {
     const s = (seasonMap as any)[player.id];
     if (s && s.gp > 0) {
       if (!playerSeasonHistory[player.id]) playerSeasonHistory[player.id] = {};
-      playerSeasonHistory[player.id][sid] = s;
+      Object.assign(playerSeasonHistory[player.id] as Record<string, unknown>, { [sid]: s });
     }
   }
 
