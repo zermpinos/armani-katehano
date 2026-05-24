@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Link from "next/link";
 import { C, chartTooltipStyle } from "@/theme/tokens";
 import { fmtMinutes } from "@/domain/shared/format";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -156,7 +157,11 @@ export function GameLogPanel({ gameLog }: any) {
                     >
                       <td className="py-[5px] px-[7px] text-center text-ak-text-dim font-bold">{i+1}</td>
                       <td className="py-[5px] px-[7px] text-ak-text-dim whitespace-nowrap">{g.date ? g.date.slice(5) : "—"}</td>
-                      <td className="py-[5px] px-[7px] text-ak-text-sub max-w-[90px] overflow-hidden text-ellipsis whitespace-nowrap">{g.opponent || "—"}</td>
+                      <td className="py-[5px] px-[7px] text-ak-text-sub">
+                        <span className="block max-w-[90px] truncate">
+                          <Link href={`/games/${g.gameId}`} className="hover:text-ak-red-text transition-colors duration-150">{g.opponent || "—"}</Link>
+                        </span>
+                      </td>
                       <td className="py-[5px] px-[7px] text-center text-ak-text-dim">{g.min > 0 ? fmtMinutes(g.min) : "—"}</td>
                       <td className="py-[5px] px-[7px] text-center font-black text-ak-red-text">{g.pts}</td>
                       <td className="py-[5px] px-[7px] text-center text-ak-text">{g.reb}</td>

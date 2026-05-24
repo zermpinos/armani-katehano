@@ -2,7 +2,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { StatTile, SectionHeading } from "@/components/ui";
-import { getAllPublicData, getUpcomingGamesWithAnnouncements } from "@/server/db/repositories";
+import { getAllPublicData, getAllPlayerGameLogs, getUpcomingGamesWithAnnouncements } from "@/server/db/repositories";
 import { computeRecord } from "@/domain/games/score";
 import { fmt } from "@/domain/players/format";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
@@ -64,7 +64,7 @@ const PlayerDetail = dynamic(
   { ssr: false }
 );
 
-export default function HomePage({ players, games, stats, upcomingGames, currentSeason }: any) {
+export default function HomePage({ players, games, stats, upcomingGames, currentSeason, allPlayerGameLogs }: any) {
   const [trendRange, setTrendRange] = useState(10);
   const [showTrendModal, setShowTrendModal] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
@@ -74,7 +74,8 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 
   const playersWithStats = players.map((p: any) => ({
     ...p,
-    stats: stats[p.id] ?? { ppg: 0, rpg: 0, apg: 0, fgPct: 0, eff: 0, mpg: 0, gp: 0 },
+    stats:   stats[p.id] ?? { ppg: 0, rpg: 0, apg: 0, fgPct: 0, eff: 0, mpg: 0, gp: 0 },
+    gameLog: allPlayerGameLogs[p.id] ?? [],
   }));
 
   const openPlayerById = (id: string) => {
@@ -205,9 +206,10 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 }
 
 export async function getStaticProps() {
-  const [{ players, games, stats, currentSeason }, upcomingGames] = await Promise.all([
+  const [{ players, games, stats, currentSeason }, upcomingGames, allPlayerGameLogs] = await Promise.all([
     getAllPublicData(),
     getUpcomingGamesWithAnnouncements(),
+    getAllPlayerGameLogs(),
   ]);
-  return { props: { players, games, stats, upcomingGames, currentSeason }, revalidate: 86400 };
+  return { props: { players, games, stats, upcomingGames, currentSeason, allPlayerGameLogs }, revalidate: 86400 };
 }

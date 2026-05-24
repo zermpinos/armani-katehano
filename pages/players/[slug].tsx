@@ -6,7 +6,7 @@ import SeasonSelector from "@/components/ui/SeasonSelector";
 import { SeasonAverages } from "@/client/players/SeasonAverages";
 import { SeasonHistoryTable } from "@/client/players/SeasonHistoryTable";
 import { PlayerHero } from "@/client/players/PlayerHero";
-import { getAllPublicData, getAllSeasonsStats, getPlayers } from "@/server/db/repositories";
+import { getAllPublicData, getAllSeasonsStats, getPlayerGameLog, getPlayers } from "@/server/db/repositories";
 import { buildAllTimeStatsMap } from "@/domain/stats";
 
 const SkillRadar   = dynamic(() => import("@/client/players/SkillRadar").then(m => ({ default: m.SkillRadar })),     { ssr: false });
@@ -15,15 +15,17 @@ const GameLogPanel = dynamic(() => import("@/client/players/GameLogPanel").then(
 const EMPTY_STATS = {
   ppg: 0, rpg: 0, orpg: 0, drpg: 0, apg: 0, spg: 0, bpg: 0,
   tpg: 0, fpg: 0, fgPct: 0, fg2Pct: 0, fg3Pct: 0, ftPct: 0,
-  ftmPg: 0, ftaPg: 0, mpg: 0, eff: 0, gp: 0, gameLog: [],
+  ftmPg: 0, ftaPg: 0, mpg: 0, eff: 0, gp: 0,
 };
 
-export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons, currentSeason, playerSeasonHistory }: any) {
+export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons, currentSeason, playerSeasonHistory, allGameLog }: any) {
   const [activeSeason, setActiveSeason] = useState(currentSeason);
 
   const activeStatsMap = activeSeason === "all-time" ? allTimeStatsMap : statsMap;
   const activeStats    = activeStatsMap[player.id] ?? EMPTY_STATS;
-  const gameLog        = activeStats.gameLog ?? [];
+  const gameLog        = activeSeason === "all-time"
+    ? allGameLog
+    : allGameLog.filter((g: any) => g.season === activeSeason);
   const seasonHistory  = playerSeasonHistory[player.id] ?? {};
   const playerWithHistory = { ...player, seasonHistory };
   const hasStats = activeStats.gp > 0;
@@ -90,8 +92,10 @@ export async function getStaticProps({ params }: any) {
     }
   }
 
+  const allGameLog = await getPlayerGameLog(player.id);
+
   return {
-    props: { player, statsMap: stats, allTimeStatsMap, seasons, currentSeason, playerSeasonHistory },
+    props: { player, statsMap: stats, allTimeStatsMap, seasons, currentSeason, playerSeasonHistory, allGameLog },
     revalidate: 86400,
   };
 }
