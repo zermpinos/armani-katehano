@@ -57,63 +57,64 @@ export const BoxScoreTable = memo(function BoxScoreTable({ game }: { game: any }
         )}
       </div>
 
-      <div className="overflow-x-auto pb-1">
-        <table className="w-full border-collapse text-xs min-w-[700px]">
-          <thead>
-            <tr className="bg-ak-base border-b border-ak-border2">
-              <th className="px-3 py-2 text-left text-[10px] font-black text-ak-text-dim tracking-[0.12em] min-w-[48px]">#</th>
-              <th className="px-3 py-2 text-left text-[10px] font-black text-ak-text-dim tracking-[0.12em] min-w-[150px]">PLAYER</th>
-              {BOX_COLS.map(c => (
-                <th
-                  key={c.key}
-                  className={`px-2 py-2 text-[10px] font-black tracking-[0.1em] min-w-[44px] text-center ${
-                    c.key === "eff" ? "text-ak-red-text" : "text-ak-text-dim"
-                  }`}
-                >
-                  {c.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {game.boxScore.map((r: any, i: number) => (
-              <tr key={r.pid} className={`border-b border-ak-border ${i % 2 === 0 ? "bg-ak-surface" : "bg-ak-surface2"}`}>
-                <td className="px-3 py-2 font-bold text-ak-text-dim">{r.number}</td>
-                <td className="px-3 py-2">
-                  <Link href={`/players/${r.slug}`} className="group">
-                    <span className="font-bold text-ak-text text-[13px] block transition-colors duration-150 group-hover:text-ak-red-text">
-                      {fmt(r.name)}
-                    </span>
-                    <span className="text-[10px] text-ak-text-dim tracking-[0.1em] block">{r.position}</span>
-                  </Link>
-                </td>
+      {game.boxScore.length === 0 ? (
+        <div className="p-8 text-center text-ak-text-dim text-[13px]">No box score recorded for this game.</div>
+      ) : (
+        <div className="overflow-x-auto pb-1">
+          <table className="w-full border-collapse text-xs min-w-[700px]">
+            <thead>
+              <tr className="bg-ak-base border-b border-ak-border2">
+                <th className="px-3 py-2 text-left text-[10px] font-black text-ak-text-dim tracking-[0.12em] min-w-[48px]">#</th>
+                <th className="px-3 py-2 text-left text-[10px] font-black text-ak-text-dim tracking-[0.12em] min-w-[150px]">PLAYER</th>
                 {BOX_COLS.map(c => (
-                  <td
+                  <th
                     key={c.key}
-                    className={`px-2 py-2 text-center ${
-                      c.key === "pts" || c.key === "eff" ? "font-black" : "font-normal"
-                    } ${
-                      c.key === "eff"
-                        ? r[c.key] >= 15
-                          ? "text-ak-red-text"
-                          : r[c.key] < 0
-                            ? "text-[#ff4444]"
-                            : "text-ak-text-sub"
-                        : c.key === "pts" && r.pts >= 15
-                          ? "text-ak-red-text"
-                          : "text-ak-text-sub"
+                    className={`px-2 py-2 text-[10px] font-black tracking-[0.1em] min-w-[44px] text-center ${
+                      c.key === "eff" ? "text-ak-red-text" : "text-ak-text-dim"
                     }`}
                   >
-                    {c.key === "min" ? (r.min > 0 ? fmtMinutes(r.min) : "—") : (r[c.key] ?? 0)}
-                  </td>
+                    {c.label}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {game.boxScore.length === 0 && (
-        <div className="p-8 text-center text-ak-text-dim text-[13px]">No box score recorded for this game.</div>
+            </thead>
+            <tbody>
+              {game.boxScore.map((r: any, i: number) => (
+                <tr key={r.pid} className={`border-b border-ak-border ${i % 2 === 0 ? "bg-ak-surface" : "bg-ak-surface2"}`}>
+                  <td className="px-3 py-2 font-bold text-ak-text-dim">{r.number}</td>
+                  <td className="px-3 py-2">
+                    <Link href={`/players/${r.slug}`} className="group">
+                      <span className="font-bold text-ak-text text-[13px] block transition-colors duration-150 group-hover:text-ak-red-text">
+                        {fmt(r.name)}
+                      </span>
+                      <span className="text-[10px] text-ak-text-dim tracking-[0.1em] block">{r.position}</span>
+                    </Link>
+                  </td>
+                  {BOX_COLS.map(c => (
+                    <td
+                      key={c.key}
+                      className={`px-2 py-2 text-center ${
+                        c.key === "pts" || c.key === "eff" ? "font-black" : "font-normal"
+                      } ${
+                        c.key === "eff"
+                          ? r[c.key] >= 15
+                            ? "text-ak-red-text"
+                            : r[c.key] < 0
+                              ? "text-[#ff4444]"
+                              : "text-ak-text-sub"
+                          : c.key === "pts" && r.pts >= 15
+                            ? "text-ak-red-text"
+                            : "text-ak-text-sub"
+                      }`}
+                    >
+                      {c.key === "min" ? (r.min > 0 ? fmtMinutes(r.min) : "—") : (r[c.key] ?? 0)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
