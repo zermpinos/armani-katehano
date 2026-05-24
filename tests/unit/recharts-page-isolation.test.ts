@@ -23,7 +23,6 @@ function read(rel: string): string {
 // index, games, and leaderboard retain their player-click modals.
 const PAGES_USING_PLAYER_DETAIL = [
   "pages/index.tsx",
-  "pages/games.tsx",
   "pages/leaderboard.tsx",
 ];
 
