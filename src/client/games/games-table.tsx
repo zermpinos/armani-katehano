@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Link from "next/link";
 import { getCountdownInfo } from "@/client/home/calendar-utils";
 import { fmt } from "@/domain/players/format";
 
@@ -11,14 +12,12 @@ function formatTopScorer(topScorer: any) {
 
 interface Props {
   items: any[];
-  loadingBoxScore: boolean;
-  onGameClick: (game: any) => void;
   onUpcomingClick: (game: any) => void;
   seasonLeagues: any[];
   selectedLeague: string;
 }
 
-export function GamesTable({ items, loadingBoxScore, onGameClick, onUpcomingClick, seasonLeagues, selectedLeague }: Props) {
+export function GamesTable({ items, onUpcomingClick, seasonLeagues, selectedLeague }: Props) {
   const [page, setPage] = useState(0);
   const totalPages = Math.ceil(items.length / PAGE_SIZE);
   const pagedItems = items.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -56,10 +55,9 @@ export function GamesTable({ items, loadingBoxScore, onGameClick, onUpcomingClic
 
           const topScorer = formatTopScorer(g.topScorer);
           return (
-            <button
+            <Link
               key={g.id}
-              onClick={() => onGameClick(g)}
-              disabled={loadingBoxScore}
+              href={`/games/${g.id}`}
               className="flex items-center justify-between py-[14px] px-[18px] rounded-xl border border-ak-border bg-ak-surface cursor-pointer text-left transition-[border-color] duration-150 hover:border-[#c0392b55]"
             >
               <div className="flex items-center gap-3">
@@ -85,7 +83,7 @@ export function GamesTable({ items, loadingBoxScore, onGameClick, onUpcomingClic
                 </div>
                 <div className="text-[11px] text-ak-red-text font-bold">BOX SCORE →</div>
               </div>
-            </button>
+            </Link>
           );
         })}
       </div>
