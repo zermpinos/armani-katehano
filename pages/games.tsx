@@ -1,59 +1,20 @@
 import { useState, useMemo } from "react";
-import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import SeasonSelector from "@/components/ui/SeasonSelector";
-import { getAllGames, getPlayers, getSeasons, getConfig, getAllUpcomingGames, getAllSeasonsStats } from "@/server/db/repositories";
-import { buildAllTimeStatsMap } from "@/domain/stats";
-import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import { BoxScore } from "@/client/games/box-score";
-import { UpcomingGameModal } from "@/client/games/upcoming-game-modal";
+import { getAllGames, getSeasons, getConfig, getAllUpcomingGames } from "@/server/db/repositories";
 import { LeagueFilter } from "@/client/games/league-filter";
 import { ResultFilter } from "@/client/games/result-filter";
 import { CalendarView } from "@/client/games/calendar-view";
 import { GamesTable } from "@/client/games/games-table";
+import { UpcomingGameModal } from "@/client/games/upcoming-game-modal";
 
-// PlayerDetail transitively pulls in recharts (via GameLogPanel + SkillRadar);
-// loading it dynamically keeps recharts out of this page's chunk and the
-// chunks Next.js prefetches for any <Link> pointing here.
-const PlayerDetail = dynamic(
-  () => import("@/client/players/PlayerDetail").then(m => ({ default: m.PlayerDetail })),
-  { ssr: false }
-);
-
-export default function GamesPage({ allGames, players, seasons, currentSeason, upcomingGames, allTimeStatsMap, playerSeasonHistory }: any) {
+export default function GamesPage({ allGames, seasons, currentSeason, upcomingGames }: any) {
   const [selectedSeason, setSelectedSeason] = useState(currentSeason);
   const [selectedLeague, setSelectedLeague] = useState("all");
   const [selectedResult, setSelectedResult] = useState("all");
-  const [selected, setSelected] = useState<any>(null);
-  const [loadingBoxScore, setLoadingBoxScore] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [selectedUpcomingInList, setSelectedUpcomingInList] = useState<any>(null);
-  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
-
-  const playersWithStats = useMemo(() => players.map((p: any) => ({
-    ...p,
-    stats:         allTimeStatsMap?.[p.id] ?? { ppg:0, rpg:0, orpg:0, drpg:0, apg:0, spg:0, bpg:0, tpg:0, fpg:0, fgPct:0, fg2Pct:0, fg3Pct:0, ftPct:0, ftmPg:0, ftaPg:0, mpg:0, eff:0, gp:0 },
-    gameLog:       allTimeStatsMap?.[p.id]?.gameLog ?? [],
-    seasonHistory: playerSeasonHistory?.[p.id] ?? {},
-  })), [players, allTimeStatsMap, playerSeasonHistory]);
-
-  const openPlayerById = (id: string) => {
-    const match = playersWithStats.find((pp: any) => pp.id === id);
-    if (match) setSelectedPlayer(match);
-  };
-
-  async function handleGameClick(game: any) {
-    setLoadingBoxScore(true);
-    setSelected(game);
-    try {
-      const res = await fetch(`/api/games/${game.id}`);
-      const { boxScore } = await res.json();
-      setSelected({ ...game, boxScore });
-    } finally {
-      setLoadingBoxScore(false);
-    }
-  }
 
   const seasonLeagues = useMemo(() => {
     const seen = new Map();
@@ -92,7 +53,6 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
     );
   }, [filtered, upcomingGames, noFiltersActive]);
 
-  // Changing filters remounts GamesTable, resetting its internal page to 0
   const filterKey = `${selectedSeason}-${selectedLeague}-${selectedResult}`;
 
   return (
@@ -151,54 +111,34 @@ export default function GamesPage({ allGames, players, seasons, currentSeason, u
         <CalendarView
           games={filtered}
           upcomingGames={noFiltersActive ? upcomingGames : []}
-          onGameClick={handleGameClick}
-          loadingBoxScore={loadingBoxScore}
         />
       ) : (
         <GamesTable
           key={filterKey}
           items={listItems}
-          loadingBoxScore={loadingBoxScore}
-          onGameClick={handleGameClick}
           onUpcomingClick={setSelectedUpcomingInList}
           seasonLeagues={seasonLeagues}
           selectedLeague={selectedLeague}
         />
       )}
 
-      {selected && <BoxScore game={selected} players={players} onClose={() => setSelected(null)} isLoading={loadingBoxScore} onPlayerClick={openPlayerById} />}
-      {selectedUpcomingInList && <UpcomingGameModal game={selectedUpcomingInList} onClose={() => setSelectedUpcomingInList(null)} />}
-      {selectedPlayer && <PlayerDetail player={selectedPlayer} onClose={() => setSelectedPlayer(null)} activeSeason="all-time" />}
+      {selectedUpcomingInList && (
+        <UpcomingGameModal game={selectedUpcomingInList} onClose={() => setSelectedUpcomingInList(null)} />
+      )}
     </Layout>
   );
 }
 
 export async function getStaticProps() {
-  const [allGames, players, seasons, config, upcomingGames] = await Promise.all([
+  const [allGames, seasons, config, upcomingGames] = await Promise.all([
     getAllGames(),
-    getPlayers(),
     getSeasons(),
     getConfig(),
     getAllUpcomingGames(),
   ]);
 
-  const allSeasonsStats = await getAllSeasonsStats(seasons);
-  const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
-
-  // Object.create(null) prevents prototype pollution when player.id/sid are from DB data
-  const playerSeasonHistory: Record<string, any> = Object.create(null);
-  for (const [sid, seasonMap] of Object.entries(allSeasonsStats)) {
-    for (const player of players) {
-      const s = (seasonMap as any)[player.id];
-      if (s && s.gp > 0) {
-        if (!Reflect.has(playerSeasonHistory, player.id)) Reflect.set(playerSeasonHistory, player.id, Object.create(null));
-        Reflect.set(Reflect.get(playerSeasonHistory as object, player.id), sid, s);
-      }
-    }
-  }
-
   return {
-    props: { allGames, players, seasons, currentSeason: config.currentSeason, upcomingGames, allTimeStatsMap, playerSeasonHistory },
+    props: { allGames, seasons, currentSeason: config.currentSeason, upcomingGames },
     revalidate: 86400,
   };
 }
