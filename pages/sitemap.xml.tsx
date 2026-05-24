@@ -1,8 +1,8 @@
-import { getPlayers } from "@/server/db/repositories";
+import { getGameIds } from "@/server/db/repositories";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://armani-katehano.com";
 
-const PAGES = [
+const STATIC_PAGES = [
   { url: "/",            priority: "1.0", changefreq: "daily"  },
   { url: "/players",     priority: "0.9", changefreq: "weekly" },
   { url: "/leaderboard", priority: "0.9", changefreq: "weekly" },
@@ -10,16 +10,14 @@ const PAGES = [
   { url: "/team-stats",  priority: "0.8", changefreq: "weekly" },
 ];
 
-const xmlEscape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-function buildSitemap(lastmod: string, playerSlugs: string[]) {
-  const staticEntries = PAGES.map(({ url, priority, changefreq }) =>
+function buildSitemap(lastmod: string, gameIds: string[]) {
+  const staticEntries = STATIC_PAGES.map(({ url, priority, changefreq }) =>
     `  <url>\n    <loc>${BASE_URL}${url}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`
   );
-  const playerEntries = playerSlugs.map(slug =>
-    `  <url>\n    <loc>${BASE_URL}/players/${xmlEscape(slug)}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>`
+  const gameEntries = gameIds.map(id =>
+    `  <url>\n    <loc>${BASE_URL}/games/${id}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>never</changefreq>\n    <priority>0.7</priority>\n  </url>`
   );
-  const entries = [...staticEntries, ...playerEntries].join("\n");
+  const entries = [...staticEntries, ...gameEntries].join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>`;
 }
 
@@ -29,8 +27,8 @@ export default function Sitemap() {
 
 export async function getServerSideProps({ res }: any) {
   const lastmod = new Date().toISOString().split("T")[0];
-  const players = await getPlayers();
-  const xml = buildSitemap(lastmod, players.map(p => p.slug));
+  const gameIds = await getGameIds();
+  const xml     = buildSitemap(lastmod, gameIds);
 
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");

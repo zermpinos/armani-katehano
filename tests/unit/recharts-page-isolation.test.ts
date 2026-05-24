@@ -20,10 +20,9 @@ function read(rel: string): string {
 }
 
 // pages/players.tsx no longer uses PlayerDetail -- it links to standalone pages.
-// index, games, and leaderboard retain their player-click modals.
+// index and leaderboard retain their player-click modals.
 const PAGES_USING_PLAYER_DETAIL = [
   "pages/index.tsx",
-  "pages/games.tsx",
   "pages/leaderboard.tsx",
 ];
 

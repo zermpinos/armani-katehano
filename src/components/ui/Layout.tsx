@@ -27,7 +27,7 @@ export default function Layout({ children, title = SITE_NAME, ogDescription }: L
 
   const pageTitle = title === SITE_NAME ? title : `${title} · ${SITE_NAME}`;
   const desc      = ogDescription ?? `${SITE_NAME} Basketball -- Season Stats ${CURRENT_SEASON}`;
-  const canonical = `${BASE_URL}${router.pathname}`;
+  const canonical = `${BASE_URL}${router.asPath.split("?")[0]}`;
 
   return (
     <>
