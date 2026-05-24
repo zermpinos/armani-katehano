@@ -19,9 +19,10 @@ function read(rel: string): string {
   return readFileSync(resolve(ROOT, rel), "utf8"); // eslint-disable-line security/detect-non-literal-fs-filename
 }
 
+// pages/players.tsx no longer uses PlayerDetail -- it links to standalone pages.
+// index, games, and leaderboard retain their player-click modals.
 const PAGES_USING_PLAYER_DETAIL = [
   "pages/index.tsx",
-  "pages/players.tsx",
   "pages/games.tsx",
   "pages/leaderboard.tsx",
 ];
@@ -30,13 +31,9 @@ describe("page-level isolation of recharts via dynamic imports", () => {
   for (const page of PAGES_USING_PLAYER_DETAIL) {
     it(`${page} loads PlayerDetail via dynamic() (not a static import)`, () => {
       const src = read(page);
-      // No top-level static import -- that pulls recharts (via GameLogPanel
-      // and SkillRadar) into the page chunk and into prefetched chunks for
-      // any <Link> pointing at this page.
       expect(src).not.toMatch(
         /^\s*import\s*\{\s*PlayerDetail\s*\}\s*from\s*["']@\/client\/players\/PlayerDetail["']/m
       );
-      // Must reference dynamic() with the PlayerDetail module.
       expect(src).toMatch(/dynamic\(/);
       expect(src).toMatch(/import\(["']@\/client\/players\/PlayerDetail["']\)/);
     });
@@ -49,5 +46,25 @@ describe("page-level isolation of recharts via dynamic imports", () => {
     );
     expect(src).toMatch(/dynamic\(/);
     expect(src).toMatch(/import\(["']@\/client\/team-stats\/minutes-chart["']\)/);
+  });
+});
+
+describe("player standalone page recharts isolation", () => {
+  it("pages/players/[slug].tsx loads SkillRadar via dynamic() (not a static import)", () => {
+    const src = read("pages/players/[slug].tsx");
+    expect(src).not.toMatch(
+      /^\s*import\s*\{\s*SkillRadar\s*\}\s*from\s*["']@\/client\/players\/SkillRadar["']/m
+    );
+    expect(src).toMatch(/dynamic\(/);
+    expect(src).toMatch(/import\(["']@\/client\/players\/SkillRadar["']\)/);
+  });
+
+  it("pages/players/[slug].tsx loads GameLogPanel via dynamic() (not a static import)", () => {
+    const src = read("pages/players/[slug].tsx");
+    expect(src).not.toMatch(
+      /^\s*import\s*\{\s*GameLogPanel\s*\}\s*from\s*["']@\/client\/players\/GameLogPanel["']/m
+    );
+    expect(src).toMatch(/dynamic\(/);
+    expect(src).toMatch(/import\(["']@\/client\/players\/GameLogPanel["']\)/);
   });
 });
