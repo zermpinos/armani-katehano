@@ -60,4 +60,21 @@ test.describe("Games page -- navigation", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("button", { name: "×" })).not.toBeVisible();
   });
+
+  test("box score player name links to /players/[slug]", async ({ page }) => {
+    await page.goto("/games");
+    await page.waitForLoadState("networkidle");
+    const card = await findFirstGameCard(page);
+    test.skip(card === null, "No games in DB -- skipping");
+    await card.click();
+    await page.waitForURL(/\/games\/[a-z0-9]+/i, { timeout: 8000 });
+
+    const playerLink = page.locator("a[href^='/players/']").first();
+    test.skip(await playerLink.count() === 0, "No players in box score -- skipping");
+    const playerHref = await playerLink.getAttribute("href");
+    await playerLink.click();
+    // eslint-disable-next-line security/detect-non-literal-regexp
+    await page.waitForURL(new RegExp(playerHref.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), { timeout: 8000 });
+    expect(page.url()).toContain("/players/");
+  });
 });
