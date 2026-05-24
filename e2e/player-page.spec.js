@@ -9,6 +9,7 @@ test.describe("Player standalone page (/players/[slug])", () => {
     const href = await firstCard.getAttribute("href");
     if (!href) return;
     await firstCard.click();
+    // eslint-disable-next-line security/detect-non-literal-regexp
     await expect(page).toHaveURL(new RegExp(href.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   });
 
