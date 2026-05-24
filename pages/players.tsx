@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Image from "next/image";
-import dynamic from "next/dynamic";
+import Link from "next/link";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import { getAllPublicData, getAllSeasonsStats } from "@/server/db/repositories";
@@ -8,22 +8,14 @@ import { buildAllTimeStatsMap } from "@/domain/stats";
 import { fmt } from "@/domain/players/format";
 import SeasonSelector from "@/components/ui/SeasonSelector";
 
-// PlayerDetail transitively pulls in recharts (via GameLogPanel + SkillRadar);
-// loading it dynamically keeps recharts out of this page's chunk and the
-// chunks Next.js prefetches for any <Link> pointing here.
-const PlayerDetail = dynamic(
-  () => import("@/client/players/PlayerDetail").then(m => ({ default: m.PlayerDetail })),
-  { ssr: false }
-);
-
 const playerImg = (player: any) => player.photoUrl || null;
 
-function PlayerCard({ player, onClick }: any) {
+function PlayerCard({ player }: any) {
   const s = player.stats;
   const hasStats = s.gp > 0;
   return (
-    <button
-      onClick={onClick}
+    <Link
+      href={`/players/${player.slug}`}
       className={`group rounded-xl overflow-hidden text-left w-full cursor-pointer border border-ak-border bg-ak-surface transition-all duration-200 hover:border-[#c0392b55] hover:shadow-[0_8px_32px_#8b1a1a30] ${hasStats ? "opacity-100" : "opacity-55"}`}
     >
       <div className="h-[170px] flex items-end justify-center bg-ak-base relative">
@@ -31,7 +23,6 @@ function PlayerCard({ player, onClick }: any) {
           ? <Image src={playerImg(player)} alt={player.name} fill className="object-cover object-top" />
           : <span className="text-[52px] leading-none pb-3 z-[1] relative">🏀</span>
         }
-        {/* gradient overlay */}
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-b from-transparent to-[rgba(28,28,30,0.9)] z-[1] pointer-events-none" />
         <div className="absolute top-[10px] right-[10px] w-[26px] h-[26px] rounded-md flex items-center justify-center text-[11px] font-black bg-ak-red text-ak-text z-[2]">{player.number}</div>
         {hasStats && (
@@ -59,25 +50,23 @@ function PlayerCard({ player, onClick }: any) {
         </div>
       </div>
       <div className="h-0.5 bg-ak-red-bright transition-transform duration-300 origin-left scale-x-0 group-hover:scale-x-100" />
-    </button>
+    </Link>
   );
 }
 
 export default function PlayersPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }: any) {
-  const [selected, setSelected] = useState<any>(null);
   const [activeSeason, setActiveSeason] = useState(currentSeason);
   const [search, setSearch] = useState("");
 
-  // Merge bio + stats for the active season (or all-time)
   const activeStatsMap = activeSeason === "all-time" ? allTimeStatsMap : statsMap;
   const playersWithStats = players.map((p: any) => ({
     ...p,
-    stats:          activeStatsMap[p.id] ?? { ppg:0,rpg:0,orpg:0,drpg:0,apg:0,spg:0,bpg:0,tpg:0,fpg:0,fgPct:0,fg2Pct:0,fg3Pct:0,ftPct:0,ftmPg:0,ftaPg:0,mpg:0,eff:0,gp:0 },
-    gameLog:        activeStatsMap[p.id]?.gameLog ?? [],
-    seasonHistory:  playerSeasonHistory?.[p.id] ?? {},
+    stats:         activeStatsMap[p.id] ?? { ppg:0,rpg:0,orpg:0,drpg:0,apg:0,spg:0,bpg:0,tpg:0,fpg:0,fgPct:0,fg2Pct:0,fg3Pct:0,ftPct:0,ftmPg:0,ftaPg:0,mpg:0,eff:0,gp:0 },
+    gameLog:       activeStatsMap[p.id]?.gameLog ?? [],
+    seasonHistory: playerSeasonHistory?.[p.id] ?? {},
   }));
 
-  const sorted = [...playersWithStats].sort((a, b) => Number(a.number) - Number(b.number));
+  const sorted    = [...playersWithStats].sort((a, b) => Number(a.number) - Number(b.number));
   const displayed = search.trim()
     ? sorted.filter(p => p.name.toLowerCase().includes(search.trim().toLowerCase()))
     : sorted;
@@ -88,7 +77,7 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
       <SeasonSelector
         seasons={seasons}
         currentSeason={activeSeason}
-        onChange={sid => { setActiveSeason(sid); setSelected(null); setSearch(""); }}
+        onChange={sid => { setActiveSeason(sid); setSearch(""); }}
         showAllTime={true}
         right={`${players.length} Players`}
       />
@@ -119,10 +108,9 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
         </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-[14px]">
-          {displayed.map(p => <PlayerCard key={p.id} player={p} onClick={() => setSelected(p)} />)}
+          {displayed.map(p => <PlayerCard key={p.id} player={p} />)}
         </div>
       )}
-      {selected && <PlayerDetail player={selected} onClose={() => setSelected(null)} activeSeason={activeSeason} />}
     </Layout>
   );
 }
@@ -132,7 +120,6 @@ export async function getStaticProps() {
   const allSeasonsStats = await getAllSeasonsStats(seasons);
   const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
 
-  // Build per-player season history: { [pid]: { [seasonId]: SeasonStats } }
   const playerSeasonHistory: Record<string, any> = {};
   for (const [sid, seasonMap] of Object.entries(allSeasonsStats)) {
     for (const player of players) {
