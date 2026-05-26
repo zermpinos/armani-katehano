@@ -9,5 +9,9 @@ export {
   buildGameImportedText,
   type GameImportedGame,
   type TopPerformer,
+  type TeamGameStats,
+  type SeasonRecord,
+  type NextGameInfo,
+  type GameEmailContext,
 } from "./game-imported";
 export { buildCourtesyEmailHtml, buildCourtesyEmailText } from "./courtesy-email";

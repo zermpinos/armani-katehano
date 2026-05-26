@@ -69,8 +69,9 @@ describe("GET /api/admin/import-jobs/broadcast", () => {
   it("renders confirmation form on confirmable state", async () => {
     (verifyAndPreview as any).mockResolvedValue({
       ok: true, state: "confirmable",
-      game: { id: "g1", opponent: "Opp", location: "home", teamScore: 78, opponentScore: 73, result: "W", playedOn: new Date(), venueNote: null },
-      topPerformers: [{ number: 11, name: "A", pts: 24, reb: 7, ast: 5 }],
+      game: { id: "g1", opponent: "Opp", location: "home", teamScore: 78, opponentScore: 73, result: "W", playedOn: new Date(), venueNote: null, competition: null },
+      topPerformers: [{ number: 11, name: "A", position: "Guard", pts: 24, reb: 7, ast: 5 }],
+      ctx: { teamStats: null, record: null, nextGame: null },
       recipientCount: 42,
     });
     const ctx = makeReqRes("GET", "/api/admin/import-jobs/broadcast?token=xxx");
