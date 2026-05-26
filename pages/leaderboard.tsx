@@ -1,13 +1,13 @@
 import { useState } from "react";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
-import { getAllPublicData, getAllPlayerGameLogs, getAllSeasonsStats } from "@/server/db/repositories";
+import { getAllPublicData, getAllSeasonsStats } from "@/server/db/repositories";
 import { buildAllTimeStatsMap } from "@/domain/stats";
 import SeasonSelector from "@/components/ui/SeasonSelector";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { LeaderboardTable, COLS, TOTAL_COLS } from "@/client/leaderboard/leaderboard-table";
 
-export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, allPlayerGameLogs }: any) {
+export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap }: any) {
   const [sortKey, setSortKey] = useState("ppg");
   const [sortDir, setSortDir] = useState("desc");
   const [activeSeason, setActiveSeason] = useState(currentSeason);
@@ -30,9 +30,7 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
   const playersWithStats = players
     .map((p: any) => ({
       ...p,
-      stats:         activeStats[p.id] ?? {},
-      gameLog:       allPlayerGameLogs[p.id] ?? [],
-      seasonHistory: playerSeasonHistory?.[p.id] ?? {},
+      stats: activeStats[p.id] ?? {},
     }))
     .filter((p: any) => (p.stats.gp ?? 0) > 0 || activeSeason === "all-time");
 
@@ -85,22 +83,8 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
 
 export async function getStaticProps() {
   const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
-  const [allSeasonsStats, allPlayerGameLogs] = await Promise.all([
-    getAllSeasonsStats(seasons),
-    getAllPlayerGameLogs(),
-  ]);
+  const allSeasonsStats = await getAllSeasonsStats(seasons);
   const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
 
-  const playerSeasonHistory: Record<string, any> = {};
-  for (const [sid, seasonMap] of Object.entries(allSeasonsStats)) {
-    for (const player of players) {
-      const s = (seasonMap as any)[player.id];
-      if (s && s.gp > 0) {
-        if (!Reflect.has(playerSeasonHistory, player.id)) Reflect.set(playerSeasonHistory, player.id, {});
-        Reflect.set(Reflect.get(playerSeasonHistory as object, player.id), sid, s);
-      }
-    }
-  }
-
-  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, allPlayerGameLogs }, revalidate: 86400 };
+  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap }, revalidate: 86400 };
 }
