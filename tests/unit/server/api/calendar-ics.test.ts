@@ -12,6 +12,7 @@ function makeReqRes(query: Record<string, string>) {
   const req = { method: "GET", query } as any;
   const res: any = {
     status: (s: number) => { state.status = s; return res; },
+    // eslint-disable-next-line security/detect-object-injection -- k is controlled by the test mock
     setHeader: (k: string, v: string) => { state.headers[k] = v; },
     send: (p: any) => { state.payload = p; return res; },
     json: (o: any) => { state.payload = o; return res; },
