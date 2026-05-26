@@ -32,6 +32,7 @@ export const GameWriteSchema = z.object({
     const result = validateYoutubeUrl(v);
     if (result !== true) ctx.addIssue({ code: z.ZodIssueCode.custom, message: result });
   }),
+  round:          z.enum(["regular", "quarterfinal", "semifinal", "final"]).default("regular"),
   boxScore:       z.array(BoxScoreRowSchema).max(20).optional(),
 });
 
