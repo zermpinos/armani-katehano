@@ -1,8 +1,7 @@
 /**
  * scripts/preview-game-imported-email.ts
  *
- * Renders the game-imported (post-game recap) email using the latest played
- * Game in the DB. This is the email the courtesy announcement is talking about.
+ * Renders the game-imported email using the latest played Game in the DB.
  *
  * Default mode:
  *   npx tsx scripts/preview-game-imported-email.ts
@@ -10,8 +9,7 @@
  *
  * Test-send mode:
  *   npx tsx scripts/preview-game-imported-email.ts --to=<email>
- *     Delivers the rendered recap to that one address for visual QA in a real
- *     mail client. Bypasses subscribers, AuditLog, and idempotency.
+ *     Delivers the rendered recap to that one address for visual QA.
  */
 import "dotenv/config";
 import { writeFileSync } from "node:fs";
@@ -21,8 +19,10 @@ import {
   buildGameImportedText,
   type GameImportedGame,
   type TopPerformer,
+  type GameEmailContext,
 } from "@/server/integrations/email/templates";
 import { sendGameImportedTestEmail } from "@/server/integrations/email/client";
+import { fetchBroadcastEnrichment } from "@/server/services/broadcast-import";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HTML_OUT    = "/tmp/ak-game-imported-preview.html";
@@ -48,19 +48,16 @@ function parseTo(argv: string[]): string | null {
   return to;
 }
 
-async function loadLatestGame(): Promise<{ game: GameImportedGame; topPerformers: TopPerformer[] } | null> {
+async function loadLatestGame(): Promise<{
+  game:           GameImportedGame;
+  topPerformers:  TopPerformer[];
+  ctx:            GameEmailContext;
+} | null> {
   const g = await prisma.game.findFirst({
     orderBy: { playedOn: "desc" },
     include: { seasonLeague: { include: { league: { select: { name: true } } } } },
   });
   if (!g) return null;
-
-  const stats = await prisma.playerGameStat.findMany({
-    where:   { gameId: g.id },
-    orderBy: [{ pts: "desc" }, { reb: "desc" }, { ast: "desc" }],
-    take:    3,
-    include: { player: { select: { name: true, number: true } } },
-  });
 
   const game: GameImportedGame = {
     id:            g.id,
@@ -74,15 +71,9 @@ async function loadLatestGame(): Promise<{ game: GameImportedGame; topPerformers
     competition:   g.seasonLeague.league.name,
   };
 
-  const topPerformers: TopPerformer[] = stats.map(s => ({
-    number: s.player.number,
-    name:   s.player.name,
-    pts:    s.pts,
-    reb:    s.reb,
-    ast:    s.ast,
-  }));
+  const { topPerformers, ctx } = await fetchBroadcastEnrichment(g.id, g.seasonLeagueId, g.playedOn);
 
-  return { game, topPerformers };
+  return { game, topPerformers, ctx };
 }
 
 async function main(): Promise<void> {
@@ -93,12 +84,12 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const { game, topPerformers } = data;
-  const appUrl                  = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "https://armani-katehano.com";
-  const previewUnsubscribe      = `${appUrl}/unsubscribe?token=PREVIEW_TOKEN`;
+  const { game, topPerformers, ctx } = data;
+  const appUrl             = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "https://armani-katehano.com";
+  const previewUnsubscribe = `${appUrl}/unsubscribe?token=PREVIEW_TOKEN`;
 
-  const html = buildGameImportedHtml(game, topPerformers, appUrl, previewUnsubscribe);
-  const text = buildGameImportedText(game, topPerformers, appUrl, previewUnsubscribe);
+  const html = buildGameImportedHtml(game, topPerformers, ctx, appUrl, previewUnsubscribe);
+  const text = buildGameImportedText(game, topPerformers, ctx, appUrl, previewUnsubscribe);
 
   writeFileSync(HTML_OUT, html, "utf8");
   writeFileSync(TEXT_OUT, text, "utf8");
@@ -107,13 +98,16 @@ async function main(): Promise<void> {
   console.log(`Source:  ${game.id} ${vsAt} ${game.opponent} (${game.playedOn.toISOString().slice(0, 10)})`);
   console.log(`Score:   ${game.teamScore}-${game.opponentScore} (${game.result})`);
   console.log(`Top:     ${topPerformers.length} performer${topPerformers.length === 1 ? "" : "s"}`);
+  console.log(`Stats:   FG% ${ctx.teamStats?.fgPct ?? "n/a"}  REB ${ctx.teamStats?.teamReb ?? "n/a"}  TOV ${ctx.teamStats?.teamTov ?? "n/a"}`);
+  console.log(`Record:  ${ctx.record ? `${ctx.record.wins}-${ctx.record.losses}` : "n/a"}`);
+  console.log(`Next:    ${ctx.nextGame?.opponent ?? "none"}`);
   console.log(`HTML ->  ${HTML_OUT}`);
   console.log(`TEXT ->  ${TEXT_OUT}`);
 
   if (to) {
     console.log(`Sending test email to ${to}...`);
     try {
-      await sendGameImportedTestEmail({ to, game, topPerformers });
+      await sendGameImportedTestEmail({ to, game, topPerformers, ctx });
       console.log(`Test send to ${to} dispatched.`);
     } catch (err: unknown) {
       console.error(`Test send failed: ${(err as Error).message}`);
