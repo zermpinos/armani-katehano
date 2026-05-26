@@ -27,10 +27,16 @@ const game = {
   competition:   "A2 League",
 };
 const top = [
-  { number: 11, name: "Alex P", pts: 24, reb: 7, ast: 5 },
-  { number: 7,  name: "Niko I",  pts: 18, reb: 4, ast: 3 },
-  { number: 4,  name: "Yannis K",pts: 12, reb: 10, ast: 2 },
+  { number: 11, name: "Alex P",   position: "Guard",   photoUrl: null, pts: 24, reb: 7,  ast: 5 },
+  { number: 7,  name: "Niko I",   position: "Forward", photoUrl: null, pts: 18, reb: 4,  ast: 3 },
+  { number: 4,  name: "Yannis K", position: "Center",  photoUrl: null, pts: 12, reb: 10, ast: 2 },
 ];
+
+const ctx = {
+  teamStats: null,
+  record:    null,
+  nextGame:  null,
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -48,7 +54,7 @@ describe("sendGameImportedBroadcast", () => {
       { id: "s1", email: "a@x.com", token: "tk1" },
       { id: "s2", email: "b@x.com", token: "tk2" },
     ];
-    await sendGameImportedBroadcast({ game, topPerformers: top, subscribers: subs });
+    await sendGameImportedBroadcast({ game, topPerformers: top, ctx, subscribers: subs });
 
     expect(sendMail).toHaveBeenCalledTimes(2);
     expect(prisma.subscriber.update).toHaveBeenCalledTimes(2);
@@ -59,7 +65,7 @@ describe("sendGameImportedBroadcast", () => {
     const sendMail = vi.fn();
     (nodemailer.createTransport as any).mockReturnValue({ sendMail });
 
-    await sendGameImportedBroadcast({ game, topPerformers: top, subscribers: [] });
+    await sendGameImportedBroadcast({ game, topPerformers: top, ctx, subscribers: [] });
 
     expect(sendMail).not.toHaveBeenCalled();
     expect(auditLog).toHaveBeenCalledWith("game_imported_emails_skipped", expect.objectContaining({ reason: "no_confirmed_subscribers" }));
@@ -75,7 +81,7 @@ describe("sendGameImportedBroadcast", () => {
       { id: "s1", email: "a@x.com", token: "tk1" },
       { id: "s2", email: "b@x.com", token: "tk2" },
     ];
-    await sendGameImportedBroadcast({ game, topPerformers: top, subscribers: subs });
+    await sendGameImportedBroadcast({ game, topPerformers: top, ctx, subscribers: subs });
 
     expect(sendMail).toHaveBeenCalledTimes(2);
     expect(auditLog).toHaveBeenCalledWith("game_imported_emails_summary", expect.objectContaining({ total: 2, sent: 1, failed: 1 }));
@@ -86,7 +92,7 @@ describe("sendGameImportedBroadcast", () => {
     const sendMail = vi.fn();
     (nodemailer.createTransport as any).mockReturnValue(null);
 
-    await sendGameImportedBroadcast({ game, topPerformers: top, subscribers: [{ id: "s1", email: "a@x.com", token: "tk1" }] });
+    await sendGameImportedBroadcast({ game, topPerformers: top, ctx, subscribers: [{ id: "s1", email: "a@x.com", token: "tk1" }] });
 
     expect(sendMail).not.toHaveBeenCalled();
   });

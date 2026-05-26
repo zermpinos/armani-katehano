@@ -20,6 +20,7 @@ npm-debug.log*
 .claude
 CLAUDE.md
 .worktrees/
+.superpowers/
 audit.txt
 structure.txt
 test-results/

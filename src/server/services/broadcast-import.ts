@@ -3,12 +3,19 @@ import prisma from "@/server/db/client";
 import { verify } from "@/server/utils/broadcast-token";
 import { auditLog } from "@/server/security/node/audit-log";
 import { sendGameImportedBroadcast } from "@/server/integrations/email/client";
-import type { GameImportedGame, TopPerformer } from "@/server/integrations/email/templates";
+import type {
+  GameImportedGame,
+  TopPerformer,
+  GameEmailContext,
+  TeamGameStats,
+  SeasonRecord,
+  NextGameInfo,
+} from "@/server/integrations/email/templates";
 
 export type VerifyAndPreviewResult =
   | { ok: false; reason: "malformed" | "bad_signature" | "expired" | "not_found" | "not_imported" | "no_imported_game" }
   | { ok: true;  state: "already_broadcast"; broadcastedAt: Date; game: GameImportedGame }
-  | { ok: true;  state: "confirmable";       game: GameImportedGame; topPerformers: TopPerformer[]; recipientCount: number };
+  | { ok: true;  state: "confirmable"; game: GameImportedGame; topPerformers: TopPerformer[]; ctx: GameEmailContext; recipientCount: number };
 
 function toGameImported(g: {
   id: string; opponent: string; location: string | null; teamScore: number;
@@ -26,6 +33,90 @@ function toGameImported(g: {
     venueNote:     g.notes,
     competition:   g.seasonLeague.league.name,
   };
+}
+
+async function fetchTopPerformers(gameId: string): Promise<TopPerformer[]> {
+  const stats = await prisma.playerGameStat.findMany({
+    where:   { gameId },
+    orderBy: [{ pts: "desc" }, { reb: "desc" }, { ast: "desc" }],
+    take:    3,
+    include: { player: { select: { name: true, number: true, position: true, photoUrl: true } } },
+  });
+  return stats.map(s => ({
+    number:   s.player.number,
+    name:     s.player.name,
+    position: s.player.position,
+    photoUrl: s.player.photoUrl ?? null,
+    pts:      s.pts,
+    reb:      s.reb,
+    ast:      s.ast,
+  }));
+}
+
+async function fetchTeamStats(gameId: string): Promise<TeamGameStats> {
+  const agg = await prisma.playerGameStat.aggregate({
+    where: { gameId },
+    _sum:  { fgm: true, fga: true, reb: true, tov: true },
+  });
+  const fgmTotal = agg._sum.fgm ?? 0;
+  const fgaTotal = agg._sum.fga ?? 0;
+  return {
+    fgPct:   fgaTotal > 0 ? Math.round((fgmTotal / fgaTotal) * 100) : null,
+    teamReb: agg._sum.reb ?? 0,
+    teamTov: agg._sum.tov ?? 0,
+  };
+}
+
+async function fetchRecord(seasonLeagueId: string, playedOn: Date): Promise<SeasonRecord> {
+  const groups = await prisma.game.groupBy({
+    by:     ["result"],
+    where:  { seasonLeagueId, playedOn: { lt: playedOn } },
+    _count: { result: true },
+  });
+  let wins = 0;
+  let losses = 0;
+  for (const g of groups) {
+    if (g.result === "W") wins = g._count.result;
+    if (g.result === "L") losses = g._count.result;
+  }
+  return { wins, losses };
+}
+
+async function fetchNextGame(): Promise<NextGameInfo | null> {
+  const ng = await prisma.upcomingGame.findFirst({
+    where:   { scheduledFor: { gt: new Date() } },
+    orderBy: { scheduledFor: "asc" },
+    select:  { opponent: true, scheduledFor: true, location: true, notes: true },
+  });
+  if (!ng) return null;
+  return {
+    opponent:     ng.opponent,
+    scheduledFor: ng.scheduledFor,
+    location:     ng.location,
+    venue:        ng.notes,
+  };
+}
+
+export async function fetchBroadcastEnrichment(
+  gameId:         string,
+  seasonLeagueId: string,
+  playedOn:       Date,
+): Promise<{ topPerformers: TopPerformer[]; ctx: GameEmailContext }> {
+  const topPerformers = await fetchTopPerformers(gameId);
+
+  let ctx: GameEmailContext = { teamStats: null, record: null, nextGame: null };
+  try {
+    const [teamStats, record, nextGame] = await Promise.all([
+      fetchTeamStats(gameId),
+      fetchRecord(seasonLeagueId, playedOn),
+      fetchNextGame(),
+    ]);
+    ctx = { teamStats, record, nextGame };
+  } catch {
+    // enrichment failed — broadcast continues without enriched sections
+  }
+
+  return { topPerformers, ctx };
 }
 
 export async function verifyAndPreview(token: string): Promise<VerifyAndPreviewResult> {
@@ -50,26 +141,13 @@ export async function verifyAndPreview(token: string): Promise<VerifyAndPreviewR
     return { ok: true, state: "already_broadcast", broadcastedAt: job.subscriberBroadcastAt, game };
   }
 
-  const [recipientCount, stats] = await Promise.all([
+  const [recipientCount, { topPerformers, ctx }] = await Promise.all([
     prisma.subscriber.count({ where: { confirmedAt: { not: null } } }),
-    prisma.playerGameStat.findMany({
-      where:   { gameId: job.importedGameId },
-      orderBy: [{ pts: "desc" }, { reb: "desc" }, { ast: "desc" }],
-      take:    3,
-      include: { player: { select: { name: true, number: true } } },
-    }),
+    fetchBroadcastEnrichment(job.importedGameId, job.importedGame.seasonLeagueId, job.importedGame.playedOn),
   ]);
 
-  const topPerformers: TopPerformer[] = stats.map(s => ({
-    number: s.player.number,
-    name:   s.player.name,
-    pts:    s.pts,
-    reb:    s.reb,
-    ast:    s.ast,
-  }));
-
   auditLog("broadcast_link_viewed", { jobId: job.id });
-  return { ok: true, state: "confirmable", game, topPerformers, recipientCount };
+  return { ok: true, state: "confirmable", game, topPerformers, ctx, recipientCount };
 }
 
 function brevoConfigured(): boolean {
@@ -129,22 +207,14 @@ export async function claimAndBroadcast({ token, ip: _ip }: { token: string; ip:
     return { ok: true, state: "already_broadcast", broadcastedAt: fresh?.subscriberBroadcastAt ?? new Date() };
   }
 
-  const [subscribers, stats] = await Promise.all([
+  const [subscribers, { topPerformers, ctx }] = await Promise.all([
     prisma.subscriber.findMany({ where: { confirmedAt: { not: null } }, select: { id: true, email: true, token: true } }),
-    prisma.playerGameStat.findMany({
-      where:   { gameId: job.importedGameId },
-      orderBy: [{ pts: "desc" }, { reb: "desc" }, { ast: "desc" }],
-      take:    3,
-      include: { player: { select: { name: true, number: true } } },
-    }),
+    fetchBroadcastEnrichment(job.importedGameId, job.importedGame.seasonLeagueId, job.importedGame.playedOn),
   ]);
 
   const game = toGameImported(job.importedGame);
-  const topPerformers: TopPerformer[] = stats.map(s => ({
-    number: s.player.number, name: s.player.name, pts: s.pts, reb: s.reb, ast: s.ast,
-  }));
 
-  await sendGameImportedBroadcast({ game, topPerformers, subscribers });
+  await sendGameImportedBroadcast({ game, topPerformers, ctx, subscribers });
 
   return { ok: true, state: "broadcasted", recipientCount: subscribers.length };
 }
