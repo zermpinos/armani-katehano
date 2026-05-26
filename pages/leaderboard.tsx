@@ -32,6 +32,8 @@ function computeStatsFromLog(log: any[]) {
     tpg: avg("tov"), fpg: avg("pf"),
     fgPct, fg2Pct, fg3Pct, ftPct,
     fga: fgaTotal, fg2a: fg2aTotal, fg3a: fg3aTotal, fta: ftaTotal,
+    fgm: sum("fgm"), fg3m: sum("fg3m"), ftm: sum("ftm"),
+    pts_total: sum("pts"), reb_total: sum("reb"), ast_total: sum("ast"), stl_total: sum("stl"),
     gp: n,
   };
 }
