@@ -1,5 +1,4 @@
 import { useState } from "react";
-import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import { getAllPublicData, getAllPlayerGameLogs, getAllSeasonsStats } from "@/server/db/repositories";
@@ -8,20 +7,11 @@ import SeasonSelector from "@/components/ui/SeasonSelector";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { LeaderboardTable, COLS, TOTAL_COLS } from "@/client/leaderboard/leaderboard-table";
 
-// PlayerDetail transitively pulls in recharts (via GameLogPanel + SkillRadar);
-// loading it dynamically keeps recharts out of this page's chunk and the
-// chunks Next.js prefetches for any <Link> pointing here.
-const PlayerDetail = dynamic(
-  () => import("@/client/players/PlayerDetail").then(m => ({ default: m.PlayerDetail })),
-  { ssr: false }
-);
-
 export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, allPlayerGameLogs }: any) {
   const [sortKey, setSortKey] = useState("ppg");
   const [sortDir, setSortDir] = useState("desc");
   const [activeSeason, setActiveSeason] = useState(currentSeason);
   const [viewMode, setViewMode] = useState<"avg" | "tot">("avg");
-  const [selected, setSelected] = useState<any>(null);
 
   const activeCols = viewMode === "avg" ? COLS : TOTAL_COLS;
   const activeStats = activeSeason === "all-time" ? allTimeStatsMap : statsMap;
@@ -87,11 +77,8 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
           sortKey={sortKey}
           sortDir={sortDir}
           onSort={handleSort}
-          onSelect={setSelected}
         />
       </ErrorBoundary>
-
-      {selected && <PlayerDetail player={selected} onClose={() => setSelected(null)} activeSeason={activeSeason} />}
     </Layout>
   );
 }
