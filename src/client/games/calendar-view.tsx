@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { getCountdownInfo, formatGameTime } from "@/client/home/calendar-utils";
 import { UpcomingGameModal } from "./upcoming-game-modal";
 
 const CAL_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 
-export function CalendarView({ games, upcomingGames, onGameClick, loadingBoxScore }: any) {
+export function CalendarView({ games, upcomingGames }: any) {
   const [selectedUpcoming, setSelectedUpcoming] = useState<any>(null);
 
   const months = useMemo(() => {
@@ -85,17 +86,16 @@ export function CalendarView({ games, upcomingGames, onGameClick, loadingBoxScor
           {cells.map(cell => {
             if (cell.type === "empty") return <div key={cell.id} className="aspect-square" />;
             const { day } = cell;
-            const played = dayMap.get(day);
+            const played   = dayMap.get(day);
             const upcoming = upcomingDayMap.get(day);
 
             if (played) {
               const isWin = played.result === "W";
               return (
-                <button
+                <Link
                   key={day}
-                  onClick={!loadingBoxScore ? () => onGameClick(played) : undefined}
-                  disabled={loadingBoxScore}
-                  className={`aspect-square rounded-lg cursor-pointer flex flex-col items-center justify-center p-[3px_2px] gap-0.5 transition-[border-color,background] duration-150 min-w-0 overflow-hidden ${
+                  href={`/games/${played.id}`}
+                  className={`aspect-square rounded-lg flex flex-col items-center justify-center p-[3px_2px] gap-0.5 transition-[border-color,background] duration-150 min-w-0 overflow-hidden ${
                     isWin
                       ? "border border-[#4caf7d55] bg-[#4caf7d28] hover:border-ak-green hover:bg-[#4caf7d40]"
                       : "border border-[#e0555545] bg-[#8b1a1a38] hover:border-ak-red-text hover:bg-[#8b1a1a50]"
@@ -104,13 +104,13 @@ export function CalendarView({ games, upcomingGames, onGameClick, loadingBoxScor
                   <span className="text-[10px] font-black text-ak-text leading-none">{day}</span>
                   <span className={`text-[8px] font-bold leading-none tracking-[0.04em] ${isWin ? "text-ak-green" : "text-ak-red-text"}`}>{played.home ? "vs" : "@"}</span>
                   <span className="text-[8px] font-black text-ak-text leading-none whitespace-nowrap overflow-hidden text-ellipsis max-w-full px-[3px]">{played.opponent}</span>
-                </button>
+                </Link>
               );
             }
 
             if (upcoming) {
               const { tier } = getCountdownInfo(upcoming.scheduledFor);
-              const isToday = tier === "today";
+              const isToday  = tier === "today";
               return (
                 <button
                   key={day}
