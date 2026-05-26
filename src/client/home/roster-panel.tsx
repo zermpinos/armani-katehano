@@ -1,22 +1,22 @@
+import Link from "next/link";
+
 function isStarter(note: string | null | undefined): boolean {
   if (!note) return false;
   return /^start(er|ing)?$/i.test(note.trim());
 }
 
-function PlayerRow({ p, onPlayerClick, dim }: { p: any; onPlayerClick?: (id: string) => void; dim?: boolean }) {
+function PlayerRow({ p, dim }: { p: any; dim?: boolean }) {
   return (
     <div className="flex items-center gap-2 py-1 border-b border-ak-border last:border-b-0">
       <span className={`text-[11px] font-black min-w-[28px] [font-variant-numeric:tabular-nums] ${dim ? "text-ak-text-dim" : "text-ak-red-text"}`}>
         #{p.number}
       </span>
-      <button
-        type="button"
-        onClick={() => onPlayerClick?.(p.id)}
-        disabled={!onPlayerClick}
-        className={`flex-1 text-left bg-transparent border-0 p-0 text-[13px] transition-colors duration-150 ${dim ? "text-ak-text-sub font-normal" : "text-ak-text font-bold"} ${onPlayerClick ? "cursor-pointer hover:text-ak-red-text" : "cursor-default"}`}
+      <Link
+        href={`/players/${p.slug}`}
+        className={`flex-1 text-[13px] transition-colors duration-150 hover:text-ak-red-text no-underline ${dim ? "text-ak-text-sub font-normal" : "text-ak-text font-bold"}`}
       >
         {p.name}
-      </button>
+      </Link>
       <span className="text-[10px] text-ak-text-dim">{p.position}</span>
       {p.note && !isStarter(p.note) && (
         <span className="text-[9px] font-black tracking-[0.08em] px-1.5 py-0.5 rounded bg-[#4caf7d20] text-ak-green border border-[#4caf7d40] whitespace-nowrap">
@@ -27,7 +27,7 @@ function PlayerRow({ p, onPlayerClick, dim }: { p: any; onPlayerClick?: (id: str
   );
 }
 
-export function RosterPanel({ announcement, onPlayerClick }: { announcement: any; onPlayerClick?: (id: string) => void }) {
+export function RosterPanel({ announcement }: { announcement: any }) {
   const sorted   = [...announcement.players].sort((a: any, b: any) => a.number - b.number);
   const starters = sorted.filter((p: any) => isStarter(p.note));
   const bench    = sorted.filter((p: any) => !isStarter(p.note));
@@ -41,13 +41,13 @@ export function RosterPanel({ announcement, onPlayerClick }: { announcement: any
             Starters <span className="text-ak-green">· {starters.length}</span>
           </div>
           <div className="flex flex-col mb-2">
-            {starters.map((p: any) => <PlayerRow key={p.id} p={p} onPlayerClick={onPlayerClick} />)}
+            {starters.map((p: any) => <PlayerRow key={p.id} p={p} />)}
           </div>
           <div className="text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-1 mt-2">
             Bench <span className="text-ak-text-dim">· {bench.length}</span>
           </div>
           <div className="flex flex-col">
-            {bench.map((p: any) => <PlayerRow key={p.id} p={p} onPlayerClick={onPlayerClick} dim />)}
+            {bench.map((p: any) => <PlayerRow key={p.id} p={p} dim />)}
           </div>
         </>
       ) : (
@@ -56,7 +56,7 @@ export function RosterPanel({ announcement, onPlayerClick }: { announcement: any
             Announced Roster
           </div>
           <div className="flex flex-col">
-            {sorted.map((p: any) => <PlayerRow key={p.id} p={p} onPlayerClick={onPlayerClick} />)}
+            {sorted.map((p: any) => <PlayerRow key={p.id} p={p} />)}
           </div>
         </>
       )}
