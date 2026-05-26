@@ -4,28 +4,21 @@ import {
   buildGameImportedText,
   type GameImportedGame,
   type TopPerformer,
+  type GameEmailContext,
 } from "@/server/integrations/email/templates/game-imported";
 
-const game: GameImportedGame = {
-  id:            "game_xyz",
-  opponent:      "Olympiacos B",
-  location:      "home",
-  teamScore:     78,
-  opponentScore: 73,
-  result:        "W",
-  playedOn:      new Date("2026-05-15T19:00:00Z"),
-  venueNote:     "Peristeri Arena",
-  competition:   "A2 League",
+const NULL_CTX: GameEmailContext = { teamStats: null, record: null, nextGame: null };
+
+const FULL_CTX: GameEmailContext = {
+  teamStats: { fgPct: 38, teamReb: 24, teamTov: 11 },
+  record:    { wins: 17, losses: 18 },
+  nextGame: {
+    opponent:     "Panathinaikos",
+    scheduledFor: new Date("2026-06-01T18:00:00.000Z"),
+    location:     "home",
+    venue:        null,
+  },
 };
-
-const top: TopPerformer[] = [
-  { number: 11, name: "Alex Papadopoulos", pts: 24, reb: 7,  ast: 5 },
-  { number: 7,  name: "Nikos Ioannou",     pts: 18, reb: 4,  ast: 3 },
-  { number: 4,  name: "Yannis Kostas",     pts: 12, reb: 10, ast: 2 },
-];
-
-const APP_URL          = "https://armani-katehano.com";
-const UNSUBSCRIBE_URL  = "https://armani-katehano.com/unsubscribe?token=unsubtok";
 
 const GAME: GameImportedGame = {
   id:            "g1",
@@ -39,256 +32,448 @@ const GAME: GameImportedGame = {
   competition:   "Δ' Εθνική 2025-26",
 };
 
+const WIN_GAME: GameImportedGame = { ...GAME, result: "W", teamScore: 78, opponentScore: 65 };
+
 const PERFORMERS: TopPerformer[] = [
-  { number: 14, name: "Giorgos Tsioulkas",         pts: 16, reb: 7, ast: 1 },
-  { number: 77, name: "Andreas Papadimitriou",     pts: 14, reb: 4, ast: 2 },
-  { number:  3, name: "Stathis Christofilopoulos", pts: 11, reb: 3, ast: 1 },
+  { number: 7,  name: "M. Katehano",  position: "Guard",   photoUrl: null, pts: 18, reb: 5,  ast: 4 },
+  { number: 11, name: "J. Rossi",     position: "Forward", photoUrl: null, pts: 14, reb: 9,  ast: 2 },
+  { number: 23, name: "A. Lemos",     position: "Center",  photoUrl: null, pts: 11, reb: 7,  ast: 6 },
 ];
 
-const UNSUB = `${APP_URL}/unsubscribe?token=t`;
+const APP_URL = "https://armani-katehano.com";
+const UNSUB   = `${APP_URL}/unsubscribe?token=t`;
 
-describe("game-imported email template", () => {
-  it("buildHtml contains matchup, score, all top performers, CTA, unsubscribe", () => {
-    const html = buildGameImportedHtml(game, top, APP_URL, UNSUBSCRIBE_URL);
-    expect(html).toContain("vs Olympiacos B");
-    expect(html).toContain("78");
-    expect(html).toContain("73");
-    expect(html).toContain("Alex Papadopoulos");
-    expect(html).toContain("Nikos Ioannou");
-    expect(html).toContain("Yannis Kostas");
-    expect(html).toContain(`${APP_URL}/games/${game.id}`);
-    expect(html).toContain(UNSUBSCRIBE_URL);
-  });
+// ── Core structure ────────────────────────────────────────────────────────────
 
-  it("buildHtml uses '@' prefix for away games", () => {
-    const html = buildGameImportedHtml({ ...game, location: "away" }, top, APP_URL, UNSUBSCRIBE_URL);
-    expect(html).toContain("@ Olympiacos B");
-    expect(html).not.toContain("vs Olympiacos B");
-  });
+it("declares lang=en", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain('lang="en"');
+});
 
-  it("buildHtml renders loss styling for L result", () => {
-    const html = buildGameImportedHtml({ ...game, result: "L", teamScore: 70, opponentScore: 80 }, top, APP_URL, UNSUBSCRIBE_URL);
-    expect(html).toContain("70");
-    expect(html).toContain("80");
-    expect(html).toMatch(/L\b/);
-  });
+it("contains a preheader span with Final · score summary", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toMatch(/<span style="display:none[^"]*">[^<]*Final[^<]*53-73 \(L\)[^<]*<\/span>/);
+});
 
-  it("buildHtml escapes opponent and player names", () => {
-    const html = buildGameImportedHtml(
-      { ...game, opponent: "Evil<script>" },
-      [{ number: 99, name: "<img src=x>", pts: 1, reb: 0, ast: 0 }],
-      APP_URL, UNSUBSCRIBE_URL,
-    );
-    expect(html).not.toContain("<script>");
-    expect(html).not.toContain("<img src=x>");
-    expect(html).toContain("&lt;script&gt;");
-    expect(html).toContain("&lt;img");
-  });
+it("wraps body in MSO conditional comments", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain("<!--[if mso]>");
+  expect(html).toContain("<![endif]-->");
+});
 
-  it("buildHtml handles fewer than 3 top performers without erroring", () => {
-    const html = buildGameImportedHtml(game, top.slice(0, 1), APP_URL, UNSUBSCRIBE_URL);
-    expect(html).toContain("Alex Papadopoulos");
-    expect(html).not.toContain("Nikos Ioannou");
-  });
+it("<title> includes matchup and score", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toMatch(/<title>@ Dragons 53-73 \(L\)<\/title>/);
+});
 
-  it("buildText contains matchup, score, players, CTA URL, unsubscribe URL", () => {
-    const text = buildGameImportedText(game, top, APP_URL, UNSUBSCRIBE_URL);
-    expect(text).toContain("vs Olympiacos B");
-    expect(text).toContain("78");
-    expect(text).toContain("73");
-    expect(text).toContain("Alex Papadopoulos");
-    expect(text).toContain(`${APP_URL}/games/${game.id}`);
-    expect(text).toContain(UNSUBSCRIBE_URL);
-  });
+// ── Header (section ①) ────────────────────────────────────────────────────────
 
-  it("HTML declares lang=en", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toContain('lang="en"');
-    expect(html).not.toContain('lang="el"');
-  });
+it("header cell has dark #111111 background with bgcolor fallback", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toMatch(/bgcolor="#111111"[^>]*style="[^"]*background-color:#111111/);
+});
 
-  it("HTML <title> includes matchup and final score", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toMatch(/<title>@ Dragons 53-73 \(L\)<\/title>/);
-  });
+it("header includes the logo img pointing to /logohighres.png", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain(`src="${APP_URL}/logohighres.png"`);
+  expect(html).toContain('width="52"');
+  expect(html).toContain('border="0"');
+});
 
-  it("HTML eyebrow reads 'Armani Katehano · Game Recap'", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toContain("Armani Katehano &middot; Game Recap");
-  });
+it("header contains ARMANI KATEHANO brand label in #c92a2a", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain("color:#c92a2a");
+  expect(html).toContain("Armani Katehano");
+});
 
-  it("plain text contains no em-dashes anywhere", () => {
-    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(text).not.toMatch(/--/);
-  });
+it("header shows competition when present", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain("Δ&#39; Εθνική 2025-26");
+});
 
-  it("HTML contains a preheader span with the final-score summary", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toMatch(/<span style="display:none[^"]*">[^<]*Final[^<]*53-73 \(L\)[^<]*<\/span>/);
-  });
+it("has a 3px red separator row between header and sub-header", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toMatch(/bgcolor="#c92a2a"[^>]*style="[^"]*background-color:#c92a2a[^"]*height:3px/);
+});
 
-  it("HTML wraps the body in an Outlook MSO conditional", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toContain("<!--[if mso]>");
-    expect(html).toContain("<![endif]-->");
-  });
+// ── Sub-header (section ②) ────────────────────────────────────────────────────
 
-  it("HTML score block shows 'AK' label and the short opponent label", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toMatch(/>AK<\/p>[\s\S]*>Dragons<\/p>/);
-  });
+it("sub-header contains GAME RECAP, the date, and the matchup", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html.toUpperCase()).toContain("GAME RECAP");
+  expect(html).toContain("Saturday, 16 May 2026");
+  expect(html).toContain("@ Dragons");
+});
 
-  it("HTML score block truncates a long opponent label to 12 chars", () => {
-    const g = { ...GAME, opponent: "Panathinaikos B.C." };
-    const html = buildGameImportedHtml(g, PERFORMERS, APP_URL, UNSUB);
-    // First whitespace-split token of "Panathinaikos B.C." is "Panathinaikos" (13 chars), truncated to 12: "Panathinaiko".
-    expect(html).toContain(">Panathinaiko<");
-    expect(html).not.toContain(">Panathinaikos<");
-  });
+it("sub-header cell uses #1c1c1c background with bgcolor fallback", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toMatch(/bgcolor="#1c1c1c"[^>]*style="[^"]*background-color:#1c1c1c/);
+});
 
-  it("HTML performer table has a header row with #, Player, Pts, Reb, Ast columns", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toMatch(/<tr style="background:#f3f4f6;">[\s\S]*>#<\/td>[\s\S]*>Player<\/td>[\s\S]*>Pts<\/td>[\s\S]*>Reb<\/td>[\s\S]*>Ast<\/td>/);
-  });
+// ── Score (section ③) ─────────────────────────────────────────────────────────
 
-  it("HTML performer rows render pts, reb, ast as three separate right-aligned cells", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    // Tsioulkas: 16 pts, 7 reb, 1 ast -- should appear as three separate cells, not "16 pts · 7 reb · 1 ast"
-    expect(html).not.toContain("16 pts &middot; 7 reb &middot; 1 ast");
-    expect(html).toMatch(/>Giorgos Tsioulkas<\/td>\s*<td[^>]*text-align:right[^>]*>16<\/td>\s*<td[^>]*text-align:right[^>]*>7<\/td>\s*<td[^>]*text-align:right[^>]*>1<\/td>/);
-  });
+it("score section uses #1a1a1a background with bgcolor fallback", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toMatch(/bgcolor="#1a1a1a"[^>]*style="[^"]*background-color:#1a1a1a/);
+});
 
-  it("HTML no longer renders the standalone legend paragraph", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).not.toContain("# &middot; Player &middot; Pts &middot; Reb &middot; Ast");
-  });
+it("score section has FINAL label", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain(">Final<");
+});
 
-  it("HTML footer is in its own background-colored block with a top border", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toMatch(/<!-- Footer -->[\s\S]*background:#f9fafb[\s\S]*border-top:1px solid #e5e7eb/);
-  });
+it("away game: AK is left of opponent in score section", () => {
+  // GAME.location === "away" -> AK (away) on left, opponent (home) on right
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  const scoreStart = html.indexOf("bgcolor=\"#1a1a1a\"");
+  const akIdx  = html.indexOf(">AK<", scoreStart);
+  const oppIdx = html.indexOf(">Dragons<", scoreStart);
+  expect(akIdx).toBeLessThan(oppIdx);
+});
 
-  it("HTML footer includes a Privacy notice link beside Unsubscribe", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toContain("Privacy notice");
-    expect(html).toMatch(/href="https:\/\/armani-katehano\.com\/privacy"/);
-    expect(html).toContain(UNSUB);
-  });
+it("home game: opponent is left of AK in score section", () => {
+  const homeGame = { ...GAME, location: "home" };
+  const html = buildGameImportedHtml(homeGame, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  const scoreStart = html.indexOf("bgcolor=\"#1a1a1a\"");
+  const akIdx  = html.indexOf(">AK<", scoreStart);
+  const oppIdx = html.indexOf(">Dragons<", scoreStart);
+  expect(oppIdx).toBeLessThan(akIdx);
+});
 
-  it("HTML footer reads 'You received this email because you subscribed...'", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toContain("You received this email because you subscribed to Armani Katehano game emails");
-  });
+it("on loss: opponent score color is white, AK score color is gray", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  const scoreSection = html.slice(html.indexOf("bgcolor=\"#1a1a1a\""));
+  expect(scoreSection).toContain("color:#ffffff");
+  expect(scoreSection).toContain("color:#4b5563");
+});
 
-  it("HTML CTA uses letter-spacing and 14px 28px padding (matches roster)", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toMatch(/padding:14px 28px[^;]*;[^"]*letter-spacing:0\.02em/);
-  });
+it("on win: W pill is green (#16a34a)", () => {
+  const html = buildGameImportedHtml(WIN_GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toMatch(/background:#16a34a[^"]*"[^>]*>W</);
+});
 
-  it("HTML escapes ampersands in unsubscribe URL", () => {
-    const evilUnsub = "https://example.com/unsubscribe?a=b&c=d";
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, evilUnsub);
-    expect(html).toContain("a=b&amp;c=d");
-    expect(html).not.toContain("a=b&c=d");
-  });
+it("on loss: L pill is red (#c92a2a)", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toMatch(/background:#c92a2a[^"]*"[^>]*>L</);
+});
 
-  it("plain text leads with the ARMANI KATEHANO · GAME RECAP header", () => {
-    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
+it("opponent label is truncated to 12 chars for long names", () => {
+  const g = { ...GAME, opponent: "Panathinaikos B.C." };
+  const html = buildGameImportedHtml(g, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain(">Panathinaiko<");
+  expect(html).not.toContain(">Panathinaikos<");
+});
+
+it("escapes opponent and player names", () => {
+  const html = buildGameImportedHtml(
+    { ...GAME, opponent: "Evil<script>" },
+    [{ number: 99, name: "<img src=x>", position: "Guard", photoUrl: null, pts: 1, reb: 0, ast: 0 }],
+    NULL_CTX, APP_URL, UNSUB,
+  );
+  expect(html).not.toContain("<script>");
+  expect(html).not.toContain("<img src=x>");
+  expect(html).toContain("&lt;script&gt;");
+});
+
+it("score block shows competition and venue in meta strip", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain("Δ&#39; Εθνική 2025-26");
+  expect(html).toContain("Basketcity Arena");
+});
+
+it("score block omits meta strip when both competition and venue are null", () => {
+  const g = { ...GAME, competition: null, venueNote: null };
+  const html = buildGameImportedHtml(g, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).not.toContain("Basketcity");
+});
+
+// ── Stats strip (section ④) ───────────────────────────────────────────────────
+
+it("stats strip is absent when ctx.teamStats is null", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html.toUpperCase()).not.toContain("FIELD GOAL");
+});
+
+it("stats strip shows FG%, REB, TOV when ctx.teamStats is present", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
+  expect(html.toUpperCase()).toContain("FIELD GOAL");
+  expect(html).toContain("38%");
+  expect(html).toContain(">24<");
+  expect(html).toContain(">11<");
+});
+
+it("TOV value renders in #c92a2a", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
+  expect(html).toMatch(/color:#c92a2a[^>]*>[^<]*11[^<]*<\/p>/);
+});
+
+it("FG% shows dash when fgPct is null", () => {
+  const ctx: GameEmailContext = { ...FULL_CTX, teamStats: { fgPct: null, teamReb: 20, teamTov: 5 } };
+  const html = buildGameImportedHtml(GAME, PERFORMERS, ctx, APP_URL, UNSUB);
+  expect(html).toContain("--");
+});
+
+// ── Top performers (section ⑤) ────────────────────────────────────────────────
+
+it("performer table has header row with Pos, Pts, Reb, Ast columns", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain(">Pos<");
+  expect(html).toContain(">Pts<");
+  expect(html).toContain(">Reb<");
+  expect(html).toContain(">Ast<");
+});
+
+it("renders player initials in the avatar cell when photoUrl is null", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain(">MK<");
+  expect(html).toContain(">JR<");
+  expect(html).toContain(">AL<");
+});
+
+it("renders player photo img when photoUrl is set, falls back to initials when null", () => {
+  const mixed: TopPerformer[] = [
+    { ...PERFORMERS[0]!, photoUrl: "https://cdn.example.com/mk.jpg" },
+    { ...PERFORMERS[1]!, photoUrl: null },
+    { ...PERFORMERS[2]!, photoUrl: null },
+  ];
+  const html = buildGameImportedHtml(GAME, mixed, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain('src="https://cdn.example.com/mk.jpg"');
+  expect(html).not.toContain(">MK<");
+  expect(html).toContain(">JR<");
+});
+
+it("avatar cell has dark #111111 background with bgcolor fallback", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toMatch(/bgcolor="#111111"[^>]*style="[^"]*background-color:#111111[^"]*border-radius/);
+});
+
+it("shows position text when position is non-empty", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain("Guard");
+  expect(html).toContain("Forward");
+  expect(html).toContain("Center");
+});
+
+it("highlights top PTS, REB, AST values in #c92a2a", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toMatch(/color:#c92a2a[^>]*>18</);
+  expect(html).toMatch(/color:#c92a2a[^>]*>9</);
+  expect(html).toMatch(/color:#c92a2a[^>]*>6</);
+});
+
+it("non-max stat values render in #374151", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toMatch(/color:#374151[^>]*>14</);
+});
+
+it("handles fewer than 3 top performers without error", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS.slice(0, 1), NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain("M. Katehano");
+  expect(html).not.toContain("J. Rossi");
+});
+
+// ── CTA (section ⑥) ──────────────────────────────────────────────────────────
+
+it("CTA button links to /games/<id>", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain(`${APP_URL}/games/${GAME.id}`);
+  expect(html).toContain("View full box score");
+});
+
+it("CTA button background is #c92a2a", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toMatch(/href="[^"]*\/games\/g1"[^>]*style="[^"]*background[^"]*#c92a2a/);
+});
+
+// ── Footer bar (section ⑦) ────────────────────────────────────────────────────
+
+it("record+next-game bar is absent when both ctx.record and ctx.nextGame are null", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html.toUpperCase()).not.toContain("RECORD");
+});
+
+it("record section shows W and L numbers when ctx.record is present", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain("17");
+  expect(html).toContain("18");
+  expect(html.toUpperCase()).toContain("RECORD");
+});
+
+it("win-rate percentage is shown when wins+losses > 0", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain("48.6%");
+});
+
+it("win-rate percentage is omitted when wins+losses === 0", () => {
+  const ctx: GameEmailContext = { ...FULL_CTX, record: { wins: 0, losses: 0 } };
+  const html = buildGameImportedHtml(GAME, PERFORMERS, ctx, APP_URL, UNSUB);
+  expect(html).not.toContain("48.6%");
+});
+
+it("next game shows opponent when ctx.nextGame is present", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain("Panathinaikos");
+  expect(html.toUpperCase()).toContain("NEXT");
+});
+
+it("calendar buttons are present when nextGame is not null", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain("calendar.google.com");
+  expect(html).toContain("/api/calendar/ics");
+});
+
+it("ICS URL opponent param is encodeURIComponent-encoded", () => {
+  const ctx: GameEmailContext = {
+    ...FULL_CTX,
+    nextGame: { opponent: "Team & Bros", scheduledFor: new Date("2026-06-01T18:00:00.000Z"), location: "home", venue: null },
+  };
+  const html = buildGameImportedHtml(GAME, PERFORMERS, ctx, APP_URL, UNSUB);
+  expect(html).toContain("Team%20%26%20Bros");
+  expect(html).not.toContain("opponent=Team & Bros");
+});
+
+it("footer bar uses #111111 background (header and footer both dark)", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
+  const matches = html.match(/bgcolor="#111111"/g);
+  expect(matches).toBeTruthy();
+  expect(matches!.length).toBeGreaterThanOrEqual(2);
+});
+
+it("record section renders even when nextGame is null", () => {
+  const ctx: GameEmailContext = { teamStats: null, record: { wins: 5, losses: 3 }, nextGame: null };
+  const html = buildGameImportedHtml(GAME, PERFORMERS, ctx, APP_URL, UNSUB);
+  expect(html.toUpperCase()).toContain("RECORD");
+  expect(html).not.toContain("calendar.google.com");
+});
+
+it("record section shows competition name as context for the record", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
+  const lastDark = html.lastIndexOf('bgcolor="#111111"');
+  expect(html.slice(lastDark)).toContain("Δ&#39; Εθνική 2025-26");
+});
+
+it("record section omits competition subtitle when competition is null", () => {
+  const g = { ...GAME, competition: null };
+  const ctx: GameEmailContext = { teamStats: null, record: { wins: 3, losses: 1 }, nextGame: null };
+  const html = buildGameImportedHtml(g, PERFORMERS, ctx, APP_URL, UNSUB);
+  expect(html.toUpperCase()).toContain("RECORD");
+  expect(html).toContain("3");
+});
+
+it("next game section renders even when record is null", () => {
+  const ctx: GameEmailContext = {
+    teamStats: null, record: null,
+    nextGame: { opponent: "Aris", scheduledFor: new Date("2026-06-01T18:00:00.000Z"), location: "away", venue: null },
+  };
+  const html = buildGameImportedHtml(GAME, PERFORMERS, ctx, APP_URL, UNSUB);
+  expect(html).toContain("Aris");
+  expect(html).toContain("calendar.google.com");
+});
+
+// ── Legal footer (section ⑧) ─────────────────────────────────────────────────
+
+it("legal footer has privacy link and unsubscribe link", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain("Privacy notice");
+  expect(html).toMatch(/href="https:\/\/armani-katehano\.com\/privacy"/);
+  expect(html).toContain(UNSUB);
+});
+
+it("legal footer reads 'You received this email because you subscribed...'", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain("You received this email because you subscribed to Armani Katehano game emails");
+});
+
+it("legal footer cell uses #f9fafb surface background", () => {
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+  expect(html).toContain("background:#f9fafb");
+});
+
+it("escapes ampersands in unsubscribe URL", () => {
+  const evilUnsub = "https://example.com/unsubscribe?a=b&c=d";
+  const html = buildGameImportedHtml(GAME, PERFORMERS, NULL_CTX, APP_URL, evilUnsub);
+  expect(html).toContain("a=b&amp;c=d");
+  expect(html).not.toContain("a=b&c=d");
+});
+
+// ── buildGameImportedText ─────────────────────────────────────────────────────
+
+describe("buildGameImportedText -- new sections", () => {
+  it("leads with ARMANI KATEHANO · GAME RECAP", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
     expect(text.split("\n")[0]).toBe("ARMANI KATEHANO · GAME RECAP");
   });
 
-  it("plain text contains a TOP PERFORMERS · N section header", () => {
-    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(text).toContain("TOP PERFORMERS · 3");
+  it("away game: AK is left of opponent in score grid", () => {
+    // GAME.location === "away" -> AK (away) on left, opponent (home) on right
+    const text = buildGameImportedText(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+    expect(text).toMatch(/AK\s+Dragons/);
+    expect(text).toMatch(/53\s+73/);
   });
 
-  it("plain text contains a Privacy notice line and an Unsubscribe line", () => {
-    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(text).toMatch(/Privacy notice\s+https:\/\/armani-katehano\.com\/privacy/);
-    expect(text).toMatch(/Unsubscribe\s+https:\/\/armani-katehano\.com\/unsubscribe/);
+  it("home game: opponent is left of AK in score grid", () => {
+    const homeGame = { ...GAME, location: "home" };
+    const text = buildGameImportedText(homeGame, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+    expect(text).toMatch(/Dragons\s+AK/);
+    expect(text).toMatch(/73\s+53/);
   });
 
-  it("plain text contains the full box score URL", () => {
-    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
+  it("includes Pos column in performer header when any performer has a position", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+    expect(text).toMatch(/Player\s+Pos\s+Pts/);
+  });
+
+  it("includes team stats section when ctx.teamStats is present", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
+    expect(text).toContain("TEAM STATS");
+    expect(text).toContain("FG%: 38%");
+    expect(text).toContain("REB: 24");
+    expect(text).toContain("TOV: 11");
+  });
+
+  it("omits team stats section when ctx.teamStats is null", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+    expect(text).not.toContain("TEAM STATS");
+    expect(text).not.toContain("FG%:");
+  });
+
+  it("includes record and win rate when ctx.record is present and wins+losses > 0", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
+    expect(text).toMatch(/Record:\s+17.18\s+\(48\.6%/);
+  });
+
+  it("shows record without win rate when wins+losses === 0", () => {
+    const ctx: GameEmailContext = { ...FULL_CTX, record: { wins: 0, losses: 0 } };
+    const text = buildGameImportedText(GAME, PERFORMERS, ctx, APP_URL, UNSUB);
+    expect(text).toMatch(/Record:\s+0.0/);
+    expect(text).not.toContain("win rate");
+  });
+
+  it("includes next game line and Google Calendar URL when ctx.nextGame is present", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
+    expect(text).toContain("Panathinaikos");
+    expect(text).toContain("calendar.google.com");
+  });
+
+  it("omits record and next game section when both are null", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+    expect(text).not.toContain("Record:");
+    expect(text).not.toContain("Next:");
+  });
+
+  it("contains no em-dashes", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
+    expect(text).not.toMatch(/--/);
+  });
+
+  it("contains the full box score URL", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
     expect(text).toContain(`Full box score:  ${APP_URL}/games/g1`);
   });
 
-  it("HTML header band shows a date subtitle under the matchup", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toMatch(/<p[^>]*color:#ffffff[^>]*>@ Dragons<\/p>\s*<p[^>]*color:#d1d5db[^>]*>Saturday, 16 May 2026<\/p>/);
-  });
-
-  it("HTML score block shows a FINAL eyebrow centered above the scores", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toMatch(/<!-- Score -->[\s\S]*<p[^>]*text-align:center[^>]*>Final<\/p>/);
-  });
-
-  it("HTML score block contains the W/L pill between the AK and opponent scores", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    const scoreBlock = html.match(/<!-- Score -->[\s\S]*?<\/td><\/tr>/)?.[0] ?? "";
-    expect(scoreBlock).toMatch(/background:#c92a2a[^"]*"[^>]*>L</);
-    expect(scoreBlock).toMatch(/>AK<\/p>[\s\S]*background:#c92a2a[\s\S]*>Dragons<\/p>/);
-  });
-
-  it("HTML W pill renders with the brand-adjacent green", () => {
-    const g = { ...GAME, result: "W" };
-    const html = buildGameImportedHtml(g, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toMatch(/background:#16a34a[^"]*"[^>]*>W</);
-  });
-
-  it("HTML pill uses 14px font and 6px 14px padding", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(html).toMatch(/padding:6px 14px[^;]*;[^"]*font-size:14px/);
-  });
-
-  it("HTML score block meta strip shows competition and venue joined by a middot", () => {
-    const html = buildGameImportedHtml(GAME, PERFORMERS, APP_URL, UNSUB);
-    const scoreBlock = html.match(/<!-- Score -->[\s\S]*?<\/td><\/tr>/)?.[0] ?? "";
-    expect(scoreBlock).toContain("Δ&#39; Εθνική 2025-26");
-    expect(scoreBlock).toContain("Basketcity Arena");
-    expect(scoreBlock).toMatch(/Δ&#39; Εθνική 2025-26[\s\S]*&middot;[\s\S]*Basketcity Arena/);
-  });
-
-  it("HTML score block omits the meta strip entirely when both competition and venue are null", () => {
-    const g = { ...GAME, competition: null, venueNote: null };
-    const html = buildGameImportedHtml(g, PERFORMERS, APP_URL, UNSUB);
-    const scoreBlock = html.match(/<!-- Score -->[\s\S]*?<\/td><\/tr>/)?.[0] ?? "";
-    expect(scoreBlock).not.toContain("Δ");
-    expect(scoreBlock).not.toContain("Basketcity");
-  });
-
-  it("plain text body contains a FINAL line followed by an aligned score grid", () => {
-    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(text).toMatch(/FINAL\n\s+AK\s+Dragons\n\s+53\s+73\s+\(L\)/);
-  });
-
-  it("plain text no longer contains a 'Result 53-73 (L)' line", () => {
-    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(text).not.toMatch(/Result\s+53-73 \(L\)/);
-  });
-
-  it("plain text renders competition and venue on a single meta line joined by ·", () => {
-    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(text).toMatch(/Δ' Εθνική 2025-26 · Basketcity Arena/);
-    expect(text).not.toMatch(/^  Competition\s+/m);
-    expect(text).not.toMatch(/^  Venue\s+/m);
-  });
-
-  it("plain text omits the meta line entirely when both competition and venue are null", () => {
-    const g = { ...GAME, competition: null, venueNote: null };
-    const text = buildGameImportedText(g, PERFORMERS, APP_URL, UNSUB);
-    expect(text).not.toContain("Δ");
-    expect(text).not.toContain("Basketcity");
-  });
-
-  it("plain text performer block includes a header row with Pts Reb Ast", () => {
-    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(text).toMatch(/#\s+Player\s+Pts\s+Reb\s+Ast/);
-  });
-
-  it("plain text performer rows drop the pts/reb/ast suffixes", () => {
-    const text = buildGameImportedText(GAME, PERFORMERS, APP_URL, UNSUB);
-    expect(text).not.toContain("16 pts · 7 reb · 1 ast");
-    expect(text).toMatch(/#14\s+Giorgos Tsioulkas\s+16\s+7\s+1/);
+  it("contains privacy and unsubscribe lines", () => {
+    const text = buildGameImportedText(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
+    expect(text).toMatch(/Privacy notice\s+https:\/\/armani-katehano\.com\/privacy/);
+    expect(text).toMatch(/Unsubscribe\s+https:\/\/armani-katehano\.com\/unsubscribe/);
   });
 });

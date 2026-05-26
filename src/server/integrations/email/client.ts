@@ -19,6 +19,7 @@ import {
   type HeartbeatPayload,
   type GameImportedGame,
   type TopPerformer,
+  type GameEmailContext,
 } from "./templates";
 
 export type ImportNotificationPayload =
@@ -165,12 +166,14 @@ export async function sendRosterAnnouncement({
 export interface SendGameImportedBroadcastParams {
   game:          GameImportedGame;
   topPerformers: TopPerformer[];
+  ctx:           GameEmailContext;
   subscribers:   Array<{ id: string; email: string; token: string }>;
 }
 
 export async function sendGameImportedBroadcast({
   game,
   topPerformers,
+  ctx,
   subscribers,
 }: SendGameImportedBroadcastParams): Promise<void> {
   const transport = createTransport();
@@ -192,8 +195,8 @@ export async function sendGameImportedBroadcast({
     subscribers.map(sub => {
       const emailHash      = crypto.createHash("sha256").update(sub.email).digest("hex");
       const unsubscribeUrl = `${appUrl}/unsubscribe?token=${sub.token}`;
-      const html = buildGameImportedHtml(game, topPerformers, appUrl, unsubscribeUrl);
-      const text = buildGameImportedText(game, topPerformers, appUrl, unsubscribeUrl);
+      const html = buildGameImportedHtml(game, topPerformers, ctx, appUrl, unsubscribeUrl);
+      const text = buildGameImportedText(game, topPerformers, ctx, appUrl, unsubscribeUrl);
       return transport.sendMail({ from: FROM, to: sub.email, subject, html, text })
         .then(() => {
           auditLog("game_imported_email_delivered", { emailHash, gameId: game.id });
@@ -221,10 +224,12 @@ export async function sendGameImportedTestEmail({
   to,
   game,
   topPerformers,
+  ctx = { teamStats: null, record: null, nextGame: null },
 }: {
   to:            string;
   game:          GameImportedGame;
   topPerformers: TopPerformer[];
+  ctx?:          GameEmailContext;
 }): Promise<void> {
   const transport = createTransport();
   if (!transport) throw new Error("BREVO_SMTP_USER/PASS not configured");
@@ -234,8 +239,8 @@ export async function sendGameImportedTestEmail({
   const vsAt               = game.location === "home" ? "vs" : "@";
   const safeOpponent       = game.opponent.slice(0, 100).replace(/[\r\n]/g, " ");
   const subject            = `${vsAt} ${safeOpponent}: ${game.teamScore}-${game.opponentScore} (${game.result})`;
-  const html               = buildGameImportedHtml(game, topPerformers, appUrl, previewUnsubscribe);
-  const text               = buildGameImportedText(game, topPerformers, appUrl, previewUnsubscribe);
+  const html               = buildGameImportedHtml(game, topPerformers, ctx, appUrl, previewUnsubscribe);
+  const text               = buildGameImportedText(game, topPerformers, ctx, appUrl, previewUnsubscribe);
 
   await transport.sendMail({ from: FROM, to, subject, html, text });
 }
