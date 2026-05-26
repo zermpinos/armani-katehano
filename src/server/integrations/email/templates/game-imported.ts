@@ -142,13 +142,12 @@ function footerBarHtml(ctx: GameEmailContext, appUrl: string, competition: strin
     const winRate = total > 0
       ? `<p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">${((wins / total) * 100).toFixed(1)}% win rate</p>`
       : "";
-    const competitionSub = nonEmpty(competition)
-      ? `<p style="margin:2px 0 0;font-size:9px;color:#9ca3af;">${esc(competition)}</p>`
-      : "";
+    const recordLabel = nonEmpty(competition)
+      ? `Current Record in ${esc(competition)}`
+      : "Current Record";
     recordHtml = `
               <td style="vertical-align:top;padding-right:16px;">
-                <p style="margin:0;font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">Record</p>
-                ${competitionSub}
+                <p style="margin:0;font-size:9px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#6b7280;">${recordLabel}</p>
                 <p style="margin:4px 0 0;font-size:18px;font-weight:900;color:#ffffff;font-variant-numeric:tabular-nums;">${wins}&#8211;${losses}</p>
                 ${winRate}
               </td>`;
@@ -399,7 +398,8 @@ export function buildGameImportedText(
       const { wins, losses } = ctx.record;
       const total = wins + losses;
       const rate  = total > 0 ? ` (${((wins / total) * 100).toFixed(1)}% win rate)` : "";
-      lines.push(`Record:  ${wins}–${losses}${rate}`);
+      const leagueSuffix = nonEmpty(game.competition) ? ` in ${game.competition}` : "";
+      lines.push(`Current Record${leagueSuffix}:  ${wins}–${losses}${rate}`);
     }
     if (ctx.nextGame) {
       const ng      = ctx.nextGame;

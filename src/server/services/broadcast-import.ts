@@ -70,7 +70,7 @@ async function fetchTeamStats(gameId: string): Promise<TeamGameStats> {
 async function fetchRecord(seasonLeagueId: string, playedOn: Date): Promise<SeasonRecord> {
   const groups = await prisma.game.groupBy({
     by:     ["result"],
-    where:  { seasonLeagueId, playedOn: { lt: playedOn } },
+    where:  { seasonLeagueId, playedOn: { lte: playedOn } },
     _count: { result: true },
   });
   let wins = 0;
