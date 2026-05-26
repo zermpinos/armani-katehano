@@ -27,6 +27,7 @@ export async function getGames(seasonName: string, leagueSlug: string | null = n
     result:       g.result,
     score:        `${g.teamScore}–${g.opponentScore}`,
     league:       g.seasonLeague.league.slug,
+    round:        g.round,
     offRating:    g.offRating ?? null,
     defRating:    g.defRating ?? null,
     boxScore: g.playerStats.map(r => ({
@@ -84,6 +85,7 @@ export async function getAllGames() {
       leagueName:  g.seasonLeague.league.name,
       sourceUrl:   g.sourceUrl ?? null,
       youtubeUrl:  g.youtubeUrl ?? null,
+      round:       g.round,
       offRating:   g.offRating ?? null,
       defRating:   g.defRating ?? null,
       // Pre-computed top scorer so game cards can show it without a full box score
