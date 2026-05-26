@@ -6,5 +6,6 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 export function phaseLabel(phase: string): string {
+  // eslint-disable-next-line security/detect-object-injection
   return PHASE_LABELS[phase] ?? "Regular Season";
 }
