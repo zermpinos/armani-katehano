@@ -8,6 +8,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { computePlayerAggregates } from "@/server/services/stats-recalc";
+import { aggregatesToStatsMap } from "@/domain/stats";
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -174,5 +175,62 @@ describe("computePlayerAggregates -- efficiency", () => {
     ];
     const agg = computePlayerAggregates(rows);
     expect(agg.effAvg).toBe(18.00);
+  });
+});
+
+// ─── computePlayerAggregates ↔ aggregatesToStatsMap pipeline ─────────────────
+// Verifies that the DB storage path (computePlayerAggregates -> write to DB ->
+// aggregatesToStatsMap on read) produces the same display values as arithmetic
+// performed directly on the raw fixture rows.
+
+describe("computePlayerAggregates -> aggregatesToStatsMap cross-path agreement", () => {
+  // 3-game fixture; all expected values are derived by hand below
+  const ROWS = [
+    { minutes:30, pts:20, reb:5, orb:1, drb:4, ast:3, stl:1, blk:0, tov:2, pf:2,
+      fgm:8, fga:16, fg2m:6, fg2a:11, fg3m:2, fg3a:5, ftm:2, fta:3 },
+    { minutes:28, pts:15, reb:8, orb:2, drb:6, ast:5, stl:2, blk:1, tov:1, pf:3,
+      fgm:6, fga:12, fg2m:4, fg2a:8,  fg3m:2, fg3a:4, ftm:1, fta:2 },
+    { minutes:25, pts:10, reb:3, orb:0, drb:3, ast:2, stl:0, blk:0, tov:3, pf:1,
+      fgm:4, fga:10, fg2m:3, fg2a:7,  fg3m:1, fg3a:3, ftm:1, fta:1 },
+  ];
+
+  function pipeline() {
+    const agg = computePlayerAggregates(ROWS);
+    return aggregatesToStatsMap([{ playerId: "p1", ...agg }])["p1"];
+  }
+
+  it("ppg matches total pts / n", () => {
+    expect(pipeline().ppg).toBe(+(45 / 3).toFixed(1)); // 15.0
+  });
+
+  it("rpg matches total reb / n", () => {
+    expect(pipeline().rpg).toBe(+(16 / 3).toFixed(1)); // 5.3
+  });
+
+  it("fgPct computed from summed totals (18 made, 38 attempted)", () => {
+    expect(pipeline().fgPct).toBe(+(18 / 38 * 100).toFixed(1)); // 47.4
+  });
+
+  it("fg3Pct computed from summed totals (5 made, 12 attempted)", () => {
+    expect(pipeline().fg3Pct).toBe(+(5 / 12 * 100).toFixed(1)); // 41.7
+  });
+
+  it("ftPct computed from summed totals (4 made, 6 attempted)", () => {
+    expect(pipeline().ftPct).toBe(+(4 / 6 * 100).toFixed(1)); // 66.7
+  });
+
+  it("eff average matches (calcEff game1 + calcEff game2 + calcEff game3) / 3", () => {
+    // game1: 20+5+3+1+0 - (16-8) - (3-2) - 2 = 18
+    // game2: 15+8+5+2+1 - (12-6) - (2-1) - 1 = 23
+    // game3: 10+3+2+0+0 - (10-4) - (1-1) - 3 = 6
+    expect(pipeline().eff).toBe(+((18 + 23 + 6) / 3).toFixed(1)); // 15.7
+  });
+
+  it("ptsTotal / rebTotal stored correctly and surface through the pipeline", () => {
+    const entry = pipeline();
+    expect(entry.pts_total).toBe(45);
+    expect(entry.reb_total).toBe(16);
+    expect(entry.ast_total).toBe(10);
+    expect(entry.stl_total).toBe(3);
   });
 });

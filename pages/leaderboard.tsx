@@ -2,41 +2,13 @@ import { useState, useMemo } from "react";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import { getAllPublicData, getAllSeasonsStats, getAllPlayerGameLogs } from "@/server/db/repositories";
-import { buildAllTimeStatsMap } from "@/domain/stats";
+import { buildAllTimeStatsMap, computeStatsFromLog } from "@/domain/stats";
 import SeasonSelector from "@/components/ui/SeasonSelector";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { LeaderboardTable, COLS, TOTAL_COLS } from "@/client/leaderboard/leaderboard-table";
 
 type PhaseFilter = "all" | "regular" | "playoffs";
 const PLAYOFF_ROUNDS = ["quarterfinal", "semifinal", "final"];
-
-function computeStatsFromLog(log: any[]) {
-  const n = log.length;
-  if (n === 0) return null;
-  // eslint-disable-next-line security/detect-object-injection
-  const sum = (key: string) => log.reduce((a: number, r: any) => a + (r[key] || 0), 0);
-  const avg = (key: string) => +(sum(key) / n).toFixed(1);
-  const fgaTotal  = sum("fga");
-  const fg2aTotal = sum("fg2a");
-  const fg3aTotal = sum("fg3a");
-  const ftaTotal  = sum("fta");
-  const fgPct  = fgaTotal  > 0 ? +((sum("fgm")  / fgaTotal)  * 100).toFixed(1) : 0;
-  const fg2Pct = fg2aTotal > 0 ? +((sum("fg2m") / fg2aTotal) * 100).toFixed(1) : 0;
-  const fg3Pct = fg3aTotal > 0 ? +((sum("fg3m") / fg3aTotal) * 100).toFixed(1) : 0;
-  const ftPct  = ftaTotal  > 0 ? +((sum("ftm")  / ftaTotal)  * 100).toFixed(1) : 0;
-  return {
-    ppg: avg("pts"), rpg: avg("reb"), apg: avg("ast"),
-    spg: avg("stl"), bpg: avg("blk"), eff: avg("eff"),
-    mpg: avg("min"),
-    orpg: avg("orb"), drpg: avg("drb"),
-    tpg: avg("tov"), fpg: avg("pf"),
-    fgPct, fg2Pct, fg3Pct, ftPct,
-    fga: fgaTotal, fg2a: fg2aTotal, fg3a: fg3aTotal, fta: ftaTotal,
-    fgm: sum("fgm"), fg3m: sum("fg3m"), ftm: sum("ftm"),
-    pts_total: sum("pts"), reb_total: sum("reb"), ast_total: sum("ast"), stl_total: sum("stl"),
-    gp: n,
-  };
-}
 
 export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs }: any) {
   const [sortKey, setSortKey] = useState("ppg");
