@@ -11,6 +11,7 @@ import { SubscribeForm } from "@/client/home/subscribe-form";
 import { RecentResultsCard } from "@/client/home/recent-results-card";
 import { EfficiencyLeaderCard } from "@/client/home/efficiency-leader-card";
 import { deferDynamic } from "@/client/home/defer-dynamic";
+import { phaseLabel } from "@/domain/games/phase";
 
 function UpcomingGamesSkeleton() {
   return (
@@ -57,7 +58,7 @@ const ScoringTrendModal = dynamic(
   { ssr: false }
 );
 
-export default function HomePage({ players, games, stats, upcomingGames, currentSeason, allPlayerGameLogs }: any) {
+export default function HomePage({ players, games, stats, upcomingGames, currentSeason, seasonPhase, allPlayerGameLogs }: any) {
   const [trendRange, setTrendRange] = useState(10);
   const [showTrendModal, setShowTrendModal] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
@@ -123,7 +124,9 @@ export default function HomePage({ players, games, stats, upcomingGames, current
         <div className="absolute inset-0 opacity-[0.18] ak-hero-texture" />
         <div className="absolute top-0 right-0 w-[280px] h-[280px] rounded-full bg-[#8b1a1a18] translate-x-[35%] -translate-y-[35%]" />
         <div className="relative">
-          <div className="text-[11px] font-black tracking-[0.18em] uppercase text-ak-red-text mb-2">2025–26 · Regular Season</div>
+          <div className="text-[11px] font-black tracking-[0.18em] uppercase text-ak-red-text mb-2">
+            {currentSeason.replace(/-/g, "–")} · {phaseLabel(seasonPhase)}
+          </div>
           <h1 className="text-[clamp(36px,6vw,64px)] font-black leading-none tracking-[-0.02em] uppercase text-ak-text">
             Armani<br /><span className="text-ak-red-bright">Katehano</span>
           </h1>
@@ -191,10 +194,13 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 }
 
 export async function getStaticProps() {
-  const [{ players, games, stats, currentSeason }, upcomingGames, allPlayerGameLogs] = await Promise.all([
+  const [{ players, games, stats, currentSeason, config }, upcomingGames, allPlayerGameLogs] = await Promise.all([
     getAllPublicData(),
     getUpcomingGamesWithAnnouncements(),
     getAllPlayerGameLogs(),
   ]);
-  return { props: { players, games, stats, upcomingGames, currentSeason, allPlayerGameLogs }, revalidate: 86400 };
+  return {
+    props: { players, games, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, allPlayerGameLogs },
+    revalidate: 86400,
+  };
 }

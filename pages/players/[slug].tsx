@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
@@ -12,6 +12,30 @@ import { buildAllTimeStatsMap } from "@/domain/stats";
 const SkillRadar   = dynamic(() => import("@/client/players/SkillRadar").then(m => ({ default: m.SkillRadar })),     { ssr: false });
 const GameLogPanel = dynamic(() => import("@/client/players/GameLogPanel").then(m => ({ default: m.GameLogPanel })), { ssr: false });
 
+type PhaseFilter = "all" | "regular" | "playoffs";
+const PLAYOFF_ROUNDS = ["quarterfinal", "semifinal", "final"];
+
+function computeStatsFromLog(log: any[]) {
+  const n = log.length;
+  if (n === 0) return null;
+  const sum = (key: string) => log.reduce((a: number, r: any) => a + (r[key] || 0), 0);
+  const avg = (key: string) => +(sum(key) / n).toFixed(1);
+  const fgPct  = sum("fga")  > 0 ? +((sum("fgm")  / sum("fga"))  * 100).toFixed(1) : 0;
+  const fg3Pct = sum("fg3a") > 0 ? +((sum("fg3m") / sum("fg3a")) * 100).toFixed(1) : 0;
+  const ftPct  = sum("fta")  > 0 ? +((sum("ftm")  / sum("fta"))  * 100).toFixed(1) : 0;
+  return {
+    ppg: avg("pts"), rpg: avg("reb"), apg: avg("ast"),
+    spg: avg("stl"), bpg: avg("blk"), eff: avg("eff"),
+    mpg: avg("min"),
+    fgPct, fg3Pct, ftPct,
+    fg2Pct: sum("fg2a") > 0 ? +((sum("fg2m") / sum("fg2a")) * 100).toFixed(1) : 0,
+    orpg: avg("orb"), drpg: avg("drb"),
+    tpg: avg("tov"), fpg: avg("pf"),
+    ftmPg: avg("ftm"), ftaPg: avg("fta"),
+    gp: n,
+  };
+}
+
 const EMPTY_STATS = {
   ppg: 0, rpg: 0, orpg: 0, drpg: 0, apg: 0, spg: 0, bpg: 0,
   tpg: 0, fpg: 0, fgPct: 0, fg2Pct: 0, fg3Pct: 0, ftPct: 0,
@@ -20,12 +44,32 @@ const EMPTY_STATS = {
 
 export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons, currentSeason, playerSeasonHistory, allGameLog }: any) {
   const [activeSeason, setActiveSeason] = useState(currentSeason);
+  const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("all");
 
   const activeStatsMap = activeSeason === "all-time" ? allTimeStatsMap : statsMap;
-  const activeStats    = activeStatsMap[player.id] ?? EMPTY_STATS;
-  const gameLog        = activeSeason === "all-time"
+
+  const baseGameLog = activeSeason === "all-time"
     ? allGameLog
     : allGameLog.filter((g: any) => g.season === activeSeason);
+
+  const gameLog = useMemo(() => {
+    if (phaseFilter === "all") return baseGameLog;
+    if (phaseFilter === "regular") return baseGameLog.filter((g: any) => g.round === "regular");
+    return baseGameLog.filter((g: any) => PLAYOFF_ROUNDS.includes(g.round));
+  }, [baseGameLog, phaseFilter]);
+
+  const activeStats = useMemo(() => {
+    if (phaseFilter !== "all") {
+      return computeStatsFromLog(gameLog) ?? EMPTY_STATS;
+    }
+    return activeStatsMap[player.id] ?? EMPTY_STATS;
+  }, [phaseFilter, gameLog, activeStatsMap, player.id]);
+
+  const handleSeasonChange = (sid: string) => {
+    setActiveSeason(sid);
+    setPhaseFilter("all");
+  };
+
   const seasonHistory  = playerSeasonHistory[player.id] ?? {};
   const playerWithHistory = { ...player, seasonHistory };
   const hasStats = activeStats.gp > 0;
@@ -37,9 +81,24 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
       <SeasonSelector
         seasons={seasons}
         currentSeason={activeSeason}
-        onChange={setActiveSeason}
+        onChange={handleSeasonChange}
         showAllTime={true}
       />
+      <div className="flex items-center gap-1.5 mb-4">
+        {(["all", "regular", "playoffs"] as const).map(f => (
+          <button
+            key={f}
+            onClick={() => setPhaseFilter(f)}
+            className={`px-[10px] py-[3px] text-[10px] font-black tracking-[0.1em] uppercase rounded-md cursor-pointer border transition-all duration-150 ${
+              phaseFilter === f
+                ? "border-[#c0392b60] bg-[#8b1a1a25] text-ak-red-text"
+                : "border-ak-border bg-transparent text-ak-text-dim"
+            }`}
+          >
+            {f === "all" ? "All Season" : f === "regular" ? "Regular Season" : "Playoffs"}
+          </button>
+        ))}
+      </div>
       {hasStats ? (
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="sm:col-start-2 sm:col-span-2 sm:row-start-1">

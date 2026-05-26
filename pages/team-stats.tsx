@@ -22,8 +22,12 @@ const TAB_BASE = "px-[10px] py-[3px] text-[10px] font-black tracking-[0.1em] upp
 const TAB_ACTIVE   = "border-[#c0392b60] bg-[#8b1a1a25] text-ak-red-text";
 const TAB_INACTIVE = "border-ak-border bg-transparent text-ak-text-dim hover:text-ak-text";
 
+type PhaseFilter = "all" | "regular" | "playoffs";
+const PLAYOFF_ROUNDS = ["quarterfinal", "semifinal", "final"];
+
 export default function TeamPage({ players, games, seasons, currentSeason }: any) {
   const [league, setLeague] = useState("all");
+  const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("all");
 
   const handleSeasonChange = (sid: any) => {
     window.location.href = sid === "all-time" ? "/team-stats" : `/team-stats?season=${sid}`;
@@ -42,9 +46,15 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
     ];
   }, [games]);
 
+  const phaseFilteredGames = useMemo(() => {
+    if (phaseFilter === "all") return games;
+    if (phaseFilter === "regular") return games.filter((g: any) => g.round === "regular");
+    return games.filter((g: any) => PLAYOFF_ROUNDS.includes(g.round));
+  }, [games, phaseFilter]);
+
   const filteredGames = useMemo(
-    () => league === "all" ? games : games.filter((g: any) => g.league === league),
-    [league, games],
+    () => league === "all" ? phaseFilteredGames : phaseFilteredGames.filter((g: any) => g.league === league),
+    [phaseFilteredGames, league],
   );
 
   const gp = filteredGames.length;
@@ -110,6 +120,18 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
       <SectionHeading label="2025–26 Season" title="Team Stats" />
 
       <SeasonSelector seasons={seasons} currentSeason={currentSeason} onChange={handleSeasonChange} showAllTime={false} right={`${gp} Games Played`} />
+
+      <div className="flex items-center gap-1.5 mb-4">
+        {(["all", "regular", "playoffs"] as const).map(f => (
+          <button
+            key={f}
+            onClick={() => setPhaseFilter(f)}
+            className={`${TAB_BASE} ${phaseFilter === f ? TAB_ACTIVE : TAB_INACTIVE}`}
+          >
+            {f === "all" ? "All Season" : f === "regular" ? "Regular Season" : "Playoffs"}
+          </button>
+        ))}
+      </div>
 
       <div className="flex gap-2 mb-6 flex-wrap">
         {leagueTabs.map(t => (

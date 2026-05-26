@@ -8,8 +8,9 @@ import { ResultFilter } from "@/client/games/result-filter";
 import { CalendarView } from "@/client/games/calendar-view";
 import { GamesTable } from "@/client/games/games-table";
 import { UpcomingGameModal } from "@/client/games/upcoming-game-modal";
+import { phaseLabel } from "@/domain/games/phase";
 
-export default function GamesPage({ allGames, seasons, currentSeason, upcomingGames }: any) {
+export default function GamesPage({ allGames, seasons, currentSeason, seasonPhase, upcomingGames }: any) {
   const [selectedSeason, setSelectedSeason] = useState(currentSeason);
   const [selectedLeague, setSelectedLeague] = useState("all");
   const [selectedResult, setSelectedResult] = useState("all");
@@ -58,7 +59,11 @@ export default function GamesPage({ allGames, seasons, currentSeason, upcomingGa
   return (
     <Layout title="Games">
       <SectionHeading
-        label={`${selectedSeason.replace(/-/g, "–")} Season`}
+        label={
+          selectedSeason === currentSeason
+            ? `${selectedSeason.replace(/-/g, "–")} · ${phaseLabel(seasonPhase)}`
+            : `${selectedSeason.replace(/-/g, "–")} · Season`
+        }
         title="Games"
       />
 
@@ -138,7 +143,13 @@ export async function getStaticProps() {
   ]);
 
   return {
-    props: { allGames, seasons, currentSeason: config.currentSeason, upcomingGames },
+    props: {
+      allGames,
+      seasons,
+      currentSeason: config.currentSeason,
+      seasonPhase: config.seasonPhase,
+      upcomingGames,
+    },
     revalidate: 86400,
   };
 }
