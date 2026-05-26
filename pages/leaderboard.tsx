@@ -16,13 +16,23 @@ function computeStatsFromLog(log: any[]) {
   // eslint-disable-next-line security/detect-object-injection
   const sum = (key: string) => log.reduce((a: number, r: any) => a + (r[key] || 0), 0);
   const avg = (key: string) => +(sum(key) / n).toFixed(1);
-  const fgPct  = sum("fga")  > 0 ? +((sum("fgm")  / sum("fga"))  * 100).toFixed(1) : 0;
-  const fg3Pct = sum("fg3a") > 0 ? +((sum("fg3m") / sum("fg3a")) * 100).toFixed(1) : 0;
-  const ftPct  = sum("fta")  > 0 ? +((sum("ftm")  / sum("fta"))  * 100).toFixed(1) : 0;
+  const fgaTotal  = sum("fga");
+  const fg2aTotal = sum("fg2a");
+  const fg3aTotal = sum("fg3a");
+  const ftaTotal  = sum("fta");
+  const fgPct  = fgaTotal  > 0 ? +((sum("fgm")  / fgaTotal)  * 100).toFixed(1) : 0;
+  const fg2Pct = fg2aTotal > 0 ? +((sum("fg2m") / fg2aTotal) * 100).toFixed(1) : 0;
+  const fg3Pct = fg3aTotal > 0 ? +((sum("fg3m") / fg3aTotal) * 100).toFixed(1) : 0;
+  const ftPct  = ftaTotal  > 0 ? +((sum("ftm")  / ftaTotal)  * 100).toFixed(1) : 0;
   return {
     ppg: avg("pts"), rpg: avg("reb"), apg: avg("ast"),
     spg: avg("stl"), bpg: avg("blk"), eff: avg("eff"),
-    mpg: avg("min"),  fgPct, fg3Pct, ftPct, gp: n,
+    mpg: avg("min"),
+    orpg: avg("orb"), drpg: avg("drb"),
+    tpg: avg("tov"), fpg: avg("pf"),
+    fgPct, fg2Pct, fg3Pct, ftPct,
+    fga: fgaTotal, fg2a: fg2aTotal, fg3a: fg3aTotal, fta: ftaTotal,
+    gp: n,
   };
 }
 
