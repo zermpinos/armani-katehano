@@ -6,6 +6,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const BLOCKLIST_PATH = resolve(__dirname, "..", "scrub", "blocklist.json");
 
 export function checkSubject(subject, blocklist) {
+  // eslint-disable-next-line security/detect-non-literal-regexp
   const compiled = blocklist.subject_templates.map((p) => ({ src: p, re: new RegExp(p) }));
   for (const { src, re } of compiled) {
     if (re.test(subject)) return { subject, rule: src };
@@ -26,7 +27,9 @@ function main() {
     console.error("ERROR: commit-msg hook expects message-file argument");
     process.exit(2);
   }
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   const blocklist = JSON.parse(readFileSync(BLOCKLIST_PATH, "utf8"));
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   const msg = readFileSync(msgPath, "utf8");
   const subject = firstNonBlankLine(msg);
   if (!subject) process.exit(0); // empty commit message — git will reject

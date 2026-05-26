@@ -7,10 +7,12 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const BLOCKLIST_PATH = resolve(__dirname, "blocklist.json");
 
 export function loadBlocklist(path = BLOCKLIST_PATH) {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
 function compileRegexes(patterns) {
+  // eslint-disable-next-line security/detect-non-literal-regexp
   return patterns.map((p) => ({ src: p, re: new RegExp(p) }));
 }
 
