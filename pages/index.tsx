@@ -56,20 +56,12 @@ const ScoringTrendModal = dynamic(
   () => import("@/client/home/scoring-trend-modal").then(m => ({ default: m.ScoringTrendModal })),
   { ssr: false }
 );
-// PlayerDetail transitively pulls in recharts (via GameLogPanel + SkillRadar);
-// loading it dynamically keeps recharts out of this page's chunk and the
-// chunks Next.js prefetches for any <Link> pointing here.
-const PlayerDetail = dynamic(
-  () => import("@/client/players/PlayerDetail").then(m => ({ default: m.PlayerDetail })),
-  { ssr: false }
-);
 
 export default function HomePage({ players, games, stats, upcomingGames, currentSeason, allPlayerGameLogs }: any) {
   const [trendRange, setTrendRange] = useState(10);
   const [showTrendModal, setShowTrendModal] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [openRosterId, setOpenRosterId] = useState<string | null>(null);
-  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const toggleRoster = (id: string) => setOpenRosterId(prev => prev === id ? null : id);
 
   const playersWithStats = players.map((p: any) => ({
@@ -77,11 +69,6 @@ export default function HomePage({ players, games, stats, upcomingGames, current
     stats:   stats[p.id] ?? { ppg: 0, rpg: 0, apg: 0, fgPct: 0, eff: 0, mpg: 0, gp: 0 },
     gameLog: allPlayerGameLogs[p.id] ?? [],
   }));
-
-  const openPlayerById = (id: string) => {
-    const match = playersWithStats.find((pp: any) => pp.id === id);
-    if (match) setSelectedPlayer(match);
-  };
 
   const record = computeRecord(games);
 
@@ -158,7 +145,6 @@ export default function HomePage({ players, games, stats, upcomingGames, current
         upcomingGames={upcomingGames}
         openRosterId={openRosterId}
         onToggleRoster={toggleRoster}
-        onPlayerClick={openPlayerById}
         showAllUpcoming={showAllUpcoming}
         onShowMore={() => setShowAllUpcoming(true)}
       />
@@ -200,7 +186,6 @@ export default function HomePage({ players, games, stats, upcomingGames, current
         totalGames={games.length}
       />
 
-      {selectedPlayer && <PlayerDetail player={selectedPlayer} onClose={() => setSelectedPlayer(null)} activeSeason={currentSeason ?? null} />}
     </Layout>
   );
 }

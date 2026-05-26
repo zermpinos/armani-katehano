@@ -8,12 +8,11 @@ interface Props {
   upcomingGames: any[];
   openRosterId: string | null;
   onToggleRoster: (id: string) => void;
-  onPlayerClick: (id: string) => void;
   showAllUpcoming: boolean;
   onShowMore: () => void;
 }
 
-export function UpcomingGamesSection({ upcomingGames, openRosterId, onToggleRoster, onPlayerClick, showAllUpcoming, onShowMore }: Props) {
+export function UpcomingGamesSection({ upcomingGames, openRosterId, onToggleRoster, showAllUpcoming, onShowMore }: Props) {
   if (!upcomingGames?.length) return null;
 
   const featured = upcomingGames[0];
@@ -105,7 +104,7 @@ export function UpcomingGamesSection({ upcomingGames, openRosterId, onToggleRost
                   ? "Hide Roster ↑"
                   : `View Roster (${featured.announcement.players.length} players) →`}
               </button>
-              {openRosterId === featured.id && <RosterPanel announcement={featured.announcement} onPlayerClick={onPlayerClick} />}
+              {openRosterId === featured.id && <RosterPanel announcement={featured.announcement} />}
             </>
           ) : (
             <div className="text-[11px] text-ak-text-dim tracking-[0.04em]">Roster TBA</div>
@@ -176,7 +175,7 @@ export function UpcomingGamesSection({ upcomingGames, openRosterId, onToggleRost
                 </div>
                 {rosterOpen && g.announcement && (
                   <div className="py-[10px] px-[14px] pb-3 border border-[#4caf7d40] border-t-0 rounded-b-[10px] bg-[#4caf7d05]">
-                    <RosterPanel announcement={g.announcement} onPlayerClick={onPlayerClick} />
+                    <RosterPanel announcement={g.announcement} />
                   </div>
                 )}
               </div>
