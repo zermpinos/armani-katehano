@@ -2,7 +2,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
-import { getAllPublicData, getAllSeasonsStats } from "@/server/db/repositories";
+import { getAllPublicData, getAllPlayerGameLogs, getAllSeasonsStats } from "@/server/db/repositories";
 import { buildAllTimeStatsMap } from "@/domain/stats";
 import SeasonSelector from "@/components/ui/SeasonSelector";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
@@ -16,7 +16,7 @@ const PlayerDetail = dynamic(
   { ssr: false }
 );
 
-export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }: any) {
+export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, allPlayerGameLogs }: any) {
   const [sortKey, setSortKey] = useState("ppg");
   const [sortDir, setSortDir] = useState("desc");
   const [activeSeason, setActiveSeason] = useState(currentSeason);
@@ -41,7 +41,7 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
     .map((p: any) => ({
       ...p,
       stats:         activeStats[p.id] ?? {},
-      gameLog:       activeStats[p.id]?.gameLog ?? [],
+      gameLog:       allPlayerGameLogs[p.id] ?? [],
       seasonHistory: playerSeasonHistory?.[p.id] ?? {},
     }))
     .filter((p: any) => (p.stats.gp ?? 0) > 0 || activeSeason === "all-time");
@@ -98,7 +98,10 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
 
 export async function getStaticProps() {
   const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
-  const allSeasonsStats = await getAllSeasonsStats(seasons);
+  const [allSeasonsStats, allPlayerGameLogs] = await Promise.all([
+    getAllSeasonsStats(seasons),
+    getAllPlayerGameLogs(),
+  ]);
   const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
 
   const playerSeasonHistory: Record<string, any> = {};
@@ -112,5 +115,5 @@ export async function getStaticProps() {
     }
   }
 
-  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }, revalidate: 86400 };
+  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, allPlayerGameLogs }, revalidate: 86400 };
 }
