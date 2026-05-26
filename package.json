@@ -35,13 +35,13 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
-    "@sentry/nextjs": "^10.53.1",
+    "@sentry/nextjs": "^10.54.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
     "next": "^16.2.6",
-    "nodemailer": "^8.0.7",
+    "nodemailer": "^8.0.8",
     "otpauth": "^9.5.1",
     "pdf-parse": "^2.4.5",
     "pg": "^8.21.0",
@@ -73,8 +73,8 @@
     "eslint-plugin-security": "^4.0.0",
     "prisma": "^7.8.0",
     "tailwindcss": "^4.3.0",
-    "tsx": "^4.22.2",
-    "typescript": "^5.8.0",
-    "vitest": "^4.1.6"
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
   }
 }
