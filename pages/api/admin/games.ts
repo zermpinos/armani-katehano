@@ -87,6 +87,7 @@ async function listGames(req: any, res: any) {
         result: g.result,
         playedOn: g.playedOn?.toISOString() ?? null,
         notes: g.notes,
+        round: g.round,
         boxScore: g.playerStats.map((s) => ({
           playerId: s.playerId,
           minutes: s.minutes,
@@ -131,6 +132,7 @@ async function createGame(req: any, res: any) {
     notes,
     sourceUrl,
     youtubeUrl,
+    round,
     boxScore,
   } = data;
 
@@ -157,6 +159,7 @@ async function createGame(req: any, res: any) {
           notes: notes ?? null,
           sourceUrl: sourceUrl ?? null,
           youtubeUrl: youtubeUrl ?? null,
+          round,
         },
       });
       if (boxScore?.length) {
@@ -208,6 +211,7 @@ async function updateGame(req: any, res: any) {
     notes,
     sourceUrl,
     youtubeUrl,
+    round,
     boxScore,
     seasonLeagueId: newLeagueId,
   } = data;
@@ -241,6 +245,7 @@ async function updateGame(req: any, res: any) {
           notes: notes ?? null,
           sourceUrl: sourceUrl ?? null,
           youtubeUrl: youtubeUrl ?? null,
+          round,
           ...(leagueChanged ? { seasonLeagueId: newLeagueId } : {}),
         },
       });
