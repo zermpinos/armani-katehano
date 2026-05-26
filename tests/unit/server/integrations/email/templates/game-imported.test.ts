@@ -439,13 +439,13 @@ describe("buildGameImportedText — new sections", () => {
 
   it("includes record and win rate when ctx.record is present and wins+losses > 0", () => {
     const text = buildGameImportedText(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
-    expect(text).toMatch(/Record:\s+17.18\s+\(48\.6%/);
+    expect(text).toMatch(/Current Record[^:]*:\s+17.18\s+\(48\.6%/);
   });
 
   it("shows record without win rate when wins+losses === 0", () => {
     const ctx: GameEmailContext = { ...FULL_CTX, record: { wins: 0, losses: 0 } };
     const text = buildGameImportedText(GAME, PERFORMERS, ctx, APP_URL, UNSUB);
-    expect(text).toMatch(/Record:\s+0.0/);
+    expect(text).toMatch(/Current Record[^:]*:\s+0.0/);
     expect(text).not.toContain("win rate");
   });
 
