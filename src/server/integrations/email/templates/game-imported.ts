@@ -90,7 +90,7 @@ function performerRowNew(
   const bg  = i % 2 === 0 ? "#ffffff" : "#f9fafb";
   const avatarInner = p.photoUrl
     ? `<img src="${esc(p.photoUrl)}" width="36" height="36" border="0"
-               style="display:block;width:36px;height:36px;border-radius:50%;object-fit:cover;" alt="${esc(p.name)}" />`
+               style="display:block;width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:top center;" alt="${esc(p.name)}" />`
     : `<table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td width="36" height="36" bgcolor="#111111" style="background-color:#111111;border-radius:50%;text-align:center;vertical-align:middle;font-size:11px;font-weight:700;color:#ffffff;letter-spacing:0.04em;width:36px;height:36px;">${initials(p.name)}</td></tr></table>`;
   return `
         <tr style="background:${bg};">
