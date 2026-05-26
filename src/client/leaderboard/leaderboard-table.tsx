@@ -1,5 +1,6 @@
 import { fmt } from "@/domain/players/format";
 import { fmtMinutes } from "@/domain/shared/format";
+import Link from "next/link";
 
 export const MEDALS = [
   { label: "🥇", textCls: "text-ak-gold",   rowBgCls: "bg-[#c9a84c18]", borderCls: "border-[#c9a84c45]", numBgCls: "bg-[#c9a84c30]", numBorderCls: "border-[#c9a84c55]" },
@@ -50,10 +51,9 @@ interface Props {
   sortKey: string;
   sortDir: string;
   onSort: (key: string) => void;
-  onSelect: (player: any) => void;
 }
 
-export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort, onSelect }: Props) {
+export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort }: Props) {
   return (
     <>
       <div className="rounded-xl border border-ak-border overflow-hidden">
@@ -88,8 +88,7 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort,
                 return (
                   <tr
                     key={p.id}
-                    onClick={() => onSelect(p)}
-                    className={`border-b border-ak-border cursor-pointer transition-colors duration-100 hover:bg-[#c0392b12] ${medal ? medal.rowBgCls : idx % 2 === 0 ? "bg-ak-surface" : "bg-ak-surface2"}`}
+                    className={`relative border-b border-ak-border transition-colors duration-100 hover:bg-[#c0392b12] ${medal ? medal.rowBgCls : idx % 2 === 0 ? "bg-ak-surface" : "bg-ak-surface2"}`}
                   >
                     <td className="px-[14px] py-[10px] text-center">
                       {medal
@@ -103,7 +102,12 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort,
                             ? `${medal.numBgCls} ${medal.textCls} border ${medal.numBorderCls}`
                             : "bg-ak-border text-ak-text-sub"
                         }`}>{p.number}</div>
-                        <span className={`font-black ${medal ? medal.textCls : "text-ak-text"}`}>{fmt(p.name)}</span>
+                        <Link
+                          href={`/players/${p.slug}`}
+                          className={`font-black after:absolute after:inset-0 after:content-[''] ${medal ? medal.textCls : "text-ak-text"}`}
+                        >
+                          {fmt(p.name)}
+                        </Link>
                       </div>
                     </td>
                     <td className="px-2 py-[10px] text-center text-[11px] font-bold text-ak-text-dim">{p.position.split("/")[0]}</td>
