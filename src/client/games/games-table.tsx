@@ -67,7 +67,14 @@ export function GamesTable({ items, onUpcomingClick, seasonLeagues, selectedLeag
                     : "bg-[#8b1a1a30] text-ak-red-text border-[#e0555530]"
                 }`}>{g.result}</span>
                 <div>
-                  <div className="text-sm font-bold text-ak-text">{g.home ? "vs" : "@"} {g.opponent}</div>
+                  <div className="text-sm font-bold text-ak-text flex items-center gap-2">
+                    {g.home ? "vs" : "@"} {g.opponent}
+                    {g.round && g.round !== "regular" && (
+                      <span className="text-[9px] font-black tracking-[0.12em] uppercase px-[6px] py-[2px] rounded-[4px] bg-[#8b1a1a20] text-ak-red-text border border-[#c0392b40]">
+                        {g.round === "quarterfinal" ? "QF" : g.round === "semifinal" ? "SF" : "FINAL"}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-[11px] text-ak-text-dim mt-0.5">
                     {g.date}
                     {seasonLeagues.length > 1 && selectedLeague === "all" && (
