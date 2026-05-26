@@ -65,3 +65,28 @@ test.describe("Player standalone page (/players/[slug])", () => {
     expect(page.url()).toContain("/games/");
   });
 });
+
+test.describe("Player navigation from leaderboard and home page", () => {
+  test("clicking a player link in the leaderboard navigates to /players/[slug]", async ({ page }) => {
+    await page.goto("/leaderboard");
+    const firstLink = page.locator("a[href^='/players/']").first();
+    test.skip(await firstLink.count() === 0, "No players in DB — skipping");
+    const href = await firstLink.getAttribute("href");
+    if (!href) return;
+    await firstLink.click();
+    // eslint-disable-next-line security/detect-non-literal-regexp
+    await expect(page).toHaveURL(new RegExp(href.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  });
+
+  test("clicking the efficiency leader card navigates to /players/[slug]", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    const cardLink = page.getByTestId("efficiency-leader-link");
+    test.skip(await cardLink.count() === 0, "No efficiency leader present — skipping");
+    const href = await cardLink.getAttribute("href");
+    if (!href) return;
+    await cardLink.click();
+    // eslint-disable-next-line security/detect-non-literal-regexp
+    await expect(page).toHaveURL(new RegExp(href.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  });
+});
