@@ -15,7 +15,7 @@ export function EfficiencyLeaderCard({ mvp }: { mvp: any }) {
       <Link
         href={`/players/${mvp.slug}`}
         data-testid="efficiency-leader-link"
-        className="rounded-xl py-[14px] px-4 mb-3 border border-[#e0555525] bg-[#8b1a1a08] flex items-center justify-between gap-3 relative z-[1] hover:opacity-90 transition-opacity no-underline"
+        className="rounded-xl py-[14px] px-4 mb-3 border border-[#e0555525] bg-[#8b1a1a08] flex items-center justify-between gap-3 relative z-[1] hover:opacity-90 transition-opacity no-underline cursor-pointer"
       >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-[10px] flex items-center justify-center bg-[#8b1a1a20] border border-[#e0555530] shrink-0 text-base">
