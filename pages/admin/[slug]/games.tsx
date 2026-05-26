@@ -14,6 +14,7 @@ type GameDraft = {
   opponent: string;
   home: boolean;
   result: string;
+  round: string;
   teamScore: string | number;
   opponentScore: string | number;
   seasonLeagueId: string;
@@ -70,12 +71,20 @@ export default function GamesPage({ validSlug }: { validSlug: boolean }) {
   });
 
   const startNew = () => {
-    setDraft({ date: "", opponent: "", home: true, result: "W", teamScore: "", opponentScore: "", seasonLeagueId: seasonLeagues[0]?.id ?? "", sourceUrl: "", youtubeUrl: "", boxScore: buildBox([]) });
+    setDraft({ date: "", opponent: "", home: true, result: "W", round: "regular", teamScore: "", opponentScore: "", seasonLeagueId: seasonLeagues[0]?.id ?? "", sourceUrl: "", youtubeUrl: "", boxScore: buildBox([]) });
     setEditId("new");
   };
 
   const startEdit = (g: Game) => {
-    setDraft({ ...g, date: g.date ?? g.playedOn?.slice(0, 10) ?? "", home: g.home ?? g.location === "home", sourceUrl: g.sourceUrl ?? "", youtubeUrl: g.youtubeUrl ?? "", boxScore: buildBox(g.boxScore) });
+    setDraft({
+      ...g,
+      date:       g.date ?? g.playedOn?.slice(0, 10) ?? "",
+      home:       g.home ?? g.location === "home",
+      round:      (g as any).round ?? "regular",
+      sourceUrl:  g.sourceUrl  ?? "",
+      youtubeUrl: g.youtubeUrl ?? "",
+      boxScore:   buildBox(g.boxScore),
+    });
     setEditId(g.id);
   };
 
@@ -114,6 +123,7 @@ export default function GamesPage({ validSlug }: { validSlug: boolean }) {
         teamScore:      Number(draft.teamScore) || 0,
         opponentScore:  Number(draft.opponentScore) || 0,
         result:         draft.result,
+        round:          draft.round ?? "regular",
         playedOn:       draft.date,
         sourceUrl:      draft.sourceUrl || null,
         youtubeUrl:     draft.youtubeUrl || null,
@@ -155,6 +165,17 @@ export default function GamesPage({ validSlug }: { validSlug: boolean }) {
         <Sel label="LEAGUE"    value={draft.seasonLeagueId ?? ""} onChange={v => updGame("seasonLeagueId", v)} options={leagueOptions} />
         <Sel label="HOME/AWAY" value={draft.home ? "home" : "away"} onChange={v => updGame("home", v === "home")} options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]} />
         <Sel label="RESULT"    value={draft.result ?? "W"}       onChange={v => updGame("result", v)}         options={[{ value: "W", label: "Win" }, { value: "L", label: "Loss" }, { value: "T", label: "Tie" }]} />
+        <Sel
+          label="ROUND"
+          value={draft.round ?? "regular"}
+          onChange={v => updGame("round", v)}
+          options={[
+            { value: "regular",      label: "Regular Season" },
+            { value: "quarterfinal", label: "Quarterfinal"   },
+            { value: "semifinal",    label: "Semifinal"      },
+            { value: "final",        label: "Final"          },
+          ]}
+        />
         <F label="OUR SCORE"   value={draft.teamScore ?? ""}     onChange={v => updGame("teamScore", v)}      type="number" />
         <F label="OPP SCORE"   value={draft.opponentScore ?? ""} onChange={v => updGame("opponentScore", v)}  type="number" />
       </div>
@@ -224,6 +245,11 @@ export default function GamesPage({ validSlug }: { validSlug: boolean }) {
                       </div>
                       <div className="text-[11px] text-ak-text-dim">
                         {g.date ?? g.playedOn?.slice(0, 10)} · {seasonLeagues.find(sl => sl.id === g.seasonLeagueId)?.leagueName ?? ""}
+                        {(g as any).round && (g as any).round !== "regular" && (
+                          <span className="ml-2 text-ak-red-text font-bold">
+                            {(g as any).round === "quarterfinal" ? "Quarterfinal" : (g as any).round === "semifinal" ? "Semifinal" : "Final"}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
