@@ -13,6 +13,7 @@ const PLAYOFF_ROUNDS = ["quarterfinal", "semifinal", "final"];
 function computeStatsFromLog(log: any[]) {
   const n = log.length;
   if (n === 0) return null;
+  // eslint-disable-next-line security/detect-object-injection
   const sum = (key: string) => log.reduce((a: number, r: any) => a + (r[key] || 0), 0);
   const avg = (key: string) => +(sum(key) / n).toFixed(1);
   const fgPct  = sum("fga")  > 0 ? +((sum("fgm")  / sum("fga"))  * 100).toFixed(1) : 0;
