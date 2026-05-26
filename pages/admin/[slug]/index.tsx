@@ -27,6 +27,8 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
   const [recalcing, setRecalcing] = useState(false);
   const [maintenanceOn, setMaintenanceOn] = useState<boolean | null>(null);
   const [maintenanceBusy, setMaintenanceBusy] = useState(false);
+  const [seasonPhase, setSeasonPhase] = useState<string | null>(null);
+  const [phaseBusy, setPhaseBusy] = useState(false);
   const handleRecalc = async () => {
     setRecalcing(true);
     try {
@@ -71,15 +73,44 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
     }
   };
 
+  const handleSetPhase = async (phase: string) => {
+    if (phase === seasonPhase) return;
+    setPhaseBusy(true);
+    try {
+      const res = await apiFetch("/api/admin/season-phase", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ phase }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setSeasonPhase(json.seasonPhase);
+        const labels: Record<string, string> = {
+          regular: "Regular Season", quarterfinal: "Quarterfinals",
+          semifinal: "Semifinals", final: "Finals",
+        };
+        setToast({ type: "success", msg: `Phase set to ${labels[json.seasonPhase] ?? json.seasonPhase}` });
+      } else {
+        setToast({ type: "error", msg: json.error ?? "Failed to set phase" });
+      }
+    } catch {
+      setToast({ type: "error", msg: "Failed to set phase" });
+    } finally {
+      setPhaseBusy(false);
+    }
+  };
+
   const loadDashboard = async () => {
     setLoading(true);
     try {
-      const [dashRes, maintRes] = await Promise.all([
+      const [dashRes, maintRes, phaseRes] = await Promise.all([
         fetch("/api/admin/dashboard"),
         apiFetch("/api/admin/maintenance"),
+        apiFetch("/api/admin/season-phase"),
       ]);
       if (dashRes.ok)  setData(await dashRes.json());
       if (maintRes.ok) setMaintenanceOn((await maintRes.json()).enabled);
+      if (phaseRes.ok) setSeasonPhase((await phaseRes.json()).seasonPhase);
     } finally {
       setLoading(false);
     }
@@ -213,6 +244,39 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
             </button>
             <span className="text-[11px] text-ak-text-dim ml-[10px]">
               Redirects all non-admin visitors to /maintenance
+            </span>
+          </div>
+
+          {/* Season Phase */}
+          <div className="mb-7">
+            <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-2 uppercase">
+              Season Phase
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+              {[
+                { value: "regular",      label: "Regular Season" },
+                { value: "quarterfinal", label: "Quarterfinal"   },
+                { value: "semifinal",    label: "Semifinal"      },
+                { value: "final",        label: "Final"          },
+              ].map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => handleSetPhase(value)}
+                  disabled={phaseBusy || seasonPhase === null}
+                  className={[
+                    "py-[8px] px-[14px] text-[11px] font-black tracking-[0.06em] rounded-[9px] border font-sans transition-colors duration-150",
+                    seasonPhase === value
+                      ? "border-[#8b1a1a55] bg-[#8b1a1a22] text-ak-red-text"
+                      : "border-ak-border bg-ak-surface text-ak-text",
+                    (phaseBusy || seasonPhase === null) ? "cursor-not-allowed opacity-70" : "cursor-pointer",
+                  ].join(" ")}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <span className="text-[11px] text-ak-text-dim mt-1 block">
+              Updates the hero label and page headings across the public site
             </span>
           </div>
 
