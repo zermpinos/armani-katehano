@@ -7,35 +7,13 @@ import { SeasonAverages } from "@/client/players/SeasonAverages";
 import { SeasonHistoryTable } from "@/client/players/SeasonHistoryTable";
 import { PlayerHero } from "@/client/players/PlayerHero";
 import { getAllPublicData, getAllSeasonsStats, getPlayerGameLog, getPlayers } from "@/server/db/repositories";
-import { buildAllTimeStatsMap } from "@/domain/stats";
+import { buildAllTimeStatsMap, computeStatsFromLog } from "@/domain/stats";
 
 const SkillRadar   = dynamic(() => import("@/client/players/SkillRadar").then(m => ({ default: m.SkillRadar })),     { ssr: false });
 const GameLogPanel = dynamic(() => import("@/client/players/GameLogPanel").then(m => ({ default: m.GameLogPanel })), { ssr: false });
 
 type PhaseFilter = "all" | "regular" | "playoffs";
 const PLAYOFF_ROUNDS = ["quarterfinal", "semifinal", "final"];
-
-function computeStatsFromLog(log: any[]) {
-  const n = log.length;
-  if (n === 0) return null;
-  // eslint-disable-next-line security/detect-object-injection
-  const sum = (key: string) => log.reduce((a: number, r: any) => a + (r[key] || 0), 0);
-  const avg = (key: string) => +(sum(key) / n).toFixed(1);
-  const fgPct  = sum("fga")  > 0 ? +((sum("fgm")  / sum("fga"))  * 100).toFixed(1) : 0;
-  const fg3Pct = sum("fg3a") > 0 ? +((sum("fg3m") / sum("fg3a")) * 100).toFixed(1) : 0;
-  const ftPct  = sum("fta")  > 0 ? +((sum("ftm")  / sum("fta"))  * 100).toFixed(1) : 0;
-  return {
-    ppg: avg("pts"), rpg: avg("reb"), apg: avg("ast"),
-    spg: avg("stl"), bpg: avg("blk"), eff: avg("eff"),
-    mpg: avg("min"),
-    fgPct, fg3Pct, ftPct,
-    fg2Pct: sum("fg2a") > 0 ? +((sum("fg2m") / sum("fg2a")) * 100).toFixed(1) : 0,
-    orpg: avg("orb"), drpg: avg("drb"),
-    tpg: avg("tov"), fpg: avg("pf"),
-    ftmPg: avg("ftm"), ftaPg: avg("fta"),
-    gp: n,
-  };
-}
 
 const EMPTY_STATS = {
   ppg: 0, rpg: 0, orpg: 0, drpg: 0, apg: 0, spg: 0, bpg: 0,

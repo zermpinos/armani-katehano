@@ -177,3 +177,76 @@ describe("buildAllTimeStatsMap -- gameLog merging", () => {
     expect(Reflect.get(map, P1).gameLog[1].date).toBe("2025-03-15");
   });
 });
+
+// ─── Percentages from raw totals ─────────────────────────────────────────────
+
+describe("buildAllTimeStatsMap -- percentages from summed raw shot totals", () => {
+  it("computes FG% from summed totals, not a weighted average of per-season pcts", () => {
+    // Season A: 20/40 = 50%,  Season B: 30/50 = 60%
+    // Weighted avg of pcts = (50*5 + 60*5) / 10 = 55.0%
+    // From raw totals = 50/90 = 55.6%  ← only this is correct
+    const allSeasons = {
+      "s-a": { [P1]: { ...seasonStats(5, 10), fgm: 20, fga: 40 } },
+      "s-b": { [P1]: { ...seasonStats(5, 20), fgm: 30, fga: 50 } },
+    };
+    const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
+
+    expect(Reflect.get(map, P1).fgPct).toBe(+(50 / 90 * 100).toFixed(1)); // 55.6
+    expect(Reflect.get(map, P1).fgPct).not.toBe(55.0);
+  });
+
+  it("computes FT% from summed raw totals across seasons", () => {
+    // Season A: 10 games, ftm=30, fta=40
+    // Season B: 5 games,  ftm=10, fta=15
+    // All-time: ftm=40, fta=55 -> 72.7%
+    const allSeasons = {
+      "s-a": { [P1]: { ...seasonStats(10, 15), ftm: 30, fta: 40 } },
+      "s-b": { [P1]: { ...seasonStats(5,  10), ftm: 10, fta: 15 } },
+    };
+    const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
+
+    expect(Reflect.get(map, P1).ftPct).toBe(+(40 / 55 * 100).toFixed(1)); // 72.7
+  });
+
+  it("returns null for ftPct when total fta is 0 across all seasons", () => {
+    const allSeasons = {
+      "s-a": { [P1]: { ...seasonStats(5, 15), ftm: 0, fta: 0 } },
+      "s-b": { [P1]: { ...seasonStats(5, 20), ftm: 0, fta: 0 } },
+    };
+    const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
+
+    expect(Reflect.get(map, P1).ftPct).toBeNull();
+  });
+
+  it("computes ftmPg and ftaPg by dividing all-time raw totals by totalGp", () => {
+    // Season A: 10 games, ftm=30, fta=40  -> per-game: 3.0/4.0
+    // Season B: 5 games,  ftm=10, fta=15  -> per-game: 2.0/3.0
+    // All-time: 15 games, ftm=40, fta=55 -> ftmPg=2.7, ftaPg=3.7
+    const allSeasons = {
+      "s-a": { [P1]: { ...seasonStats(10, 15), ftm: 30, fta: 40 } },
+      "s-b": { [P1]: { ...seasonStats(5,  10), ftm: 10, fta: 15 } },
+    };
+    const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
+
+    expect(Reflect.get(map, P1).ftmPg).toBe(+(40 / 15).toFixed(1)); // 2.7
+    expect(Reflect.get(map, P1).ftaPg).toBe(+(55 / 15).toFixed(1)); // 3.7
+  });
+});
+
+// ─── Efficiency weighted average ─────────────────────────────────────────────
+
+describe("buildAllTimeStatsMap -- eff as weighted average across seasons", () => {
+  it("weights eff by games played, not a simple average of season eff values", () => {
+    // Season A: 10 games, eff=15.0  -> contributes weight 150
+    // Season B: 5 games,  eff=10.0  -> contributes weight 50
+    // All-time: 200 / 15 = 13.3
+    const allSeasons = {
+      "s-a": { [P1]: { ...seasonStats(10, 20), eff: 15.0 } },
+      "s-b": { [P1]: { ...seasonStats(5,  10), eff: 10.0 } },
+    };
+    const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
+
+    expect(Reflect.get(map, P1).eff).toBe(+((15 * 10 + 10 * 5) / 15).toFixed(1)); // 13.3
+    expect(Reflect.get(map, P1).eff).not.toBe(12.5); // simple average would be wrong
+  });
+});
