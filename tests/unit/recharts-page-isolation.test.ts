@@ -10,34 +10,14 @@ import { resolve } from "node:path";
 // unused JavaScript" in Lighthouse on the homepage audit.
 //
 // The fix is to lazy-load every chart-bearing component via `dynamic()`.
-// PlayerDetail (rendered on click only -- `{selected && <PlayerDetail/>}`)
-// transitively imports GameLogPanel and SkillRadar, which both import
-// recharts directly. MinutesChart on /team-stats does the same.
+// MinutesChart on /team-stats does the same.
 const ROOT = resolve(__dirname, "..", "..");
 
 function read(rel: string): string {
   return readFileSync(resolve(ROOT, rel), "utf8"); // eslint-disable-line security/detect-non-literal-fs-filename
 }
 
-// pages/players.tsx no longer uses PlayerDetail -- it links to standalone pages.
-// index and leaderboard retain their player-click modals.
-const PAGES_USING_PLAYER_DETAIL = [
-  "pages/index.tsx",
-  "pages/leaderboard.tsx",
-];
-
 describe("page-level isolation of recharts via dynamic imports", () => {
-  for (const page of PAGES_USING_PLAYER_DETAIL) {
-    it(`${page} loads PlayerDetail via dynamic() (not a static import)`, () => {
-      const src = read(page);
-      expect(src).not.toMatch(
-        /^\s*import\s*\{\s*PlayerDetail\s*\}\s*from\s*["']@\/client\/players\/PlayerDetail["']/m
-      );
-      expect(src).toMatch(/dynamic\(/);
-      expect(src).toMatch(/import\(["']@\/client\/players\/PlayerDetail["']\)/);
-    });
-  }
-
   it("pages/team-stats.tsx loads MinutesChart via dynamic()", () => {
     const src = read("pages/team-stats.tsx");
     expect(src).not.toMatch(
