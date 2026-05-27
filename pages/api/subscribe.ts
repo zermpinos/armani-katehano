@@ -86,10 +86,11 @@ export default async function handler(req: any, res: any) {
         return res.status(200).json({ ok: true });
       }
 
-      const token = randomBytes(32).toString("hex");
+      const token        = randomBytes(32).toString("hex");
+      const confirmToken = randomBytes(32).toString("hex");
       try {
         await prisma.subscriber.create({
-          data: { email, token, confirmedAt: null },
+          data: { email, token, confirmToken, confirmedAt: null },
         });
       } catch (createErr: any) {
         // P2002 = unique constraint violation: a concurrent request already inserted
@@ -101,11 +102,8 @@ export default async function handler(req: any, res: any) {
         throw createErr;
       }
 
-      const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? "";
-      const confirmUrl = `${appUrl}/api/confirm?token=${token}`;
-
       try {
-        await sendConfirmationEmail({ email, confirmUrl });
+        await sendConfirmationEmail({ email, confirmToken });
       } catch (emailErr) {
         // Roll back the subscriber row so the user can retry cleanly.
         await prisma.subscriber.delete({ where: { token } }).catch(() => {});
