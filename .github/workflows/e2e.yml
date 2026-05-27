@@ -16,7 +16,7 @@ permissions:
 jobs:
   e2e:
     name: Playwright E2E
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 15
     if: github.event.deployment_status.state == 'success'
 
@@ -28,29 +28,13 @@ jobs:
           node-version-file: '.nvmrc'
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
 
-      # Cache Playwright browser binaries (~150 MB) between runs.
-      - name: Get Playwright version
-        id: pw-version
-        run: echo "version=$(npx playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Playwright browsers
-        id: pw-cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
-
-      - name: Install Playwright browsers
-        if: steps.pw-cache.outputs.cache-hit != 'true'
+      # On a persistent self-hosted runner, ~/.cache/ms-playwright survives
+      # between runs. playwright install is idempotent — skips the download
+      # when the browser binary is already present for the current version.
+      - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
-
-      # Even on cache hit we need OS-level deps (they aren't cached).
-      - name: Install Playwright OS dependencies
-        if: steps.pw-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
 
       - name: Run E2E tests
         run: npm run test:e2e
@@ -61,11 +45,9 @@ jobs:
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
 
       - name: Upload Playwright report
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          # Include run ID to avoid name collisions when multiple deploys
-          # trigger this workflow close together.
           name: playwright-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: playwright-report/
           retention-days: 7

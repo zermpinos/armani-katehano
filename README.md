@@ -419,13 +419,18 @@ These variables are set by the build/runtime environment automatically. Do not s
 
 ### CI workflows (`.github/workflows/`)
 
-| Workflow                | Trigger             | Purpose                                                |
-|-------------------------|---------------------|--------------------------------------------------------|
-| `ci.yml`                | push / PR           | Lint, build (with middleware-bundle guard), tests      |
-| `e2e.yml`               | push / PR           | Playwright suite                                       |
-| `secret-scan.yml`       | push / PR / nightly | Gitleaks                                               |
-| `semgrep.yml`           | push / PR           | Static analysis                                        |
-| `deps-audit.yml`        | nightly             | `npm audit` + advisory checks                          |
+All workflows run on a self-hosted runner (zero GitHub Actions minutes). See `actions-runner/` for the registered runner installation.
+
+| Workflow                   | Trigger                          | Purpose                                                        |
+|----------------------------|----------------------------------|----------------------------------------------------------------|
+| `ci.yml`                   | push / PR                        | Single job: lint → typecheck → test → build + middleware guard |
+| `e2e.yml`                  | Vercel `deployment_status`       | Playwright suite against the preview URL                       |
+| `secret-scan.yml`          | push / PR                        | Gitleaks (scoped to public refs)                               |
+| `semgrep.yml`              | push / PR / Monday               | SAST via Semgrep container                                     |
+| `deps-audit.yml`           | push / PR (lock file) / Monday   | `npm audit` prod + dev; weekly GitHub Issue report             |
+| `docs-link-check.yml`      | PR (docs), Monday, manual        | Lychee dead-link check                                         |
+| `internal-config-scan.yml` | PR                               | Blocks proprietary local config from entering main             |
+| `release-readiness.yml`    | push / PR                        | Asserts LICENSE and `.env.example` are present                 |
 
 ### Linting
 
