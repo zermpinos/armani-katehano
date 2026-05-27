@@ -1,4 +1,5 @@
 export * from "./box-score";
+export * from "./broadcast";
 export * from "./coach";
 export * from "./game";
 export * from "./league";
