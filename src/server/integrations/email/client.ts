@@ -14,6 +14,9 @@ import {
   buildGameImportedText,
   buildConfirmationEmailHtml,
   buildConfirmationEmailText,
+  renderMarkdown,
+  buildBroadcastHtml,
+  buildBroadcastText,
   type SendRosterAnnouncementParams,
   type HeartbeatPayload,
   type GameImportedGame,
@@ -303,6 +306,28 @@ export async function sendImportHeartbeat(payload: HeartbeatPayload): Promise<vo
   } catch (err: any) {
     auditLog("import_heartbeat_failed", { error: err.message });
   }
+}
+
+export async function sendBroadcastTestEmail({
+  to,
+  subject,
+  body,
+}: {
+  to:      string;
+  subject: string;
+  body:    string;
+}): Promise<void> {
+  const transport = createTransport();
+  if (!transport) throw new Error("BREVO_SMTP_USER/PASS not configured");
+
+  const appUrl       = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const fakeUnsub    = `${appUrl}/unsubscribe?token=PREVIEW_TOKEN`;
+  const renderedHtml = renderMarkdown(body);
+  const html         = buildBroadcastHtml(renderedHtml, appUrl, fakeUnsub);
+  const text         = buildBroadcastText(renderedHtml, appUrl, fakeUnsub);
+  const safeSubject  = subject.replace(/[\r\n]/g, " ");
+
+  await transport.sendMail({ from: FROM, to, subject: safeSubject, html, text });
 }
 
 export type { SendRosterAnnouncementParams, PlayerSlot, Game, Subscriber } from "./templates";
