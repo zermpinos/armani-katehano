@@ -14,6 +14,7 @@ export const SECURITY_ALERT_EVENTS = new Set([
   "coach_csrf_blocked",
   "coach_csrf_token_blocked",
   "broadcast_invalid_token",
+  "broadcast_sent",
 ]);
 
 function sanitize(data: Record<string, unknown>): Record<string, unknown> {
