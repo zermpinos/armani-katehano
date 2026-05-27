@@ -6,8 +6,8 @@
  * Uses a mock Prisma tx so no DB connection is needed.
  * We feed known box score rows and verify the computed aggregates.
  */
-import { describe, it, expect, vi } from "vitest";
-import { computePlayerAggregates } from "@/server/services/stats-recalc";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { computePlayerAggregates, recalcAggregates } from "@/server/services/stats-recalc";
 import { aggregatesToStatsMap } from "@/domain/stats";
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
@@ -232,5 +232,54 @@ describe("computePlayerAggregates -> aggregatesToStatsMap cross-path agreement",
     expect(entry.reb_total).toBe(16);
     expect(entry.ast_total).toBe(10);
     expect(entry.stl_total).toBe(3);
+  });
+});
+
+// ─── recalcAggregates player-scoped behaviour ─────────────────────────────────
+
+const { mockPrismaRecalc } = vi.hoisted(() => {
+  const mp = {
+    game: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    playerSeasonAggregate: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    $executeRaw: vi.fn().mockResolvedValue(0),
+  };
+  return { mockPrismaRecalc: mp };
+});
+
+vi.mock("@/server/db/client", () => ({ default: mockPrismaRecalc }));
+
+describe("recalcAggregates -- player-scoped query", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("when playerIds provided, filters game.findMany to those players", async () => {
+    await recalcAggregates("season-1", undefined, ["player-A", "player-B"]);
+    expect(mockPrismaRecalc.game.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          seasonLeagueId: "season-1",
+          playerStats:    { some: { playerId: { in: ["player-A", "player-B"] } } },
+        }),
+      }),
+    );
+  });
+
+  it("when no playerIds provided, queries all games for the season", async () => {
+    await recalcAggregates("season-1");
+    expect(mockPrismaRecalc.game.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ seasonLeagueId: "season-1" }),
+      }),
+    );
+    const callArg = mockPrismaRecalc.game.findMany.mock.calls[0][0];
+    expect(callArg.where).not.toHaveProperty("playerStats");
+  });
+
+  it("when playerIds is empty array, is a no-op (game.findMany not called)", async () => {
+    await recalcAggregates("season-1", undefined, []);
+    expect(mockPrismaRecalc.game.findMany).not.toHaveBeenCalled();
   });
 });

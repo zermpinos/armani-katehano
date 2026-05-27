@@ -70,19 +70,37 @@ export function computePlayerAggregates(rows: any[]): Record<string, any> | null
   };
 }
 
-export async function recalcAggregates(seasonLeagueId: string, tx: any = prisma) {
+export async function recalcAggregates(
+  seasonLeagueId: string,
+  tx: any = prisma,
+  playerIds?: string[],
+) {
+  if (playerIds !== undefined && playerIds.length === 0) return;
+
+  const where: Prisma.GameWhereInput = {
+    seasonLeagueId,
+    ...(playerIds && playerIds.length > 0 && {
+      playerStats: { some: { playerId: { in: playerIds } } },
+    }),
+  };
+
   const games = await tx.game.findMany({
-    where:   { seasonLeagueId },
+    where,
     include: { playerStats: true },
   });
 
-  const allStats  = games.flatMap((g: any) => g.playerStats);
-  const playerIds = [...new Set(allStats.map((r: any) => r.playerId))] as string[];
+  const allStats = games.flatMap((g: any) => g.playerStats);
+
+  // When scoped to playerIds, filter allStats to only those players.
+  // Games may include stats for other players in the same games.
+  const targetPlayerIds = playerIds && playerIds.length > 0
+    ? new Set(playerIds)
+    : new Set(allStats.map((r: any) => r.playerId as string));
 
   const toUpsert: any[] = [];
   const toDelete: string[] = [];
 
-  for (const playerId of playerIds) {
+  for (const playerId of targetPlayerIds) {
     const playerRows = allStats.filter((r: any) => r.playerId === playerId);
     const agg = computePlayerAggregates(playerRows);
 
