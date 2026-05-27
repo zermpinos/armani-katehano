@@ -194,8 +194,6 @@ export async function importGame(
         });
       }
 
-      await recalcAggregates(seasonLeagueId, tx);
-
       if (sourceUrl) {
         const upcoming = await tx.upcomingGame.findUnique({ where: { sourceUrl } });
         if (upcoming) {
@@ -221,6 +219,16 @@ export async function importGame(
       throw Object.assign(new ImportError("This game has already been imported.", 409), { gameId: dupGameId });
     }
     throw err;
+  }
+
+  const affectedPlayerIds = [...new Set(
+    validatedBoxScore.map((row: any) => row.playerId as string)
+  )];
+
+  try {
+    await recalcAggregates(seasonLeagueId, undefined, affectedPlayerIds);
+  } catch (err) {
+    console.error("[importGame] recalcAggregates failed after commit -- aggregates may be stale:", err);
   }
 
   if (opts?.revalidate) {

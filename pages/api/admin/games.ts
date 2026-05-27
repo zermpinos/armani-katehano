@@ -167,8 +167,6 @@ async function createGame(req: any, res: any) {
           data: boxScore.map((r) => toDbRow(r, g.id)),
         });
       }
-      await recalcAggregates(seasonLeagueId, tx);
-
       try {
         const gameDate = new Date(playedOn);
         const dayStart = new Date(gameDate);
@@ -187,6 +185,11 @@ async function createGame(req: any, res: any) {
 
       return g;
     });
+    try {
+      await recalcAggregates(seasonLeagueId);
+    } catch (err) {
+      console.error("[games/create] recalcAggregates failed after commit:", err);
+    }
     auditLog("game_created", { ip, gameId: game.id, opponent });
     await Promise.allSettled(ISR_PATHS.map((p) => res.revalidate?.(p)));
     return res.status(201).json({ ok: true, gameId: game.id });
@@ -225,13 +228,17 @@ async function updateGame(req: any, res: any) {
     }
   }
 
+  let existingSeasonLeagueId: string;
+  let leagueChanged = false;
+
   try {
     await prisma.$transaction(async (tx) => {
       const existing = await tx.game.findUniqueOrThrow({
         where: { id: gameId },
         select: { seasonLeagueId: true },
       });
-      const leagueChanged =
+      existingSeasonLeagueId = existing.seasonLeagueId;
+      leagueChanged =
         newLeagueId !== undefined && newLeagueId !== existing.seasonLeagueId;
       await tx.game.update({
         where: { id: gameId },
@@ -255,11 +262,16 @@ async function updateGame(req: any, res: any) {
           data: boxScore.map((r) => toDbRow(r, gameId)),
         });
       }
-      await recalcAggregates(existing.seasonLeagueId, tx);
-      if (leagueChanged) {
-        await recalcAggregates(newLeagueId!, tx);
-      }
     });
+    try {
+      // safe: assigned inside tx callback; if tx throws, this block is unreachable
+      await recalcAggregates(existingSeasonLeagueId!);
+      if (leagueChanged) {
+        await recalcAggregates(newLeagueId!);
+      }
+    } catch (err) {
+      console.error("[games/update] recalcAggregates failed after commit:", err);
+    }
     auditLog("game_updated", { ip, gameId, opponent });
     await Promise.allSettled(ISR_PATHS.map((p) => res.revalidate?.(p)));
     return res.status(200).json({ ok: true });
@@ -275,15 +287,23 @@ async function deleteGame(req: any, res: any) {
   if (!data) return;
   const { gameId } = data;
 
+  let deletedSeasonLeagueId: string;
+
   try {
     await prisma.$transaction(async (tx) => {
       const existing = await tx.game.findUniqueOrThrow({
         where: { id: gameId },
         select: { seasonLeagueId: true },
       });
+      deletedSeasonLeagueId = existing.seasonLeagueId;
       await tx.game.delete({ where: { id: gameId } });
-      await recalcAggregates(existing.seasonLeagueId, tx);
     });
+    try {
+      // safe: assigned inside tx callback; if tx throws, this block is unreachable
+      await recalcAggregates(deletedSeasonLeagueId!);
+    } catch (err) {
+      console.error("[games/delete] recalcAggregates failed after commit:", err);
+    }
     auditLog("game_deleted", { ip, gameId });
     await Promise.allSettled(ISR_PATHS.map((p) => res.revalidate?.(p)));
     return res.status(200).json({ ok: true });
