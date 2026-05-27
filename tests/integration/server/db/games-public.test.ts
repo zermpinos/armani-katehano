@@ -1,24 +1,7 @@
 // @ts-nocheck
-/**
- * tests/api.games.public.test.js
- * Integration tests for pages/api/games/[id].js
- *
- * Public endpoint -- no auth. Tests CUID validation and getBoxScore response shaping.
- * Mocks: lib/data (getBoxScore) so no DB is needed.
- */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const { mockPrisma } = vi.hoisted(() => {
-  const mp = {
-    loginAttempt: {
-      count:  vi.fn().mockResolvedValue(0),
-      create: vi.fn().mockResolvedValue(undefined),
-    },
-  };
-  return { mockPrisma: mp };
-});
-
-vi.mock("@/server/db/client", () => ({ default: mockPrisma, prisma: mockPrisma }));
+vi.mock("@/server/db/client", () => ({ default: {}, prisma: {} }));
 
 vi.mock("@/server/db/repositories", () => ({
   getBoxScore: vi.fn(),
@@ -27,22 +10,20 @@ vi.mock("@/server/db/repositories", () => ({
 import { getBoxScore } from "@/server/db/repositories";
 import handler          from "../../../../pages/api/games/[id]";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function mockRes() {
-  const res = {
+  const res: any = {
     statusCode: 200,
     _headers:   {},
     _body:      undefined,
-    setHeader(k, v) { Reflect.set(res._headers, k, v); return res; },
-    status(code)    { res.statusCode = code; return res; },
-    json(body)      { res._body = body; return res; },
-    end()           { return res; },
+    setHeader(k: string, v: string) { res._headers[k] = v; return res; },
+    status(code: number)            { res.statusCode = code; return res; },
+    json(body: unknown)             { res._body = body; return res; },
+    end()                           { return res; },
   };
   return res;
 }
 
-function mockReq({ method = "GET", query = {}, headers = {} } = {}) {
+function mockReq({ method = "GET", query = {}, headers = {} }: any = {}) {
   return { method, query, headers, body: {}, cookies: {} };
 }
 
@@ -51,8 +32,6 @@ const VALID_CUID = "clxxxxxxxxxxxxxxxxxxxxxx";
 beforeEach(() => {
   vi.clearAllMocks();
 });
-
-// ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("GET /api/games/[id]", () => {
   it("returns 400 for an invalid CUID", async () => {
@@ -84,7 +63,7 @@ describe("GET /api/games/[id]", () => {
         stl: 1, blk: 0, tov: 1, pf: 2, fgm: 5, fga: 10,
         fg2m: 4, fg2a: 7, fg3m: 1, fg3a: 3, ftm: 1, fta: 2, eff: 10 },
     ];
-    getBoxScore.mockResolvedValue(mockBoxScore);
+    (getBoxScore as any).mockResolvedValue(mockBoxScore);
 
     const req = mockReq({ query: { id: VALID_CUID } });
     const res = mockRes();
@@ -96,7 +75,7 @@ describe("GET /api/games/[id]", () => {
   });
 
   it("returns 200 with empty boxScore when game has no stats", async () => {
-    getBoxScore.mockResolvedValue([]);
+    (getBoxScore as any).mockResolvedValue([]);
 
     const req = mockReq({ query: { id: VALID_CUID } });
     const res = mockRes();
@@ -107,7 +86,7 @@ describe("GET /api/games/[id]", () => {
   });
 
   it("sets Cache-Control header on success", async () => {
-    getBoxScore.mockResolvedValue([]);
+    (getBoxScore as any).mockResolvedValue([]);
 
     const req = mockReq({ query: { id: VALID_CUID } });
     const res = mockRes();
@@ -117,7 +96,7 @@ describe("GET /api/games/[id]", () => {
   });
 
   it("returns 500 when getBoxScore throws", async () => {
-    getBoxScore.mockRejectedValue(new Error("DB connection failed"));
+    (getBoxScore as any).mockRejectedValue(new Error("DB connection failed"));
 
     const req = mockReq({ query: { id: VALID_CUID } });
     const res = mockRes();
@@ -125,6 +104,15 @@ describe("GET /api/games/[id]", () => {
 
     expect(res.statusCode).toBe(500);
     expect(res._body).toHaveProperty("error");
+  });
+
+  it("does NOT touch loginAttempt on a normal GET", async () => {
+    (getBoxScore as any).mockResolvedValue([]);
+    const req = mockReq({ query: { id: VALID_CUID } });
+    const res = mockRes();
+    await handler(req, res);
+    // Mock db client is empty object -- if handler calls loginAttempt.count/create it throws
+    expect(res.statusCode).toBe(200);
   });
 });
 
