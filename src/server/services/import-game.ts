@@ -221,7 +221,7 @@ export async function importGame(
     throw err;
   }
 
-  const affectedPlayerIds = [...new Set(
+  const affectedPlayerIds = [...new Set<string>(
     validatedBoxScore.map((row: any) => row.playerId as string)
   )];
 

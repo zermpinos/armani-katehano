@@ -94,8 +94,8 @@ export async function recalcAggregates(
   // When scoped to playerIds, filter allStats to only those players.
   // Games may include stats for other players in the same games.
   const targetPlayerIds = playerIds && playerIds.length > 0
-    ? new Set(playerIds)
-    : new Set(allStats.map((r: any) => r.playerId as string));
+    ? new Set<string>(playerIds)
+    : new Set<string>(allStats.map((r: any) => r.playerId as string));
 
   const toUpsert: any[] = [];
   const toDelete: string[] = [];
