@@ -129,18 +129,18 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 
 ### Public site
 - **Home** (`/`) -- record, win %, MVP card, recent results, scoring-trend chart (configurable range), top scorers chart, upcoming games with roster reveal, efficiency leader, email subscribe form.
-- **Players** (`/players`) -- full roster with per-player season averages, totals, and a detail modal.
-- **Games** (`/games`) -- chronological game list with box-score modals.
-- **Leaderboard** (`/leaderboard`) -- sortable, multi-stat leaderboard.
-- **Team stats** (`/team-stats`) -- aggregated team-level metrics.
+- **Players** (`/players`) -- full roster with per-player season averages and totals; player cards link to individual stat pages (`/players/[slug]`).
+- **Games** (`/games`) -- chronological game list; completed games link to box-score pages (`/games/[id]`) with playoff round badges (QF / SF / Final); upcoming games open a details modal.
+- **Leaderboard** (`/leaderboard`) -- sortable, multi-stat leaderboard with season-phase filter (All Season / Regular Season / Playoffs).
+- **Team stats** (`/team-stats`) -- aggregated team-level metrics with season-phase filter.
 - **Subscribe / unsubscribe** -- double-opt-in email flow with token-based unsubscribe (`/unsubscribe`) and confirmation (`/api/confirm`).
 - **Privacy policy** (`/privacy`).
 - **Sitemap** (`/sitemap.xml`).
 
 ### Admin portal (`/admin/<slug>`)
 - Password + TOTP login with per-IP login-attempt rate limiting and CSRF tokens.
-- Dashboard with totals, recent activity, and import-job status.
-- CRUD for **seasons**, **leagues**, **season-leagues**, **players**, **schedule** (`UpcomingGame`), **games**, and **per-game stat lines**.
+- Dashboard with totals, recent activity, import-job status, and season-phase selector (Regular Season / Playoffs).
+- CRUD for **seasons**, **leagues**, **season-leagues**, **players**, **schedule** (`UpcomingGame`), **games** (with round field for playoff tagging), and **per-game stat lines**.
 - **Roster** management (active/inactive, per-season-league entries).
 - **Manual stats import** (paste box-score URL or upload).
 - **Auto-discovery import** -- admin enqueues an `UpcomingGame`; a background job (cron-triggered via Vercel cron and a GitHub Actions hourly heartbeat) discovers the matching listing URL, scrapes the box score, classifies, and persists.
@@ -186,6 +186,8 @@ armani-katehano/
 ├── pages/                          Next.js Pages Router entry points
 │   ├── index.tsx, players.tsx, games.tsx, leaderboard.tsx,
 │   │   team-stats.tsx, privacy.tsx, sitemap.xml.tsx, unsubscribe.tsx
+│   ├── players/[slug].tsx          Individual player stats page
+│   ├── games/[id].tsx              Individual game box-score page
 │   ├── coming-soon.tsx             Pre-launch gate page
 │   ├── admin/[slug]/               Admin portal pages (slug-randomized)
 │   │   └── opponent-aliases.tsx    Alternate opponent-name mappings
@@ -205,8 +207,8 @@ armani-katehano/
 │   │   │   admin/, coach/
 │   ├── components/                 Shared UI primitives (Layout, StatTile, ErrorBoundary)
 │   ├── domain/                     Pure logic -- no I/O, no React, no Prisma
-│   │   ├── games/score.ts, players/format.ts, players/positions.ts,
-│   │   │   stats/{aggregate,allTime,efficiency}.ts, calendar/, shared/
+│   │   ├── games/score.ts, games/phase.ts, players/format.ts, players/positions.ts,
+│   │   │   stats/{aggregate,allTime,efficiency,fromLog}.ts, calendar/, shared/
 │   ├── features/                   Reserved for cross-cutting page features
 │   ├── schemas/                    Zod schemas (player, game, league, season,
 │   │                                roster-announcement, schedule, scrape, ...)
@@ -426,7 +428,7 @@ All workflows run on a self-hosted runner (zero GitHub Actions minutes). See `ac
 | `ci.yml`                   | push / PR                        | Single job: lint -> typecheck -> test -> build + middleware guard |
 | `e2e.yml`                  | Vercel `deployment_status`       | Playwright suite against the preview URL                       |
 | `secret-scan.yml`          | push / PR                        | Gitleaks (scoped to public refs)                               |
-| `semgrep.yml`              | push / PR / Monday               | SAST via Semgrep container                                     |
+| `semgrep.yml`              | push / PR / Monday               | SAST via Semgrep (pip)                                         |
 | `deps-audit.yml`           | push / PR (lock file) / Monday   | `npm audit` prod + dev; weekly GitHub Issue report             |
 | `docs-link-check.yml`      | PR (docs), Monday, manual        | Lychee dead-link check                                         |
 | `internal-config-scan.yml` | PR                               | Blocks proprietary local config from entering main             |
