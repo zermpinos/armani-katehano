@@ -267,6 +267,21 @@ model AuditLog {
   @@index([event, createdAt])
 }
 
+model BroadcastLog {
+  id             String   @id @default(cuid())
+  subject        String   @db.VarChar(200)
+  bodyMarkdown   String   @db.Text
+  recipientCount Int
+  deliveredCount Int      @default(0)
+  failedCount    Int      @default(0)
+  failedIds      String[]
+  sentAt         DateTime @default(now())
+  sentToAll      Boolean
+  targetIds      String[]
+
+  @@index([sentAt])
+}
+
 model OpponentAlias {
   id          String   @id @default(cuid())
   myName      String   @unique
