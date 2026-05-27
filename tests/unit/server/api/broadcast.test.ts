@@ -48,7 +48,7 @@ function makeRes(): any {
   const res: any = { _headers: {} };
   res.status    = (code: number) => { res._status = code; return res; };
   res.json      = (data: any)    => { res._body = data; return res; };
-  res.setHeader = (k: string, v: string) => { res._headers[k] = v; };
+  res.setHeader = (_k: string, _v: string) => {};
   return res;
 }
 
