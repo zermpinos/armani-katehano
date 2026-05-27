@@ -19,7 +19,10 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Install Semgrep
-        run: pip3 install -r .github/requirements.txt --quiet
+        run: |
+          python3 -m venv /tmp/semgrep-venv
+          /tmp/semgrep-venv/bin/pip install -r .github/requirements.txt --quiet
+          echo "/tmp/semgrep-venv/bin" >> $GITHUB_PATH
 
       - name: Run Semgrep
         run: semgrep scan --config=p/typescript --config=p/nodejs --config=p/secrets --error .
