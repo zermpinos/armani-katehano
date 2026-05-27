@@ -35,3 +35,6 @@ scripts/scrub/mailmap.txt
 scripts/scrub/message_rewrites.yaml
 scripts/scrub/compute_message_rewrites.py
 scripts/scrub/apply_message_rewrites.py
+
+# Self-hosted Actions runner installation
+actions-runner/
