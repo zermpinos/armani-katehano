@@ -14,4 +14,4 @@ export {
   type NextGameInfo,
   type GameEmailContext,
 } from "./game-imported";
-export { buildCourtesyEmailHtml, buildCourtesyEmailText } from "./courtesy-email";
+export { buildConfirmationEmailHtml, buildConfirmationEmailText } from "./confirmation";

@@ -112,7 +112,7 @@ export function buildHtml(
 
           <!-- Header -- matchup is the hero -->
           <tr>
-            <td style="background:#111111;padding:32px 32px 28px;">
+            <td bgcolor="#111111" style="background-color:#111111;padding:32px 32px 28px;">
               <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#c92a2a;">Armani Katehano &middot; Game Day Roster</p>
               <p style="margin:14px 0 0;font-size:30px;font-weight:900;color:#ffffff;letter-spacing:-0.02em;line-height:1.15;">${matchup}</p>
               <p style="margin:8px 0 0;font-size:14px;font-weight:600;color:#d1d5db;">${dayTime}</p>
@@ -163,6 +163,8 @@ export function buildHtml(
             <td style="padding:24px 32px;background:#f9fafb;border-top:1px solid #e5e7eb;">
               <p style="margin:0;font-size:11px;color:#6b7280;line-height:1.7;">
                 You received this email because you subscribed to Armani Katehano game emails.<br />
+                <a href="${esc(`${appUrl}/privacy`)}" style="color:#6b7280;text-decoration:underline;">Privacy notice</a>
+                &nbsp;&middot;&nbsp;
                 <a href="${esc(unsubscribeUrl)}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>
               </p>
             </td>
@@ -246,7 +248,8 @@ export function buildText(
   lines.push(`You received this email because you subscribed`);
   lines.push(`to Armani Katehano game emails.`);
   lines.push(``);
-  lines.push(`Unsubscribe  ${unsubscribeUrl}`);
+  lines.push(`Privacy notice  ${appUrl}/privacy`);
+  lines.push(`Unsubscribe     ${unsubscribeUrl}`);
 
   return lines.join("\n");
 }
