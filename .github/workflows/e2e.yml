@@ -19,6 +19,11 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 15
     if: github.event.deployment_status.state == 'success'
+    # Playwright does not yet recognise ubuntu26.04 in its platform map (upstream
+    # fix tracked in microsoft/playwright#40117, targeting v1.61). Override to the
+    # 24.04 binaries, which are ABI-compatible and run on 26.04 via t64 libs.
+    env:
+      PLAYWRIGHT_HOST_PLATFORM_OVERRIDE: ubuntu24.04-x64
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
