@@ -142,3 +142,70 @@ export async function getBoxScore(gameId: string) {
     eff:  calcEff(r),
   }));
 }
+
+export async function getGameById(id: string) {
+  const game = await prisma.game.findUnique({
+    where: { id },
+    include: {
+      seasonLeague: {
+        include: { season: true, league: true },
+      },
+      playerStats: {
+        where:   { minutes: { gt: 0 } },
+        include: {
+          player: {
+            select: { id: true, slug: true, name: true, number: true, position: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!game) return null;
+
+  return {
+    id:         game.id,
+    date:       game.playedOn.toISOString().split("T")[0],
+    opponent:   game.opponent,
+    home:       game.location === "home",
+    result:     game.result as "W" | "L",
+    score:      `${game.teamScore}-${game.opponentScore}`,
+    season:     game.seasonLeague.season.name,
+    leagueName: game.seasonLeague.league.name,
+    sourceUrl:  game.sourceUrl  ?? null,
+    youtubeUrl: game.youtubeUrl ?? null,
+    boxScore: game.playerStats
+      .sort((a, b) => a.player.number - b.player.number)
+      .map(r => ({
+        pid:      r.player.id,
+        slug:     r.player.slug,
+        name:     r.player.name,
+        number:   r.player.number,
+        position: r.player.position,
+        min:  r.minutes,
+        pts:  r.pts,
+        reb:  r.reb,
+        orb:  r.orb,
+        drb:  r.drb,
+        ast:  r.ast,
+        stl:  r.stl,
+        blk:  r.blk,
+        tov:  r.tov,
+        pf:   r.pf,
+        fgm:  r.fgm,
+        fga:  r.fga,
+        fg2m: r.fg2m,
+        fg2a: r.fg2a,
+        fg3m: r.fg3m,
+        fg3a: r.fg3a,
+        ftm:  r.ftm,
+        fta:  r.fta,
+        eff:  calcEff(r),
+      })),
+  };
+}
+
+export async function getGameIds(): Promise<string[]> {
+  const games = await prisma.game.findMany({ select: { id: true } });
+  return games.map(g => g.id);
+}
