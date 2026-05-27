@@ -20,14 +20,15 @@ export function AdminLayout({
   onLogout?: () => void;
 }) {
   const tabs = [
-    { href: `/admin/${slug}`, label: "Dashboard" },
-    { href: `/admin/${slug}/games`, label: "Games" },
-    { href: `/admin/${slug}/roster`, label: "Roster" },
-    { href: `/admin/${slug}/seasons`, label: "Seasons" },
-    { href: `/admin/${slug}/schedule`,         label: "Schedule"    },
-    { href: `/admin/${slug}/subscribers`,      label: "Subscribers" },
-    { href: `/admin/${slug}/opponent-aliases`, label: "Aliases"     },
-    { href: `/admin/${slug}/import`, label: "Import" },
+    { href: `/admin/${slug}`,                      label: "Dashboard"   },
+    { href: `/admin/${slug}/games`,                label: "Games"       },
+    { href: `/admin/${slug}/roster`,               label: "Roster"      },
+    { href: `/admin/${slug}/seasons`,              label: "Seasons"     },
+    { href: `/admin/${slug}/schedule`,             label: "Schedule"    },
+    { href: `/admin/${slug}/subscribers`,          label: "Subscribers" },
+    { href: `/admin/${slug}/broadcast`,            label: "Broadcast"   },
+    { href: `/admin/${slug}/opponent-aliases`,     label: "Aliases"     },
+    { href: `/admin/${slug}/import`,               label: "Import"      },
   ];
 
   const current = typeof window !== "undefined" ? window.location.pathname : "";
