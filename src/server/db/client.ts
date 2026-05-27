@@ -1,18 +1,15 @@
 import "@/server/_internal/node-only";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../../../lib/generated/prisma/client";
-import { Pool } from "pg";
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import { PrismaNeon }       from "@prisma/adapter-neon";
+import { PrismaClient }     from "../../../lib/generated/prisma/client";
+import ws                   from "ws";
+
+neonConfig.webSocketConstructor = ws;
 
 const globalForPrisma = globalThis as typeof globalThis & { prisma?: PrismaClient };
 
-const pool = new Pool({
-  connectionString:        process.env.DATABASE_URL,
-  max:                     1,
-  idleTimeoutMillis:       2_000,
-  connectionTimeoutMillis: 10_000,
-});
-
-const adapter = new PrismaPg(pool);
+const pool    = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaNeon(pool);
 
 export const prisma =
   globalForPrisma.prisma ??
