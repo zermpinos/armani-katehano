@@ -232,6 +232,7 @@ model Subscriber {
   id            String    @id @default(cuid())
   email         String    @unique
   token         String    @unique
+  confirmToken  String?   @unique
   confirmedAt   DateTime?
   lastEmailedAt DateTime?
   createdAt     DateTime  @default(now())
