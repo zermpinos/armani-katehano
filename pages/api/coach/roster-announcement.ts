@@ -33,7 +33,7 @@ async function handler(req: any, res: any) {
         where:   { upcomingGameId: id },
         include: {
           players: {
-            include: { player: { select: { id: true, name: true, number: true, position: true } } },
+            include: { player: { select: { id: true, name: true, number: true, position: true, photoUrl: true } } },
             orderBy: { player: { number: "asc" } },
           },
         },
@@ -74,7 +74,7 @@ async function handler(req: any, res: any) {
     if (resend) {
       const existing = await prisma.gameRosterAnnouncement.findUnique({
         where:   { upcomingGameId },
-        include: { players: { include: { player: { select: { name: true, number: true } } } } },
+        include: { players: { include: { player: { select: { name: true, number: true, photoUrl: true } } } } },
       });
       if (!existing) return res.status(404).json({ error: "No announcement to resend" });
 
@@ -83,7 +83,7 @@ async function handler(req: any, res: any) {
         if (subscribers.length > 0) {
           await sendRosterAnnouncement({
             game: { opponent: game.opponent, scheduledFor: game.scheduledFor.toISOString(), location: game.location, competition: game.competition ?? null, notes: game.notes ?? null },
-            players: existing.players.map(sp => ({ name: sp.player.name, number: sp.player.number, note: sp.note ?? null })),
+            players: existing.players.map(sp => ({ name: sp.player.name, number: sp.player.number, note: sp.note ?? null, photoUrl: sp.player.photoUrl ?? null })),
             message: existing.message ?? null,
             subscribers: subscribers.map(s => ({ id: s.id, email: s.email, token: s.token })),
           });
@@ -115,7 +115,7 @@ async function handler(req: any, res: any) {
                 create: players.map(p => ({ playerId: p.playerId, note: p.note ?? null })),
               },
             },
-            include: { players: { include: { player: { select: { id: true, name: true, number: true } } } } },
+            include: { players: { include: { player: { select: { id: true, name: true, number: true, photoUrl: true } } } } },
           });
         }
 
@@ -127,7 +127,7 @@ async function handler(req: any, res: any) {
               create: players.map(p => ({ playerId: p.playerId, note: p.note ?? null })),
             },
           },
-          include: { players: { include: { player: { select: { id: true, name: true, number: true } } } } },
+          include: { players: { include: { player: { select: { id: true, name: true, number: true, photoUrl: true } } } } },
         });
       });
 
@@ -146,9 +146,10 @@ async function handler(req: any, res: any) {
               notes:        game.notes ?? null,
             },
             players: announcement.players.map(sp => ({
-              name:   sp.player.name,
-              number: sp.player.number,
-              note:   sp.note ?? null,
+              name:     sp.player.name,
+              number:   sp.player.number,
+              note:     sp.note ?? null,
+              photoUrl: sp.player.photoUrl ?? null,
             })),
             message: message ?? null,
             subscribers: subscribers.map(s => ({ id: s.id, email: s.email, token: s.token })),
