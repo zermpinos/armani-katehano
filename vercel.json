@@ -6,7 +6,7 @@
     { "path": "/api/cron/purge-upcoming-games", "schedule": "30 4 * * *" },
     { "path": "/api/cron/import-heartbeat", "schedule": "5 5 * * *" },
     { "path": "/api/cron/purge-audit-log", "schedule": "0 6 * * *" },
-    { "path": "/api/admin/cleanup", "schedule": "*/15 * * * *" }
+    { "path": "/api/admin/cleanup", "schedule": "0 2 * * *" }
   ],
   "functions": {
     "pages/api/cron/discover-and-import.ts": { "maxDuration": 60 },
