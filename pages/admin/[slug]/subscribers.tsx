@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/router";
 import {
-  AdminLayout, Spinner, LoginForm, Btn, useAdminAuth, apiFetch,
+  AdminLayout, Spinner, PasskeyLoginForm, Btn, useAdminAuth, apiFetch,
 } from "@/client/admin";
-import { validateAdminSlug } from "@/server/auth";
+import { getAdminPasskeyLoginProps } from "@/server/auth";
 
 type SubscriberRow = {
   id: string;
@@ -22,10 +22,10 @@ type ListResponse = {
 
 const LIMIT = 50;
 
-export default function SubscribersPage({ validSlug }: { validSlug: boolean }) {
+export default function SubscribersPage({ validSlug, showFallback, noPasskeys }: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
   const router = useRouter();
   const slug   = router.query.slug || validSlug;
-  const { authed, loading: authLoading, loginError, handleLogin, handleLogout } =
+  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } =
     useAdminAuth(slug);
 
   const [rows,        setRows]        = useState<SubscriberRow[]>([]);
@@ -140,7 +140,7 @@ export default function SubscribersPage({ validSlug }: { validSlug: boolean }) {
   if (!authed)
     return (
       <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-        <LoginForm onLogin={handleLogin} error={loginError} />
+        <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
       </div>
     );
 
@@ -268,8 +268,6 @@ export default function SubscribersPage({ validSlug }: { validSlug: boolean }) {
   );
 }
 
-export async function getServerSideProps({ params }: { params: { slug: string } }) {
-  const validSlug = await validateAdminSlug(params.slug);
-  if (!validSlug) return { notFound: true };
-  return { props: { validSlug } };
+export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
+  return getAdminPasskeyLoginProps(params, query);
 }

@@ -5,9 +5,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, Spinner, LoginForm, F, Sel, Btn, Confirm, useAdminAuth, apiFetch } from "@/client/admin";
+import { AdminLayout, Spinner, PasskeyLoginForm, F, Sel, Btn, Confirm, useAdminAuth, apiFetch } from "@/client/admin";
 import type { ScheduledGame } from "@/client/admin";
-import { validateAdminSlug } from '@/server/auth';
+import { getAdminPasskeyLoginProps } from "@/server/auth";
 import { fmtDate } from "@/domain/shared/format";
 
 type ScheduleDraft = Partial<ScheduledGame> & { date?: string; time?: string };
@@ -27,11 +27,11 @@ const JOB_BADGE: Record<string, string> = {
   ABANDONED: "text-ak-text-dim",
 };
 
-export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
+export default function SchedulePage({ validSlug, showFallback, noPasskeys }: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
   const router = useRouter();
   const slug = router.query.slug || validSlug;
 
-  const { authed, loading: checking, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
+  const { authed, loading: checking, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
 
   const [schedule,  setSchedule]  = useState<ScheduledGame[]>([]);
   const [jobMap,    setJobMap]    = useState<Map<string, ImportJob>>(new Map());
@@ -193,7 +193,7 @@ export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
 
   if (!authed) return (
     <div className="min-h-screen bg-ak-base flex items-center justify-center p-4">
-      <LoginForm onLogin={handleLogin} error={loginError} />
+      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
     </div>
   );
 
@@ -277,7 +277,6 @@ export default function SchedulePage({ validSlug }: { validSlug: boolean }) {
   );
 }
 
-export async function getServerSideProps({ params }: { params: { slug: string } }) {
-  if (!await validateAdminSlug(params.slug)) return { notFound: true };
-  return { props: { validSlug: true } };
+export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
+  return getAdminPasskeyLoginProps(params, query);
 }

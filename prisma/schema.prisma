@@ -323,3 +323,31 @@ model GameImportJob {
 
   @@index([state])
 }
+
+// username maps to ADMIN_USERS env var, not a DB table.
+// Renaming a username in env vars orphans its credentials -- auth-verify
+// rejects them. Off-boarding runbook must explicitly delete rows for
+// removed admins.
+model PasskeyCredential {
+  id           String    @id @default(cuid())
+  credentialId String    @unique
+  publicKey    Bytes               // COSE key, CBOR-encoded; maps to BYTEA
+  counter      Int       @default(0)
+  transports   String[]
+  username     String
+  label        String    @db.VarChar(100)
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  @@index([username])
+}
+
+// Rows are single-use: deleted atomically before verification.
+// Cleanup cron purges rows where expiresAt < now().
+model WebAuthnChallenge {
+  id        String   @id  // NOT @default(cuid()) -- set explicitly in handler
+  challenge String        // base64url-encoded random bytes
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}

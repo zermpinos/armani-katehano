@@ -9,3 +9,4 @@ export * from "@/client/admin/primitives";
 export * from "@/client/admin/confirm";
 export * from "@/client/admin/login-form";
 export * from "@/client/admin/box-score-table";
+export * from "@/client/admin/passkey-login-form";

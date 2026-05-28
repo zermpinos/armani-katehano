@@ -34,9 +34,46 @@ export function useAdminAuth(slug: any) {
     }
   }, [slug]);
 
+  const handlePasskeyLogin = useCallback(async (): Promise<{ failed: boolean; error?: string }> => {
+    setError(null);
+    try {
+      const optRes = await fetch("/api/auth/passkey/auth-options", { method: "POST" });
+      if (!optRes.ok) {
+        setError("Authentication failed. Try again.");
+        return { failed: true };
+      }
+      const { options, challengeId } = await optRes.json();
+
+      const { startAuthentication } = await import("@simplewebauthn/browser");
+      const response = await startAuthentication({ optionsJSON: options });
+
+      const verRes = await apiFetch("/api/auth/passkey/auth-verify", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ challengeId, response }),
+      });
+
+      if (verRes.ok) {
+        setAuthed(true);
+        return { failed: false };
+      }
+
+      const body = await verRes.json().catch(() => ({}));
+      setError("Authentication failed. Try again.");
+      return { failed: true, error: body.error };
+    } catch (err: any) {
+      if (err?.name === "NotAllowedError") {
+        setError(null);
+        return { failed: true, error: "cancelled" };
+      }
+      setError("Authentication failed. Try again.");
+      return { failed: true };
+    }
+  }, []);
+
   const handleLogout = useCallback(() => {
     apiFetch("/api/auth", { method: "DELETE" }).finally(() => setAuthed(false));
   }, []);
 
-  return { authed, loading, loginError, handleLogin, handleLogout };
+  return { authed, loading, loginError, handleLogin, handlePasskeyLogin, handleLogout };
 }

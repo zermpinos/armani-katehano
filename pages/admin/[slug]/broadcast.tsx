@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter }  from "next/router";
 import {
-  AdminLayout, Spinner, LoginForm, Btn, useAdminAuth, apiFetch,
+  AdminLayout, Spinner, PasskeyLoginForm, Btn, useAdminAuth, apiFetch,
 } from "@/client/admin";
-import { validateAdminSlug } from "@/server/auth";
+import { getAdminPasskeyLoginProps } from "@/server/auth";
 
 type BroadcastLogRow = {
   id:             string;
@@ -23,10 +23,10 @@ type ResolveResult = {
 
 type PageMode = "compose" | "confirming" | "sending";
 
-export default function BroadcastPage({ validSlug, maskedAdminEmail }: { validSlug: boolean; maskedAdminEmail: string }) {
+export default function BroadcastPage({ validSlug, showFallback, noPasskeys, maskedAdminEmail }: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean; maskedAdminEmail: string }) {
   const router = useRouter();
   const slug   = router.query.slug || validSlug;
-  const { authed, loading: authLoading, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
+  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
 
   const [subject,        setSubject]        = useState("");
   const [body,           setBody]           = useState("");
@@ -191,7 +191,7 @@ export default function BroadcastPage({ validSlug, maskedAdminEmail }: { validSl
   if (!authed)
     return (
       <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-        <LoginForm onLogin={handleLogin} error={loginError} />
+        <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
       </div>
     );
 
@@ -413,13 +413,13 @@ export default function BroadcastPage({ validSlug, maskedAdminEmail }: { validSl
   );
 }
 
-export async function getServerSideProps({ params }: { params: { slug: string } }) {
-  const validSlug = await validateAdminSlug(params.slug);
-  if (!validSlug) return { notFound: true };
+export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
+  const result = await getAdminPasskeyLoginProps(params, query);
+  if ("notFound" in result) return result;
 
   const rawEmail       = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
   const at             = rawEmail.indexOf("@");
   const maskedAdminEmail = at >= 0 ? `***@${rawEmail.slice(at + 1)}` : "***";
 
-  return { props: { validSlug, maskedAdminEmail } };
+  return { props: { ...result.props, maskedAdminEmail } };
 }

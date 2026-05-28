@@ -63,17 +63,23 @@ export default async function handler(req: any, res: any) {
   try {
     const cutoff = new Date(Date.now() - LOCKOUT_TTL_MS);
 
-    const [loginResult, unconfirmedCount] = await Promise.all([
+    const [loginResult, unconfirmedCount, challengeResult] = await Promise.all([
       prisma.loginAttempt.deleteMany({ where: { attemptedAt: { lt: cutoff } } }),
       purgeUnconfirmedSubscribers(),
+      prisma.webAuthnChallenge.deleteMany({ where: { expiresAt: { lt: new Date() } } }),
     ]);
 
-    console.log(`[cleanup] Purged ${loginResult.count} LoginAttempt rows, ${unconfirmedCount} unconfirmed Subscriber rows`);
+    console.log(
+      `[cleanup] Purged ${loginResult.count} LoginAttempt rows, ` +
+      `${unconfirmedCount} unconfirmed Subscriber rows, ` +
+      `${challengeResult.count} expired WebAuthnChallenge rows`
+    );
 
     return res.status(200).json({
       ok:                   true,
       deletedLoginAttempts: loginResult.count,
       deletedSubscribers:   unconfirmedCount,
+      deletedChallenges:    challengeResult.count,
       cutoff:               cutoff.toISOString(),
     });
   } catch (err) {

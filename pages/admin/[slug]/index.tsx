@@ -6,11 +6,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { AdminLayout, Spinner, LoginForm, useAdminAuth, apiFetch } from "@/client/admin";
+import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch } from "@/client/admin";
 import type { DashboardData } from "@/client/admin";
-import { validateAdminSlug } from "@/server/auth";
+import { getAdminPasskeyLoginProps } from "@/server/auth";
 
-export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
+export default function AdminDashboard({ validSlug, showFallback, noPasskeys }: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
   // A-02 fix: derive slug from the Next.js router, not window.location.
   // router.query is {} on first render; fall back to validSlug (from SSR props)
   // so the auth hook has a non-empty slug immediately.
@@ -18,7 +18,7 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
   const slug = router.query.slug || validSlug;
 
   // Q-03 fix: use the shared hook instead of inline auth state.
-  const { authed, loading: authLoading, loginError, handleLogin, handleLogout } =
+  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } =
     useAdminAuth(slug);
 
   const [data, setData] = useState<DashboardData | null>(null);
@@ -137,7 +137,7 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
   if (!authed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-        <LoginForm onLogin={handleLogin} error={loginError} />
+        <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
       </div>
     );
   }
@@ -319,8 +319,6 @@ export default function AdminDashboard({ validSlug }: { validSlug: boolean }) {
 }
 
 // ── SSR slug validation ─────────────────────────────────────────────────────
-export async function getServerSideProps({ params }: { params: { slug: string } }) {
-  const validSlug = await validateAdminSlug(params.slug);
-  if (!validSlug) return { notFound: true };
-  return { props: { validSlug } };
+export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
+  return getAdminPasskeyLoginProps(params, query);
 }

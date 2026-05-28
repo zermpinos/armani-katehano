@@ -8,3 +8,4 @@ export * from "./coach";
 export * from "./login-attempts";
 export * from "./middleware/require-admin";
 export * from "./middleware/require-coach";
+export * from "./passkey";
