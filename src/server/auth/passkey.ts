@@ -13,9 +13,9 @@ import { getAdminUser } from "@/server/auth/password";
 import { validateAdminSlug } from "@/server/auth/admin-slug";
 import type { ParsedUrlQuery } from "node:querystring";
 
-// Throws at module load time in production if NEXT_PUBLIC_APP_URL is missing or not https.
-// Fail loudly before any request is served.
-const _origin = (() => {
+// Validated at call time (not module load) so next build doesn't fail when
+// runtime secrets aren't present in the CI build environment.
+function getOrigin(): string {
   const url = process.env.NEXT_PUBLIC_APP_URL ?? "";
   if (process.env.NODE_ENV === "production" && !url.startsWith("https://")) {
     throw new Error(
@@ -23,15 +23,18 @@ const _origin = (() => {
     );
   }
   return url;
-})();
+}
 
 export function getExpectedOrigin(): string {
-  return _origin;
+  return getOrigin();
 }
 
 export function getRpId(): string {
+  // Call getOrigin() outside try/catch so the production error propagates;
+  // only the URL parse error for malformed strings is swallowed.
+  const origin = getOrigin();
   try {
-    return new URL(_origin).hostname;
+    return new URL(origin).hostname;
   } catch {
     return "localhost";
   }
