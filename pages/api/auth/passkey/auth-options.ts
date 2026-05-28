@@ -15,7 +15,7 @@ export default async function handler(req: any, res: any) {
 
   const { locked } = await atomicRecordAndCheck(`pk:${ip}`, 30, 60);
   if (locked) {
-    return res.status(429).json({ error: "Too many requests" });
+    return res.status(429).json({ error: "Too many requests", retryAfter: 60 });
   }
 
   auditLog("passkey_challenge_issued", { ip: crypto.createHash("sha256").update(ip).digest("hex") });

@@ -39,7 +39,12 @@ export function useAdminAuth(slug: any) {
     try {
       const optRes = await fetch("/api/auth/passkey/auth-options", { method: "POST" });
       if (!optRes.ok) {
-        setError("Authentication failed. Try again.");
+        if (optRes.status === 429) {
+          const body = await optRes.json().catch(() => ({}));
+          setError(`Too many attempts. Try again in ${Math.ceil((body.retryAfter || 60) / 60)} min.`);
+        } else {
+          setError("Authentication failed. Try again.");
+        }
         return { failed: true };
       }
       const { options, challengeId } = await optRes.json();
