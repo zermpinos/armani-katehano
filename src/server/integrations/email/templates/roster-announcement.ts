@@ -1,10 +1,18 @@
 import "@/server/_internal/node-only";
 import { getVenueUrl } from "@/domain/shared/venues";
+import { buildGoogleCalendarUrl } from "@/domain/shared/calendar";
 import { esc, formatDateFull, formatDayTime, sanitize, type Game, type PlayerSlot } from "./shared";
 
 function isStarter(note: string | null | undefined): boolean {
   if (!note) return false;
   return /^start(er|ing)?$/i.test(note.trim());
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  const a = (parts[0]?.[0] ?? "").toUpperCase();
+  const b = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "").toUpperCase() : "";
+  return esc(a + b);
 }
 
 function renderPlayerRow(p: PlayerSlot, i: number): string {
@@ -13,10 +21,15 @@ function renderPlayerRow(p: PlayerSlot, i: number): string {
   const note      = showBadge
     ? `<span style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:4px;background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;letter-spacing:0.06em;">${esc(p.note!)}</span>`
     : "";
+  const avatarInner = p.photoUrl
+    ? `<img src="${esc(p.photoUrl)}" width="32" height="32" border="0"
+               style="display:block;width:32px;height:32px;border-radius:50%;object-fit:cover;object-position:top center;" alt="${esc(p.name)}" />`
+    : `<table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td width="32" height="32" bgcolor="#111111" style="background-color:#111111;border-radius:50%;text-align:center;vertical-align:middle;font-size:11px;font-weight:700;color:#ffffff;letter-spacing:0.04em;width:32px;height:32px;">${initials(p.name)}</td></tr></table>`;
   return `
       <tr style="background:${bg};">
-        <td style="padding:10px 16px;width:44px;font-size:12px;font-weight:900;color:#c92a2a;font-variant-numeric:tabular-nums;">#${p.number}</td>
-        <td style="padding:10px 16px;font-size:14px;color:#111827;font-weight:600;">${esc(p.name)}${note}</td>
+        <td style="padding:10px 12px;width:40px;font-size:12px;font-weight:900;color:#c92a2a;font-variant-numeric:tabular-nums;vertical-align:middle;">#${p.number}</td>
+        <td style="padding:10px 12px;width:44px;vertical-align:middle;">${avatarInner}</td>
+        <td style="padding:10px 12px;font-size:14px;color:#111827;font-weight:600;vertical-align:middle;">${esc(p.name)}${note}</td>
       </tr>`;
 }
 
@@ -84,6 +97,20 @@ export function buildHtml(
       </td>
     </tr>` : "";
 
+  const googleCalUrl = esc(buildGoogleCalendarUrl(game.opponent, game.scheduledFor, game.notes ?? undefined));
+  const icsCalUrl    = esc(`${appUrl}/api/calendar/ics?opponent=${encodeURIComponent(game.opponent)}&date=${encodeURIComponent(game.scheduledFor)}&location=${encodeURIComponent(game.location)}${game.notes ? `&venue=${encodeURIComponent(game.notes)}` : ""}`);
+  const calendarRow  = `
+    <tr>
+      <td style="padding:8px 0;border-top:1px solid #f3f4f6;">
+        <p style="margin:0;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">Add to calendar</p>
+        <p style="margin:6px 0 0;">
+          <a href="${googleCalUrl}" style="display:inline-block;padding:4px 10px;font-size:11px;font-weight:700;color:#374151;border:1px solid #d1d5db;border-radius:6px;text-decoration:none;">Google Calendar</a>
+          &nbsp;
+          <a href="${icsCalUrl}" style="display:inline-block;padding:4px 10px;font-size:11px;font-weight:700;color:#374151;border:1px solid #d1d5db;border-radius:6px;text-decoration:none;">.ics</a>
+        </p>
+      </td>
+    </tr>`;
+
   const preheader = `${players.length} players · ${formatDayTime(game.scheduledFor)}${game.notes ? ` · ${game.notes}` : ""}`;
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -136,6 +163,7 @@ export function buildHtml(
                   </td>
                 </tr>
                 ${competitionRow}
+                ${calendarRow}
               </table>
             </td>
           </tr>
@@ -213,10 +241,15 @@ export function buildText(
   lines.push(`  ${matchup}`);
   lines.push(`  ${dayTime}`);
   lines.push(``);
+  const googleCalTextUrl = buildGoogleCalendarUrl(game.opponent, game.scheduledFor, game.notes ?? undefined);
+  const icsCalTextUrl    = `${appUrl}/api/calendar/ics?opponent=${encodeURIComponent(game.opponent)}&date=${encodeURIComponent(game.scheduledFor)}&location=${encodeURIComponent(game.location)}${game.notes ? `&venue=${encodeURIComponent(game.notes)}` : ""}`;
+
   lines.push(`  Date         ${fullDate}`);
   lines.push(`  Location     ${locationLn}`);
   if (venueUrl) lines.push(`               ${venueUrl}`);
   if (game.competition) lines.push(`  Competition  ${game.competition}`);
+  lines.push(`  Google Cal   ${googleCalTextUrl}`);
+  lines.push(`  .ics         ${icsCalTextUrl}`);
   lines.push(``);
 
   if (startersTxt.length > 0 && benchTxt.length > 0) {

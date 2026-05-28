@@ -6,9 +6,10 @@ export interface ImportNotificationResult {
 }
 
 export interface PlayerSlot {
-  name:   string;
-  number: number;
-  note:   string | null;
+  name:     string;
+  number:   number;
+  note:     string | null;
+  photoUrl?: string | null;
 }
 
 export interface Game {
