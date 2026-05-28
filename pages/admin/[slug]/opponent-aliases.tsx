@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, Spinner, LoginForm, Btn, useAdminAuth, apiFetch } from "@/client/admin";
-import { validateAdminSlug } from "@/server/auth";
+import { AdminLayout, Spinner, PasskeyLoginForm, Btn, useAdminAuth, apiFetch } from "@/client/admin";
+import { getAdminPasskeyLoginProps } from "@/server/auth";
 
 interface Alias {
   id:          string;
@@ -10,10 +10,10 @@ interface Alias {
   notes:       string | null;
 }
 
-export default function OpponentAliasesPage({ validSlug }: { validSlug: boolean }) {
+export default function OpponentAliasesPage({ validSlug, showFallback, noPasskeys }: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
   const router = useRouter();
   const slug   = router.query.slug ?? validSlug;
-  const { authed, loading: checking, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
+  const { authed, loading: checking, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
 
   const [aliases, setAliases] = useState<Alias[]>([]);
   const [loading, setLoading] = useState(false);
@@ -62,7 +62,7 @@ export default function OpponentAliasesPage({ validSlug }: { validSlug: boolean 
   };
 
   if (checking) return <Spinner />;
-  if (!authed)  return <LoginForm onLogin={handleLogin} error={loginError} />;
+  if (!authed)  return <div className="min-h-screen flex items-center justify-center bg-ak-base p-4"><PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} /></div>;
 
   return (
     <AdminLayout slug={slug} title="Opponent aliases" toast={toast} setToast={setToast} onLogout={handleLogout}>
@@ -133,6 +133,6 @@ export default function OpponentAliasesPage({ validSlug }: { validSlug: boolean 
   );
 }
 
-export async function getServerSideProps(ctx: any) {
-  return { props: { validSlug: validateAdminSlug(ctx.params?.slug) } };
+export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
+  return getAdminPasskeyLoginProps(params, query);
 }

@@ -169,3 +169,60 @@ test.describe("Admin panel › API protection", () => {
     expect(res.status()).toBe(403);
   });
 });
+
+// ── Passkey authentication ─────────────────────────────────────────────────
+
+test.describe("passkey login", () => {
+  // Virtual WebAuthn authenticator via Chrome DevTools Protocol
+  test("admin can register and authenticate with a passkey", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !ADMIN_PASSWORD, "ADMIN_SLUG or E2E_ADMIN_PASSWORD not configured");
+
+    const context = await browser.newContext();
+    const page    = await context.newPage();
+    const cdp     = await context.newCDPSession(page);
+
+    // Enable virtual authenticator environment
+    await cdp.send("WebAuthn.enable", { enableUI: false });
+
+    // Add a virtual authenticator (internal, user-verifying)
+    const { authenticatorId } = await cdp.send("WebAuthn.addVirtualAuthenticator", {
+      options: {
+        protocol:                    "ctap2",
+        transport:                   "internal",
+        hasResidentKey:              true,
+        hasUserVerification:         true,
+        isUserVerified:              true,
+        automaticPresenceSimulation: true,
+      },
+    });
+
+    // Step 1: Sign in with password (fallback) to access the setup page
+    const fallbackToken = process.env.PASSKEY_FALLBACK_TOKEN ?? "";
+    await page.goto(`${process.env.PLAYWRIGHT_BASE_URL}/admin/${ADMIN_SLUG}?fallback=${fallbackToken}`);
+    await page.fill('input[autocomplete="username"]',         ADMIN_USERNAME);
+    await page.fill('input[autocomplete="current-password"]', ADMIN_PASSWORD);
+    await page.click('button[type="submit"]');
+    await page.waitForURL(`**/admin/${ADMIN_SLUG}`);
+
+    // Step 2: Navigate to passkeys page and register
+    await page.goto(`${process.env.PLAYWRIGHT_BASE_URL}/admin/${ADMIN_SLUG}/passkeys`);
+    await page.fill('input[placeholder*="Label"]', "E2E Test Key");
+    await page.click('button:has-text("ADD PASSKEY")');
+    await page.waitForSelector('text=E2E Test Key');
+
+    // Step 3: Sign out
+    await page.click('button:has-text("Sign out")');
+
+    // Step 4: Sign in with passkey
+    await page.goto(`${process.env.PLAYWRIGHT_BASE_URL}/admin/${ADMIN_SLUG}`);
+    await page.click('button:has-text("SIGN IN WITH PASSKEY")');
+
+    // Virtual authenticator handles the ceremony automatically
+    await page.waitForURL(`**/admin/${ADMIN_SLUG}`, { timeout: 10_000 });
+    await expect(page.locator("text=AK Admin")).toBeVisible();
+
+    // Cleanup
+    await cdp.send("WebAuthn.removeVirtualAuthenticator", { authenticatorId });
+    await context.close();
+  });
+});

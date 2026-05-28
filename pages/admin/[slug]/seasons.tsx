@@ -5,17 +5,17 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, F, Sel, Btn, Spinner, LoginForm, useAdminAuth, apiFetch } from "@/client/admin";
+import { AdminLayout, F, Sel, Btn, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch } from "@/client/admin";
 import type { SeasonLeague, Season, League } from "@/client/admin";
-import { validateAdminSlug } from '@/server/auth';
+import { getAdminPasskeyLoginProps } from "@/server/auth";
 
-export default function SeasonsPage({ validSlug }: { validSlug: boolean }) {
+export default function SeasonsPage({ validSlug, showFallback, noPasskeys }: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
   const router = useRouter();
   const slug = router.query.slug || validSlug;
 
   // Q-01: replaced ~25 lines of duplicated auth state + useEffect + login fn
   // with a single hook call.
-  const { authed, loading: checking, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
+  const { authed, loading: checking, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
 
   const [seasons,       setSeasons]       = useState<Season[]>([]);
   const [leagues,       setLeagues]       = useState<League[]>([]);
@@ -94,7 +94,7 @@ export default function SeasonsPage({ validSlug }: { validSlug: boolean }) {
 
   if (!authed) return (
     <div className="min-h-screen bg-ak-base flex items-center justify-center p-4">
-      <LoginForm onLogin={handleLogin} error={loginError} />
+      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
     </div>
   );
 
@@ -154,7 +154,6 @@ export default function SeasonsPage({ validSlug }: { validSlug: boolean }) {
   );
 }
 
-export async function getServerSideProps({ params }: { params: { slug: string } }) {
-  if (!await validateAdminSlug(params.slug)) return { notFound: true };
-  return { props: { validSlug: true } };
+export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
+  return getAdminPasskeyLoginProps(params, query);
 }

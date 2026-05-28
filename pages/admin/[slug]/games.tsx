@@ -5,9 +5,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, Spinner, LoginForm, BoxScoreTable, F, Sel, Btn, Confirm, useAdminAuth, byJersey, apiFetch } from "@/client/admin";
+import { AdminLayout, Spinner, PasskeyLoginForm, BoxScoreTable, F, Sel, Btn, Confirm, useAdminAuth, byJersey, apiFetch } from "@/client/admin";
 import type { Player, Game, SeasonLeague, BoxScoreRow } from "@/client/admin";
-import { validateAdminSlug } from '@/server/auth';
+import { getAdminPasskeyLoginProps } from "@/server/auth";
 
 type GameDraft = {
   date: string;
@@ -23,12 +23,12 @@ type GameDraft = {
   boxScore: BoxScoreRow[];
 };
 
-export default function GamesPage({ validSlug }: { validSlug: boolean }) {
+export default function GamesPage({ validSlug, showFallback, noPasskeys }: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
   // A-02 fix: derive slug from the Next.js router, not window.location.
   const router = useRouter();
   const slug = router.query.slug || validSlug;
 
-  const { authed, loading: checking, loginError, handleLogin, handleLogout } = useAdminAuth(slug);
+  const { authed, loading: checking, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
 
   const [players,       setPlayers]       = useState<Player[]>([]);
   const [games,         setGames]         = useState<Game[]>([]);
@@ -200,7 +200,7 @@ export default function GamesPage({ validSlug }: { validSlug: boolean }) {
 
   if (!authed) return (
     <div className="min-h-screen bg-ak-base flex items-center justify-center p-4">
-      <LoginForm onLogin={handleLogin} error={loginError} />
+      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
     </div>
   );
 
@@ -275,7 +275,6 @@ export default function GamesPage({ validSlug }: { validSlug: boolean }) {
   );
 }
 
-export async function getServerSideProps({ params }: { params: { slug: string } }) {
-  if (!await validateAdminSlug(params.slug)) return { notFound: true };
-  return { props: { validSlug: true } };
+export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
+  return getAdminPasskeyLoginProps(params, query);
 }
