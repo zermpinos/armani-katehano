@@ -42,10 +42,10 @@ function createTransport(): nodemailer.Transporter | null {
 
 export async function sendConfirmationEmail({
   email,
-  confirmUrl,
+  confirmToken,
 }: {
   email: string;
-  confirmUrl: string;
+  confirmToken: string;
 }): Promise<void> {
   const transport = createTransport();
   if (!transport) {
@@ -53,7 +53,8 @@ export async function sendConfirmationEmail({
     return;
   }
 
-  const appUrl  = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const confirmUrl = `${appUrl}/api/confirm?token=${confirmToken}`;
   const subject = "Confirm your subscription -- Armani Katehano";
   const html    = buildConfirmationEmailHtml(confirmUrl, appUrl);
   const text    = buildConfirmationEmailText(confirmUrl, appUrl);
