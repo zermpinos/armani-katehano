@@ -57,7 +57,9 @@ export async function atomicRecordAndCheck(
   const hashedKey = rlKey(key);
   const since     = new Date(Date.now() - windowSeconds * 1000);
   return prisma.$transaction(async (tx) => {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(${lockKey}::bigint)`;
+    // $executeRaw, not $queryRaw: pg_advisory_xact_lock() returns void, which
+    // @prisma/adapter-neon refuses to deserialize (P2010 UnsupportedNativeDataType).
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey}::bigint)`;
     await tx.loginAttempt.create({ data: { ip: hashedKey } });
     const count = await tx.loginAttempt.count({
       where: { ip: hashedKey, attemptedAt: { gte: since } },
