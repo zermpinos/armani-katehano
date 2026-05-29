@@ -13,13 +13,13 @@ import { getAdminUser } from "@/server/auth/password";
 import { validateAdminSlug } from "@/server/auth/admin-slug";
 import type { ParsedUrlQuery } from "node:querystring";
 
-// Throws at module load time in production if APP_URL is missing or not https.
+// Throws at module load time in production if NEXT_PUBLIC_APP_URL is missing or not https.
 // Fail loudly before any request is served.
 const _origin = (() => {
-  const url = process.env.APP_URL ?? "";
+  const url = process.env.NEXT_PUBLIC_APP_URL ?? "";
   if (process.env.NODE_ENV === "production" && !url.startsWith("https://")) {
     throw new Error(
-      `[passkey] APP_URL must be https:// in production. Got: "${url}"`
+      `[passkey] NEXT_PUBLIC_APP_URL must be https:// in production. Got: "${url}"`
     );
   }
   return url;

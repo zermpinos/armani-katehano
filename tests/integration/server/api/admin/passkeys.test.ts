@@ -3,7 +3,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.hoisted(() => {
   process.env.SESSION_SECRET = "test-session-secret-32bytes-xxxx";
-  process.env.APP_URL        = "https://example.com";
+  process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
   process.env.NODE_ENV       = "test";
 });
 
