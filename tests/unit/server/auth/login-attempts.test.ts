@@ -6,6 +6,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 const { mockPrisma, mockTx } = vi.hoisted(() => {
   const mockTx = {
     $queryRaw:     vi.fn().mockResolvedValue([]),
+    $executeRaw:   vi.fn().mockResolvedValue(1),
     loginAttempt: {
       create: vi.fn().mockResolvedValue({}),
       count:  vi.fn().mockResolvedValue(0),
@@ -70,6 +71,7 @@ describe("atomicRecordAndCheck", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockTx.$queryRaw.mockResolvedValue([]);
+    mockTx.$executeRaw.mockResolvedValue(1);
     mockTx.loginAttempt.create.mockResolvedValue({});
     mockTx.loginAttempt.count.mockResolvedValue(0);
     mockPrisma.$transaction.mockImplementation((fn: Function) => fn(mockTx));
@@ -77,9 +79,18 @@ describe("atomicRecordAndCheck", () => {
 
   it("acquires advisory lock via pg_advisory_xact_lock", async () => {
     await atomicRecordAndCheck("1.2.3.4");
-    expect(mockTx.$queryRaw).toHaveBeenCalledOnce();
-    const [strings] = mockTx.$queryRaw.mock.calls[0];
+    expect(mockTx.$executeRaw).toHaveBeenCalledOnce();
+    const [strings] = mockTx.$executeRaw.mock.calls[0];
     expect(strings.join("")).toContain("pg_advisory_xact_lock");
+  });
+
+  // Regression: pg_advisory_xact_lock() returns void; $queryRaw would crash the
+  // Neon adapter with P2010 UnsupportedNativeDataType. $executeRaw skips column
+  // deserialization, so it must be the one called here.
+  it("uses $executeRaw (not $queryRaw) so the void return type doesn't break the Neon adapter", async () => {
+    await atomicRecordAndCheck("1.2.3.4");
+    expect(mockTx.$executeRaw).toHaveBeenCalledOnce();
+    expect(mockTx.$queryRaw).not.toHaveBeenCalled();
   });
 
   it("inserts a loginAttempt record inside the transaction", async () => {

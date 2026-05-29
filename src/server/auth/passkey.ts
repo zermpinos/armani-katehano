@@ -55,7 +55,7 @@ export async function generateRegistrationOpts(
     rpID:      getRpId(),
     userName:  username,
     userID:    new Uint8Array(Buffer.from(username)),
-    authenticatorSelection: { userVerification: "required" },
+    authenticatorSelection: { residentKey: "required", userVerification: "required" },
     excludeCredentials: excludeCredentials.map((c) => ({
       id:         c.credentialId,
       transports: c.transports as any,
