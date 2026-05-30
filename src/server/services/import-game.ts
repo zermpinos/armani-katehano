@@ -27,6 +27,9 @@ export interface ImportResult {
   gameId: string;
   playersImported: number;
   skipped: string[];
+  opponent: string;
+  location: "home" | "away";
+  playedOn: Date;
 }
 
 export async function importGame(
@@ -235,5 +238,12 @@ export async function importGame(
     await Promise.allSettled(ISR_PATHS.map(p => opts.revalidate!(p)));
   }
 
-  return { gameId: gameId!, playersImported: validatedBoxScore.length, skipped };
+  return {
+    gameId: gameId!,
+    playersImported: validatedBoxScore.length,
+    skipped,
+    opponent: oppTeamName,
+    location: isHome ? "home" : "away",
+    playedOn,
+  };
 }
