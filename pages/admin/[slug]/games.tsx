@@ -136,6 +136,19 @@ export default function GamesPage({ validSlug, showFallback, noPasskeys }: { val
     loadData();
   };
 
+  const broadcastGame = async (g: Game) => {
+    if (!window.confirm(`Send game recap email to all subscribers for ${(g.home ?? g.location === "home") ? "vs" : "@"} ${g.opponent}?`)) return;
+    const res = await apiFetch("/api/admin/broadcast-game", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ gameId: g.id }),
+    });
+    const d = await res.json();
+    if (res.status === 409) { showToast("Already broadcast on " + new Date(d.broadcastedAt).toLocaleDateString(), "error"); return; }
+    if (!res.ok) { showToast(d.error ?? "Broadcast failed", "error"); return; }
+    showToast(`Recap sent to ${d.recipientCount} subscribers!`);
+  };
+
   const deleteGame = async (g: Game) => {
     const res = await apiFetch("/api/admin/games", {
       method:  "DELETE",
@@ -254,6 +267,7 @@ export default function GamesPage({ validSlug, showFallback, noPasskeys }: { val
                     </div>
                   </div>
                   <div className="flex gap-[6px]">
+                    <Btn size="sm" variant="ghost" onClick={() => broadcastGame(g)}>BROADCAST</Btn>
                     <Btn size="sm" variant="ghost" onClick={() => startEdit(g)}>EDIT</Btn>
                     <Btn size="sm" variant="danger" onClick={() => setConfirm(g)}>DEL</Btn>
                   </div>

@@ -168,6 +168,56 @@ export type ClaimResult =
   | { ok: true;  state: "already_broadcast"; broadcastedAt: Date }
   | { ok: true;  state: "broadcasted"; recipientCount: number };
 
+export async function claimAndBroadcastByGameId(gameId: string): Promise<ClaimResult> {
+  const game = await prisma.game.findUnique({
+    where:   { id: gameId },
+    include: { seasonLeague: { include: { league: { select: { name: true } } } } },
+  });
+  if (!game) return { ok: false, reason: "not_found" };
+
+  const job = await prisma.gameImportJob.findFirst({ where: { importedGameId: gameId } });
+
+  if (job?.subscriberBroadcastAt) {
+    auditLog("broadcast_already_viewed", { gameId, jobId: job.id });
+    return { ok: true, state: "already_broadcast", broadcastedAt: job.subscriberBroadcastAt };
+  }
+
+  if (!brevoConfigured()) {
+    auditLog("broadcast_transport_unavailable", { gameId });
+    return { ok: false, reason: "transport_unavailable" };
+  }
+
+  if (job) {
+    const rowsAffected: number = await prisma.$executeRaw`
+      UPDATE "GameImportJob"
+      SET "subscriberBroadcastAt" = NOW()
+      WHERE id = ${job.id} AND "subscriberBroadcastAt" IS NULL
+    `;
+    if (rowsAffected === 0) {
+      const fresh = await prisma.gameImportJob.findUnique({
+        where:  { id: job.id },
+        select: { subscriberBroadcastAt: true },
+      });
+      auditLog("broadcast_already_claimed", { gameId, jobId: job.id });
+      return { ok: true, state: "already_broadcast", broadcastedAt: fresh?.subscriberBroadcastAt ?? new Date() };
+    }
+  }
+
+  const [subscribers, { topPerformers, ctx }] = await Promise.all([
+    prisma.subscriber.findMany({
+      where:  { confirmedAt: { not: null } },
+      select: { id: true, email: true, token: true },
+    }),
+    fetchBroadcastEnrichment(gameId, game.seasonLeagueId, game.playedOn),
+  ]);
+
+  const gameImported = toGameImported(game);
+  await sendGameImportedBroadcast({ game: gameImported, topPerformers, ctx, subscribers });
+
+  auditLog("broadcast_sent_by_game_id", { gameId, jobId: job?.id ?? null, recipientCount: subscribers.length });
+  return { ok: true, state: "broadcasted", recipientCount: subscribers.length };
+}
+
 export async function claimAndBroadcast({ token, ip: _ip }: { token: string; ip: string }): Promise<ClaimResult> {
   const v = verify(token);
   if (!v.ok) {
