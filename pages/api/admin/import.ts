@@ -11,7 +11,7 @@ export default requireAuth(async function handler(req: any, res: any) {
       { data: req.body?.data },
       { revalidate: (path: string) => res.revalidate(path) },
     );
-    sendImportNotification({
+    await sendImportNotification({
       kind:         "success",
       opponent:     result.opponent,
       location:     result.location,
