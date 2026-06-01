@@ -10,7 +10,7 @@ export function RecentResultsCard({ recentGames }: { recentGames: any[] }) {
           <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim uppercase">Recent Results</div>
           <div className="text-lg font-bold text-ak-text mt-0.5">Last {recentGames.length} Games</div>
         </div>
-        <ShowMoreButton href="/games" className="show-more-btn">All Games -></ShowMoreButton>
+        <ShowMoreButton href="/games" className="show-more-btn">All Games →</ShowMoreButton>
       </div>
 
       {/* Featured: most recent game */}

@@ -47,7 +47,7 @@ export function GamesTable({ items, onUpcomingClick, seasonLeagues, selectedLeag
                     <div className="text-[13px] font-bold text-ak-text-sub">{g.scheduledFor.slice(0, 10)}</div>
                     {g.competition && <div className="text-[11px] text-ak-text-dim">{g.competition}</div>}
                   </div>
-                  <div className="text-[11px] text-ak-gold font-bold">UPCOMING -></div>
+                  <div className="text-[11px] text-ak-gold font-bold">UPCOMING →</div>
                 </div>
               </button>
             );
@@ -88,7 +88,7 @@ export function GamesTable({ items, onUpcomingClick, seasonLeagues, selectedLeag
                   <div className="text-lg font-black text-ak-text">{g.score}</div>
                   {topScorer && <div className="text-[11px] text-ak-text-dim">{topScorer}</div>}
                 </div>
-                <div className="text-[11px] text-ak-red-text font-bold">BOX SCORE -></div>
+                <div className="text-[11px] text-ak-red-text font-bold">BOX SCORE →</div>
               </div>
             </Link>
           );

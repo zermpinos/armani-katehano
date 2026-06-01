@@ -307,7 +307,7 @@ export default function AdminDashboard({ validSlug, showFallback, noPasskeys }: 
               </div>
               <div className="mt-[10px]">
                 <Link href={`/admin/${slug}/games`} className="text-[11px] text-ak-red-text font-bold">
-                  View all games ->
+                  View all games →
                 </Link>
               </div>
             </div>

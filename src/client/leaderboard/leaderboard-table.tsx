@@ -137,7 +137,7 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort 
           <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-r from-transparent to-[#242426] sm:hidden" />
         </div>
       </div>
-      <div className="sm:hidden text-[10px] text-ak-text-dim text-center mt-2 tracking-[0.1em]">← scroll for more -></div>
+      <div className="sm:hidden text-[10px] text-ak-text-dim text-center mt-2 tracking-[0.1em]">← scroll for more →</div>
 
       <div className="flex gap-5 flex-wrap mt-4">
         {MEDALS.map((m, i) => (

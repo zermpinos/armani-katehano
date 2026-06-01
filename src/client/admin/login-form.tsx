@@ -58,7 +58,7 @@ export function LoginForm({ onLogin, error }: { onLogin: any; error: any }) {
           {loading ? "VERIFYING..." : "SIGN IN"}
         </button>
       </form>
-      <div className="text-center text-[10px] text-ak-text-dim mt-4">5 failed attempts -> 15-minute lockout</div>
+      <div className="text-center text-[10px] text-ak-text-dim mt-4">5 failed attempts → 15-minute lockout</div>
     </div>
   );
 }
