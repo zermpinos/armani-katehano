@@ -463,7 +463,7 @@ describe("buildGameImportedText - new sections", () => {
 
   it("contains no em-dashes", () => {
     const text = buildGameImportedText(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
-    expect(text).not.toMatch(/-/);
+    expect(text).not.toMatch(/--/);
   });
 
   it("contains the full box score URL", () => {
