@@ -128,7 +128,7 @@ export async function recalcAggregates(
   if (toUpsert.length === 0) return;
 
   // P-01: single bulk upsert via raw SQL (was N sequential awaits)
-  // All values are passed as bound parameters -- no string interpolation of data.
+  // All values are passed as bound parameters - no string interpolation of data.
   // Column order must match exactly between INSERT cols list and row value push.
   const cols = [
     "id",
@@ -150,7 +150,7 @@ export async function recalcAggregates(
     const sample = toUpsert[0];
     for (const col of cols) {
       if (!(col in sample)) {
-        throw new Error(`recalcAggregates: col "${col}" is not set on the upsert row -- check for a typo or missed rename`);
+        throw new Error(`recalcAggregates: col "${col}" is not set on the upsert row - check for a typo or missed rename`);
       }
     }
   }

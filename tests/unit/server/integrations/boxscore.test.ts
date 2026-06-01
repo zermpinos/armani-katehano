@@ -93,7 +93,7 @@ function playerRow(num: number, name: string, min: string, pts: number, opts: {
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
-describe("scrapeGame -- finalScore", () => {
+describe("scrapeGame - finalScore", () => {
   it("parses home and away final scores", () => {
     const html = gameHeader({ homeScore: 39, awayScore: 45 });
     const result = scrapeGame(html, BASE_URL);
@@ -108,7 +108,7 @@ describe("scrapeGame -- finalScore", () => {
   });
 });
 
-describe("scrapeGame -- team names", () => {
+describe("scrapeGame - team names", () => {
   it("parses homeTeam and awayTeam from .name divs", () => {
     const html = gameHeader({ home: "ARMANI KATEHANO", away: "ΑΡΗΣ" });
     const result = scrapeGame(html, BASE_URL);
@@ -117,11 +117,11 @@ describe("scrapeGame -- team names", () => {
   });
 });
 
-describe("scrapeGame -- quarter score table selection (regression)", () => {
+describe("scrapeGame - quarter score table selection (regression)", () => {
   it("picks per-quarter table when both per-quarter and cumulative tables are present", () => {
     // CRITICAL: the page has two 4-row Q1-Q4 tables.
-    // Per-quarter sums: home 8+11+6+14=39, away 5+19+12+9=45 -- matches finalScore.
-    // Cumulative sums: home 8+19+25+39=91, away 5+24+36+45=110 -- does not match.
+    // Per-quarter sums: home 8+11+6+14=39, away 5+19+12+9=45 - matches finalScore.
+    // Cumulative sums: home 8+19+25+39=91, away 5+24+36+45=110 - does not match.
     const html = gameHeader({ homeScore: 39, awayScore: 45 })
       + PER_QUARTER_TABLE
       + CUMULATIVE_TABLE;
@@ -142,7 +142,7 @@ describe("scrapeGame -- quarter score table selection (regression)", () => {
 
     const result = scrapeGame(html, BASE_URL);
 
-    // Cumulative Q4 values equal the final score (39/45) -- the old bug was picking this.
+    // Cumulative Q4 values equal the final score (39/45) - the old bug was picking this.
     // After the fix, Q4 home must be 14, not 39.
     expect(result.game.quarterScores[3].home).toBe(14);
     expect(result.game.quarterScores[3].away).toBe(9);
@@ -154,7 +154,7 @@ describe("scrapeGame -- quarter score table selection (regression)", () => {
       + CUMULATIVE_TABLE;
 
     const result = scrapeGame(html, BASE_URL);
-    // No score to match against -- first table is used (per-quarter appears first on page)
+    // No score to match against - first table is used (per-quarter appears first on page)
     expect(result.game.quarterScores).toHaveLength(4);
     expect(result.game.quarterScores[0]).toMatchObject({ quarter: "Q1" });
   });
@@ -178,7 +178,7 @@ describe("scrapeGame -- quarter score table selection (regression)", () => {
   });
 });
 
-describe("scrapeGame -- loadDoc injection", () => {
+describe("scrapeGame - loadDoc injection", () => {
   it("injects quarter table payload from loadDoc call into the target div", () => {
     // The real sportstats page delivers quarter tables via loadDoc() JS calls
     // that the scraper resolves before parsing with cheerio.
@@ -211,7 +211,7 @@ describe("scrapeGame -- loadDoc injection", () => {
   });
 });
 
-describe("scrapeGame -- player box score", () => {
+describe("scrapeGame - player box score", () => {
   it("parses a player row into expected fields", () => {
     const row = playerRow(7, "ΑΡΜΑΝΙ Κ", "26:00", 12, {
       reb: 5, oreb: 1, dreb: 4, ast: 3, stl: 2, blk: 0, to: 1, pf: 2,
@@ -273,7 +273,7 @@ describe("scrapeGame -- player box score", () => {
   });
 });
 
-describe("scrapeGame -- PDF fields isolation", () => {
+describe("scrapeGame - PDF fields isolation", () => {
   it("returns no offRating or defRating without PDF data (scrape-game.ts adds them later)", () => {
     // boxscore.ts must not produce offRating/defRating itself.
     // Those fields are added by scrape-game.ts after PDF parsing.

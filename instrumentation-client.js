@@ -1,5 +1,5 @@
 // This file configures the initialization of Sentry on the client.
-// In Next.js with @sentry/nextjs >= 9 this is the canonical client entry --
+// In Next.js with @sentry/nextjs >= 9 this is the canonical client entry -
 // it replaces the legacy sentry.client.config.js (defining both causes a
 // double Sentry.init() and bundles BrowserTracing/Replay twice, bloating TBT).
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
@@ -31,7 +31,7 @@ function scrubEvent(event) {
 }
 
 // Sentry's default integrations bundle BrowserTracing, Replay,
-// BrowserSession, BrowserApiErrors, Breadcrumbs, HttpContext, etc. -- tens
+// BrowserSession, BrowserApiErrors, Breadcrumbs, HttpContext, etc. - tens
 // of KiB of code that runs even when tracesSampleRate /
 // replaysSessionSampleRate are 0. We only need uncaught-exception capture
 // (globalHandlers), the noise filter that honors ignoreErrors above

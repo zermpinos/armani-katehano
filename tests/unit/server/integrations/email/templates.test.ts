@@ -28,7 +28,7 @@ function gapIdx(html: string): number {
   return html.indexOf("height:14px");
 }
 
-describe("buildHtml -- roster ordering and starter/bench split", () => {
+describe("buildHtml - roster ordering and starter/bench split", () => {
   it("orders all players ascending by jersey number when no starters are marked", () => {
     const players: PlayerSlot[] = [
       { number: 11, name: "P11", note: null },
@@ -108,8 +108,8 @@ describe("buildHtml -- roster ordering and starter/bench split", () => {
   });
 });
 
-describe("buildText -- roster ordering and starter/bench split", () => {
-  it("lists starters first, then a divider, then bench -- each ascending by number", () => {
+describe("buildText - roster ordering and starter/bench split", () => {
+  it("lists starters first, then a divider, then bench - each ascending by number", () => {
     const players: PlayerSlot[] = [
       { number: 11, name: "Starter11", note: "starting" },
       { number: 4,  name: "Starter4",  note: "starting" },

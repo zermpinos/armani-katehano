@@ -26,7 +26,7 @@ export function classifyScrapedGame(data: any): ClassifyResult {
 
   for (const q of quarterScores) {
     if (q.home === null || q.away === null || q.home === undefined || q.away === undefined)
-      return { state: "live", reason: "partial quarter scores -- Q4 not yet complete" };
+      return { state: "live", reason: "partial quarter scores - Q4 not yet complete" };
   }
 
   // Guard against a race where the page renders a settled finalScore
@@ -37,7 +37,7 @@ export function classifyScrapedGame(data: any): ClassifyResult {
   // Quarter sum < final score is valid (overtime points not in quarters array).
   // Quarter sum > final score means the page hasn't settled yet.
   if (homeSum > Number(finalScore.home) || awaySum > Number(finalScore.away))
-    return { state: "live", reason: "quarter sum exceeds final score -- page still settling" };
+    return { state: "live", reason: "quarter sum exceeds final score - page still settling" };
 
   return { state: "final", reason: "all 4 quarters complete with consistent final score" };
 }

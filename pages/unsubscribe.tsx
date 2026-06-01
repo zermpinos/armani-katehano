@@ -43,7 +43,7 @@ export default function UnsubscribePage() {
   return (
     <>
       <Head>
-        <title>Unsubscribe -- Armani Katehano</title>
+        <title>Unsubscribe - Armani Katehano</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div className="min-h-screen bg-ak-base flex items-center justify-center p-6">

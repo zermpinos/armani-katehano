@@ -36,7 +36,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("sanitize -- IP hashing", () => {
+describe("sanitize - IP hashing", () => {
   it("hashes the ip field before any output", async () => {
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     auditLog("test_event", { ip: "1.2.3.4", path: "/foo" });

@@ -43,7 +43,7 @@ export default function CoachPage() {
     <>
       <Head>
         <meta name="robots" content="noindex, nofollow" />
-        <title>Coach Portal -- Armani Katehano</title>
+        <title>Coach Portal - Armani Katehano</title>
       </Head>
 
       {/* Header */}

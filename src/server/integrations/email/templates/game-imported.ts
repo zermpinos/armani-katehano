@@ -108,7 +108,7 @@ function performerRowNew(
 }
 
 function statsStripHtml(stats: TeamGameStats): string {
-  const fgPctDisplay = stats.fgPct !== null ? `${stats.fgPct}%` : "--";
+  const fgPctDisplay = stats.fgPct !== null ? `${stats.fgPct}%` : "-";
   return `
         <tr>
           <td style="background-color:#f9fafb;padding:20px 32px;border-top:1px solid #e5e7eb;">

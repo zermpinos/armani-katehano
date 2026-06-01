@@ -3,7 +3,7 @@
  * E2E tests for public-facing pages.
  *
  * These tests verify that pages render without crashing and key structural
- * elements are present -- they are intentionally resilient to empty DB state
+ * elements are present - they are intentionally resilient to empty DB state
  * (no games / no players yet).
  */
 import { test, expect } from "@playwright/test";
@@ -24,7 +24,7 @@ test.describe("Homepage (/)", () => {
 
   test("renders navigation links", async ({ page }) => {
     await page.goto("/");
-    // Layout nav should have links to main sections -- use exact match to avoid
+    // Layout nav should have links to main sections - use exact match to avoid
     // matching homepage body links like "All Games ->" alongside the nav link.
     await expect(page.getByRole("link", { name: "Games", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Leaderboard", exact: true })).toBeVisible();

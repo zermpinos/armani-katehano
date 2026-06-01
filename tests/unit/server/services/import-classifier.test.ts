@@ -71,7 +71,7 @@ describe("classifyScrapedGame", () => {
   });
 
   it("returns live when quarter sum exceeds final score (page still settling)", () => {
-    // quarterScores sum to 75-75, but finalScore says 70-75 -- home sum exceeds final,
+    // quarterScores sum to 75-75, but finalScore says 70-75 - home sum exceeds final,
     // meaning the page rendered a stale quarter total before the final score updated.
     const result = classifyScrapedGame(makePayload({
       finalScore: { home: 70, away: 75 },
@@ -80,7 +80,7 @@ describe("classifyScrapedGame", () => {
     expect(result.reason).toMatch(/settling/);
   });
 
-  it("returns final when quarter sum is less than final score (overtime -- OT points not in quarters array)", () => {
+  it("returns final when quarter sum is less than final score (overtime - OT points not in quarters array)", () => {
     // Regulation quarters sum to 75-75; final score is 80-75 (OT added 5 for home).
     // Quarter sum < final is valid, so this must be classified as final.
     const result = classifyScrapedGame(makePayload({

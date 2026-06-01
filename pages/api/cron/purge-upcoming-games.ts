@@ -1,7 +1,7 @@
 /**
  * pages/api/cron/purge-upcoming-games.ts
  *
- * GET -- daily cron. Deletes UpcomingGame rows whose scheduledFor is in the
+ * GET - daily cron. Deletes UpcomingGame rows whose scheduledFor is in the
  * past AND whose linked GameImportJob has reached a terminal state
  * (IMPORTED or ABANDONED).
  *

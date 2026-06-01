@@ -118,7 +118,7 @@ export function buildHtml(
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Roster Announcement -- Armani Katehano</title>
+  <title>Roster Announcement - Armani Katehano</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f3f4f6;-webkit-font-smoothing:antialiased;">
 
@@ -137,7 +137,7 @@ export function buildHtml(
         <table width="100%" cellpadding="0" cellspacing="0" border="0"
                style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
 
-          <!-- Header -- matchup is the hero -->
+          <!-- Header - matchup is the hero -->
           <tr>
             <td bgcolor="#111111" style="background-color:#111111;padding:32px 32px 28px;">
               <p style="margin:0;font-size:10px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#c92a2a;">Armani Katehano &middot; Game Day Roster</p>

@@ -69,7 +69,7 @@ async function fetchListing(listingUrl: string): Promise<string> {
   }
 
   if (response.status >= 300 && response.status < 400)
-    throw new ListingFetchError("Listing redirected -- refusing to follow.", 502);
+    throw new ListingFetchError("Listing redirected - refusing to follow.", 502);
   if (!response.ok)
     throw new ListingFetchError(`Listing returned ${response.status}`, 502);
 

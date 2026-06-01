@@ -122,7 +122,7 @@ describe("aggregatesToStatsMap", () => {
     expect(map["p1"].gp).toBe(10);
   });
 
-  it("handles player with 0 fga -- no divide-by-zero", () => {
+  it("handles player with 0 fga - no divide-by-zero", () => {
     const aggregates = [
       mockAgg("p1", 1, { ftmTotal:2, ftaTotal:2, ptsAvg:2, ptsTotal:2 }),
     ];
@@ -218,19 +218,19 @@ describe("buildStatsMap", () => {
   });
 });
 
-// ─── computeTeamAverages -- agreement with aggregatesToStatsMap ────────────────
+// ─── computeTeamAverages - agreement with aggregatesToStatsMap ────────────────
 // Verifies that team-stats tiles and leaderboard player aggregates are derived
 // from the same arithmetic. Given identical box-score data, team totals computed
 // by computeTeamAverages must equal team totals reconstructed by summing
 // per-player aggregates from aggregatesToStatsMap.
 //
 // Fixture: 3 games, 2 players (player B has one DNP -> excluded from agg gp).
-//   Player A: 3 active games -- reb 8/5/6 = 19 total, fgm 6/4/5 = 15, fga 12/9/11 = 32
-//   Player B: 2 active games -- reb 4/7    = 11 total, fgm 3/4   =  7, fga  7/8   = 15
+//   Player A: 3 active games - reb 8/5/6 = 19 total, fgm 6/4/5 = 15, fga 12/9/11 = 32
+//   Player B: 2 active games - reb 4/7    = 11 total, fgm 3/4   =  7, fga  7/8   = 15
 //   Team gp = 3, team reb = 30, team fgm = 22, team fga = 47
 //   Expected RPG = 10.0, FG% = +(22/47*100).toFixed(1)
 
-describe("computeTeamAverages -- agrees with aggregatesToStatsMap on same fixture", () => {
+describe("computeTeamAverages - agrees with aggregatesToStatsMap on same fixture", () => {
   const GAMES = [
     {
       id: "g1",
@@ -310,11 +310,11 @@ describe("computeTeamAverages -- agrees with aggregatesToStatsMap on same fixtur
     // Player B's g2 row (min=0) must not inflate team totals
     const teamAvg = computeTeamAverages(GAMES);
     // If DNP were included, reb would be rawSum including 0-min rows = same value
-    // (since DNP reb is 0), but gp from DNP would inflate counts -- here we
+    // (since DNP reb is 0), but gp from DNP would inflate counts - here we
     // confirm computeTeamAverages divides by team_gp (3), not by row count (5)
     const allRowsIncludingDnp = GAMES.flatMap(g => g.boxScore);
     const naiveRpg = +(allRowsIncludingDnp.reduce((a, r: any) => a + (r.reb || 0), 0) / allRowsIncludingDnp.length).toFixed(1);
-    // naiveRpg uses 5 rows, teamAvg.rpg uses 3 games -- they must differ
+    // naiveRpg uses 5 rows, teamAvg.rpg uses 3 games - they must differ
     expect(naiveRpg).not.toBe(teamAvg.rpg);
     expect(teamAvg.rpg).toBe(+(rawSum("reb") / TEAM_GP).toFixed(1));
   });

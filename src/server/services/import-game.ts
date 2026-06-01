@@ -73,12 +73,12 @@ export async function importGame(
 
   const leagueKey = detectLeagueSlug(sourceUrl);
   if (!leagueKey)
-    throw new ImportError("Could not detect a league from the source URL -- import aborted", 422);
+    throw new ImportError("Could not detect a league from the source URL - import aborted", 422);
 
   let seasonLeagueId: string;
 
   if (leagueKey === 'men') {
-    // /men/ URLs are shared by Rookie, BC6, BC8 -- resolve by finding the single
+    // /men/ URLs are shared by Rookie, BC6, BC8 - resolve by finding the single
     // active non-wintercup SeasonLeague whose season covers the game date.
     const candidates = await prisma.seasonLeague.findMany({
       where: {
@@ -90,19 +90,19 @@ export async function importGame(
     });
     if (candidates.length === 0)
       throw new ImportError(
-        `No active SeasonLeague found for game date ${playedOn.toISOString().slice(0, 10)} -- ensure the current season is configured`,
+        `No active SeasonLeague found for game date ${playedOn.toISOString().slice(0, 10)} - ensure the current season is configured`,
         422,
       );
     if (candidates.length > 1)
       throw new ImportError(
-        `Multiple active leagues match (${candidates.map(c => c.league.slug).join(', ')}) -- set non-overlapping season end dates`,
+        `Multiple active leagues match (${candidates.map(c => c.league.slug).join(', ')}) - set non-overlapping season end dates`,
         422,
       );
     seasonLeagueId = candidates[0].id;
   } else {
     const league = await prisma.league.findFirst({ where: { slug: leagueKey } });
     if (!league)
-      throw new ImportError(`No league found for slug "${leagueKey}" -- create it first`, 422);
+      throw new ImportError(`No league found for slug "${leagueKey}" - create it first`, 422);
     const sl = await prisma.seasonLeague.findFirst({
       where: {
         leagueId: league.id,
@@ -111,7 +111,7 @@ export async function importGame(
       orderBy: { season: { startDate: 'desc' } },
     });
     if (!sl)
-      throw new ImportError(`No active SeasonLeague found for league "${leagueKey}" -- ensure the current season is configured`, 422);
+      throw new ImportError(`No active SeasonLeague found for league "${leagueKey}" - ensure the current season is configured`, 422);
     seasonLeagueId = sl.id;
   }
 
@@ -231,7 +231,7 @@ export async function importGame(
   try {
     await recalcAggregates(seasonLeagueId, undefined, affectedPlayerIds);
   } catch (err) {
-    console.error("[importGame] recalcAggregates failed after commit -- aggregates may be stale:", err);
+    console.error("[importGame] recalcAggregates failed after commit - aggregates may be stale:", err);
   }
 
   if (opts?.revalidate) {

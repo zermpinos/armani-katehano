@@ -26,7 +26,7 @@ export default function Layout({ children, title = SITE_NAME, ogDescription }: L
   const [open, setOpen] = useState(false);
 
   const pageTitle = title === SITE_NAME ? title : `${title} · ${SITE_NAME}`;
-  const desc      = ogDescription ?? `${SITE_NAME} Basketball -- Season Stats ${CURRENT_SEASON}`;
+  const desc      = ogDescription ?? `${SITE_NAME} Basketball - Season Stats ${CURRENT_SEASON}`;
   const canonical = `${BASE_URL}${router.asPath.split("?")[0]}`;
 
   return (
@@ -76,7 +76,7 @@ export default function Layout({ children, title = SITE_NAME, ogDescription }: L
               </div>
             </Link>
 
-            {/* Desktop nav -- hidden on mobile */}
+            {/* Desktop nav - hidden on mobile */}
             <div className="hidden sm:flex items-center gap-0.5">
               {NAV_LINKS.map(link => {
                 const active = router.pathname === link.href;
@@ -97,7 +97,7 @@ export default function Layout({ children, title = SITE_NAME, ogDescription }: L
               })}
             </div>
 
-            {/* Mobile hamburger -- hidden on sm+ */}
+            {/* Mobile hamburger - hidden on sm+ */}
             <button
               className="sm:hidden bg-transparent border-0 cursor-pointer p-2 text-ak-text-sub rounded-md"
               onClick={() => setOpen(o => !o)}

@@ -1,7 +1,7 @@
 /**
  * types/index.ts
  * Shared domain types for the app.
- * Prisma-generated types live in lib/generated/prisma -- import from there for DB shapes.
+ * Prisma-generated types live in lib/generated/prisma - import from there for DB shapes.
  * These are the app-layer types used in pages, components, and lib functions.
  */
 
@@ -119,7 +119,7 @@ export interface PlayerSeasonStats {
   eff: number;
   tsPct?: number;
   gp: number;
-  // Raw shot totals -- carried for cross-season aggregation
+  // Raw shot totals - carried for cross-season aggregation
   fgm?: number;
   fga?: number;
   fg2m?: number;

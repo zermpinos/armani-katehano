@@ -176,7 +176,7 @@ model PlayerSeasonAggregate {
 // Retention: rows are purged after LOCKOUT_TTL_S (15 min) by the cleanup cron.
 model LoginAttempt {
   id          String   @id @default(cuid())
-  // Stored as SHA-256(ip) -- raw IP address is never persisted.
+  // Stored as SHA-256(ip) - raw IP address is never persisted.
   ip          String   @db.VarChar(64)
   attemptedAt DateTime @default(now()) @db.Timestamptz(6)
 
@@ -310,7 +310,7 @@ model GameImportJob {
   importedGameId        String?        @unique
   importedAt            DateTime?
   lastError             String?
-  // Plain-text error digest only -- HTML is stripped before storage. Purged after 7 days.
+  // Plain-text error digest only - HTML is stripped before storage. Purged after 7 days.
   lastErrorHtml         String?        @db.VarChar(2000)
   warningSentAt         DateTime?
   successSentAt         DateTime?
@@ -325,7 +325,7 @@ model GameImportJob {
 }
 
 // username maps to ADMIN_USERS env var, not a DB table.
-// Renaming a username in env vars orphans its credentials -- auth-verify
+// Renaming a username in env vars orphans its credentials - auth-verify
 // rejects them. Off-boarding runbook must explicitly delete rows for
 // removed admins.
 model PasskeyCredential {
@@ -345,7 +345,7 @@ model PasskeyCredential {
 // Rows are single-use: deleted atomically before verification.
 // Cleanup cron purges rows where expiresAt < now().
 model WebAuthnChallenge {
-  id        String   @id  // NOT @default(cuid()) -- set explicitly in handler
+  id        String   @id  // NOT @default(cuid()) - set explicitly in handler
   challenge String        // base64url-encoded random bytes
   expiresAt DateTime
 

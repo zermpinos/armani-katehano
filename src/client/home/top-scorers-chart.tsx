@@ -8,10 +8,10 @@ export function TopScorersChart({ topScorers }: { topScorers: { name: string; pp
     <div
       className="rounded-2xl p-5 border border-ak-border bg-ak-surface shadow-[0_4px_16px_rgba(0,0,0,0.25)]"
       role="img"
-      aria-label="Top Scorers -- PPG"
+      aria-label="Top Scorers - PPG"
     >
       <div className="flex items-center justify-between mb-4">
-        <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim uppercase">Top Scorers -- PPG</div>
+        <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim uppercase">Top Scorers - PPG</div>
         <ShowMoreButton href="/players" className="show-more-btn">All Players -></ShowMoreButton>
       </div>
       <ResponsiveContainer width="100%" height={topScorers.length * 44}>

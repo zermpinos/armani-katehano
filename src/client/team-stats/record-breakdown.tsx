@@ -20,7 +20,7 @@ export function RecordBreakdown({ rec }: Props) {
           <span className="text-[13px] font-bold text-ak-text-sub">{label}</span>
           <div className="flex items-center gap-2">
             <span className="text-base font-black text-ak-text">{w}-{l}</span>
-            <span className="text-[11px] text-ak-text-dim">{w+l > 0 ? `${(w/(w+l)*100).toFixed(0)}%` : "--"}</span>
+            <span className="text-[11px] text-ak-text-dim">{w+l > 0 ? `${(w/(w+l)*100).toFixed(0)}%` : "-"}</span>
           </div>
         </div>
       ))}
@@ -28,7 +28,7 @@ export function RecordBreakdown({ rec }: Props) {
         <div className="flex items-center justify-between">
           <span className="text-[13px] font-bold text-ak-text-sub">Current Streak</span>
           <span className={`text-sm font-black ${rec.streak.count === 0 ? "text-ak-text-dim" : rec.streak.type === "W" ? "text-ak-green" : "text-ak-red-text"}`}>
-            {rec.streak.count === 0 ? "--" : `${rec.streak.count}${rec.streak.type}`}
+            {rec.streak.count === 0 ? "-" : `${rec.streak.count}${rec.streak.type}`}
           </span>
         </div>
       </div>

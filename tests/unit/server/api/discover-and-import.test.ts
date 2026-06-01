@@ -386,7 +386,7 @@ describe("discovery outcomes", () => {
     expect(res.body).toMatchObject({ abandoned: 0 });
   });
 
-  it("does not abandon on a 3rd miss -- records PENDING with attempts=3", async () => {
+  it("does not abandon on a 3rd miss - records PENDING with attempts=3", async () => {
     const job  = { id: "jobA", state: "PENDING", attempts: 2, failureSentAt: null };
     const game = makeGame({
       scheduledFor: new Date(NOW.getTime() - 3 * HOUR),

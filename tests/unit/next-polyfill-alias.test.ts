@@ -24,7 +24,7 @@ describe("next polyfill stripper", () => {
     const stub = resolve(ROOT, "lib", "empty-polyfill-module.js");
     expect(existsSync(stub), "lib/empty-polyfill-module.js must exist").toBe(true);
     const src = read("lib/empty-polyfill-module.js");
-    // No polyfill assignments allowed -- anything beyond comments and a bare
+    // No polyfill assignments allowed - anything beyond comments and a bare
     // module-export sentinel defeats the stub.
     expect(src).not.toMatch(/Array\.prototype\.|Object\.fromEntries|Object\.hasOwn|String\.prototype\.trim/);
   });

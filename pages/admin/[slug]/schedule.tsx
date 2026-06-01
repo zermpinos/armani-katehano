@@ -1,6 +1,6 @@
 /**
  * pages/admin/[slug]/schedule.tsx
- * Upcoming games -- view, edit, delete all scheduled games.
+ * Upcoming games - view, edit, delete all scheduled games.
  */
 
 import { useState, useEffect } from "react";
@@ -81,7 +81,7 @@ export default function SchedulePage({ validSlug, showFallback, noPasskeys }: { 
 
   const startEdit = (g: ScheduledGame) => {
     const iso = g.scheduledFor;
-    // UTC accessors give the Athens digits directly -- stored times follow the convention
+    // UTC accessors give the Athens digits directly - stored times follow the convention
     // where UTC timestamp digits equal the Athens local time the admin originally entered.
     const date = new Date(iso);
     const day   = String(date.getUTCDate()).padStart(2, "0");

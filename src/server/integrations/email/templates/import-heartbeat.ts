@@ -29,7 +29,7 @@ export interface HeartbeatPayload {
 export function buildImportHeartbeat(p: HeartbeatPayload): { subject: string; html: string; text: string } {
   const ok      = p.runs.filter(r => r.ok).length;
   const failed  = p.runs.length - ok;
-  const subject = `Auto-import heartbeat -- ${ok}/${p.runs.length} OK${p.dropouts.length > 0 ? ` · ${p.dropouts.length} DROPOUT(s)` : ""}`;
+  const subject = `Auto-import heartbeat - ${ok}/${p.runs.length} OK${p.dropouts.length > 0 ? ` · ${p.dropouts.length} DROPOUT(s)` : ""}`;
 
   const fmtDate = (d: Date) => d.toISOString().slice(0, 16).replace("T", " ") + " UTC";
 
@@ -46,11 +46,11 @@ export function buildImportHeartbeat(p: HeartbeatPayload): { subject: string; ht
         <td style="padding:6px 8px;border-top:1px solid #e5e7eb;font-size:12px;">${esc(g.opponent)}</td>
         <td style="padding:6px 8px;border-top:1px solid #e5e7eb;font-size:12px;">${fmtDate(g.scheduledFor)}</td>
         <td style="padding:6px 8px;border-top:1px solid #e5e7eb;font-size:12px;">${g.hasListing ? "✓" : "<strong style=\"color:#c92a2a\">missing</strong>"}</td>
-        <td style="padding:6px 8px;border-top:1px solid #e5e7eb;font-size:12px;">${esc(g.jobState ?? "--")}${g.attempts > 0 ? ` ×${g.attempts}` : ""}</td>
+        <td style="padding:6px 8px;border-top:1px solid #e5e7eb;font-size:12px;">${esc(g.jobState ?? "-")}${g.attempts > 0 ? ` ×${g.attempts}` : ""}</td>
         <td style="padding:6px 8px;border-top:1px solid #e5e7eb;font-size:11px;color:#6b7280;">${esc(g.lastError ?? "")}</td>
       </tr>`).join("");
     const rowsText = games.map(g =>
-      `  ${fmtDate(g.scheduledFor)} · ${g.opponent} · listing=${g.hasListing ? "yes" : "MISSING"} · job=${g.jobState ?? "--"}${g.attempts > 0 ? ` ×${g.attempts}` : ""}${g.lastError ? `\n    err: ${g.lastError}` : ""}`
+      `  ${fmtDate(g.scheduledFor)} · ${g.opponent} · listing=${g.hasListing ? "yes" : "MISSING"} · job=${g.jobState ?? "-"}${g.attempts > 0 ? ` ×${g.attempts}` : ""}${g.lastError ? `\n    err: ${g.lastError}` : ""}`
     ).join("\n");
     return {
       html: `<h3 style="margin:24px 0 8px;font-size:14px;color:${colour};">${esc(title)} (${games.length})</h3>
@@ -69,7 +69,7 @@ export function buildImportHeartbeat(p: HeartbeatPayload): { subject: string; ht
   };
 
   const inWin    = sectionGames("Active window (last 7 days)", p.inWindow, "no candidates");
-  const drops    = sectionGames("DROPOUTS -- fell out of window without import or abandon", p.dropouts, "none -- clean", true);
+  const drops    = sectionGames("DROPOUTS - fell out of window without import or abandon", p.dropouts, "none - clean", true);
   const next7d   = sectionGames("Next 7 days schedule", p.upcomingNext7d, "no upcoming games");
 
   const failedRuns  = p.runs.filter(r => !r.ok);

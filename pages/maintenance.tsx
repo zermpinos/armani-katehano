@@ -12,11 +12,11 @@ export default function MaintenancePage() {
       </Head>
 
       <main className="min-h-screen bg-ak-base text-ak-text flex flex-col">
-        {/* Red top accent -- mirrors the site's navbar */}
+        {/* Red top accent - mirrors the site's navbar */}
         <div className="h-[3px] bg-gradient-to-r from-ak-red via-ak-red-bright to-ak-red" />
 
         <div className="flex-1 flex items-center justify-center px-4 py-16 relative overflow-hidden">
-          {/* Diagonal red texture, faded -- same motif used by the homepage hero */}
+          {/* Diagonal red texture, faded - same motif used by the homepage hero */}
           <div className="absolute inset-0 ak-hero-texture opacity-[0.06] pointer-events-none" />
 
           <div className="relative w-full max-w-[480px] rounded-2xl border border-ak-border bg-ak-surface px-8 py-10 sm:px-10 sm:py-12 text-center shadow-[0_24px_64px_rgba(0,0,0,0.45)] animate-slide-up">

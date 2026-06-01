@@ -54,7 +54,7 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
   const hasStats = activeStats.gp > 0;
 
   return (
-    <Layout title={`${player.name} -- Players`}>
+    <Layout title={`${player.name} - Players`}>
       <SectionHeading title={player.name} />
       <PlayerHero player={player} stats={activeStats} />
       <SeasonSelector

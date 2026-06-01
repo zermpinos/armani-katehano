@@ -57,7 +57,7 @@ describe("PreviewSendSchema", () => {
   });
 });
 
-describe("BroadcastSchema -- discriminated union", () => {
+describe("BroadcastSchema - discriminated union", () => {
   it("routes mode=resolve to ResolveSchema (no subject/body required)", () => {
     const result = BroadcastSchema.safeParse({ mode: "resolve", targetEmails: ["a@b.com"] });
     expect(result.success).toBe(true);

@@ -1,4 +1,4 @@
--- W-13: LoginAttempt.ip already stores SHA-256 hashes -- no DDL change needed.
+-- W-13: LoginAttempt.ip already stores SHA-256 hashes - no DDL change needed.
 -- Retention is enforced at application layer (15-min window, cleanup cron).
 
 -- W-14: Cap lastErrorHtml to 2 000 chars (plain-text digest, HTML stripped before storage).
