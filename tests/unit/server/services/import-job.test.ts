@@ -138,7 +138,7 @@ describe("truncateHtml", () => {
   it("truncates plain text beyond 2 000 chars and appends ellipsis", () => {
     const long = "a".repeat(2500);
     const result = truncateHtml(long);
-    expect(result.length).toBe(2001); // 2000 chars + "..."
+    expect(result.length).toBe(2003); // 2000 chars + "..."
     expect(result.endsWith("...")).toBe(true);
   });
 
