@@ -12,7 +12,7 @@ export function TopScorersChart({ topScorers }: { topScorers: { name: string; pp
     >
       <div className="flex items-center justify-between mb-4">
         <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim uppercase">Top Scorers - PPG</div>
-        <ShowMoreButton href="/players" className="show-more-btn">All Players -></ShowMoreButton>
+        <ShowMoreButton href="/players" className="show-more-btn">All Players →</ShowMoreButton>
       </div>
       <ResponsiveContainer width="100%" height={topScorers.length * 44}>
         <BarChart data={topScorers} layout="vertical" margin={{ top: 10, right: 40, left: 0, bottom: 10 }}>

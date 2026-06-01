@@ -24,7 +24,7 @@ export function ScoringTrendChart({ trend, onShowMore }: Props) {
           <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim uppercase">Scoring Trend</div>
           <div className="text-lg font-bold text-ak-text">Last {trend.length} Games</div>
         </div>
-        <ShowMoreButton className="show-more-btn" onClick={onShowMore}>Show More -></ShowMoreButton>
+        <ShowMoreButton className="show-more-btn" onClick={onShowMore}>Show More →</ShowMoreButton>
       </div>
       <ResponsiveContainer width="100%" height={260}>
         <LineChart data={trend} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>

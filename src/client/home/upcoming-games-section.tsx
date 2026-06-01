@@ -185,7 +185,7 @@ export function UpcomingGamesSection({ upcomingGames, openRosterId, onToggleRost
           {!showAllUpcoming && rest.length > 3 && (
             <div className="text-center pt-1">
               <ShowMoreButton onClick={onShowMore}>
-                {rest.length - 3} more game{rest.length - 3 !== 1 ? "s" : ""} ->
+                {rest.length - 3} more game{rest.length - 3 !== 1 ? "s" : ""} →
               </ShowMoreButton>
             </div>
           )}

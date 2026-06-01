@@ -310,7 +310,7 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
                   {sendingPreview ? "Sending preview..." : `Send preview to ${maskedAdminEmail}`}
                 </Btn>
                 <Btn variant="primary" onClick={() => setMode("confirming")} disabled={!canReview}>
-                  Review &amp; send ->
+                  Review &amp; send →
                 </Btn>
               </div>
               {!previewCurrent && subject.trim() && body.trim() && (

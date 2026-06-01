@@ -10,7 +10,7 @@ export function EfficiencyLeaderCard({ mvp }: { mvp: any }) {
       <div className="absolute top-0 right-0 w-[140px] h-[140px] rounded-full bg-[#8b1a1a12] translate-x-[40%] -translate-y-[40%]" />
       <div className="mb-[14px] relative z-[1] flex items-start justify-between">
         <div className="text-[11px] font-black tracking-[0.15em] text-ak-red-text uppercase">⚡ Efficiency Leader</div>
-        <ShowMoreButton href="/players" className="show-more-btn">All Players -></ShowMoreButton>
+        <ShowMoreButton href="/players" className="show-more-btn">All Players →</ShowMoreButton>
       </div>
       <Link
         href={`/players/${mvp.slug}`}
