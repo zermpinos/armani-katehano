@@ -1,0 +1,13 @@
+# Known-tolerated historical findings. Each line is a gitleaks fingerprint:
+#   <commit-sha>:<file>:<rule-id>:<line>
+# Add a comment above every entry: what it is, why it is tolerated, and the
+# date of the mitigating action (rotation, deletion, etc.). Anything without
+# a clear rationale should be investigated, not allowlisted.
+
+# Historical occurrence of TEST_PASSWORD in test-login.js. The file was
+# removed from the worktree in commit 0c54393, but the literal remains in
+# the blob at b4c67d8. The credential was rotated manually on 2026-06-01,
+# so the literal in history is inert. Server-side refs/pull/* on GitHub
+# also reference this blob and can only be removed via a GitHub Support
+# "remove sensitive data" request.
+b4c67d8b8c754a3343932a5ce86cd99176fcdb3e:test-login.js:generic-api-key:5
