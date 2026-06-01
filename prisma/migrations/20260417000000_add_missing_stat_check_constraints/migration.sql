@@ -4,7 +4,7 @@ ALTER TABLE "PlayerGameStat"
   ADD CONSTRAINT chk_fg2_fg3_eq_fg CHECK (fg2m + fg3m = fgm),
   -- rebound parts
   ADD CONSTRAINT chk_reb_parts  CHECK (orb + drb <= reb),
-  -- non-negative: counting stats (plusMinus excluded -- can be negative)
+  -- non-negative: counting stats (plusMinus excluded - can be negative)
   ADD CONSTRAINT chk_nn_minutes CHECK (minutes >= 0),
   ADD CONSTRAINT chk_nn_pts     CHECK (pts     >= 0),
   ADD CONSTRAINT chk_nn_reb     CHECK (reb     >= 0),

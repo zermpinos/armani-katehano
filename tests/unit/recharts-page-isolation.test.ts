@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 // Recharts ships ~50 KiB (gzipped) once you pull in ResponsiveContainer +
 // any chart type. Statically importing a chart file from a page anchors
-// recharts into that page's bundle -- and Next.js prefetches every <Link>
+// recharts into that page's bundle - and Next.js prefetches every <Link>
 // destination on idle, so a Link from the homepage to /games drags the
 // entire recharts tree into the prefetched chunk and shows up as "Reduce
 // unused JavaScript" in Lighthouse on the homepage audit.

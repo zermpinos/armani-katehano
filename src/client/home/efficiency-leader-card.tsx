@@ -38,7 +38,7 @@ export function EfficiencyLeaderCard({ mvp }: { mvp: any }) {
           ["APG", mvp.stats.apg],
           ["FG%", `${mvp.stats.fgPct}%`],
           ["GP",  mvp.stats.gp],
-          ["MPG", mvp.stats.mpg > 0 ? fmtMinutes(mvp.stats.mpg) : "--"],
+          ["MPG", mvp.stats.mpg > 0 ? fmtMinutes(mvp.stats.mpg) : "-"],
         ].map(([l, v]) => (
           <div key={l} className="text-center rounded-lg py-2 px-1 bg-ak-base border border-ak-border">
             <div className="text-[10px] font-black tracking-[0.12em] text-ak-text-dim">{l}</div>

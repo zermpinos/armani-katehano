@@ -22,10 +22,10 @@ interface PlayerHeroProps {
 export function PlayerHero({ player, stats }: PlayerHeroProps) {
   const hasStats = stats.gp > 0;
   const statRow: [string, string | number][] = [
-    ["PPG", hasStats ? stats.ppg : "--"],
-    ["RPG", hasStats ? stats.rpg : "--"],
-    ["APG", hasStats ? stats.apg : "--"],
-    ["EFF", hasStats ? stats.eff : "--"],
+    ["PPG", hasStats ? stats.ppg : "-"],
+    ["RPG", hasStats ? stats.rpg : "-"],
+    ["APG", hasStats ? stats.apg : "-"],
+    ["EFF", hasStats ? stats.eff : "-"],
   ];
 
   return (

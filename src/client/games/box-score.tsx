@@ -107,7 +107,7 @@ export const BoxScoreTable = memo(function BoxScoreTable({ game }: { game: any }
                             : "text-ak-text-sub"
                       }`}
                     >
-                      {c.key === "min" ? (r.min > 0 ? fmtMinutes(r.min) : "--") : (r[c.key] ?? 0)}
+                      {c.key === "min" ? (r.min > 0 ? fmtMinutes(r.min) : "-") : (r[c.key] ?? 0)}
                     </td>
                   ))}
                 </tr>

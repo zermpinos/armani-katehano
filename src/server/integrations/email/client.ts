@@ -52,13 +52,13 @@ export async function sendConfirmationEmail({
 }): Promise<void> {
   const transport = createTransport();
   if (!transport) {
-    console.warn("[email] BREVO_SMTP_USER/PASS not set -- skipping confirmation email");
+    console.warn("[email] BREVO_SMTP_USER/PASS not set - skipping confirmation email");
     return;
   }
 
   const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? "";
   const confirmUrl = `${appUrl}/api/confirm?token=${confirmToken}`;
-  const subject = "Confirm your subscription -- Armani Katehano";
+  const subject = "Confirm your subscription - Armani Katehano";
   const html    = buildConfirmationEmailHtml(confirmUrl, appUrl);
   const text    = buildConfirmationEmailText(confirmUrl, appUrl);
 
@@ -80,7 +80,7 @@ export async function sendRosterAnnouncement({
 }: SendRosterAnnouncementParams): Promise<void> {
   const transport = createTransport();
   if (!transport) {
-    console.warn("[email] BREVO_SMTP_USER/PASS not set -- skipping email send");
+    console.warn("[email] BREVO_SMTP_USER/PASS not set - skipping email send");
     return;
   }
   if (subscribers.length === 0) {
@@ -141,7 +141,7 @@ export async function sendGameImportedBroadcast({
 }: SendGameImportedBroadcastParams): Promise<void> {
   const transport = createTransport();
   if (!transport) {
-    console.warn("[email] BREVO_SMTP_USER/PASS not set -- skipping game-imported broadcast");
+    console.warn("[email] BREVO_SMTP_USER/PASS not set - skipping game-imported broadcast");
     return;
   }
   if (subscribers.length === 0) {
@@ -214,7 +214,7 @@ export async function sendConfirmationTestEmail({ to }: { to: string }): Promise
 
   const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? "";
   const confirmUrl = `${appUrl}/api/confirm?token=PREVIEW_TOKEN`;
-  const subject    = "Confirm your subscription -- Armani Katehano";
+  const subject    = "Confirm your subscription - Armani Katehano";
   const html       = buildConfirmationEmailHtml(confirmUrl, appUrl);
   const text       = buildConfirmationEmailText(confirmUrl, appUrl);
 
@@ -255,7 +255,7 @@ export async function sendAdminAlert({
 }): Promise<void> {
   const transport = createTransport();
   if (!transport) {
-    console.warn("[email] BREVO_SMTP_USER/PASS not set -- skipping admin alert");
+    console.warn("[email] BREVO_SMTP_USER/PASS not set - skipping admin alert");
     return;
   }
   const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
@@ -270,7 +270,7 @@ export async function sendAdminAlert({
 export async function sendImportNotification(payload: ImportNotificationPayload): Promise<void> {
   const transport = createTransport();
   if (!transport) {
-    console.warn("[email] BREVO_SMTP_USER/PASS not set -- skipping import notification");
+    console.warn("[email] BREVO_SMTP_USER/PASS not set - skipping import notification");
     return;
   }
   const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
@@ -295,7 +295,7 @@ export async function sendImportNotification(payload: ImportNotificationPayload)
 export async function sendImportHeartbeat(payload: HeartbeatPayload): Promise<void> {
   const transport = createTransport();
   if (!transport) {
-    console.warn("[email] BREVO_SMTP_USER/PASS not set -- skipping heartbeat");
+    console.warn("[email] BREVO_SMTP_USER/PASS not set - skipping heartbeat");
     return;
   }
   const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";

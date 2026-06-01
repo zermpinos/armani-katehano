@@ -19,9 +19,9 @@
 
 Data is stored on **Neon** (PostgreSQL). Neon provides:
 
-- **Automatic continuous WAL archiving** -- no manual backup job required.
-- **Point-in-time recovery (PITR)** -- restore to any second within the retention window.
-- **Branch-based restore** -- spin up a database branch at a past timestamp without touching production.
+- **Automatic continuous WAL archiving** - no manual backup job required.
+- **Point-in-time recovery (PITR)** - restore to any second within the retention window.
+- **Branch-based restore** - spin up a database branch at a past timestamp without touching production.
 
 ### Confirming PITR is active
 
@@ -45,17 +45,17 @@ Prisma migrations in `prisma/migrations/` are the authoritative schema history. 
 npx prisma migrate deploy
 ```
 
-This does **not** restore data -- it only reconstructs the schema.
+This does **not** restore data - it only reconstructs the schema.
 
 ---
 
 ## Restore procedure (data recovery)
 
-### Step 1 -- Declare the incident
+### Step 1 - Declare the incident
 
 Note the approximate time of data loss or corruption. This is your **restore target timestamp**.
 
-### Step 2 -- Create a Neon branch at the restore point
+### Step 2 - Create a Neon branch at the restore point
 
 In the Neon console:
 
@@ -74,7 +74,7 @@ neonctl branches create \
   --parent-timestamp "2026-01-01T12:00:00Z"
 ```
 
-### Step 3 -- Verify data on the branch
+### Step 3 - Verify data on the branch
 
 Connect to the branch's connection string and spot-check affected tables:
 
@@ -86,13 +86,13 @@ psql "<BRANCH_CONNECTION_STRING>" \
 
 Confirm the row counts and a sample of rows look correct.
 
-### Step 4 -- Promote or export
+### Step 4 - Promote or export
 
-**Option A -- promote branch to production** (fastest, replaces production DB endpoint):
+**Option A - promote branch to production** (fastest, replaces production DB endpoint):
 
 In the Neon console, go to the branch -> **Set as primary**. Update `DATABASE_URL` and `DIRECT_URL` in Vercel env vars if the endpoint hostname changed, then redeploy.
 
-**Option B -- selective row restore** (for partial corruption):
+**Option B - selective row restore** (for partial corruption):
 
 ```sh
 pg_dump "<BRANCH_CONNECTION_STRING>" \
@@ -103,15 +103,15 @@ pg_dump "<BRANCH_CONNECTION_STRING>" \
 
 Run only after confirming no FK violations in the target.
 
-### Step 5 -- Validate production
+### Step 5 - Validate production
 
 After restore:
 
-1. Load the admin dashboard -- confirm player list and game stats render correctly.
+1. Load the admin dashboard - confirm player list and game stats render correctly.
 2. Check `prisma/migrations/` is still in sync: `npx prisma migrate status`.
 3. Smoke-test the import endpoint with a known payload.
 
-### Step 6 -- Record the incident
+### Step 6 - Record the incident
 
 Add a row to the **Incident log** section at the bottom of this file.
 
@@ -126,7 +126,7 @@ Run this drill every quarter (same week as key rotation). The goal is to prove P
 - [ ] Log in to Neon console and confirm PITR retention window is ≥ 7 days.
 - [ ] Create a branch at `NOW() - 1 hour` named `drill-YYYY-MM-DD`.
 - [ ] Connect to the branch and verify row counts match production (within expected delta).
-- [ ] Run `npx prisma migrate status` against the branch -- confirm no pending migrations.
+- [ ] Run `npx prisma migrate status` against the branch - confirm no pending migrations.
 - [ ] Delete the drill branch after verification.
 - [ ] Record results in the drill log below.
 
@@ -148,5 +148,5 @@ Run this drill every quarter (same week as key rotation). The goal is to prove P
 
 ## Out-of-scope
 
-- `prisma/migrations/` tracks schema only -- not row data. Migrations are not a data backup.
+- `prisma/migrations/` tracks schema only - not row data. Migrations are not a data backup.
 - Vercel serverless function logs are not covered by this runbook; use Vercel dashboard for log retention.

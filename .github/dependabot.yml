@@ -12,7 +12,7 @@ updates:
       - dependencies
     groups:
       # One PR per week with every safe (minor/patch) bump bundled.
-      # Majors stay out of this group -- they need manual review.
+      # Majors stay out of this group - they need manual review.
       all-npm-minor-patch:
         patterns:
           - "*"

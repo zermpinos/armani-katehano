@@ -48,7 +48,7 @@ export function useCoachSchedule(authed: boolean) {
       loadData();
       loadPlayers();
     }
-    // loadData and loadPlayers only call state setters and fetch -- no reactive deps needed.
+    // loadData and loadPlayers only call state setters and fetch - no reactive deps needed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed]);
 

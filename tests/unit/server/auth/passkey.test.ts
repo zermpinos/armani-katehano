@@ -48,7 +48,7 @@ describe("getRpId", () => {
     expect(getRpId()).toBe("localhost");
   });
 
-  it("propagates the production guard error instead of returning localhost", async () => {
+  it("throws the production check error instead of returning localhost", async () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "http://example.com");
     const { getRpId } = await import("@/server/auth/passkey");
     expect(() => getRpId()).toThrow("NEXT_PUBLIC_APP_URL must be https://");

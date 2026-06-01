@@ -4,17 +4,17 @@
 // Why: package.json pins `overrides.postcss` to keep transitive postcss above the
 // vulnerable range next ships. The weekly audit needs to know when next's bundled
 // postcss has caught up so the override can be dropped. Reading next's *declared*
-// range (`npm view next dependencies.postcss`) can mislead -- a caret range may
+// range (`npm view next dependencies.postcss`) can mislead - a caret range may
 // satisfy a newer safe version even when next *bundles* an older one. The
 // reliable signal is what `npm install` actually resolves.
 //
 // We do the resolve in a temp directory using a stub package.json that mirrors
 // our project deps minus the postcss override. That way the working tree's
-// package.json and package-lock.json are never modified -- no restoration logic
+// package.json and package-lock.json are never modified - no restoration logic
 // needed, no risk to the user's checkout.
 //
 // On success: prints the resolved version (e.g. "8.4.31") to stdout, exit 0.
-// On error: prints nothing, exit non-zero -- callers fall back to "unknown".
+// On error: prints nothing, exit non-zero - callers fall back to "unknown".
 
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';

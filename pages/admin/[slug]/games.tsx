@@ -1,6 +1,6 @@
 /**
  * pages/admin/[slug]/games.js
- * Game list -- view, edit, delete all games.
+ * Game list - view, edit, delete all games.
  */
 
 import { useState, useEffect } from "react";

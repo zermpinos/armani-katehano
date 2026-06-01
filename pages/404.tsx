@@ -3,7 +3,7 @@ import Layout from "@/components/ui/Layout";
 
 export default function Custom404() {
   return (
-    <Layout title="404 -- Page Not Found">
+    <Layout title="404 - Page Not Found">
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="text-[96px] font-black text-ak-border2 leading-none">404</div>

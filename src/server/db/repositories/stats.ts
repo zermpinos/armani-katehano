@@ -19,7 +19,7 @@ export async function getStats(seasonName: string, leagueSlug: string | null = n
 export async function getAllSeasonsStats(seasons: string[]) {
   if (seasons.length === 0) return {};
 
-  // Single query for all seasons -- avoids N separate DB round-trips.
+  // Single query for all seasons - avoids N separate DB round-trips.
   const allAggregates = await prisma.playerSeasonAggregate.findMany({
     where: { seasonLeague: { season: { name: { in: seasons } } } },
     include: {

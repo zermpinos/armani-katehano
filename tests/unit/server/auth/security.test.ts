@@ -1,7 +1,7 @@
 // @ts-nocheck
 /**
  * tests/security.test.js
- * Unit tests for lib/security -- verifySession, csrfCheck, buildSessionCookie, clearSessionCookie.
+ * Unit tests for lib/security - verifySession, csrfCheck, buildSessionCookie, clearSessionCookie.
  */
 import { describe, it, expect, beforeAll } from "vitest";
 
@@ -95,11 +95,11 @@ describe("csrfCheck", () => {
     expect(csrfCheck(req("POST", { host: "example.com", origin: "https://evil.com" }))).toBe(false);
   });
 
-  it("falls back to Referer when Origin is absent -- matches", () => {
+  it("falls back to Referer when Origin is absent - matches", () => {
     expect(csrfCheck(req("POST", { host: "example.com", referer: "https://example.com/admin" }))).toBe(true);
   });
 
-  it("falls back to Referer when Origin is absent -- mismatches", () => {
+  it("falls back to Referer when Origin is absent - mismatches", () => {
     expect(csrfCheck(req("POST", { host: "example.com", referer: "https://evil.com/x" }))).toBe(false);
   });
 
@@ -108,7 +108,7 @@ describe("csrfCheck", () => {
   });
 
   it("allows POST with no Origin and no Referer in default (non-strict) mode", () => {
-    // Documents the permissive default -- SameSite=Strict cookie is the primary CSRF defence
+    // Documents the permissive default - SameSite=Strict cookie is the primary CSRF defence
     expect(csrfCheck(req("POST", { host: "example.com" }))).toBe(true);
   });
 

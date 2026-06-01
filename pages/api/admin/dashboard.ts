@@ -2,7 +2,7 @@
  * pages/api/admin/dashboard.js
  * GET /api/admin/dashboard
  *
- * Returns only what the dashboard needs -- aggregates + last 5 games.
+ * Returns only what the dashboard needs - aggregates + last 5 games.
  * Fast: no full box score data, no player details, no season breakdown.
  */
 import { requireAuth } from "@/server/auth";
@@ -36,7 +36,7 @@ async function handler(req: any, res: any) {
     const losses = games.filter(g => g.result === "L").length;
 
     const recentGameIds = games.slice(0, 20).map(g => g.id);
-    let ppg = "--", rpg = "--", apg = "--";
+    let ppg = "-", rpg = "-", apg = "-";
 
     if (recentGameIds.length > 0) {
       const agg = await prisma.playerGameStat.aggregate({
@@ -44,9 +44,9 @@ async function handler(req: any, res: any) {
         _sum:  { pts: true, reb: true, ast: true },
       });
       const gp = recentGameIds.length;
-      ppg = agg._sum.pts ? (agg._sum.pts / gp).toFixed(1) : "--";
-      rpg = agg._sum.reb ? (agg._sum.reb / gp).toFixed(1) : "--";
-      apg = agg._sum.ast ? (agg._sum.ast / gp).toFixed(1) : "--";
+      ppg = agg._sum.pts ? (agg._sum.pts / gp).toFixed(1) : "-";
+      rpg = agg._sum.reb ? (agg._sum.reb / gp).toFixed(1) : "-";
+      apg = agg._sum.ast ? (agg._sum.ast / gp).toFixed(1) : "-";
     }
 
     return res.status(200).json({

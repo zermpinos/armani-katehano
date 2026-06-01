@@ -55,7 +55,7 @@ beforeEach(() => {
   mockPrisma.subscriber.delete.mockResolvedValue({});
 });
 
-describe("GET /api/confirm -- valid confirmToken", () => {
+describe("GET /api/confirm - valid confirmToken", () => {
   it("looks up subscriber by confirmToken field (not the token field)", async () => {
     const res = mockRes();
     await handler(mockReq(), res);
@@ -90,7 +90,7 @@ describe("GET /api/confirm -- valid confirmToken", () => {
   });
 });
 
-describe("GET /api/confirm -- not found (token used or invalid)", () => {
+describe("GET /api/confirm - not found (token used or invalid)", () => {
   it("redirects to ?confirmed=1 when confirmToken is not found", async () => {
     mockPrisma.subscriber.findUnique.mockResolvedValue(null);
     const res = mockRes();
@@ -108,7 +108,7 @@ describe("GET /api/confirm -- not found (token used or invalid)", () => {
   });
 });
 
-describe("GET /api/confirm -- expired token", () => {
+describe("GET /api/confirm - expired token", () => {
   it("deletes the subscriber row and redirects to ?confirmed=expired", async () => {
     const oldDate = new Date(Date.now() - 25 * 3600 * 1000);
     mockPrisma.subscriber.findUnique.mockResolvedValue({
@@ -152,7 +152,7 @@ describe("GET /api/confirm -- expired token", () => {
   });
 });
 
-describe("GET /api/confirm -- P2025 race condition", () => {
+describe("GET /api/confirm - P2025 race condition", () => {
   it("redirects to ?confirmed=1 (not 500) when update finds no row (concurrent confirm)", async () => {
     mockPrisma.subscriber.update.mockRejectedValue(
       Object.assign(new Error("Record to update not found"), { code: "P2025" }),
@@ -172,7 +172,7 @@ describe("GET /api/confirm -- P2025 race condition", () => {
   });
 });
 
-describe("GET /api/confirm -- input validation", () => {
+describe("GET /api/confirm - input validation", () => {
   it("returns 400 when token query param is missing", async () => {
     const res = mockRes();
     await handler({ method: "GET", query: {} }, res);

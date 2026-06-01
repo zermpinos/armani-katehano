@@ -45,7 +45,7 @@ describe("coach schedule API", () => {
     expect(res.statusCode).toBe(405);
   });
 
-  it("filters out past games -- only fetches scheduledFor >= now", async () => {
+  it("filters out past games - only fetches scheduledFor >= now", async () => {
     await handler(mockReq(), mockRes());
     expect(mockPrisma.upcomingGame.findMany).toHaveBeenCalledTimes(1);
     const call = mockPrisma.upcomingGame.findMany.mock.calls[0][0];

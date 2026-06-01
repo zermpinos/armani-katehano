@@ -30,8 +30,8 @@ export function getExpectedOrigin(): string {
 }
 
 export function getRpId(): string {
-  // Call getOrigin() outside try/catch so the production error propagates;
-  // only the URL parse error for malformed strings is swallowed.
+  // Call getOrigin() before the try/catch so the production check throws;
+  // only the URL parse error for malformed strings is caught.
   const origin = getOrigin();
   try {
     return new URL(origin).hostname;
@@ -159,7 +159,7 @@ export async function getAdminPasskeyLoginProps(
   const validSlug = await validateAdminSlug(params.slug);
   if (!validSlug) return { notFound: true };
 
-  // Timing-safe fallback token comparison -- NEVER use ===
+  // Timing-safe fallback token comparison - NEVER use ===
   const envToken   = process.env.PASSKEY_FALLBACK_TOKEN ?? "";
   const queryToken = typeof query.fallback === "string" ? query.fallback : "";
   let showFallback = false;
@@ -169,7 +169,7 @@ export async function getAdminPasskeyLoginProps(
     showFallback = a.length === b.length && crypto.timingSafeEqual(a, b);
   }
 
-  // Check for zero passkeys -- determines bootstrap hint (SSR only, never via auth API)
+  // Check for zero passkeys - determines bootstrap hint (SSR only, never via auth API)
   const count     = await prisma.passkeyCredential.count();
   const noPasskeys = count === 0;
 

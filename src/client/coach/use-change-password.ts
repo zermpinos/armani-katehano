@@ -22,7 +22,7 @@ export function useChangePassword(showToast: (msg: string, type?: string) => voi
         body:    JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
       });
       if (res.ok) {
-        // Session was cleared server-side -- force re-login with the new password.
+        // Session was cleared server-side - force re-login with the new password.
         showToast("Password updated. Please log in again.");
         setTimeout(() => window.location.reload(), 1500);
       } else {

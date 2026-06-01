@@ -169,7 +169,7 @@ export function UpcomingGamesSection({ upcomingGames, openRosterId, onToggleRost
                             : "border-ak-border bg-ak-base text-ak-text-dim cursor-default opacity-40"
                       }`}
                     >
-                      {g.announcement ? (rosterOpen ? "↑" : `${g.announcement.players.length}`) : "--"}
+                      {g.announcement ? (rosterOpen ? "↑" : `${g.announcement.players.length}`) : "-"}
                     </button>
                   </div>
                 </div>

@@ -14,7 +14,7 @@
  *   ✓ Mixed record
  *   ✓ Win streak, loss streak, streak direction flip
  *   ✓ League filter (correct isolation)
- *   ✓ Score parsing -- en-dash (DB format) and regular hyphen (fallback)
+ *   ✓ Score parsing - en-dash (DB format) and regular hyphen (fallback)
  *   ✓ Malformed score does not throw
  *   ✓ ppg / oppPpg averages
  *   ✓ gp count
@@ -41,7 +41,7 @@ const L_AWAY  = g({ result: "L", home: false, score: "65-78" }); // 65-78
 
 // ─── Empty input ──────────────────────────────────────────────────────────────
 
-describe("computeRecord -- empty input", () => {
+describe("computeRecord - empty input", () => {
   it("returns all zeros for an empty array", () => {
     const rec = computeRecord([], "rookie");
     expect(rec.wins).toBe(0);
@@ -62,7 +62,7 @@ describe("computeRecord -- empty input", () => {
 
 // ─── Win / loss tallies ───────────────────────────────────────────────────────
 
-describe("computeRecord -- win/loss tallies", () => {
+describe("computeRecord - win/loss tallies", () => {
   it("counts a single home win", () => {
     const rec = computeRecord([W_HOME], "rookie");
     expect(rec.wins).toBe(1);
@@ -100,7 +100,7 @@ describe("computeRecord -- win/loss tallies", () => {
 
 // ─── Streak ───────────────────────────────────────────────────────────────────
 
-describe("computeRecord -- streak calculation", () => {
+describe("computeRecord - streak calculation", () => {
   it("reports W1 for a single win", () => {
     const rec = computeRecord([W_HOME], "rookie");
     expect(rec.streak.type).toBe("W");
@@ -114,7 +114,7 @@ describe("computeRecord -- streak calculation", () => {
   });
 
   it("reports a win streak of 3", () => {
-    // Dates ascending so newest is last -- computeRecord sorts newest->oldest internally
+    // Dates ascending so newest is last - computeRecord sorts newest->oldest internally
     const games = [
       g({ result: "W", home: true,  score: "80-70", date: "2025-01-01" }),
       g({ result: "W", home: false, score: "75-68", date: "2025-01-08" }),
@@ -150,7 +150,7 @@ describe("computeRecord -- streak calculation", () => {
 
 // ─── League filter ────────────────────────────────────────────────────────────
 
-describe("computeRecord -- league filter", () => {
+describe("computeRecord - league filter", () => {
   const proWin   = g({ result: "W", home: true,  score: "88-75", league: "pro" });
   const rookieW  = g({ result: "W", home: false, score: "72-65", league: "rookie" });
   const rookieL  = g({ result: "L", home: true,  score: "68-78", league: "rookie" });
@@ -179,7 +179,7 @@ describe("computeRecord -- league filter", () => {
 
 // ─── Score parsing ────────────────────────────────────────────────────────────
 
-describe("computeRecord -- score parsing", () => {
+describe("computeRecord - score parsing", () => {
   it("correctly parses en-dash scores (DB format, U+2013)", () => {
     const game = g({ result: "W", home: true, score: "90-70" }); // 90-70
     const rec = computeRecord([game], "rookie");

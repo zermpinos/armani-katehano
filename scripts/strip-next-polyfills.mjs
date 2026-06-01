@@ -10,7 +10,7 @@
 //   URL.canParse, Symbol.prototype.description). Every method is natively
 //   supported by the production browserslist target (Chrome >=96, Firefox
 //   >=94, Safari >=15.4, Edge >=96), so on every page load the bytes are
-//   parsed and the conditional bodies short-circuit immediately -- pure dead
+//   parsed and the conditional bodies short-circuit immediately - pure dead
 //   code under the declared support matrix. PageSpeed flags this under
 //   "Legacy JavaScript".
 //

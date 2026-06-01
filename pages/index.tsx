@@ -139,9 +139,9 @@ export default function HomePage({ players, games, stats, upcomingGames, current
       {/* Record tiles */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3 mb-6">
         <StatTile label="Record"  value={`${record.wins}-${record.losses}`} sub={`${winPct}% win rate`} highlight />
-        <StatTile label="Streak"  value={record.streak.count > 0 ? `${record.streak.count}${record.streak.type}` : "--"} sub="current streak" highlight={record.streak.type === "W" && record.streak.count > 0} />
-        <StatTile label="PPG"     value={record.ppg    || "--"} sub="points per game" />
-        <StatTile label="OPP PPG" value={record.oppPpg || "--"} sub="allowed per game" />
+        <StatTile label="Streak"  value={record.streak.count > 0 ? `${record.streak.count}${record.streak.type}` : "-"} sub="current streak" highlight={record.streak.type === "W" && record.streak.count > 0} />
+        <StatTile label="PPG"     value={record.ppg    || "-"} sub="points per game" />
+        <StatTile label="OPP PPG" value={record.oppPpg || "-"} sub="allowed per game" />
       </div>
 
       <UpcomingGamesSection

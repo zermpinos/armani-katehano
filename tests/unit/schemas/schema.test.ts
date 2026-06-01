@@ -4,7 +4,7 @@
  * Tests for the BoxScoreRowSchema Zod validations in pages/api/admin/games.js
  *
  * These cross-field refinements are the last line of defence before bad data
- * reaches the DB -- they must all work correctly.
+ * reaches the DB - they must all work correctly.
  */
 import { describe, it, expect } from "vitest";
 import { z }                    from "zod";
@@ -12,7 +12,7 @@ import { BoxScoreRowSchema }    from "@/schemas/box-score";
 
 // ─── Valid base row ───────────────────────────────────────────────────────────
 const VALID_ROW = {
-  playerId: "clxxxxxxxxxxxxxxxxxxxxxx",  // 26 chars, starts with 'c' -- valid CUID shape
+  playerId: "clxxxxxxxxxxxxxxxxxxxxxx",  // 26 chars, starts with 'c' - valid CUID shape
   minutes: 28, pts: 14, reb: 5,
   orb: 2, drb: 3,
   ast: 3, stl: 1, blk: 0, tov: 2, pf: 2,
@@ -50,7 +50,7 @@ describe("z.string().cuid() validator", () => {
 
 // ─── BoxScoreRowSchema tests ──────────────────────────────────────────────────
 
-describe("BoxScoreRowSchema -- valid row", () => {
+describe("BoxScoreRowSchema - valid row", () => {
   it("accepts a fully valid row", () => {
     expect(valid().success).toBe(true);
   });
@@ -67,7 +67,7 @@ describe("BoxScoreRowSchema -- valid row", () => {
   });
 });
 
-describe("BoxScoreRowSchema -- made/attempted refinements", () => {
+describe("BoxScoreRowSchema - made/attempted refinements", () => {
   it("rejects fgm > fga", () => {
     const r = valid({ fgm: 8, fga: 6 });
     expect(r.success).toBe(false);
@@ -93,7 +93,7 @@ describe("BoxScoreRowSchema -- made/attempted refinements", () => {
   });
 });
 
-describe("BoxScoreRowSchema -- fg2m + fg3m = fgm refinement", () => {
+describe("BoxScoreRowSchema - fg2m + fg3m = fgm refinement", () => {
   it("rejects fg2m + fg3m != fgm", () => {
     const r = valid({ fgm: 6, fg2m: 3, fg3m: 2 });
     expect(r.success).toBe(false);
@@ -105,7 +105,7 @@ describe("BoxScoreRowSchema -- fg2m + fg3m = fgm refinement", () => {
   });
 });
 
-describe("BoxScoreRowSchema -- rebound refinement", () => {
+describe("BoxScoreRowSchema - rebound refinement", () => {
   it("rejects orb + drb != reb", () => {
     const r = valid({ reb: 5, orb: 3, drb: 4 });
     expect(r.success).toBe(false);

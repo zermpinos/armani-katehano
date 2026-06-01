@@ -2,13 +2,13 @@
  * Pages-Router equivalent of the `server-only` npm package.
  *
  * The official `server-only` package is gated on the `react-server` export
- * condition, which only fires inside App Router server components -- making
+ * condition, which only fires inside App Router server components - making
  * it unusable in a Pages Router codebase (it throws unconditionally during
  * any non-RSC build, including SSR and API routes).
  *
  * This shim is a pure runtime poison pill: importing it from a module that
- * gets bundled into a non-Node target -- the client bundle (browser) or the
- * Vercel Edge runtime -- causes the module to throw at load time.
+ * gets bundled into a non-Node target - the client bundle (browser) or the
+ * Vercel Edge runtime - causes the module to throw at load time.
  *
  * Detection:
  *   • `typeof window !== "undefined"`  -> client bundle (browser).

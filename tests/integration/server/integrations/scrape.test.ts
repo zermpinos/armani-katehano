@@ -59,7 +59,7 @@ function postReq(body = {}) {
 
 // ─── SSRF guard ───────────────────────────────────────────────────────────────
 
-describe("SSRF guard -- /api/admin/scrape", () => {
+describe("SSRF guard - /api/admin/scrape", () => {
   beforeEach(() => vi.clearAllMocks());
 
   // DNS rebinding: hostname passes the allowlist but DNS resolves to a private IP
@@ -94,7 +94,7 @@ describe("SSRF guard -- /api/admin/scrape", () => {
     expect(res.statusCode).toBe(400);
   });
 
-  // Allowlist check -- DNS lookup must not be reached for non-allowed hostnames
+  // Allowlist check - DNS lookup must not be reached for non-allowed hostnames
   it("returns 400 for a non-allowlisted hostname and never calls DNS", async () => {
     const res = mockRes();
     await handler(postReq({ url: "https://evil.example.com/path" }), res);

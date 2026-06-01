@@ -48,7 +48,7 @@ function dbRow(overrides = {}) {
 
 // ─── null on empty log ────────────────────────────────────────────────────────
 
-describe("computeStatsFromLog -- empty log", () => {
+describe("computeStatsFromLog - empty log", () => {
   it("returns null for an empty array", () => {
     expect(computeStatsFromLog([])).toBeNull();
   });
@@ -56,7 +56,7 @@ describe("computeStatsFromLog -- empty log", () => {
 
 // ─── Single-game values ───────────────────────────────────────────────────────
 
-describe("computeStatsFromLog -- single game", () => {
+describe("computeStatsFromLog - single game", () => {
   const row = logRow();
   const stats = computeStatsFromLog([row]);
 
@@ -81,7 +81,7 @@ describe("computeStatsFromLog -- single game", () => {
 
 // ─── Multi-game averages ──────────────────────────────────────────────────────
 
-describe("computeStatsFromLog -- multi-game averages", () => {
+describe("computeStatsFromLog - multi-game averages", () => {
   const rows = [
     logRow({ pts:20, reb:5, min:30 }),
     logRow({ pts:10, reb:9, min:25, eff:12 }),
@@ -97,7 +97,7 @@ describe("computeStatsFromLog -- multi-game averages", () => {
 
 // ─── Percentages from summed totals ──────────────────────────────────────────
 
-describe("computeStatsFromLog -- percentages from summed totals, not averaged pcts", () => {
+describe("computeStatsFromLog - percentages from summed totals, not averaged pcts", () => {
   it("FG% uses summed totals, not average of per-game pcts", () => {
     // Game A: 1/1 = 100%,  Game B: 1/9 = 11.1%
     // Naive avg of pcts = 55.6%
@@ -133,7 +133,7 @@ describe("computeStatsFromLog -- percentages from summed totals, not averaged pc
 
 // ─── Division by zero ─────────────────────────────────────────────────────────
 
-describe("computeStatsFromLog -- zero-attempt protection", () => {
+describe("computeStatsFromLog - zero-attempt protection", () => {
   const zeroShots = logRow({ fgm:0, fga:0, fg2m:0, fg2a:0, fg3m:0, fg3a:0, ftm:0, fta:0 });
   const stats = computeStatsFromLog([zeroShots]);
 
@@ -147,7 +147,7 @@ describe("computeStatsFromLog -- zero-attempt protection", () => {
 
 // ─── Raw totals ───────────────────────────────────────────────────────────────
 
-describe("computeStatsFromLog -- raw totals", () => {
+describe("computeStatsFromLog - raw totals", () => {
   const rows = [
     logRow({ pts:20, reb:5, ast:3, stl:1, fgm:8,  fga:16, ftm:2, fta:3 }),
     logRow({ pts:15, reb:8, ast:5, stl:2, fgm:6,  fga:12, ftm:1, fta:2 }),
@@ -173,7 +173,7 @@ describe("computeStatsFromLog -- raw totals", () => {
 //
 // Field naming difference between the two fixture formats:
 //   log row: { min, eff, pts, reb, ... }
-//   DB row:  { minutes, pts, reb, ... }  (no eff -- computed via calcEff inside recalc)
+//   DB row:  { minutes, pts, reb, ... }  (no eff - computed via calcEff inside recalc)
 //
 // Expected values (derived by hand from the 3-game fixture below):
 //   n=3, pts=[20,15,10], reb=[5,8,3], ast=[3,5,2], stl=[1,2,0]

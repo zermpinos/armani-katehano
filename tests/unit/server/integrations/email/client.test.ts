@@ -115,7 +115,7 @@ describe("sendConfirmationEmail", () => {
     );
   });
 
-  it("builds the confirm URL from confirmToken -- URL appears in html and text", async () => {
+  it("builds the confirm URL from confirmToken - URL appears in html and text", async () => {
     const sendMail = vi.fn().mockResolvedValue({});
     (nodemailer.createTransport as any).mockReturnValue({ sendMail });
 
@@ -126,11 +126,11 @@ describe("sendConfirmationEmail", () => {
     expect(arg.text).toContain(`token=${"c".repeat(64)}`);
   });
 
-  it("does NOT accept a confirmUrl parameter -- URL must be built from confirmToken only", async () => {
+  it("does NOT accept a confirmUrl parameter - URL must be built from confirmToken only", async () => {
     const sendMail = vi.fn().mockResolvedValue({});
     (nodemailer.createTransport as any).mockReturnValue({ sendMail });
 
-    // Passing a confirmUrl alongside confirmToken should have no effect on the URL --
+    // Passing a confirmUrl alongside confirmToken should have no effect on the URL -
     // the function does not accept confirmUrl in its interface.
     await (sendConfirmationEmail as any)({
       email: "user@example.com",

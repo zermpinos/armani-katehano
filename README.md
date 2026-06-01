@@ -26,9 +26,9 @@ A statistics, scheduling, and roster-management web app for the **Armani Katehan
 
 The app is a single-team basketball-stats platform built around a Postgres data model of seasons, leagues, games, players, per-game stat lines, season aggregates, upcoming games, and roster announcements. It serves three audiences:
 
-- **Public visitors** -- read-only access to team record, player cards, season leaderboards, game results, scoring trends, and the next-game roster.
-- **Team admins** -- full CRUD over seasons, leagues, players, schedule, games, and stats; trigger imports; manage email subscribers; recompute aggregates. Reached at a randomized `/admin/<slug>` path and gated by password + TOTP.
-- **Head coach** -- separate `/coach/<token>` portal for managing rosters and publishing per-game roster announcements via email. Distinct password and session secret from the admin portal.
+- **Public visitors** - read-only access to team record, player cards, season leaderboards, game results, scoring trends, and the next-game roster.
+- **Team admins** - full CRUD over seasons, leagues, players, schedule, games, and stats; trigger imports; manage email subscribers; recompute aggregates. Reached at a randomized `/admin/<slug>` path and gated by password + TOTP.
+- **Head coach** - separate `/coach/<token>` portal for managing rosters and publishing per-game roster announcements via email. Distinct password and session secret from the admin portal.
 
 Box-score ingestion is automated where possible: a discovery service crawls the league listings, matches scheduled opponents (with Greek↔Latin transliteration), scrapes the box score, classifies the page, and persists `PlayerGameStat` rows; aggregates are recomputed transactionally afterwards.
 
@@ -57,11 +57,11 @@ Imports may only flow downward and the rule is enforced by `import/no-restricted
 
 `proxy.ts` runs on the Vercel **Edge runtime** (V8 isolate, no Node built-ins); the rest of the app runs on the **Node runtime**. Three layers of defense keep them apart:
 
-1. **Structural** -- `src/server/security/` is split into `edge/` (CSP, headers -- portable) and `node/` (SSRF guard, audit log, client-IP). There is no top-level barrel; importers must declare a zone.
+1. **Structural** -- `src/server/security/` is split into `edge/` (CSP, headers, portable across runtimes) and `node/` (SSRF guard, audit log, client-IP). There is no top-level barrel; importers must declare a zone.
 2. **Runtime marker** -- every Node-only file begins with `import "@/server/_internal/node-only";`, a custom marker that throws at module load if it is ever bundled into the browser or Edge runtime.
-3. **CI bundle scan** -- `scripts/check-middleware-bundle.mjs` runs after `next build` and greps the produced `middleware.js` for known Node built-in identifiers, failing the build if any are present.
+3. **CI bundle scan** - `scripts/check-middleware-bundle.mjs` runs after `next build` and greps the produced `middleware.js` for known Node built-in identifiers, failing the build if any are present.
 
-Node built-ins must be imported via the `node:` protocol (`import crypto from "node:crypto"`) -- enforced by `no-restricted-imports`.
+Node built-ins must be imported via the `node:` protocol (`import crypto from "node:crypto"`) - enforced by `no-restricted-imports`.
 
 ### Data model
 
@@ -98,7 +98,7 @@ PostgreSQL via Prisma. Core entities: `Season`, `League`, `SeasonLeague`, `Playe
 **Integrations**
 - Nodemailer + Brevo SMTP (transactional email)
 - Cheerio + `pdf-parse` (box-score scraping)
-- Sentry (`@sentry/nextjs`) -- server, edge, and client
+- Sentry (`@sentry/nextjs`) - server, edge, and client
 - Vercel Analytics & Speed Insights
 
 **Tooling**
@@ -128,12 +128,12 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 ## 5. Features
 
 ### Public site
-- **Home** (`/`) -- record, win %, MVP card, recent results, scoring-trend chart (configurable range), top scorers chart, upcoming games with roster reveal, efficiency leader, email subscribe form.
-- **Players** (`/players`) -- full roster with per-player season averages and totals; player cards link to individual stat pages (`/players/[slug]`).
-- **Games** (`/games`) -- chronological game list; completed games link to box-score pages (`/games/[id]`) with playoff round badges (QF / SF / Final); upcoming games open a details modal.
-- **Leaderboard** (`/leaderboard`) -- sortable, multi-stat leaderboard with season-phase filter (All Season / Regular Season / Playoffs).
-- **Team stats** (`/team-stats`) -- aggregated team-level metrics with season-phase filter.
-- **Subscribe / unsubscribe** -- double-opt-in email flow with token-based unsubscribe (`/unsubscribe`) and confirmation (`/api/confirm`).
+- **Home** (`/`) - record, win %, MVP card, recent results, scoring-trend chart (configurable range), top scorers chart, upcoming games with roster reveal, efficiency leader, email subscribe form.
+- **Players** (`/players`) - full roster with per-player season averages and totals; player cards link to individual stat pages (`/players/[slug]`).
+- **Games** (`/games`) - chronological game list; completed games link to box-score pages (`/games/[id]`) with playoff round badges (QF / SF / Final); upcoming games open a details modal.
+- **Leaderboard** (`/leaderboard`) - sortable, multi-stat leaderboard with season-phase filter (All Season / Regular Season / Playoffs).
+- **Team stats** (`/team-stats`) - aggregated team-level metrics with season-phase filter.
+- **Subscribe / unsubscribe** - double-opt-in email flow with token-based unsubscribe (`/unsubscribe`) and confirmation (`/api/confirm`).
 - **Privacy policy** (`/privacy`).
 - **Sitemap** (`/sitemap.xml`).
 
@@ -143,10 +143,10 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - CRUD for **seasons**, **leagues**, **season-leagues**, **players**, **schedule** (`UpcomingGame`), **games** (with round field for playoff tagging), and **per-game stat lines**.
 - **Roster** management (active/inactive, per-season-league entries).
 - **Manual stats import** (paste box-score URL or upload).
-- **Auto-discovery import** -- admin enqueues an `UpcomingGame`; a background job (cron-triggered via Vercel cron and a GitHub Actions hourly heartbeat) discovers the matching listing URL, scrapes the box score, classifies, and persists.
+- **Auto-discovery import** - admin enqueues an `UpcomingGame`; a background job (cron-triggered via Vercel cron and a GitHub Actions hourly heartbeat) discovers the matching listing URL, scrapes the box score, classifies, and persists.
 - **Aggregate recompute** endpoint for backfills.
-- **Roster announcements** -- pick the upcoming game, pick the active roster, write a note; the system emails confirmed subscribers via Brevo.
-- **Opponent aliases** -- manage alternate name mappings so the discovery matcher can resolve opponent names that differ from the league listing.
+- **Roster announcements** - pick the upcoming game, pick the active roster, write a note; the system emails confirmed subscribers via Brevo.
+- **Opponent aliases** - manage alternate name mappings so the discovery matcher can resolve opponent names that differ from the league listing.
 - **Subscriber management** with cleanup endpoints.
 
 ### Coach portal (`/coach/<token>`)
@@ -155,20 +155,20 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - Forced password change flow.
 
 ### Imports & scraping
-- `discover-source-url.ts` -- fuzzy matches scheduled opponents to listing rows (Levenshtein with Greek->Latin transliteration so `ΑΟ Νέας Αλικαρνασσού` and `AO Neas Alikarnassou` collapse to the same canonical form).
-- `scrape-game.ts` + `import-classifier.ts` + `import-game.ts` -- fetch, classify, parse, and persist a box score idempotently.
-- `import-job.ts` -- locking + retry semantics on `GameImportJob` (PENDING -> IMPORTED / ERROR / ABANDONED) with warning, success, and failure email notifications.
-- `stats-recalc.ts` -- transactional aggregate recompute (totals from raw DB sums, never approximated from averages).
+- `discover-source-url.ts` - fuzzy matches scheduled opponents to listing rows (Levenshtein with Greek->Latin transliteration so `ΑΟ Νέας Αλικαρνασσού` and `AO Neas Alikarnassou` collapse to the same canonical form).
+- `scrape-game.ts` + `import-classifier.ts` + `import-game.ts` - fetch, classify, parse, and persist a box score idempotently.
+- `import-job.ts` - locking + retry semantics on `GameImportJob` (PENDING -> IMPORTED / ERROR / ABANDONED) with warning, success, and failure email notifications.
+- `stats-recalc.ts` - transactional aggregate recompute (totals from raw DB sums, never approximated from averages).
 
 ### Cron / scheduled jobs
 
 All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECRET}`, compared in constant time with `node:crypto.timingSafeEqual` and a length-guard.
 
-- `/api/cron/purge-subscribers` -- daily at 03:00 UTC (Vercel cron). Drops unconfirmed subscribers older than 1 day and confirmed subscribers idle for over a year.
-- `/api/cron/purge-error-html` -- daily at 04:00 UTC (Vercel cron). Clears `GameImportJob.lastErrorHtml` older than 7 days (GDPR storage limitation).
-- `/api/cron/purge-upcoming-games` -- daily at 04:30 UTC (Vercel cron). Deletes `UpcomingGame` rows whose `scheduledFor` is past **and** whose linked `GameImportJob.state` is `IMPORTED` or `ABANDONED`. Stuck `PENDING` / `ERROR` rows are left for admin review; the imported `Game` is preserved (`importedGameId` uses `onDelete: SetNull`).
-- `/api/cron/discover-and-import` -- daily at 20:00 UTC (Vercel cron, `0 20 * * *`). T+1h/T+2h/T+3h/T+4h backoff per game; `ABANDONED` after 4 misses with admin email. (Vercel Hobby caps each cron expression at one firing per day; running closer to hourly requires Pro or an external scheduler.)
-- `/api/cron/import-heartbeat` -- daily at 05:05 UTC (Vercel cron). Emails the admin a digest: last 24 h of cron runs, in-window candidates (last 7 days, not yet `IMPORTED`), dropouts (7-14 days back, not `IMPORTED` / `ABANDONED`), and the next 7 days of scheduled games (excluding `IMPORTED`).
+- `/api/cron/purge-subscribers` - daily at 03:00 UTC (Vercel cron). Drops unconfirmed subscribers older than 1 day and confirmed subscribers idle for over a year.
+- `/api/cron/purge-error-html` - daily at 04:00 UTC (Vercel cron). Clears `GameImportJob.lastErrorHtml` older than 7 days (GDPR storage limitation).
+- `/api/cron/purge-upcoming-games` - daily at 04:30 UTC (Vercel cron). Deletes `UpcomingGame` rows whose `scheduledFor` is past **and** whose linked `GameImportJob.state` is `IMPORTED` or `ABANDONED`. Stuck `PENDING` / `ERROR` rows are left for admin review; the imported `Game` is preserved (`importedGameId` uses `onDelete: SetNull`).
+- `/api/cron/discover-and-import` - daily at 20:00 UTC (Vercel cron, `0 20 * * *`). T+1h/T+2h/T+3h/T+4h backoff per game; `ABANDONED` after 4 misses with admin email. (Vercel Hobby caps each cron expression at one firing per day; running closer to hourly requires Pro or an external scheduler.)
+- `/api/cron/import-heartbeat` - daily at 05:05 UTC (Vercel cron). Emails the admin a digest: last 24 h of cron runs, in-window candidates (last 7 days, not yet `IMPORTED`), dropouts (7-14 days back, not `IMPORTED` / `ABANDONED`), and the next 7 days of scheduled games (excluding `IMPORTED`).
 
 ### Security baseline
 - Strict CSP with per-request nonce (Edge middleware).
@@ -206,14 +206,14 @@ armani-katehano/
 │   │   ├── players/, games/, leaderboard/, team-stats/,
 │   │   │   admin/, coach/
 │   ├── components/                 Shared UI primitives (Layout, StatTile, ErrorBoundary)
-│   ├── domain/                     Pure logic -- no I/O, no React, no Prisma
+│   ├── domain/                     Pure logic - no I/O, no React, no Prisma
 │   │   ├── games/score.ts, games/phase.ts, players/format.ts, players/positions.ts,
 │   │   │   stats/{aggregate,allTime,efficiency,fromLog}.ts, calendar/, shared/
 │   ├── features/                   Reserved for cross-cutting page features
 │   ├── schemas/                    Zod schemas (player, game, league, season,
 │   │                                roster-announcement, schedule, scrape, ...)
 │   ├── server/                     Node-only business logic
-│   │   ├── _internal/node-only.ts  Runtime marker marker
+│   │   ├── _internal/node-only.ts  Runtime marker
 │   │   ├── auth/                   admin-slug, coach, csrf, login-attempts,
 │   │   │                            password, session, totp + middleware/
 │   │   ├── db/                     Prisma client + repositories
@@ -222,7 +222,7 @@ armani-katehano/
 │   │   │   ├── email/              Nodemailer/Brevo client + templates
 │   │   │   └── scraper/            listing + boxscore scrapers
 │   │   ├── security/
-│   │   │   ├── edge/               CSP, headers (portable)
+│   │   │   ├── edge/               CSP, headers (portable across runtimes)
 │   │   │   └── node/               SSRF, audit log, client IP (Node-only)
 │   │   └── services/               discover-source-url, import-classifier,
 │   │                                import-game, import-job, scrape-game,
@@ -317,8 +317,8 @@ npm run dev                        # http://localhost:3000
 
 ### Logging in
 
-- **Admin portal** -- visit `/admin/<ADMIN_SLUG>`, enter username, password, and TOTP code. The slug is randomized to keep the login form off public crawlers.
-- **Coach portal** -- visit `/coach/<COACH_TOKEN>`, enter the coach password.
+- **Admin portal** - visit `/admin/<ADMIN_SLUG>`, enter username, password, and TOTP code. The slug is randomized to keep the login form off public crawlers.
+- **Coach portal** - visit `/coach/<COACH_TOKEN>`, enter the coach password.
 
 ---
 
@@ -364,13 +364,13 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | `E2E_ADMIN_PASSWORD`                      | Plain admin password used by Playwright global setup            |
 | `APP_BASE_URL`                            | Public base URL of the deployed app, used by server-side code that builds absolute URLs |
 
-#### Game-imported broadcast -- manual smoke
+#### Game-imported broadcast - manual smoke
 
 1. Import a recent test game (any path that lands the `GameImportJob` in `IMPORTED` state).
 2. Confirm the admin import-success email contains a "Review & broadcast" button.
-3. Click it -- a confirmation page renders with the matchup, score, top-3 performers, and "Send to N subscribers" button.
-4. With a 1-subscriber test list, click the button -- verify the subscriber receives the recap.
-5. Click the original email link again -- verify the "Already broadcast" page renders.
+3. Click it - a confirmation page renders with the matchup, score, top-3 performers, and "Send to N subscribers" button.
+4. With a 1-subscriber test list, click the button - verify the subscriber receives the recap.
+5. Click the original email link again - verify the "Already broadcast" page renders.
 6. Inspect the `AuditLog` table for `broadcast_link_viewed`, `broadcast_emails_summary`, etc.
 
 ### Platform-supplied
@@ -400,13 +400,13 @@ These variables are set by the build/runtime environment automatically. Do not s
 
 | Script              | What it does                                                        |
 |---------------------|---------------------------------------------------------------------|
-| `dev`               | `next dev` -- local dev server                                       |
+| `dev`               | `next dev` - local dev server                                       |
 | `build`             | prebuild polyfill/Sentry stubs -> `prisma generate` -> `next build`   |
-| `start`             | `next start` -- serve the production build                           |
-| `lint`              | `eslint .` -- flat-config lint over the whole repo                   |
-| `test`              | `vitest run` -- unit + integration tests                             |
-| `test:e2e`          | `playwright test` -- headless browser tests                          |
-| `test:e2e:ui`       | `playwright test --ui` -- Playwright UI mode                         |
+| `start`             | `next start` - serve the production build                           |
+| `lint`              | `eslint .` - flat-config lint over the whole repo                   |
+| `test`              | `vitest run` - unit + integration tests                             |
+| `test:e2e`          | `playwright test` - headless browser tests                          |
+| `test:e2e:ui`       | `playwright test --ui` - Playwright UI mode                         |
 
 ### Standalone scripts (`scripts/`)
 
@@ -450,15 +450,15 @@ The app is deployed to **Vercel**. Production data is in **Neon Postgres**.
 
 ### Vercel configuration
 
-- **Build command** -- `npm run build` (runs prebuild polyfill/Sentry stubs, `prisma generate`, `next build`, and the post-build middleware-bundle guard).
-- **Node version** -- pinned via `.nvmrc` (≥ 24.14).
-- **Crons** -- declared in [`vercel.json`](vercel.json):
+- **Build command** - `npm run build` (runs prebuild polyfill/Sentry stubs, `prisma generate`, `next build`, and the post-build middleware-bundle guard).
+- **Node version** - pinned via `.nvmrc` (≥ 24.14).
+- **Crons** - declared in [`vercel.json`](vercel.json):
   - `0 3 * * *` -> `/api/cron/purge-subscribers`
   - `0 4 * * *` -> `/api/cron/purge-error-html`
   - `30 4 * * *` -> `/api/cron/purge-upcoming-games`
   - `5 5 * * *` -> `/api/cron/import-heartbeat`
   - `0 20 * * *` -> `/api/cron/discover-and-import`
-- **Environment variables** -- set in the Vercel dashboard (Production, Preview, Development scopes).
+- **Environment variables** - set in the Vercel dashboard (Production, Preview, Development scopes).
 
 ### Database migrations
 
@@ -478,7 +478,7 @@ Operational procedures live in `docs/`:
 
 ### Design decisions worth knowing
 
-- **Pages Router, not App Router.** The runtime marker (`src/server/_internal/node-only.ts`) is a custom marker because the npm `server-only` package is gated on the `react-server` export condition, which only resolves inside App Router server components. If the codebase migrates to App Router, swap the custom marker for `import "server-only";`.
+- **Pages Router, not App Router.** The runtime marker (`src/server/_internal/node-only.ts`) is custom because the npm `server-only` package is gated on the `react-server` export condition, which only resolves inside App Router server components. If the codebase migrates to App Router, swap it for `import "server-only";`.
 - **No top-level barrel under `src/server/security/`.** Importers must declare `edge` or `node` explicitly; this is what stopped a regression where `proxy.ts` dragged `node:dns` into the Edge bundle via a transitive barrel re-export.
 - **Totals are stored, not derived.** `PlayerSeasonAggregate` keeps both `*Avg` and `*Total` columns; totals must come from raw `PlayerGameStat` sums (`stats-recalc.ts`), never approximated from `avg × gp`.
 - **Greek↔Latin transliteration** in opponent matching: Levenshtein over raw codepoints fails across scripts, so `discover-source-url.ts` collapses both sides to a canonical Latin form before computing distance.
@@ -493,5 +493,5 @@ Operational procedures live in `docs/`:
 
 ### Reporting issues
 
-- Bugs / feature requests -- open a GitHub issue (or contact the maintainer if the repository is private).
-- Security vulnerabilities -- **do not file a public issue**; follow [`SECURITY.md`](SECURITY.md).
+- Bugs / feature requests - open a GitHub issue (or contact the maintainer if the repository is private).
+- Security vulnerabilities - **do not file a public issue**; follow [`SECURITY.md`](SECURITY.md).

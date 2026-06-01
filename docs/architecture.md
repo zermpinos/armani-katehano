@@ -1,7 +1,7 @@
 # Architecture
 
 This document is the source of truth for layer and runtime boundaries.
-Every rule below is enforced automatically -- by ESLint, by the build, or
+Every rule below is enforced automatically - by ESLint, by the build, or
 both. If you find yourself fighting a rule, fix the import shape rather
 than disabling the rule.
 
@@ -45,20 +45,20 @@ based and has **no Node built-ins** (`dns`, `crypto`, `fs`, `net`, ...).
 The rest of the app runs on the **Node runtime**.
 
 This boundary is non-negotiable: pulling a Node module into the Edge
-bundle either fails the build or -- worse -- silently ships a broken
+bundle either fails the build or - worse - silently ships a broken
 worker. Three layers of defense keep them apart.
 
-### 2.1 Structural -- `src/server/security/{edge,node}/`
+### 2.1 Structural - `src/server/security/{edge,node}/`
 
 Security helpers are split by runtime:
 
 | Path                                | Runtime safety            |
 |-------------------------------------|---------------------------|
-| `src/server/security/edge/csp.ts`     | Edge-safe -- CSP nonce, CSP header builder |
-| `src/server/security/edge/headers.ts` | Edge-safe -- pure header object |
-| `src/server/security/node/ssrf.ts`    | Node-only -- uses `node:dns` |
-| `src/server/security/node/audit-log.ts` | Node-only -- Sentry capture |
-| `src/server/security/node/client-ip.ts` | Node-only -- request-shape coupling |
+| `src/server/security/edge/csp.ts`     | Edge-safe - CSP nonce, CSP header builder |
+| `src/server/security/edge/headers.ts` | Edge-safe - pure header object |
+| `src/server/security/node/ssrf.ts`    | Node-only - uses `node:dns` |
+| `src/server/security/node/audit-log.ts` | Node-only - Sentry capture |
+| `src/server/security/node/client-ip.ts` | Node-only - request-shape coupling |
 
 There is **no top-level barrel**. Importers must declare which zone
 they're pulling from:
@@ -72,7 +72,7 @@ import { securityHeaders } from "@/server/security/edge";
 import { auditLog, getClientIp } from "@/server/security/node";
 ```
 
-### 2.2 Runtime marker -- `import "@/server/_internal/node-only"`
+### 2.2 Runtime marker - `import "@/server/_internal/node-only"`
 
 Every file under the following paths begins with the Node-only marker
 import:
@@ -89,7 +89,7 @@ import "@/server/_internal/node-only";
 
 We use a custom marker module rather than the npm `server-only`
 package because `server-only` is gated on the `react-server` export
-condition -- it only works inside App Router server components, and
+condition - it only works inside App Router server components, and
 this codebase is on the Pages Router. The marker module
 (`src/server/_internal/node-only.ts`) throws at module load time if
 it ever gets bundled into the browser (`typeof window !== "undefined"`)
@@ -101,15 +101,15 @@ The runtime guard complements the build-time defenses:
 
 | Layer | Time | Catches |
 |-------|------|---------|
-| 2.2 -- runtime poison pill | First request after a bad deploy | Anything that bypassed Layers 2.1, 3, and 4 |
-| 2.3 -- ESLint zone (Layer 3 below)        | Editor / pre-merge        | Any direct import from middleware to Node-only |
-| 4   -- CI bundle scan                      | Build / pre-merge          | Any indirect import that ended up in the Edge bundle |
+| 2.2 - runtime poison pill | First request after a bad deploy | Anything that bypassed Layers 2.1, 3, and 4 |
+| 2.3 - ESLint zone (Layer 3 below)        | Editor / pre-merge        | Any direct import from middleware to Node-only |
+| 4   - CI bundle scan                      | Build / pre-merge          | Any indirect import that ended up in the Edge bundle |
 
 If/when the codebase migrates to the App Router, swap the custom
 marker import for `import "server-only";` to gain App-Router-aware
 bundler enforcement.
 
-### 2.3 ESLint zone -- Edge import boundary
+### 2.3 ESLint zone - Edge import boundary
 
 `eslint.config.mjs` declares an `import/no-restricted-paths` zone that
 forbids `proxy.ts` (and any future `middleware/**`) from
@@ -118,7 +118,7 @@ mistakes in the editor before the developer ever runs `next build`.
 
 ---
 
-## 3. Node built-in imports -- `node:` protocol mandatory
+## 3. Node built-in imports - `node:` protocol mandatory
 
 Every Node built-in must be imported with the `node:` prefix:
 
@@ -127,7 +127,7 @@ Every Node built-in must be imported with the `node:` prefix:
 import crypto from "node:crypto";
 import dns    from "node:dns";
 
-// ❌ wrong -- flagged by ESLint, will fail CI
+// ❌ wrong - flagged by ESLint, will fail CI
 import crypto from "crypto";
 ```
 

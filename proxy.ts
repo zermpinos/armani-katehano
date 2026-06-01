@@ -7,7 +7,7 @@ const FLAG_TTL_MS = 10_000;
 
 // Files served from /public are reached at the root path (e.g. /logo.png,
 // not /public/logo.png), so a `startsWith('/public')` check misses them.
-// Match common static extensions so they pass through during maintenance --
+// Match common static extensions so they pass through during maintenance -
 // otherwise the maintenance page itself can't load its own logo/favicon.
 const STATIC_ASSET = /\.(?:png|jpe?g|gif|webp|svg|ico|css|js|map|woff2?|ttf|eot|otf|txt|xml|json|mp4|webm)$/i;
 
@@ -47,7 +47,7 @@ function passThroughWithCsp(request: NextRequest) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Paths that must always load -- needed for the maintenance page itself,
+  // Paths that must always load - needed for the maintenance page itself,
   // for the admin to log in and toggle the flag, and for Next's internals.
   const isMaintenancePage    = pathname.startsWith("/maintenance");
   const isAdminPath          = pathname.startsWith("/admin");

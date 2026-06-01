@@ -98,7 +98,7 @@ describe("POST mode=resolve", () => {
   });
 });
 
-describe("POST mode=send -- double-send guard", () => {
+describe("POST mode=send - double-send guard", () => {
   it("returns 429 if a send happened within the last 120 seconds", async () => {
     (prisma.broadcastLog.findFirst as any).mockResolvedValue({ id: "recent" });
     const req = makeReq("POST", { mode: "send", subject: "Hi", body: "Hello" });
@@ -108,7 +108,7 @@ describe("POST mode=send -- double-send guard", () => {
   });
 });
 
-describe("POST mode=send -- daily cap", () => {
+describe("POST mode=send - daily cap", () => {
   it("returns 429 if 5 or more sends happened in the last 24 hours", async () => {
     (prisma.broadcastLog.findFirst as any).mockResolvedValue(null);
     (prisma.broadcastLog.count as any).mockResolvedValue(5);
@@ -120,7 +120,7 @@ describe("POST mode=send -- daily cap", () => {
   });
 });
 
-describe("POST mode=send -- recipient filtering", () => {
+describe("POST mode=send - recipient filtering", () => {
   beforeEach(() => {
     (prisma.broadcastLog.findFirst as any).mockResolvedValue(null);
     (prisma.broadcastLog.count   as any).mockResolvedValue(0);
@@ -158,7 +158,7 @@ describe("POST mode=send -- recipient filtering", () => {
   });
 });
 
-describe("POST mode=send -- subject sanitization", () => {
+describe("POST mode=send - subject sanitization", () => {
   it("strips CRLF from subject before use", async () => {
     (prisma.broadcastLog.findFirst as any).mockResolvedValue(null);
     (prisma.broadcastLog.count   as any).mockResolvedValue(0);
@@ -176,7 +176,7 @@ describe("POST mode=send -- subject sanitization", () => {
   });
 });
 
-describe("POST /api/admin/broadcast -- auth", () => {
+describe("POST /api/admin/broadcast - auth", () => {
   it("returns 400 for invalid Zod payload", async () => {
     const req = makeReq("POST", { mode: "send" });
     const res = makeRes();

@@ -1,7 +1,7 @@
 // @ts-nocheck
 /**
  * tests/validators.test.js
- * Additional tests for lib/validators -- coercion, boundary values, ScrapedGameSchema.
+ * Additional tests for lib/validators - coercion, boundary values, ScrapedGameSchema.
  * The refinement tests for BoxScoreRowSchema already live in tests/schema.test.js.
  */
 import { describe, it, expect } from "vitest";
@@ -15,9 +15,9 @@ const BASE_ROW = {
 };
 const valid = (o = {}) => BoxScoreRowSchema.safeParse({ ...BASE_ROW, ...o });
 
-// ─── BoxScoreRowSchema -- coercion from strings ────────────────────────────────
+// ─── BoxScoreRowSchema - coercion from strings ────────────────────────────────
 
-describe("BoxScoreRowSchema -- coercion", () => {
+describe("BoxScoreRowSchema - coercion", () => {
   it("coerces string values to numbers", () => {
     const result = BoxScoreRowSchema.safeParse({
       playerId: "clxxxxxxxxxxxxxxxxxxxxxx",
@@ -33,9 +33,9 @@ describe("BoxScoreRowSchema -- coercion", () => {
   });
 });
 
-// ─── BoxScoreRowSchema -- boundary values ─────────────────────────────────────
+// ─── BoxScoreRowSchema - boundary values ─────────────────────────────────────
 
-describe("BoxScoreRowSchema -- boundary values", () => {
+describe("BoxScoreRowSchema - boundary values", () => {
   it("accepts minutes = 60 (maximum)", () => {
     expect(valid({ minutes: 60 }).success).toBe(true);
   });

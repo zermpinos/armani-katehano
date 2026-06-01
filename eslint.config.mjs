@@ -19,7 +19,7 @@ const eslintConfig = [
     ],
   },
   {
-    // Custom rules -- applied to all non-ignored JS/JSX files
+    // Custom rules - applied to all non-ignored JS/JSX files
     rules: {
       "no-undef": "error", // catches prodError, requireAuth, etc. used without import
       // Escalate from warn -> error so the lint job fails on new injection sinks
@@ -27,7 +27,7 @@ const eslintConfig = [
       "security/detect-object-injection": "error",
       // Force the node: protocol on all Node built-ins. Node 18+ resolves these
       // synchronously to the built-in module, never to a same-named npm package
-      // -- closes a real supply-chain attack vector (typosquat / dependency
+      // - closes a real supply-chain attack vector (typosquat / dependency
       // confusion against well-known module names).
       "no-restricted-imports": ["error", {
         paths: [
@@ -65,7 +65,7 @@ const eslintConfig = [
         "error",
         {
           zones: [
-            // UI primitives must stay pure -- no server-side or feature code
+            // UI primitives must stay pure - no server-side or feature code
             {
               target: ["./components/**", "./src/components/**"],
               from: ["./src/server/**", "./src/features/**"],
@@ -86,7 +86,7 @@ const eslintConfig = [
               message:
                 "features/* must not import from server/*. Use a data-fetching hook or API route instead.",
             },
-            // Pure domain logic -- no I/O, no React, no Next, no Prisma
+            // Pure domain logic - no I/O, no React, no Next, no Prisma
             {
               target: ["./src/domain/**"],
               from: [
@@ -95,7 +95,7 @@ const eslintConfig = [
                 "./src/features/**",
               ],
               message:
-                "domain/* must be pure -- no server, component, or feature imports.",
+                "domain/* must be pure - no server, component, or feature imports.",
             },
             // Edge runtime boundary: proxy.ts and anything under
             // ./middleware/** runs on Vercel's Edge runtime, which has no
@@ -114,7 +114,7 @@ const eslintConfig = [
                 "./src/server/integrations/**",
               ],
               message:
-                "middleware runs on the Edge runtime -- import only from src/server/security/edge or pure domain code.",
+                "middleware runs on the Edge runtime - import only from src/server/security/edge or pure domain code.",
             },
           ],
         },

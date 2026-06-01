@@ -69,14 +69,14 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: "Password is required" });
     }
 
-    // Brute-force lockout -- per-IP
+    // Brute-force lockout - per-IP
     const locked = await isLockedOut(ip);
     if (locked) {
       auditLog("coach_login_locked", { ip });
       return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
     }
 
-    // Brute-force lockout -- per-account (H-2): 25 attempts across any IP, 1-hour window
+    // Brute-force lockout - per-account (H-2): 25 attempts across any IP, 1-hour window
     const ACCOUNT_KEY = "account_coach";
     const accountLocked = await isLockedOut(ACCOUNT_KEY, 25, 3600);
     if (accountLocked) {

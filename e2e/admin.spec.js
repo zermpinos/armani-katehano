@@ -7,11 +7,11 @@
  * the login flow tests.
  *
  * Key implementation notes:
- * - Do NOT use waitForLoadState("networkidle") -- Next.js dev mode keeps a
+ * - Do NOT use waitForLoadState("networkidle") - Next.js dev mode keeps a
  *   WebSocket open for HMR which prevents networkidle from ever firing.
  * - The passkey button text is "SIGN IN WITH PASSKEY".
  * - The password fallback form button text is "SIGN IN".
- * - AdminLayout has no logout button -- the logout test uses the DELETE /api/auth
+ * - AdminLayout has no logout button - the logout test uses the DELETE /api/auth
  *   endpoint directly and verifies the login form reappears.
  * - The password fallback form is only shown when the URL contains
  *   ?fallback=<PASSKEY_FALLBACK_TOKEN>. Authenticated dashboard tests use
@@ -48,7 +48,7 @@ test.describe("Admin panel › Login form", () => {
   test("shows an error when passkey authentication fails", async ({ page }) => {
     test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
 
-    // Mock auth-options to return 401 -- simulates server-side auth failure
+    // Mock auth-options to return 401 - simulates server-side auth failure
     // without triggering a real WebAuthn ceremony.
     await page.route("**/api/auth/passkey/auth-options", async route => {
       return route.fulfill({
@@ -69,7 +69,7 @@ test.describe("Admin panel › Login form", () => {
   test("shows lockout message after too many passkey attempts (mocked 429)", async ({ page }) => {
     test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
 
-    // Mock auth-options to return 429 -- tests that the UI renders a rate-limit
+    // Mock auth-options to return 429 - tests that the UI renders a rate-limit
     // message. The actual lockout enforcement is covered in the integration tests.
     await page.route("**/api/auth/passkey/auth-options", async route => {
       return route.fulfill({
@@ -113,7 +113,7 @@ test.describe("Admin panel › Authenticated dashboard", () => {
     await page.goto(`/admin/${ADMIN_SLUG}/games`);
     await page.waitForLoadState("load");
 
-    // The login form should NOT reappear -- session cookie is still valid
+    // The login form should NOT reappear - session cookie is still valid
     await expect(page.getByText("Admin Access")).not.toBeVisible({ timeout: 5_000 });
     // The nav bar should still be visible
     await expect(page.getByText("AK Admin")).toBeVisible();
@@ -129,13 +129,13 @@ test.describe("Admin panel › Authenticated dashboard", () => {
     // Call the logout endpoint directly (AdminLayout has no logout button)
     await page.evaluate(() => fetch("/api/auth", { method: "DELETE" }));
 
-    // Reload -- session is gone, passkey login form should reappear
+    // Reload - session is gone, passkey login form should reappear
     await page.reload();
     await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
   });
 });
 
-// ── API-level auth guard (always runs -- no credentials needed) ─────────────
+// ── API-level auth guard (always runs - no credentials needed) ─────────────
 
 test.describe("Admin panel › API protection", () => {
   test("GET /api/admin/games returns 401 without a session cookie", async ({ request }) => {

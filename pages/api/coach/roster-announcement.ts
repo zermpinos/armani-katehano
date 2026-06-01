@@ -133,7 +133,7 @@ async function handler(req: any, res: any) {
 
       auditLog("coach_roster_published", { ip, upcomingGameId, playerCount: players.length });
 
-      // Send emails to all confirmed subscribers -- awaited so Vercel doesn't kill the function early.
+      // Send emails to all confirmed subscribers - awaited so Vercel doesn't kill the function early.
       try {
         const subscribers = await prisma.subscriber.findMany({ where: { confirmedAt: { not: null } } });
         if (subscribers.length > 0) {

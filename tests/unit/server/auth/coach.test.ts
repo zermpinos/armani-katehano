@@ -1,7 +1,7 @@
 // @ts-nocheck
 /**
  * tests/coachAuth.test.ts
- * Unit tests for lib/coachAuth -- HMAC sign/verify helpers, cookie builders,
+ * Unit tests for lib/coachAuth - HMAC sign/verify helpers, cookie builders,
  * and isValidCoachToken.
  *
  * Prisma is mocked so no DB connection is required.
@@ -98,7 +98,7 @@ describe("verifyCoachSession", () => {
 
 describe("cross-secret isolation", () => {
   it("rejects an admin session token signed with SESSION_SECRET", async () => {
-    // Sign a token with the admin secret (SESSION_SECRET) -- simulates a
+    // Sign a token with the admin secret (SESSION_SECRET) - simulates a
     // confused or malicious client presenting an admin cookie to the coach verifier.
     const { signSession } = await import("@/server/auth");
     const adminToken = signSession(JSON.stringify({ ts: Date.now(), role: "admin" }));

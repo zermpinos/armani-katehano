@@ -1,7 +1,7 @@
 // @ts-nocheck
 /**
  * tests/stats.test.ts
- * Tests for lib/stats.prisma.ts -- computePlayerAggregates
+ * Tests for lib/stats.prisma.ts - computePlayerAggregates
  *
  * Uses a mock Prisma tx so no DB connection is needed.
  * We feed known box score rows and verify the computed aggregates.
@@ -12,7 +12,7 @@ import { aggregatesToStatsMap } from "@/domain/stats";
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
 
-describe("computePlayerAggregates -- basic averages", () => {
+describe("computePlayerAggregates - basic averages", () => {
   it("computes correct ppg / rpg / apg over 2 games", () => {
     const rows = [
       { minutes:30, pts:20, reb:5, ast:3, stl:1, blk:0, tov:2, pf:2,
@@ -50,7 +50,7 @@ describe("computePlayerAggregates -- basic averages", () => {
   });
 });
 
-describe("computePlayerAggregates -- shooting percentages", () => {
+describe("computePlayerAggregates - shooting percentages", () => {
   it("calculates fgPct correctly", () => {
     const rows = [
       { minutes:30, pts:14, reb:3, ast:2, stl:0, blk:0, tov:1, pf:2,
@@ -99,7 +99,7 @@ describe("computePlayerAggregates -- shooting percentages", () => {
   });
 });
 
-describe("computePlayerAggregates -- totals", () => {
+describe("computePlayerAggregates - totals", () => {
   it("accumulates ptsTotal / rebTotal / astTotal correctly", () => {
     const rows = [
       { minutes:30, pts:15, reb:6, ast:3, stl:1, blk:0, tov:1, pf:2,
@@ -140,13 +140,13 @@ describe("computePlayerAggregates -- totals", () => {
     ];
     const agg = computePlayerAggregates(rows);
 
-    // DNP row (stl:5) must be excluded -- only the two active rows count
+    // DNP row (stl:5) must be excluded - only the two active rows count
     expect(agg.stlTotal).toBe(5);    // 3+2
     expect(agg.gp).toBe(2);
   });
 });
 
-describe("computePlayerAggregates -- rebounds breakdown", () => {
+describe("computePlayerAggregates - rebounds breakdown", () => {
   it("computes orbAvg and drbAvg correctly", () => {
     const rows = [
       { minutes:32, pts:18, reb:8, ast:2, stl:1, blk:1, tov:2, pf:2,
@@ -161,7 +161,7 @@ describe("computePlayerAggregates -- rebounds breakdown", () => {
   });
 });
 
-describe("computePlayerAggregates -- efficiency", () => {
+describe("computePlayerAggregates - efficiency", () => {
   it("computes effAvg correctly across multiple games", () => {
     // EFF = pts + reb + ast + stl + blk - (fga-fgm) - (fta-ftm) - tov
     // game1: 20+5+3+1+0 - (14-8) - (3-2) - 2 = 29-6-1-2 = 20
@@ -252,7 +252,7 @@ const { mockPrismaRecalc } = vi.hoisted(() => {
 
 vi.mock("@/server/db/client", () => ({ default: mockPrismaRecalc }));
 
-describe("recalcAggregates -- player-scoped query", () => {
+describe("recalcAggregates - player-scoped query", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("when playerIds provided, filters game.findMany to those players", async () => {

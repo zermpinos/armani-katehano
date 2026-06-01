@@ -4,7 +4,7 @@ on:
   deployment_status:
 
 concurrency:
-  # One E2E run per deployment -- cancel stale if a new deploy lands.
+  # One E2E run per deployment - cancel stale if a new deploy lands.
   group: e2e-${{ github.event.deployment_status.environment_url }}
   cancel-in-progress: true
 
@@ -36,7 +36,7 @@ jobs:
       - run: npm ci
 
       # On a persistent self-hosted runner, ~/.cache/ms-playwright survives
-      # between runs. playwright install is idempotent -- skips the download
+      # between runs. playwright install is idempotent - skips the download
       # when the browser binary is already present for the current version.
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium

@@ -329,7 +329,7 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
                 <div>
                   <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-[4px]">Recipients</div>
                   <div className="text-[13px] text-ak-text">{recipientLabel}</div>
-                  <div className="text-[11px] text-ak-text-dim mt-[2px]">Count is best-effort -- actual send targets whoever is confirmed at send time.</div>
+                  <div className="text-[11px] text-ak-text-dim mt-[2px]">Count is best-effort - actual send targets whoever is confirmed at send time.</div>
                 </div>
               </div>
 

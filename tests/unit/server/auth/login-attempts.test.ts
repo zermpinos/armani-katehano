@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-// Prisma mock -- needed because login-attempts.ts imports the client at module load.
+// Prisma mock - needed because login-attempts.ts imports the client at module load.
 // rlKeyBigInt is a pure function that never touches it, but the import must resolve.
 const { mockPrisma, mockTx } = vi.hoisted(() => {
   const mockTx = {

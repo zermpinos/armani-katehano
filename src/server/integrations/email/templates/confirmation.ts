@@ -10,7 +10,7 @@ export function buildConfirmationEmailHtml(confirmUrl: string, appUrl: string): 
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Confirm your subscription -- Armani Katehano</title>
+  <title>Confirm your subscription - Armani Katehano</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f3f4f6;-webkit-font-smoothing:antialiased;">
   <!--[if mso]><table width="100%"><tr><td><![endif]-->
@@ -47,7 +47,7 @@ export function buildConfirmationEmailHtml(confirmUrl: string, appUrl: string): 
           <tr>
             <td style="padding:32px;">
               <p style="margin:0 0 24px;font-size:14px;color:#374151;line-height:1.6;">
-                Click the button below to confirm your email address and start receiving Armani Katehano game emails -- roster announcements before games and recaps after.
+                Click the button below to confirm your email address and start receiving Armani Katehano game emails - roster announcements before games and recaps after.
               </p>
               <a href="${safeConfirm}"
                  style="display:inline-block;padding:12px 28px;background:#c92a2a;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;">
@@ -60,7 +60,7 @@ export function buildConfirmationEmailHtml(confirmUrl: string, appUrl: string): 
           <tr>
             <td style="padding:24px 32px;background:#f9fafb;border-top:1px solid #e5e7eb;">
               <p style="margin:0;font-size:11px;color:#6b7280;line-height:1.7;">
-                If you did not request this, you can ignore this email -- your address will not be subscribed.<br />
+                If you did not request this, you can ignore this email - your address will not be subscribed.<br />
                 This link is valid for 24 hours.<br />
                 <a href="${privacyUrl}" style="color:#6b7280;text-decoration:underline;">Privacy notice</a>
               </p>
@@ -83,7 +83,7 @@ export function buildConfirmationEmailText(confirmUrl: string, appUrl: string): 
   lines.push("Confirm your subscription");
   lines.push("");
   lines.push("Click the link below to confirm your email address and start receiving");
-  lines.push("Armani Katehano game emails -- roster announcements before games and recaps after.");
+  lines.push("Armani Katehano game emails - roster announcements before games and recaps after.");
   lines.push("");
   lines.push(confirmUrl);
   lines.push("");

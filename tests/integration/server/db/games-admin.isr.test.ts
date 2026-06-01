@@ -36,7 +36,7 @@ import {
 
 beforeEach(() => setupMocks(mockPrisma, recalcAggregates));
 
-// revalidate is a Next.js-only method -- plain API route handlers must not
+// revalidate is a Next.js-only method - plain API route handlers must not
 // crash when it is absent. These tests cover both sides: the handler must
 // call revalidate when present, and must still succeed when it is not.
 

@@ -28,10 +28,10 @@ function failRun(startedAt: Date, error: string): HeartbeatRun {
   return { startedAt, ok: false, summary: null, error };
 }
 
-describe("buildImportHeartbeat -- runs section", () => {
+describe("buildImportHeartbeat - runs section", () => {
   it("renders the empty-runs copy when there are no runs", () => {
     const { html, text, subject } = buildImportHeartbeat(basePayload());
-    expect(subject).toBe("Auto-import heartbeat -- 0/0 OK");
+    expect(subject).toBe("Auto-import heartbeat - 0/0 OK");
     expect(html).toContain("no runs in the last 24 h");
     expect(text).toContain("no runs in the last 24 h");
     expect(html).not.toContain("<table");
@@ -43,7 +43,7 @@ describe("buildImportHeartbeat -- runs section", () => {
     );
     const { html, text, subject } = buildImportHeartbeat(basePayload({ runs }));
 
-    expect(subject).toBe("Auto-import heartbeat -- 15/15 OK");
+    expect(subject).toBe("Auto-import heartbeat - 15/15 OK");
 
     expect(html).toContain("All 15 runs OK · last at");
     expect(text).toContain("All 15 runs OK · last at");
@@ -64,7 +64,7 @@ describe("buildImportHeartbeat -- runs section", () => {
     ];
     const { html, text, subject } = buildImportHeartbeat(basePayload({ runs }));
 
-    expect(subject).toBe("Auto-import heartbeat -- 4/5 OK");
+    expect(subject).toBe("Auto-import heartbeat - 4/5 OK");
 
     // Failure row is in the table
     expect(html).toContain(">FAIL<");
@@ -98,7 +98,7 @@ describe("buildImportHeartbeat -- runs section", () => {
       failRun(new Date(WINDOW_END.getTime() - 1 * 3600_000), "b"),
     ];
     const { html, text, subject } = buildImportHeartbeat(basePayload({ runs }));
-    expect(subject).toBe("Auto-import heartbeat -- 0/2 OK");
+    expect(subject).toBe("Auto-import heartbeat - 0/2 OK");
     expect(html).not.toContain("other run");
     expect(text).not.toContain("other run");
   });
@@ -114,6 +114,6 @@ describe("buildImportHeartbeat -- runs section", () => {
       lastError:    null,
     }];
     const { subject } = buildImportHeartbeat(basePayload({ runs, dropouts }));
-    expect(subject).toBe("Auto-import heartbeat -- 1/1 OK · 1 DROPOUT(s)");
+    expect(subject).toBe("Auto-import heartbeat - 1/1 OK · 1 DROPOUT(s)");
   });
 });

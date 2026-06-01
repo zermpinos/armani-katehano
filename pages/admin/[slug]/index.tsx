@@ -1,6 +1,6 @@
 /**
  * pages/admin/[slug]/index.js
- * Dashboard -- loads only aggregate stats. Fast.
+ * Dashboard - loads only aggregate stats. Fast.
  */
 
 import { useState, useEffect } from "react";
@@ -147,15 +147,15 @@ export default function AdminDashboard({ validSlug, showFallback, noPasskeys }: 
   const losses = data?.record?.losses ?? 0;
 
   // /api/admin/dashboard returns pre-computed ppg/rpg/apg
-  const ppg = data?.ppg ?? "--";
-  const rpg = data?.rpg ?? "--";
-  const apg = data?.apg ?? "--";
+  const ppg = data?.ppg ?? "-";
+  const rpg = data?.rpg ?? "-";
+  const apg = data?.apg ?? "-";
 
   const navItems = [
     { href: `/admin/${slug}/import`,      label: "Import game",   icon: "↓", desc: "Add a new game from sportstats.gr" },
-    { href: `/admin/${slug}/games`,       label: "Game results",  icon: "◉", desc: `${data?.totalGames ?? "--"} games recorded` },
-    { href: `/admin/${slug}/roster`,      label: "Roster",        icon: "◎", desc: `${data?.totalPlayers ?? "--"} players` },
-    { href: `/admin/${slug}/seasons`,     label: "Seasons",       icon: "◇", desc: `${data?.totalSeasonLeagues ?? "--"} active leagues` },
+    { href: `/admin/${slug}/games`,       label: "Game results",  icon: "◉", desc: `${data?.totalGames ?? "-"} games recorded` },
+    { href: `/admin/${slug}/roster`,      label: "Roster",        icon: "◎", desc: `${data?.totalPlayers ?? "-"} players` },
+    { href: `/admin/${slug}/seasons`,     label: "Seasons",       icon: "◇", desc: `${data?.totalSeasonLeagues ?? "-"} active leagues` },
     { href: `/admin/${slug}/subscribers`, label: "Subscribers",   icon: "✉", desc: "Manage subscriber list" },
   ];
 
@@ -170,7 +170,7 @@ export default function AdminDashboard({ validSlug, showFallback, noPasskeys }: 
           {/* Summary strip */}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(110px,1fr))] gap-[10px] mb-7">
             {[
-              ["SEASON",      data?.currentSeason ?? "--"],
+              ["SEASON",      data?.currentSeason ?? "-"],
               ["RECORD",      `${wins}-${losses}`],
               ["PPG",         ppg],
               ["RPG",         rpg],
@@ -239,8 +239,8 @@ export default function AdminDashboard({ validSlug, showFallback, noPasskeys }: 
                 : maintenanceOn === null
                 ? "Maintenance: ..."
                 : maintenanceOn
-                ? "Maintenance: ON -- Click to disable"
-                : "Maintenance: OFF -- Click to enable"}
+                ? "Maintenance: ON - Click to disable"
+                : "Maintenance: OFF - Click to enable"}
             </button>
             <span className="text-[11px] text-ak-text-dim ml-[10px]">
               Redirects all non-admin visitors to /maintenance

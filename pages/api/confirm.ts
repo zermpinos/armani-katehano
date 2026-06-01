@@ -1,5 +1,5 @@
 /**
- * pages/api/confirm.ts  (public -- no auth required)
+ * pages/api/confirm.ts  (public - no auth required)
  *
  * GET ?token=<hex>  -> confirm a pending subscription (double opt-in)
  */
@@ -22,7 +22,7 @@ export default async function handler(req: any, res: any) {
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid confirmation token" });
   }
-  // 'token' here carries the confirmToken value -- not the permanent unsubscribe token
+  // 'token' here carries the confirmToken value - not the permanent unsubscribe token
   const { token } = parsed.data;
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
@@ -32,7 +32,7 @@ export default async function handler(req: any, res: any) {
 
     if (!subscriber) {
       // Token not found: either already confirmed (confirmToken was nulled) or invalid.
-      // Redirect to success -- a re-click of a used confirmation link should not show an error.
+      // Redirect to success - a re-click of a used confirmation link should not show an error.
       return res.redirect(302, `${appUrl}/?confirmed=1`);
     }
 
@@ -42,7 +42,7 @@ export default async function handler(req: any, res: any) {
         await prisma.subscriber.delete({ where: { confirmToken: token } });
       } catch (err: any) {
         if (err?.code !== "P2025") throw err;
-        // Concurrent expiry delete already removed the row -- treat as success
+        // Concurrent expiry delete already removed the row - treat as success
       }
       auditLog("subscriber_confirm_expired", { tokenPrefix: token.slice(0, 8) });
       return res.redirect(302, `${appUrl}/?confirmed=expired`);
@@ -55,7 +55,7 @@ export default async function handler(req: any, res: any) {
       });
     } catch (err: any) {
       if (err?.code === "P2025") {
-        // Concurrent confirm won the race -- this token was already nulled. Treat as success.
+        // Concurrent confirm won the race - this token was already nulled. Treat as success.
         return res.redirect(302, `${appUrl}/?confirmed=1`);
       }
       throw err;

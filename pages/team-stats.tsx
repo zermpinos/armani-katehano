@@ -185,8 +185,8 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
               <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
                 <StatTile label="APG"         value={teamAvg.apg}          sub="assists" />
                 <StatTile label="AST/TOV"     value={teamAvg.atRatio}      sub="ratio" />
-                <StatTile label="OFF RTG"     value={offRtgAvg ?? "--"}     sub="offensive rating" />
-                <StatTile label="DEF RTG"     value={defRtgAvg ?? "--"}     sub="defensive rating" />
+                <StatTile label="OFF RTG"     value={offRtgAvg ?? "-"}     sub="offensive rating" />
+                <StatTile label="DEF RTG"     value={defRtgAvg ?? "-"}     sub="defensive rating" />
               </div>
             </div>
             {/* Shooting */}
@@ -210,7 +210,7 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
 
           <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-5 mb-5">
             <div className="rounded-xl p-5 border border-ak-border bg-ak-surface">
-              <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim mb-4 uppercase">Top Scorers -- PPG</div>
+              <div className="text-[11px] font-black tracking-[0.15em] text-ak-text-dim mb-4 uppercase">Top Scorers - PPG</div>
               {playerPpg.length === 0
                 ? <div className="text-xs text-ak-text-dim">No data</div>
                 : playerPpg.map((p: any, i: number) => (

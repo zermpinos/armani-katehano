@@ -59,7 +59,7 @@ export function aggregatesToStatsMap(aggregates: any[]) {
     const ftaTotal  = agg.ftaTotal  ?? 0;
     const ptsTotal  = agg.ptsTotal  ?? 0;
 
-    // TS% computed from summed raw totals -- statistically correct across leagues.
+    // TS% computed from summed raw totals - statistically correct across leagues.
     const tsDenom = 2 * (fgaTotal + 0.44 * ftaTotal);
     const tsPct   = tsDenom > 0 ? +(ptsTotal / tsDenom * 100).toFixed(1) : 0;
 
@@ -75,7 +75,7 @@ export function aggregatesToStatsMap(aggregates: any[]) {
       tpg:    +agg.toAvg.toFixed(1),
       fpg:    +agg.pfAvg.toFixed(1),
       mpg:    +agg.minutesAvg.toFixed(1),
-      // Percentages from raw totals -- accurate across leagues
+      // Percentages from raw totals - accurate across leagues
       fgPct:  pct(agg.fgmTotal  ?? 0, fgaTotal),
       fg2Pct: pct(agg.fg2mTotal ?? 0, fg2aTotal),
       fg3Pct: pct(agg.fg3mTotal ?? 0, fg3aTotal),
@@ -85,7 +85,7 @@ export function aggregatesToStatsMap(aggregates: any[]) {
       tsPct,
       eff:    +((agg.effAvg ?? 0).toFixed(1)),
       gp:     agg.gp,
-      // Raw shot totals -- carried so buildAllTimeStatsMap can sum across seasons
+      // Raw shot totals - carried so buildAllTimeStatsMap can sum across seasons
       fgm:  agg.fgmTotal  ?? 0,
       fga:  agg.fgaTotal  ?? 0,
       fg2m: agg.fg2mTotal ?? 0,
@@ -213,7 +213,7 @@ export function computeTeamAverages(games: any[]) {
   };
 }
 
-// Backward-compat wrapper -- new code should call buildStatsMap directly.
+// Backward-compat wrapper - new code should call buildStatsMap directly.
 export function recalcPlayerAverages(players: any[], games: any[]) {
   const statsMap = buildStatsMap(players, games);
   return players.map(player => ({
