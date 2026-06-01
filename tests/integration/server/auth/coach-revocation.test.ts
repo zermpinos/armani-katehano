@@ -6,7 +6,7 @@
  * current DB version.
  *
  * Mocks: @/server/db/client (prevent pool init), @/server/auth/coach
- *   (partial -- only getCoachSessionVersion overridden so HMAC helpers remain real).
+ *   (partial - only getCoachSessionVersion overridden so HMAC helpers remain real).
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 

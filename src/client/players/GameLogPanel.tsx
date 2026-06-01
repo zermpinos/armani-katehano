@@ -156,19 +156,19 @@ export function GameLogPanel({ gameLog }: any) {
                       ].join(" ")}
                     >
                       <td className="py-[5px] px-[7px] text-center text-ak-text-dim font-bold">{i+1}</td>
-                      <td className="py-[5px] px-[7px] text-ak-text-dim whitespace-nowrap">{g.date ? g.date.slice(5) : "--"}</td>
+                      <td className="py-[5px] px-[7px] text-ak-text-dim whitespace-nowrap">{g.date ? g.date.slice(5) : "-"}</td>
                       <td className="py-[5px] px-[7px] text-ak-text-sub">
                         <span className="block max-w-[90px] truncate">
-                          <Link href={`/games/${g.gameId}`} className="hover:text-ak-red-text transition-colors duration-150">{g.opponent || "--"}</Link>
+                          <Link href={`/games/${g.gameId}`} className="hover:text-ak-red-text transition-colors duration-150">{g.opponent || "-"}</Link>
                         </span>
                       </td>
-                      <td className="py-[5px] px-[7px] text-center text-ak-text-dim">{g.min > 0 ? fmtMinutes(g.min) : "--"}</td>
+                      <td className="py-[5px] px-[7px] text-center text-ak-text-dim">{g.min > 0 ? fmtMinutes(g.min) : "-"}</td>
                       <td className="py-[5px] px-[7px] text-center font-black text-ak-red-text">{g.pts}</td>
                       <td className="py-[5px] px-[7px] text-center text-ak-text">{g.reb}</td>
                       <td className="py-[5px] px-[7px] text-center text-ak-text">{g.ast}</td>
                       <td className="py-[5px] px-[7px] text-center text-ak-text">{g.stl}</td>
                       <td className="py-[5px] px-[7px] text-center text-ak-text">{g.blk}</td>
-                      <td className="py-[5px] px-[7px] text-center text-ak-text whitespace-nowrap">{g.fta > 0 ? `${g.ftm}/${g.fta}` : "--"}</td>
+                      <td className="py-[5px] px-[7px] text-center text-ak-text whitespace-nowrap">{g.fta > 0 ? `${g.ftm}/${g.fta}` : "-"}</td>
                       <td className="py-[5px] px-[7px] text-center font-black text-ak-gold">{g.eff}</td>
                     </tr>
                   ))}

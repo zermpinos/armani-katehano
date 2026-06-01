@@ -40,7 +40,7 @@ beforeEach(() => {
   mockPrisma.subscriber.findMany.mockResolvedValue([]);
 });
 
-describe("GET /api/admin/subscribers -- defaults and pagination", () => {
+describe("GET /api/admin/subscribers - defaults and pagination", () => {
   it("returns 200 with default page/limit when no query params given", async () => {
     mockPrisma.subscriber.count.mockResolvedValue(3);
     mockPrisma.subscriber.findMany.mockResolvedValue([
@@ -135,7 +135,7 @@ describe("GET /api/admin/subscribers -- defaults and pagination", () => {
   });
 });
 
-describe("DELETE /api/admin/subscribers -- bulk delete", () => {
+describe("DELETE /api/admin/subscribers - bulk delete", () => {
   it("returns 400 when ids is missing from body", async () => {
     const res = mockRes();
     await handler(mockReq({ method: "DELETE", body: {} }), res);

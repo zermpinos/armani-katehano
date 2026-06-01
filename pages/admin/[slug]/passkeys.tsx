@@ -142,7 +142,7 @@ export default function PasskeysPage({
     setConfirmId(cred.id);
     setConfirmMsg(
       credentials.length === 1
-        ? "This is your last passkey. Deleting it means you can only sign in using the password recovery token. Continue?"
+        ? "This is your last passkey. Deleting it means you can only sign in using the password recovery token. Proceed?"
         : "Delete this passkey?"
     );
   };

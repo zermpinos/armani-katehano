@@ -44,7 +44,7 @@ async function main() {
   }
   console.log(`✅ Leagues: ${Object.keys(leagues).join(", ")}`);
 
-  // 3. SeasonLeagues -- one per league per season
+  // 3. SeasonLeagues - one per league per season
   const seasonLeagues = {};
   for (const [slug, league] of Object.entries(leagues)) {
     const newSl = await prisma.seasonLeague.create({
@@ -54,7 +54,7 @@ async function main() {
   }
   console.log(`✅ SeasonLeagues created`);
 
-  // 4. Players -- slugs generated from names
+  // 4. Players - slugs generated from names
   const playerMap = {}; // old pid -> new Prisma id
   for (const p of RAW_PLAYERS) {
     const created = await prisma.player.create({
@@ -132,7 +132,7 @@ async function main() {
   }
   console.log(`✅ Games: ${gameCount}, PlayerGameStats: ${statCount}`);
 
-  // 6. PlayerSeasonAggregates -- computed from raw stats per player per SeasonLeague
+  // 6. PlayerSeasonAggregates - computed from raw stats per player per SeasonLeague
   let aggCount = 0;
 
   for (const [slSlug, sl] of Object.entries(seasonLeagues)) {

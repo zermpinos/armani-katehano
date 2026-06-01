@@ -50,7 +50,7 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
     throw new ScrapeError("URL not allowed", 400);
   });
 
-  // Connect directly to the pre-validated IP -- no second DNS resolution at fetch time.
+  // Connect directly to the pre-validated IP - no second DNS resolution at fetch time.
   const dispatcher = makeLockedDispatcher(address);
   let html: string;
   try {
@@ -64,7 +64,7 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
     } as NodeRequestInit);
 
     if (response.status >= 300 && response.status < 400)
-      throw new ScrapeError("Upstream redirected -- refusing to follow.", 502);
+      throw new ScrapeError("Upstream redirected - refusing to follow.", 502);
 
     if (!response.ok)
       throw new ScrapeError(`Upstream returned ${response.status}`, 502);
@@ -118,17 +118,17 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
         if (defRating !== null) data.game.defRating = defRating;
       }
     } catch (pdfErr) {
-      // Non-fatal -- ratings will be omitted, but log so it's diagnosable
+      // Non-fatal - ratings will be omitted, but log so it's diagnosable
       console.warn("[scrape-game] PDF rating parse failed:", (pdfErr as Error).message);
     }
   }
 
   const validation = ScrapedGameSchema.safeParse(data);
   if (!validation.success)
-    throw new ScrapeError("Scraped data has unexpected shape -- the source site may have changed format.", 422);
+    throw new ScrapeError("Scraped data has unexpected shape - the source site may have changed format.", 422);
 
   if (!data.teams.length)
-    throw new ScrapeError("No box score found -- check the URL points to a game details page.", 422);
+    throw new ScrapeError("No box score found - check the URL points to a game details page.", 422);
 
   const gameState = classifyScrapedGame(data);
 

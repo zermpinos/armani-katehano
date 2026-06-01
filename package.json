@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "hooks:install": "bash scripts/install-git-hooks.sh",
     "dev": "next dev",
     "build": "node scripts/strip-next-polyfills.mjs && node scripts/strip-sentry-tracing.mjs && prisma generate && next build",
     "start": "next start",

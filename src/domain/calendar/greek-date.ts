@@ -16,7 +16,7 @@ export const GREEK_MONTHS = {
 export function parseGreekDate(str: string | null | undefined): Date | null {
   if (!str) return null;
 
-  // Match DD MonthName YYYY anywhere in the string -- handles "Σάββατο, 28 Μαρτίου 2026" prefix
+  // Match DD MonthName YYYY anywhere in the string - handles "Σάββατο, 28 Μαρτίου 2026" prefix
   const match = str.trim().match(/(\d{1,2})\s+(\S+)\s+(\d{4})/);
   if (!match) return null;
 

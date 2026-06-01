@@ -1,7 +1,7 @@
 // Wraps a dynamic-import factory so the actual fetch+parse happens during
 // browser idle time rather than inside the hydration task. Used for
 // above-the-fold recharts charts whose ResponsiveContainer triggers a
-// synchronous geometry read on mount -- moving the mount past first paint
+// synchronous geometry read on mount - moving the mount past first paint
 // keeps that ~100ms forced reflow out of the TBT critical window.
 
 type Loader<T> = () => Promise<{ default: T }>;

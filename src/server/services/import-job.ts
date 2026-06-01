@@ -20,7 +20,7 @@ export function truncateHtml(html: string): string {
 export async function processJob(jobId: string): Promise<void> {
   const workerId = randomBytes(4).toString("hex");
 
-  // Claim via SELECT FOR UPDATE SKIP LOCKED -- short transaction just to take the row lock
+  // Claim via SELECT FOR UPDATE SKIP LOCKED - short transaction just to take the row lock
   const claimed = await prisma.$transaction(async (tx) => {
     const rows = await tx.$queryRaw<Array<{ id: string }>>`
       SELECT id FROM "GameImportJob"
@@ -121,7 +121,7 @@ export async function processJob(jobId: string): Promise<void> {
 
   const { data, gameState } = scrapeResult;
 
-  // Email may have raced the page -- requeue until final
+  // Email may have raced the page - requeue until final
   if (gameState.state !== "final") {
     const next = job.attempts >= MAX_ATTEMPTS ? "ERROR" : "PENDING";
     const msg  = `Not final after ${job.attempts} attempt(s): ${gameState.reason}`;
@@ -175,7 +175,7 @@ export async function processJob(jobId: string): Promise<void> {
   }
 }
 
-// Called from the daily sweep -- clears lastErrorHtml older than 7 days (GDPR storage limitation).
+// Called from the daily sweep - clears lastErrorHtml older than 7 days (GDPR storage limitation).
 export async function purgeStaleErrorHtml(): Promise<void> {
   const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   await prisma.gameImportJob.updateMany({

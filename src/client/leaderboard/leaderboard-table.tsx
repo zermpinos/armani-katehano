@@ -114,12 +114,12 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort 
                     {activeCols.map(col => {
                       const val = p.stats[col.key];
                       const display = col.pct
-                        ? (col.denom ? p.stats[col.denom] > 0 : val > 0) ? `${val.toFixed(col.dec)}%` : "--"
+                        ? (col.denom ? p.stats[col.denom] > 0 : val > 0) ? `${val.toFixed(col.dec)}%` : "-"
                         : col.min
-                          ? (val > 0 ? fmtMinutes(val) : "--")
+                          ? (val > 0 ? fmtMinutes(val) : "-")
                           : col.dec === 0
-                            ? (val != null ? String(val) : "--")
-                            : val?.toFixed(col.dec) ?? "--";
+                            ? (val != null ? String(val) : "-")
+                            : val?.toFixed(col.dec) ?? "-";
                       return (
                         <td key={col.key} className="px-2 py-[10px] text-center">
                           <span className={`${col.key === sortKey ? "font-black" : "font-semibold"} ${col.key === sortKey && idx === 0 ? "text-ak-red-text" : col.key === sortKey ? "text-ak-text" : "text-ak-text-sub"}`}>

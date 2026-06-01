@@ -38,7 +38,7 @@ async function handler(req: any, res: any) {
 
     const hash = await bcrypt.hash(newPassword, 12);
     await setCoachPasswordHash(hash);
-    // Increment version -- invalidates every issued session across all devices,
+    // Increment version - invalidates every issued session across all devices,
     // not just the current one. The coach must log in again with the new password.
     await incrementCoachSessionVersion();
     auditLog("coach_password_changed", { ip });

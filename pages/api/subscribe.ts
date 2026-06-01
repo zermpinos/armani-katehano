@@ -1,5 +1,5 @@
 /**
- * pages/api/subscribe.ts  (public -- no auth required)
+ * pages/api/subscribe.ts  (public - no auth required)
  *
  * POST  { email }               -> subscribe
  * DELETE { token }              -> unsubscribe via token (linked from emails)
@@ -48,7 +48,7 @@ export default async function handler(req: any, res: any) {
     }
     const { email } = parsed.data;
 
-    // Record attempt before processing (asynchronous)
+    // Record attempt before processing (async, errors logged)
     prisma.loginAttempt.create({ data: { ip: rateLimitKey } })
       .catch((err: unknown) => console.error("[subscribe] rate-limit record failed:", err));
 
@@ -63,7 +63,7 @@ export default async function handler(req: any, res: any) {
       // Return 200 so we don't reveal whether the address is known
       return res.status(200).json({ ok: true });
     }
-    // Purge stale records (asynchronous, runs on each subscribe attempt)
+    // Purge stale records (async, runs on each subscribe attempt)
     const unconfirmedCutoff = new Date(Date.now() - UNCONFIRMED_TTL * 1000);
     const retentionCutoff   = new Date(Date.now() - CONFIRMED_RETENTION * 1000);
     prisma.subscriber.deleteMany({
@@ -82,7 +82,7 @@ export default async function handler(req: any, res: any) {
     try {
       const existing = await prisma.subscriber.findUnique({ where: { email } });
       if (existing) {
-        // Already subscribed -- return success silently (don't reveal existence)
+        // Already subscribed - return success silently (don't reveal existence)
         return res.status(200).json({ ok: true });
       }
 
@@ -94,7 +94,7 @@ export default async function handler(req: any, res: any) {
         });
       } catch (createErr: any) {
         // P2002 = unique constraint violation: a concurrent request already inserted
-        // this email (race on the cooldown window). Treat as success -- only one email
+        // this email (race on the cooldown window). Treat as success - only one email
         // will ever be sent because the first request holds the row.
         if (createErr?.code === "P2002") {
           return res.status(200).json({ ok: true });
@@ -137,7 +137,7 @@ export default async function handler(req: any, res: any) {
       await prisma.subscriber.delete({ where: { token } });
       return res.status(200).json({ ok: true });
     } catch {
-      // Token not found -- treat as success to avoid token enumeration
+      // Token not found - treat as success to avoid token enumeration
       return res.status(200).json({ ok: true });
     }
   }

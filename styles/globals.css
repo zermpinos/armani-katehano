@@ -38,7 +38,7 @@ body {
 /* ── Links ── */
 a { color: inherit; text-decoration: none; }
 
-/* ── Keyframes -- kept here so existing inline style="animation:spin..." refs still work during Phase 2 migration ── */
+/* ── Keyframes - kept here so existing inline style="animation:spin..." refs still work during Phase 2 migration ── */
 @keyframes fadeIn  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes spin    { to { transform: rotate(360deg); } }
 @keyframes pulse   { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }

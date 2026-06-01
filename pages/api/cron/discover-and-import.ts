@@ -189,7 +189,7 @@ async function handleCandidate(
   const dueAt = new Date(
     game.scheduledFor.getTime() + (attempts + 1) * HOUR_MS,
   );
-  if (dueAt > now) return false; // intentionally NOT logged -- fires every hour
+  if (dueAt > now) return false; // intentionally NOT logged - fires every hour
 
   let discovered: Awaited<ReturnType<typeof discoverSourceUrl>>;
   try {
@@ -224,7 +224,7 @@ async function handleCandidate(
     return true;
   }
 
-  // Found -- promote to a normal import
+  // Found - promote to a normal import
   await prisma.upcomingGame.update({
     where: { id: game.id },
     data: { sourceUrl: discovered.gameUrl },

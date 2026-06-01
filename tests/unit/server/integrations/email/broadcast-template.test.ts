@@ -7,12 +7,12 @@ describe("renderMarkdown", () => {
     expect(typeof result).toBe("string");
     expect(result).toContain("<strong>world</strong>");
   });
-  it("escapes raw HTML -- script tag is not executed", () => {
+  it("escapes raw HTML - script tag is not executed", () => {
     const result = renderMarkdown("<script>alert(1)</script>");
     expect(result).not.toContain("<script>");
     expect(result).toContain("&lt;script&gt;");
   });
-  it("escapes raw HTML -- img onerror is neutralised", () => {
+  it("escapes raw HTML - img onerror is neutralised", () => {
     const result = renderMarkdown('<img onerror="fetch(\'x\')" src="x">');
     expect(result).not.toContain("<img");
     expect(result).toContain("&lt;img");

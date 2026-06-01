@@ -1,7 +1,7 @@
 // @ts-nocheck
 /**
  * tests/utils.test.js
- * Tests for lib/utils -- fmt, parseScore, fmtDate, slugify.
+ * Tests for lib/utils - fmt, parseScore, fmtDate, slugify.
  */
 import { describe, it, expect } from "vitest";
 import { fmt, slugify } from "@/domain/players/format";
@@ -35,7 +35,7 @@ describe("fmt", () => {
     expect(fmt("  Giorgos   Antonakos  ")).toBe("Antonakos G.");
   });
 
-  it("handles three-word name -- uses last word as surname", () => {
+  it("handles three-word name - uses last word as surname", () => {
     expect(fmt("Maria Anna Papadopoulou")).toBe("Papadopoulou M.");
   });
 });

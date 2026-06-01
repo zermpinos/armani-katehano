@@ -155,7 +155,7 @@ export default function SubscribersPage({ validSlug, showFallback, noPasskeys }:
             Subscribers
           </div>
           <div className="text-[22px] font-black text-ak-text">
-            {loading ? "--" : total}
+            {loading ? "-" : total}
           </div>
         </div>
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- API route that streams a CSV download; <Link /> does client-side nav and would swallow the response */}
@@ -246,7 +246,7 @@ export default function SubscribersPage({ validSlug, showFallback, noPasskeys }:
               />
               <span className="flex-1 text-[13px] text-ak-text font-mono">{r.email}</span>
               <span className="w-[100px] text-right text-[11px] text-ak-text-dim whitespace-nowrap">
-                {r.confirmedAt?.slice(0, 10) ?? "--"}
+                {r.confirmedAt?.slice(0, 10) ?? "-"}
               </span>
               <span className="w-[100px] text-right text-[11px] text-ak-text-dim whitespace-nowrap ml-4">
                 {r.createdAt?.slice(0, 10)}

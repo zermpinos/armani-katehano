@@ -30,7 +30,7 @@ export function ConfirmToast() {
       </span>
       <span className={`text-[13px] font-bold flex-1 leading-[1.45] ${isSuccess ? "text-ak-green" : "text-[#d97706]"}`}>
         {isSuccess
-          ? "Email confirmed -- welcome to the team!"
+          ? "Email confirmed - welcome to the team!"
           : "This confirmation link has expired or was already used. Please subscribe again."}
       </span>
       <button

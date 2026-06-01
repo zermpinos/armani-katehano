@@ -113,7 +113,7 @@ export async function fetchBroadcastEnrichment(
     ]);
     ctx = { teamStats, record, nextGame };
   } catch {
-    // enrichment failed -- broadcast continues without enriched sections
+    // enrichment failed - broadcast continues without enriched sections
   }
 
   return { topPerformers, ctx };

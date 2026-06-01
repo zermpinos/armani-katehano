@@ -1,6 +1,6 @@
 /**
  * pages/admin/[slug]/roster.js
- * Roster management -- view, add, edit players.
+ * Roster management - view, add, edit players.
  */
 
 import { useState, useEffect } from "react";

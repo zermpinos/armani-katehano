@@ -1,8 +1,8 @@
 /**
  * pages/api/cron/purge-audit-log.ts
  *
- * GET -- called daily by Vercel Cron. Deletes AuditLog rows older than 90 days.
- * Uses a time-based filter only -- no ID-range deletes.
+ * GET - called daily by Vercel Cron. Deletes AuditLog rows older than 90 days.
+ * Uses a time-based filter only - no ID-range deletes.
  *
  * Auth: Vercel sends Authorization: Bearer <CRON_SECRET> automatically.
  */

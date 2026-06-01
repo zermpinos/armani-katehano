@@ -1,6 +1,6 @@
 /**
  * Smoke-tests the live listing parser + discovery service against real
- * basketcity.sportstats.gr HTML. No DB writes, no email -- just fetches.
+ * basketcity.sportstats.gr HTML. No DB writes, no email - just fetches.
  *
  * Default (no args): dumps every past row the parser finds on both the men
  * and master-winter-cup listings. Use this to confirm the scraper still

@@ -66,7 +66,7 @@ beforeEach(() => {
   mockSendConfirmationEmail.mockResolvedValue(undefined);
 });
 
-describe("POST /api/subscribe -- happy path", () => {
+describe("POST /api/subscribe - happy path", () => {
   it("returns 201 on successful subscription", async () => {
     const res = mockRes();
     await handler(mockReq({ body: { email: "user@example.com" } }), res);
@@ -87,7 +87,7 @@ describe("POST /api/subscribe -- happy path", () => {
     });
   });
 
-  it("calls sendConfirmationEmail with email and confirmToken -- not the unsubscribe token", async () => {
+  it("calls sendConfirmationEmail with email and confirmToken - not the unsubscribe token", async () => {
     const res = mockRes();
     await handler(mockReq({ body: { email: "user@example.com" } }), res);
     expect(mockSendConfirmationEmail).toHaveBeenCalledWith({
@@ -110,7 +110,7 @@ describe("POST /api/subscribe -- happy path", () => {
     expect(mockPrisma.loginAttempt.create).toHaveBeenCalledTimes(2);
   });
 
-  it("generates two independent 32-byte tokens -- randomBytes called twice with 32", async () => {
+  it("generates two independent 32-byte tokens - randomBytes called twice with 32", async () => {
     const res = mockRes();
     await handler(mockReq({ body: { email: "user@example.com" } }), res);
     expect(mockRandomBytes).toHaveBeenCalledTimes(2);
@@ -119,7 +119,7 @@ describe("POST /api/subscribe -- happy path", () => {
   });
 });
 
-describe("POST /api/subscribe -- duplicate / race conditions", () => {
+describe("POST /api/subscribe - duplicate / race conditions", () => {
   it("returns 200 silently when email is already in the database", async () => {
     mockPrisma.subscriber.findUnique.mockResolvedValue({ id: "cl1", email: "user@example.com" });
     const res = mockRes();
@@ -150,7 +150,7 @@ describe("POST /api/subscribe -- duplicate / race conditions", () => {
   });
 });
 
-describe("POST /api/subscribe -- error paths", () => {
+describe("POST /api/subscribe - error paths", () => {
   it("returns 429 when IP rate limit is exceeded", async () => {
     mockPrisma.loginAttempt.count.mockResolvedValueOnce(3);
     const res = mockRes();
@@ -182,7 +182,7 @@ describe("POST /api/subscribe -- error paths", () => {
   });
 });
 
-describe("DELETE /api/subscribe -- unsubscribe", () => {
+describe("DELETE /api/subscribe - unsubscribe", () => {
   it("returns 200 and deletes by token", async () => {
     mockPrisma.subscriber.delete.mockResolvedValue({});
     const res = mockRes();

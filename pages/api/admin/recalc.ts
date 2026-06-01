@@ -6,7 +6,7 @@
  * SeasonLeague in the database. Call this once after deploying the
  * effAvg migration to backfill historical EFF values.
  *
- * Protected by requireAuth -- same as all other admin endpoints.
+ * Protected by requireAuth - same as all other admin endpoints.
  */
 
 import { requireAuth }       from '@/server/auth';

@@ -1,7 +1,7 @@
 /**
  * pages/api/cron/purge-subscribers.ts
  *
- * GET -- called daily by Vercel Cron. Enforces two retention rules:
+ * GET - called daily by Vercel Cron. Enforces two retention rules:
  *   • Unconfirmed subscribers older than 1 day
  *   • Confirmed subscribers with no roster email in over 1 year
  *

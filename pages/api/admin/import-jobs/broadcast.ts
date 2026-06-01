@@ -32,7 +32,7 @@ function renderConfirmation(
   const vsAt = game.location === "home" ? "vs" : "@";
   const matchup = `${vsAt} ${esc(game.opponent)}`;
   const performers = topPerformers.map(p =>
-    `<li style="margin:4px 0">#${p.number} ${esc(p.name)} -- ${p.pts} pts · ${p.reb} reb · ${p.ast} ast</li>`
+    `<li style="margin:4px 0">#${p.number} ${esc(p.name)} - ${p.pts} pts · ${p.reb} reb · ${p.ast} ast</li>`
   ).join("");
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Confirm broadcast</title></head>
 <body style="font-family:-apple-system,sans-serif;padding:48px;max-width:640px;margin:auto;color:#111">

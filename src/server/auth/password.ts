@@ -5,7 +5,7 @@ export const LOCKOUT_TTL_S      = 60 * 15;
 export const MAX_LOGIN_ATTEMPTS = 5;
 export const CAPTCHA_THRESHOLD  = 3;
 
-// Equalises response time for unknown usernames -- without this, the missing-user
+// Equalises response time for unknown usernames - without this, the missing-user
 // branch returns in ~0ms while a valid username runs bcrypt (~100ms), leaking
 // which usernames exist.
 const _sentinelHash: Promise<string> = bcrypt.hash("__sentinel__", 12);
@@ -58,7 +58,7 @@ export function getAdminUser(username: string): AdminUser | null {
 export async function verifyCaptcha(token: string, ip?: string): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) {
-    console.error("[captcha] TURNSTILE_SECRET_KEY not set -- denying CAPTCHA");
+    console.error("[captcha] TURNSTILE_SECRET_KEY not set - denying CAPTCHA");
     return false;
   }
   const body = new URLSearchParams({ secret, response: token });

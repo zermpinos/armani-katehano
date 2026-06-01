@@ -210,7 +210,7 @@ it("TOV value renders in #c92a2a", () => {
 it("FG% shows dash when fgPct is null", () => {
   const ctx: GameEmailContext = { ...FULL_CTX, teamStats: { fgPct: null, teamReb: 20, teamTov: 5 } };
   const html = buildGameImportedHtml(GAME, PERFORMERS, ctx, APP_URL, UNSUB);
-  expect(html).toContain("--");
+  expect(html).toContain("-");
 });
 
 // ── Top performers (section ⑤) ────────────────────────────────────────────────
@@ -398,7 +398,7 @@ it("escapes ampersands in unsubscribe URL", () => {
 
 // ── buildGameImportedText ─────────────────────────────────────────────────────
 
-describe("buildGameImportedText -- new sections", () => {
+describe("buildGameImportedText - new sections", () => {
   it("leads with ARMANI KATEHANO · GAME RECAP", () => {
     const text = buildGameImportedText(GAME, PERFORMERS, NULL_CTX, APP_URL, UNSUB);
     expect(text.split("\n")[0]).toBe("ARMANI KATEHANO · GAME RECAP");
@@ -463,7 +463,7 @@ describe("buildGameImportedText -- new sections", () => {
 
   it("contains no em-dashes", () => {
     const text = buildGameImportedText(GAME, PERFORMERS, FULL_CTX, APP_URL, UNSUB);
-    expect(text).not.toMatch(/--/);
+    expect(text).not.toMatch(/-/);
   });
 
   it("contains the full box score URL", () => {

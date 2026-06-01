@@ -61,7 +61,7 @@ export function buildImportFailure(p: {
     ],
     extra: errorNote + matchReasonNote,
   });
-  const text = `[AK] Import Failed\n\nMatch: ${vsAt} ${p.opponent}\nScheduled: ${p.scheduledFor}\nAttempts: ${p.attempts}\nError: ${p.lastError ?? "--"}${p.matchReason ? `\nLast match attempt: ${p.matchReason}` : ""}`;
+  const text = `[AK] Import Failed\n\nMatch: ${vsAt} ${p.opponent}\nScheduled: ${p.scheduledFor}\nAttempts: ${p.attempts}\nError: ${p.lastError ?? "-"}${p.matchReason ? `\nLast match attempt: ${p.matchReason}` : ""}`;
   return { subject, html, text };
 }
 
@@ -91,7 +91,7 @@ export function buildImportAbandoned(p: {
     ],
     extra: errorNote + matchReasonNote + `<p style="margin:16px 0 0;font-size:12px;color:#6b7280;">No further automatic attempts will be made. Set the sourceUrl manually and use RUN to retry.</p>`,
   });
-  const text = `[AK] Import Abandoned\n\nMatch: ${vsAt} ${p.opponent}\nScheduled: ${p.scheduledFor}\nAttempts: ${p.attempts}\nError: ${p.lastError ?? "--"}${p.matchReason ? `\nLast match attempt: ${p.matchReason}` : ""}\n\nNo further automatic attempts. Set sourceUrl manually and re-run.`;
+  const text = `[AK] Import Abandoned\n\nMatch: ${vsAt} ${p.opponent}\nScheduled: ${p.scheduledFor}\nAttempts: ${p.attempts}\nError: ${p.lastError ?? "-"}${p.matchReason ? `\nLast match attempt: ${p.matchReason}` : ""}\n\nNo further automatic attempts. Set sourceUrl manually and re-run.`;
   return { subject, html, text };
 }
 

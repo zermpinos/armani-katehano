@@ -49,7 +49,7 @@ export function BoxScoreTable({ players, rows, onUpdate, highlights = {} }: {
               ].join(" ")}>
                 <td className="py-[5px] px-[10px] text-ak-text-dim font-bold">{player?.number ?? "?"}</td>
                 <td className={["py-[5px] px-[10px] text-[12px]", played ? "text-ak-green font-black" : "text-ak-text font-normal"].join(" ")}>
-                  {player ? fmt(player.name) : "--"}
+                  {player ? fmt(player.name) : "-"}
                 </td>
                 {BOX_COLS.map(c => (
                   <td key={c.key} className="py-[3px] px-1 text-center">

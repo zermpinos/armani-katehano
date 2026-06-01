@@ -218,7 +218,7 @@ describe("claimAndBroadcast", () => {
   });
 });
 
-describe("fetchBroadcastEnrichment -- FG% edge cases", () => {
+describe("fetchBroadcastEnrichment - FG% edge cases", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.BROADCAST_LINK_SECRET  = "secret-long-enough-for-hmac-sha256-yay";

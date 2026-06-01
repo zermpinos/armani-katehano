@@ -11,7 +11,7 @@
 //   list inside an `if (typeof __SENTRY_TRACING__ === 'undefined' ||
 //   __SENTRY_TRACING__) { ... }` guard. Setting `defaultIntegrations:
 //   false` at the call site prevents the runtime push but keeps the static
-//   import -- and therefore the bundle weight (~20 KiB after gzip).
+//   import - and therefore the bundle weight (~20 KiB after gzip).
 //
 //   The Sentry SDK ships `__SENTRY_TRACING__` precisely so bundlers can
 //   text-replace it with `false` to dead-code that conditional. The
@@ -19,7 +19,7 @@
 //   only (see node_modules/@sentry/nextjs/build/esm/config/webpack.js
 //   `userSentryOptions.webpack?.treeshake?.removeTracing`). Next 16's
 //   default bundler is Turbopack, which ignores that injection. Doing the
-//   replacement in-place against the SDK source is bundler-agnostic -- same
+//   replacement in-place against the SDK source is bundler-agnostic - same
 //   pattern as scripts/strip-next-polyfills.mjs.
 //
 // Idempotent: each run rewrites the touched files from scratch. `npm
