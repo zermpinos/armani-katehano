@@ -48,7 +48,7 @@ export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
       bpg:    wavg("bpg"),
       tpg:    wavg("tpg"),
       fpg:    wavg("fpg"),
-      // Percentages computed from summed raw totals -- statistically correct
+      // Percentages computed from summed raw totals - statistically correct
       fgPct:  pct(fgm,  fga),
       fg2Pct: pct(fg2m, fg2a),
       fg3Pct: pct(fg3m, fg3a),
@@ -60,7 +60,7 @@ export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
       gp:     totalGp,
       // Carry raw totals forward so further aggregation stays accurate
       fgm, fga, fg2m, fg2a, fg3m, fg3a, ftm, fta,
-      // Season totals -- summed across seasons
+      // Season totals - summed across seasons
       pts_total: sumRaw("pts_total"),
       reb_total: sumRaw("reb_total"),
       ast_total: sumRaw("ast_total"),

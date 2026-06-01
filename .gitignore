@@ -17,24 +17,10 @@ npm-debug.log*
 *.swo
 *~
 
-.claude
-CLAUDE.md
-.worktrees/
-audit.txt
-structure.txt
 test-results/
-docs/superpowers/
-.superpowers/
 
-# TypeScript incremental build state -- regenerated on every tsc run
+# TypeScript incremental build state, regenerated on every tsc run
 *.tsbuildinfo
-
-# Local-only artifacts of the history scrub operation (do not track)
-scripts/scrub/replacements.txt
-scripts/scrub/mailmap.txt
-scripts/scrub/message_rewrites.yaml
-scripts/scrub/compute_message_rewrites.py
-scripts/scrub/apply_message_rewrites.py
 
 # Self-hosted Actions runner installation
 actions-runner/

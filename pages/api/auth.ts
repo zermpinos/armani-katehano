@@ -55,14 +55,14 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: "Password is required" });
     }
 
-    // Brute-force lockout -- per-IP
+    // Brute-force lockout - per-IP
     const locked = await isLockedOut(ip);
     if (locked) {
       auditLog("login_locked", { ip });
       return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
     }
 
-    // Brute-force lockout -- per-account: 25 attempts across any IP, 1-hour window
+    // Brute-force lockout - per-account: 25 attempts across any IP, 1-hour window
     const ACCOUNT_KEY = `account_${username}`;
     const accountLocked = await isLockedOut(ACCOUNT_KEY, 25, 3600);
     if (accountLocked) {
@@ -115,7 +115,7 @@ export default async function handler(req: any, res: any) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // TOTP check -- required if the user has a totpSecret configured
+    // TOTP check - required if the user has a totpSecret configured
     const userRecord = getAdminUser(username);
     if (userRecord?.totpSecret) {
       if (!totpToken || typeof totpToken !== "string" || !verifyTotp(userRecord.totpSecret, totpToken)) {

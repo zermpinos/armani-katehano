@@ -66,7 +66,7 @@ beforeEach(() => {
 });
 
 describe("processJob", () => {
-  it("happy path -- scrapes final game and settles job as IMPORTED", async () => {
+  it("happy path - scrapes final game and settles job as IMPORTED", async () => {
     mockTx.$queryRaw.mockResolvedValue([{ id: "job1" }]);
     mockPrisma.gameImportJob.findUniqueOrThrow.mockResolvedValue(PENDING_JOB);
     vi.mocked(scrapeGameFromUrl).mockResolvedValue({ data: { game: {}, teams: [] }, gameState: FINAL_GAME_STATE });
@@ -82,7 +82,7 @@ describe("processJob", () => {
     );
   });
 
-  it("lock skip -- returns without scraping when another worker holds the lock", async () => {
+  it("lock skip - returns without scraping when another worker holds the lock", async () => {
     mockTx.$queryRaw.mockResolvedValue([]); // SKIP LOCKED returned nothing
 
     await processJob("job1");
@@ -91,7 +91,7 @@ describe("processJob", () => {
     expect(scrapeGameFromUrl).not.toHaveBeenCalled();
   });
 
-  it("manual-import collision -- settles job as IMPORTED with existing gameId on 409", async () => {
+  it("manual-import collision - settles job as IMPORTED with existing gameId on 409", async () => {
     mockTx.$queryRaw.mockResolvedValue([{ id: "job1" }]);
     mockPrisma.gameImportJob.findUniqueOrThrow.mockResolvedValue(PENDING_JOB);
     vi.mocked(scrapeGameFromUrl).mockResolvedValue({ data: { game: {}, teams: [] }, gameState: FINAL_GAME_STATE });
@@ -110,7 +110,7 @@ describe("processJob", () => {
     );
   });
 
-  it("retry-cap -- moves job to ERROR when attempts reach MAX_ATTEMPTS and page is still not final", async () => {
+  it("retry-cap - moves job to ERROR when attempts reach MAX_ATTEMPTS and page is still not final", async () => {
     mockTx.$queryRaw.mockResolvedValue([{ id: "job1" }]);
     mockPrisma.gameImportJob.findUniqueOrThrow.mockResolvedValue({ ...PENDING_JOB, attempts: 3 });
     vi.mocked(scrapeGameFromUrl).mockResolvedValue({ data: { game: {}, teams: [] }, gameState: LIVE_GAME_STATE });

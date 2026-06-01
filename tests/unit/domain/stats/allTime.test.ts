@@ -4,7 +4,7 @@
  *
  * Tests for buildAllTimeStatsMap() in lib/stats  (T-05 in the audit).
  *
- * buildAllTimeStatsMap() performs weighted averaging across seasons -- a subtle
+ * buildAllTimeStatsMap() performs weighted averaging across seasons - a subtle
  * calculation that is easy to break at edge cases:
  *   - one season with 1 game vs another with 20 (weight must reflect gp)
  *   - player present in only one season
@@ -24,7 +24,7 @@ function seasonStats(gp, ppg, rpg = 0, apg = 0, fgPct = 0, spg = 0) {
     orpg: 0, drpg: 0, bpg: 0, tpg: 0, fpg: 0,
     fg2Pct: 0, fg3Pct: 0, ftPct: fgPct, mpg: 0, eff: 0,
     fgPct,
-    // Raw totals -- required so buildAllTimeStatsMap sums once and divides
+    // Raw totals - required so buildAllTimeStatsMap sums once and divides
     pts_total: Math.round(gp * ppg),
     reb_total: Math.round(gp * rpg),
     ast_total: Math.round(gp * apg),
@@ -39,7 +39,7 @@ const P2 = "player-2";
 
 // ─── Single season ────────────────────────────────────────────────────────────
 
-describe("buildAllTimeStatsMap -- single season", () => {
+describe("buildAllTimeStatsMap - single season", () => {
   it("returns the season stats unchanged when there is only one season", () => {
     const allSeasons = {
       "season-1": { [P1]: seasonStats(10, 15.0, 5.0) },
@@ -64,7 +64,7 @@ describe("buildAllTimeStatsMap -- single season", () => {
 
 // ─── Weighted averaging ───────────────────────────────────────────────────────
 
-describe("buildAllTimeStatsMap -- weighted averages across seasons", () => {
+describe("buildAllTimeStatsMap - weighted averages across seasons", () => {
   it("weights ppg by games played correctly", () => {
     // Season A: 10 games, 20 ppg -> contributes 200 pts
     // Season B: 10 games, 10 ppg -> contributes 100 pts
@@ -106,7 +106,7 @@ describe("buildAllTimeStatsMap -- weighted averages across seasons", () => {
 
 // ─── Player present in only one season ───────────────────────────────────────
 
-describe("buildAllTimeStatsMap -- player missing from some seasons", () => {
+describe("buildAllTimeStatsMap - player missing from some seasons", () => {
   it("uses only the seasons where the player appeared", () => {
     // P1 plays in s-1 and s-2; P2 only in s-2
     const allSeasons = {
@@ -125,7 +125,7 @@ describe("buildAllTimeStatsMap -- player missing from some seasons", () => {
     expect(Reflect.get(map, P1).gp).toBe(20);
     expect(Reflect.get(map, P1).ppg).toBe(17.5);
 
-    // P2: only s-2 -- stats should be exactly s-2 stats
+    // P2: only s-2 - stats should be exactly s-2 stats
     expect(Reflect.get(map, P2).gp).toBe(8);
     expect(Reflect.get(map, P2).ppg).toBe(12.0);
   });
@@ -144,7 +144,7 @@ describe("buildAllTimeStatsMap -- player missing from some seasons", () => {
 
 // ─── All-zero season mixed with productive season ─────────────────────────────
 
-describe("buildAllTimeStatsMap -- zero-stat seasons excluded from averages", () => {
+describe("buildAllTimeStatsMap - zero-stat seasons excluded from averages", () => {
   it("ignores seasons where gp === 0 when computing averages", () => {
     // A season with gp=0 should not drag down the average
     const allSeasons = {
@@ -161,7 +161,7 @@ describe("buildAllTimeStatsMap -- zero-stat seasons excluded from averages", () 
 
 // ─── gameLog merging ──────────────────────────────────────────────────────────
 
-describe("buildAllTimeStatsMap -- gameLog merging", () => {
+describe("buildAllTimeStatsMap - gameLog merging", () => {
   it("merges and sorts gameLogs from all seasons chronologically", () => {
     const log1 = [{ gameId: "g1", date: "2024-01-01", pts: 10, reb: 3, ast: 2, stl: 1, blk: 0, eff: 10, opponent: "A", league: "rookie" }];
     const log2 = [{ gameId: "g2", date: "2025-03-15", pts: 20, reb: 5, ast: 4, stl: 2, blk: 1, eff: 20, opponent: "B", league: "bc6" }];
@@ -180,7 +180,7 @@ describe("buildAllTimeStatsMap -- gameLog merging", () => {
 
 // ─── Percentages from raw totals ─────────────────────────────────────────────
 
-describe("buildAllTimeStatsMap -- percentages from summed raw shot totals", () => {
+describe("buildAllTimeStatsMap - percentages from summed raw shot totals", () => {
   it("computes FG% from summed totals, not a weighted average of per-season pcts", () => {
     // Season A: 20/40 = 50%,  Season B: 30/50 = 60%
     // Weighted avg of pcts = (50*5 + 60*5) / 10 = 55.0%
@@ -235,7 +235,7 @@ describe("buildAllTimeStatsMap -- percentages from summed raw shot totals", () =
 
 // ─── Efficiency weighted average ─────────────────────────────────────────────
 
-describe("buildAllTimeStatsMap -- eff as weighted average across seasons", () => {
+describe("buildAllTimeStatsMap - eff as weighted average across seasons", () => {
   it("weights eff by games played, not a simple average of season eff values", () => {
     // Season A: 10 games, eff=15.0  -> contributes weight 150
     // Season B: 5 games,  eff=10.0  -> contributes weight 50

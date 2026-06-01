@@ -1,6 +1,6 @@
 # Incident Response Runbook
 
-Control: A.5.24 / CC7.3 -- Incident Response Readiness
+Control: A.5.24 / CC7.3 - Incident Response Readiness
 
 ---
 
@@ -8,10 +8,10 @@ Control: A.5.24 / CC7.3 -- Incident Response Readiness
 
 | Severity | Definition | Response SLA | Example |
 |----------|------------|--------------|---------|
-| P1 -- Critical | Data breach, total outage, personal data exposed | 1h triage; GDPR 72h notification clock starts | DB credential leak, PII exfiltration |
-| P2 -- High | Partial outage, auth bypass, data corruption | 4h triage | API returning wrong user data, login broken |
-| P3 -- Medium | Degraded performance, non-sensitive data anomaly | 24h triage | Slow queries, chart rendering failures |
-| P4 -- Low | Cosmetic bug, minor UX issue | Next sprint | Typo in UI, wrong colour |
+| P1 - Critical | Data breach, total outage, personal data exposed | 1h triage; GDPR 72h notification clock starts | DB credential leak, PII exfiltration |
+| P2 - High | Partial outage, auth bypass, data corruption | 4h triage | API returning wrong user data, login broken |
+| P3 - Medium | Degraded performance, non-sensitive data anomaly | 24h triage | Slow queries, chart rendering failures |
+| P4 - Low | Cosmetic bug, minor UX issue | Next sprint | Typo in UI, wrong colour |
 
 ---
 
@@ -23,25 +23,25 @@ Control: A.5.24 / CC7.3 -- Incident Response Readiness
 | Technical Lead | Webmaster | Diagnoses, patches, deploys fixes |
 | Data Protection Contact | webmaster@armani-katehano.com | Assesses personal-data impact; triggers GDPR notification |
 
-(Single-person team -- these roles collapse to one person. Revisit if team grows.)
+(Single-person team - these roles collapse to one person. Revisit if team grows.)
 
 ---
 
 ## 3. Detection Sources
 
-- **Sentry** -- runtime exceptions and unhandled errors
-- **Vercel** -- deployment failures, function timeouts
-- **Neon console** -- DB connection spikes, query errors
-- **User reports** -- via webmaster@armani-katehano.com
+- **Sentry** - runtime exceptions and unhandled errors
+- **Vercel** - deployment failures, function timeouts
+- **Neon console** - DB connection spikes, query errors
+- **User reports** - via webmaster@armani-katehano.com
 
 ---
 
 ## 4. Triage Steps
 
-1. **Confirm the incident** -- reproduce or verify via Sentry / Vercel logs.
+1. **Confirm the incident** - reproduce or verify via Sentry / Vercel logs.
 2. **Classify severity** (see matrix above).
-3. **Contain** -- if P1/P2: consider taking the deployment offline or rolling back via Vercel dashboard.
-4. **Assess personal data impact** -- does the incident involve any user PII (email addresses, stats linked to identifiable individuals)?
+3. **Contain** - if P1/P2: consider taking the deployment offline or rolling back via Vercel dashboard.
+4. **Assess personal data impact** - does the incident involve any user PII (email addresses, stats linked to identifiable individuals)?
 5. **Open an incident record** in the log below.
 
 ---
@@ -76,11 +76,11 @@ If full scope is unknown within 72h, notify with available information and suppl
 
 ## 7. Resolution & Post-Incident
 
-1. **Fix deployed** -- verify in Vercel deployment log.
+1. **Fix deployed** - verify in Vercel deployment log.
 2. **Root cause documented** in incident log below.
-3. **Lessons learned** -- update runbooks, rotate credentials if applicable.
-4. **Key rotation** -- follow `docs/key-rotation-runbook.md` if secrets were exposed.
-5. **Backup verification** -- follow `docs/backup-recovery-runbook.md` if data integrity is in question.
+3. **Lessons learned** - update runbooks, rotate credentials if applicable.
+4. **Key rotation** - follow `docs/key-rotation-runbook.md` if secrets were exposed.
+5. **Backup verification** - follow `docs/backup-recovery-runbook.md` if data integrity is in question.
 
 ---
 
@@ -99,6 +99,6 @@ Record the drill in the log below.
 
 | Date | Type | Severity | Summary | Outcome | GDPR notified? |
 |------|------|----------|---------|---------|----------------|
-| -- | -- | -- | -- | -- | -- |
+| - | - | - | - | - | - |
 
 *(Add a row for each real incident or tabletop drill.)*

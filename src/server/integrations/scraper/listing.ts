@@ -2,7 +2,7 @@
  * Parses sportstats team-listing pages (basketcity.sportstats.gr/<league>/teamdetails/id/<UUID>)
  * into the rows we care about: past games with a gamedetails URL.
  *
- * Upcoming/scheduled games are not exposed with a URL on this view -- we only see them
+ * Upcoming/scheduled games are not exposed with a URL on this view - we only see them
  * after the game has been published (which happens shortly before/after tip-off).
  */
 
@@ -57,7 +57,7 @@ export function parseListingHtml(html: string, listingUrl: string): ListingRow[]
 
     const weAreLeft = isUs(left);
     const weAreRight = isUs(right);
-    if (weAreLeft === weAreRight) return; // either both us or neither -- skip
+    if (weAreLeft === weAreRight) return; // either both us or neither - skip
     const opponent = weAreLeft ? right : left;
     const isHome   = weAreRight; // the right-hand team is the home team on this site's layout
 

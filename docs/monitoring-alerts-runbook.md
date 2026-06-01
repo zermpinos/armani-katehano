@@ -1,6 +1,6 @@
 # Monitoring & Alerting Runbook
 
-**Control:** CC7.1 -- System monitoring, anomaly detection  
+**Control:** CC7.1 - System monitoring, anomaly detection  
 **Last reviewed:** 2026-04-19
 
 ---
@@ -23,7 +23,7 @@ Security-critical audit events are forwarded to Sentry by `auditLog()` in `src/s
 Configure these in **Sentry -> Alerts -> Create Alert Rule**.  
 All rules should notify the **#security-alerts** Slack channel (or equivalent on-call channel).
 
-### Rule 1 -- Error-rate spike
+### Rule 1 - Error-rate spike
 
 | Field | Value |
 |-------|-------|
@@ -33,7 +33,7 @@ All rules should notify the **#security-alerts** Slack channel (or equivalent on
 | Action | Notify: Slack `#security-alerts`; optionally PagerDuty/Opsgenie |
 | Name | `prod-error-rate-spike` |
 
-### Rule 2 -- Account lockout
+### Rule 2 - Account lockout
 
 | Field | Value |
 |-------|-------|
@@ -42,7 +42,7 @@ All rules should notify the **#security-alerts** Slack channel (or equivalent on
 | Action | Notify: Slack `#security-alerts` |
 | Name | `prod-account-lockout` |
 
-### Rule 3 -- CSRF blocked
+### Rule 3 - CSRF blocked
 
 | Field | Value |
 |-------|-------|
@@ -51,7 +51,7 @@ All rules should notify the **#security-alerts** Slack channel (or equivalent on
 | Action | Notify: Slack `#security-alerts` |
 | Name | `prod-csrf-attack` |
 
-### Rule 4 -- Coach session revoked
+### Rule 4 - Coach session revoked
 
 | Field | Value |
 |-------|-------|
@@ -60,7 +60,7 @@ All rules should notify the **#security-alerts** Slack channel (or equivalent on
 | Action | Notify: Slack `#security-alerts` |
 | Name | `prod-coach-session-revoked` |
 
-### Rule 5 -- TOTP failures (credential stuffing indicator)
+### Rule 5 - TOTP failures (credential stuffing indicator)
 
 | Field | Value |
 |-------|-------|
@@ -69,7 +69,7 @@ All rules should notify the **#security-alerts** Slack channel (or equivalent on
 | Action | Notify: Slack `#security-alerts` |
 | Name | `prod-totp-failures` |
 
-### Rule 6 -- Broadcast-link brute-force
+### Rule 6 - Broadcast-link brute-force
 
 | Field | Value |
 |-------|-------|

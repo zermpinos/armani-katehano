@@ -7,14 +7,14 @@
  *
  * S-06: Without this job the LoginAttempt table grows unboundedly.
  * The brute-force lockout check (isLockedOut) scans this table on
- * every login attempt -- unbounded growth degrades its performance.
+ * every login attempt - unbounded growth degrades its performance.
  *
  * Security: protected by a shared secret in the Authorization header
  * so it cannot be triggered by arbitrary callers.
  * The secret must match CRON_SECRET in Vercel Environment Variables.
  *
  * Vercel automatically sets Authorization: Bearer <CRON_SECRET> on
- * cron-triggered requests when CRON_SECRET is configured -- no manual
+ * cron-triggered requests when CRON_SECRET is configured - no manual
  * header management is needed for the cron invocation.
  */
 
@@ -29,7 +29,7 @@ import { purgeUnconfirmedSubscribers } from "@/server/services/subscriber";
 const LOCKOUT_TTL_MS = 15 * 60 * 1000; // 15 minutes in milliseconds
 
 export default async function handler(req: any, res: any) {
-  // Only allow DELETE (or GET -- Vercel cron uses GET by default)
+  // Only allow DELETE (or GET - Vercel cron uses GET by default)
   if (req.method !== "DELETE" && req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -39,7 +39,7 @@ export default async function handler(req: any, res: any) {
   if (!cronSecret || cronSecret.length < 32) {
     // Log server-side but return the same generic 403 as an auth failure
     // so misconfiguration is not distinguishable from a wrong token.
-    console.error("[cleanup] CRON_SECRET is not set or too short -- endpoint disabled");
+    console.error("[cleanup] CRON_SECRET is not set or too short - endpoint disabled");
     return res.status(403).json({ error: "Forbidden" });
   }
 
@@ -48,7 +48,7 @@ export default async function handler(req: any, res: any) {
 
   // S-02: Use timingSafeEqual instead of !== to prevent timing side-channel attacks.
   // timingSafeEqual throws if the two buffers have different byte lengths, so the
-  // length check must come first -- a mismatched length is itself an auth failure.
+  // length check must come first - a mismatched length is itself an auth failure.
   const a = Buffer.from(token || '', 'utf8');
   const b = Buffer.from(cronSecret || '', 'utf8');
   

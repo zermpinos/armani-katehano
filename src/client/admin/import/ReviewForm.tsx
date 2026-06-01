@@ -47,7 +47,7 @@ export function ReviewForm({
 
       {warnings.length > 0 && (
         <div className="py-[10px] px-[14px] rounded-lg bg-[#8b1a1a18] border border-[#8b1a1a40] text-xs text-ak-red-text">
-          <div className="font-black mb-1">⚠ Warnings -- review before saving:</div>
+          <div className="font-black mb-1">⚠ Warnings - review before saving:</div>
           {warnings.map((w, i) => <div key={i}>• {w}</div>)}
         </div>
       )}
@@ -84,18 +84,18 @@ export function ReviewForm({
           <div className="flex gap-[10px]">
             <div className="flex-1 py-[10px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 text-center">
               <div className="text-[9px] font-black tracking-[0.12em] text-ak-text-dim mb-[4px]">OFF RTG</div>
-              <div className="text-[18px] font-black text-ak-text">{offRating ?? "--"}</div>
+              <div className="text-[18px] font-black text-ak-text">{offRating ?? "-"}</div>
             </div>
             <div className="flex-1 py-[10px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 text-center">
               <div className="text-[9px] font-black tracking-[0.12em] text-ak-text-dim mb-[4px]">DEF RTG</div>
-              <div className="text-[18px] font-black text-ak-text">{defRating ?? "--"}</div>
+              <div className="text-[18px] font-black text-ak-text">{defRating ?? "-"}</div>
             </div>
           </div>
         </div>
       )}
 
       <div>
-        <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Box score -- green rows played</div>
+        <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Box score - green rows played</div>
         <BoxScoreTable players={players} rows={draft.boxScore} onUpdate={updBox} highlights={highlights} />
       </div>
 

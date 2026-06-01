@@ -2,7 +2,7 @@
 /**
  * Concurrency tests for atomicRecordAndCheck.
  *
- * These tests require a real PostgreSQL connection -- they CANNOT run with a
+ * These tests require a real PostgreSQL connection - they CANNOT run with a
  * mocked Prisma client, because they test that pg_advisory_xact_lock actually
  * serialises concurrent requests at the DB level.
  *
@@ -22,7 +22,7 @@ afterEach(async () => {
   await clearAttempts(TEST_IP);
 });
 
-describe.skip("atomicRecordAndCheck -- concurrent requests (requires real PostgreSQL)", () => {
+describe.skip("atomicRecordAndCheck - concurrent requests (requires real PostgreSQL)", () => {
   it("serialises writes: exactly N rows inserted, calls beyond MAX return locked=true", async () => {
     const MAX = 5;
     const TOTAL = 10;
@@ -54,7 +54,7 @@ describe.skip("atomicRecordAndCheck -- concurrent requests (requires real Postgr
     ]);
     const elapsed = Date.now() - start;
 
-    // Both should complete quickly -- serial execution would take ~2× as long.
+    // Both should complete quickly - serial execution would take ~2× as long.
     // 500 ms is a very generous ceiling for two non-blocking transactions.
     expect(elapsed).toBeLessThan(500);
 

@@ -139,7 +139,7 @@ export default function ImportPage({ validSlug, showFallback, noPasskeys }: { va
         <div className="mb-6">
           <div className="text-[20px] font-black text-ak-text mb-1">Import game</div>
           <div className="text-[13px] text-ak-text-dim leading-[1.5]">
-            Paste the game URL from basketcity.sportstats.gr -- the server fetches and parses it automatically.
+            Paste the game URL from basketcity.sportstats.gr - the server fetches and parses it automatically.
           </div>
         </div>
 

@@ -111,7 +111,7 @@ describe("GET /api/games/[id]", () => {
     const req = mockReq({ query: { id: VALID_CUID } });
     const res = mockRes();
     await handler(req, res);
-    // Mock db client is empty object -- if handler calls loginAttempt.count/create it throws
+    // Mock db client is empty object - if handler calls loginAttempt.count/create it throws
     expect(res.statusCode).toBe(200);
   });
 });

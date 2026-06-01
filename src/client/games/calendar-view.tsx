@@ -21,7 +21,7 @@ export function CalendarView({ games, upcomingGames }: any) {
     const todayKey = new Date().toISOString().slice(0, 7);
     return months.find(k => k >= todayKey) || months[months.length - 1] || "";
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally run once -- avoids resetting when filters change
+  }, []); // intentionally run once - avoids resetting when filters change
 
   const [activeKey, setActiveKey] = useState(initialKey);
 

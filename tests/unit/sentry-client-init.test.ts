@@ -10,7 +10,7 @@ import { resolve } from "node:path";
 // still gets bundled if present, causing a *second* Sentry.init() call. That
 // double-init bloats the framework chunk (BrowserTracing + Replay are bundled
 // twice) and the SDK warns at runtime about it. The first "fix" landed the
-// safe values in sentry.client.config.js -- the dead file -- which is why perf
+// safe values in sentry.client.config.js - the dead file - which is why perf
 // did not actually recover.
 const ROOT = resolve(__dirname, "..", "..");
 
@@ -71,7 +71,7 @@ describe("sentry client init", () => {
   });
 
   // Sentry's default integrations bundle BrowserTracing, Replay,
-  // BrowserSession, BrowserApiErrors, etc. -- tens of KiB of code that runs
+  // BrowserSession, BrowserApiErrors, etc. - tens of KiB of code that runs
   // even when tracesSampleRate / replaysSessionSampleRate are 0. Disabling
   // the defaults and re-adding only globalHandlers (uncaught-exception
   // capture is the whole point of Sentry on the client) keeps error

@@ -28,7 +28,7 @@ function akTeamPlayers(data: any): any[] {
   return team.players;
 }
 
-// ─── Pre-fetch all URLs once -- sequentially to avoid rate-limiting ────────────
+// ─── Pre-fetch all URLs once - sequentially to avoid rate-limiting ────────────
 
 const scraped: Record<string, any> = {};
 const fetchFailed = new Set<string>();
@@ -42,7 +42,7 @@ beforeAll(async () => {
     }
   }
   if (fetchFailed.size) {
-    console.warn(`[live-verify] ${fetchFailed.size} URL(s) unreachable -- those tests will be skipped`);
+    console.warn(`[live-verify] ${fetchFailed.size} URL(s) unreachable - those tests will be skipped`);
   }
 }, 180_000);
 

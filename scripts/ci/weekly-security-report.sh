@@ -66,15 +66,15 @@ POSTCSS_STATUS=$(node -e "
 ")
 
 if [ "$VULN_COUNT" = "0" ]; then
-  TITLE="[Security Audit] $DATE -- clean"
+  TITLE="[Security Audit] $DATE - clean"
 else
-  TITLE="[Security Audit] $DATE -- $VULN_COUNT vulnerabilities"
+  TITLE="[Security Audit] $DATE - $VULN_COUNT vulnerabilities"
 fi
 
 cat > /tmp/issue-body.md << ISSUEEOF
 ## Summary
 
-$([ "$VULN_COUNT" = "0" ] && echo "**clean** -- \`npm audit\` found no vulnerabilities." || echo "**$VULN_COUNT vulnerabilities found.**")
+$([ "$VULN_COUNT" = "0" ] && echo "**clean** - \`npm audit\` found no vulnerabilities." || echo "**$VULN_COUNT vulnerabilities found.**")
 
 ## Vulnerabilities
 
@@ -82,7 +82,7 @@ $VULN_DETAIL
 
 ## Override staleness
 
-These overrides exist in \`package.json\` to patch transitive vulnerabilities while upstream catches up. Remove them once they show "can be removed" -- they become harmless no-ops otherwise, but trimming them keeps the config clean.
+These overrides exist in \`package.json\` to patch transitive vulnerabilities while upstream catches up. Remove them once they show "can be removed" - they become harmless no-ops otherwise, but trimming them keeps the config clean.
 
 | Override | Upstream status | Action |
 |---|---|---|
@@ -91,7 +91,7 @@ These overrides exist in \`package.json\` to patch transitive vulnerabilities wh
 $([ "$POSTCSS_STATUS" = "can be removed" ] && echo "> **postcss override can now be removed from \`package.json\`.**")
 
 ---
-*Weekly audit -- Node $(node --version) · npm $(npm --version)*
+*Weekly audit - Node $(node --version) · npm $(npm --version)*
 ISSUEEOF
 
 gh issue create \

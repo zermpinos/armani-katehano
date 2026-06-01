@@ -43,7 +43,7 @@ beforeEach(() => {
 });
 
 describe("POST /api/auth (login)", () => {
-  it("returns 403 when CSRF check fails (strict mode -- no Origin/Referer)", async () => {
+  it("returns 403 when CSRF check fails (strict mode - no Origin/Referer)", async () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com" },
@@ -243,7 +243,7 @@ describe("POST /api/auth (login)", () => {
     expect(verifyCredentials).toHaveBeenCalledOnce();
   });
 
-  it("returns 429 when IP lockout is triggered on credential failure -- emits login_locked audit event", async () => {
+  it("returns 429 when IP lockout is triggered on credential failure - emits login_locked audit event", async () => {
     verifyCredentials.mockResolvedValue(false);
     atomicRecordAndCheck.mockImplementation(async (key: string) =>
       key.startsWith("account_")
@@ -262,7 +262,7 @@ describe("POST /api/auth (login)", () => {
     expect(auditLog).toHaveBeenCalledWith("login_locked", expect.objectContaining({ ip: expect.any(String) }));
   });
 
-  it("returns 429 when account lockout is triggered on credential failure -- emits login_account_locked audit event", async () => {
+  it("returns 429 when account lockout is triggered on credential failure - emits login_account_locked audit event", async () => {
     verifyCredentials.mockResolvedValue(false);
     atomicRecordAndCheck.mockImplementation(async (key: string) =>
       key.startsWith("account_")

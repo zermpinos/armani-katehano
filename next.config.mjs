@@ -51,7 +51,7 @@ const nextConfig = {
   // Strip Next.js's hardcoded `require("next/dist/build/polyfills/polyfill-module")`
   // from the client bundle. The module ships ~14 KiB of conditional polyfills
   // for browsers below the production browserslist target (Chrome >=96,
-  // Firefox >=94, Safari >=15.4, Edge >=96) -- every method is natively
+  // Firefox >=94, Safari >=15.4, Edge >=96) - every method is natively
   // supported there, so the bytes are dead code on every page load.
   //
   // Turbopack (Next 16's default build bundler) ignores resolveAlias for the

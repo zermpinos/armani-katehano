@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: "0 9 * * 1" # Monday 09:00 UTC -- matches deps-audit cadence
+    - cron: "0 9 * * 1" # Monday 09:00 UTC - matches deps-audit cadence
 
 permissions:
   contents: read

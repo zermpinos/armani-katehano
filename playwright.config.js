@@ -28,7 +28,7 @@ export default defineConfig({
     baseURL: BASE_URL,
     trace:   "on-first-retry",
     // Neon DB cold-starts can take ~10 s; give pages 30 s to fully render.
-    // actionTimeout is left at the Playwright default (30 s) -- no override.
+    // actionTimeout is left at the Playwright default (30 s) - no override.
     navigationTimeout: 30_000,
     // Bypass Vercel Deployment Protection when running against a preview URL.
     // The secret is set in Vercel project settings -> "Protection Bypass for
@@ -44,7 +44,7 @@ export default defineConfig({
   ],
 
   // Auto-start the dev server only for local runs.
-  // When targeting a remote URL the server is already up -- skip webServer.
+  // When targeting a remote URL the server is already up - skip webServer.
   webServer: isRemote ? undefined : {
     command:             "npm run dev",
     port:                3000,

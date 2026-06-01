@@ -37,7 +37,7 @@ export function SeasonHistoryTable({ player, activeSeason }: any) {
                   <td className="py-[6px] px-[10px] text-center font-black text-ak-red-text">{ss.ppg}</td>
                   <td className="py-[6px] px-[10px] text-center text-ak-text">{ss.rpg}</td>
                   <td className="py-[6px] px-[10px] text-center text-ak-text">{ss.apg}</td>
-                  <td className="py-[6px] px-[10px] text-center text-ak-text">{ss.fgPct > 0 ? `${ss.fgPct}%` : "--"}</td>
+                  <td className="py-[6px] px-[10px] text-center text-ak-text">{ss.fgPct > 0 ? `${ss.fgPct}%` : "-"}</td>
                   <td className="py-[6px] px-[10px] text-center font-black text-ak-gold">{ss.eff}</td>
                 </tr>
             ))}

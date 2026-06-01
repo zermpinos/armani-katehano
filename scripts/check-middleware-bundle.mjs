@@ -6,7 +6,7 @@
  * keep these out, but if Next.js, Webpack, or a refactor ever bypasses
  * those, this script fails the build with a clear diff.
  *
- * Run after `next build` -- wired in via .github/workflows/ci.yml.
+ * Run after `next build` - wired in via .github/workflows/ci.yml.
  */
 /* eslint-disable security/detect-non-literal-fs-filename, security/detect-non-literal-regexp --
  * fs reads only walk .next/server/ build output (no user input);
@@ -15,7 +15,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 // Modules that the Edge runtime does NOT implement. Edge does provide
-// limited shims for buffer / crypto / stream / util -- those are NOT in
+// limited shims for buffer / crypto / stream / util - those are NOT in
 // this list. If you see one of these in middleware, the worker will
 // throw on first request.
 const FORBIDDEN_MODULES = [
@@ -57,10 +57,10 @@ function walk(dir) {
 function isMiddlewareBundle(path) {
   const lower = path.toLowerCase();
   if (!lower.endsWith(".js")) return false;
-  // .next/server/edge/**       -- Turbopack/Webpack edge-runtime chunks
-  // .next/server/middleware/** -- middleware-specific output
-  // .next/server/edge-functions/**, edge-runtime/** -- older Next layouts
-  // *middleware*.js anywhere   -- entry bundles (e.g. .next/server/middleware.js)
+  // .next/server/edge/**       - Turbopack/Webpack edge-runtime chunks
+  // .next/server/middleware/** - middleware-specific output
+  // .next/server/edge-functions/**, edge-runtime/** - older Next layouts
+  // *middleware*.js anywhere   - entry bundles (e.g. .next/server/middleware.js)
   return /[\\/]edge[\\/]/.test(lower)
       || /[\\/]middleware[\\/]/.test(lower)
       || /[\\/]edge-functions[\\/]/.test(lower)
@@ -71,7 +71,7 @@ function isMiddlewareBundle(path) {
 const bundles = walk(BUILD_DIR).filter(isMiddlewareBundle);
 
 if (bundles.length === 0) {
-  console.error(`✗ no middleware bundle found under ${BUILD_DIR}/ -- did \`next build\` run?`);
+  console.error(`✗ no middleware bundle found under ${BUILD_DIR}/ - did \`next build\` run?`);
   process.exit(1);
 }
 
@@ -94,13 +94,13 @@ for (const file of bundles) {
 }
 
 if (violations.length === 0) {
-  console.log(`✓ middleware bundle clean -- scanned ${bundles.length} file(s), no forbidden Node built-ins`);
+  console.log(`✓ middleware bundle clean - scanned ${bundles.length} file(s), no forbidden Node built-ins`);
   process.exit(0);
 }
 
 console.error("✗ middleware bundle pulls in forbidden Node built-ins:");
 for (const v of violations) {
-  console.error(`    ${v.file} -- "${v.module}" (${v.count} occurrence${v.count > 1 ? "s" : ""})`);
+  console.error(`    ${v.file} - "${v.module}" (${v.count} occurrence${v.count > 1 ? "s" : ""})`);
 }
 console.error("");
 console.error("  This means a Node-only module reached the Edge bundle.");

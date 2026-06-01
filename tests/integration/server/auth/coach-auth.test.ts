@@ -3,9 +3,9 @@
  * tests/api.coach.auth.test.ts
  * Integration tests for pages/api/coach/auth.ts
  *
- * Mocks: loginAttempts (DB-backed lockout), coachAuth (partial -- keep HMAC
+ * Mocks: loginAttempts (DB-backed lockout), coachAuth (partial - keep HMAC
  *   helpers real, override verifyCoachPassword + getCoachSessionVersion),
- *   security (partial -- keep all real, override verifyCaptcha).
+ *   security (partial - keep all real, override verifyCaptcha).
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
@@ -249,7 +249,7 @@ describe("POST /api/coach/auth (login)", () => {
     expect(verifyCoachPassword).toHaveBeenCalledOnce();
   });
 
-  it("returns 429 when IP lockout is triggered -- emits coach_login_locked audit event", async () => {
+  it("returns 429 when IP lockout is triggered - emits coach_login_locked audit event", async () => {
     verifyCoachPassword.mockResolvedValue(false);
     atomicRecordAndCheck.mockImplementation(async (key: string) =>
       key.startsWith("account_")
@@ -268,7 +268,7 @@ describe("POST /api/coach/auth (login)", () => {
     expect(auditLog).toHaveBeenCalledWith("coach_login_locked", expect.objectContaining({ ip: expect.any(String) }));
   });
 
-  it("returns 429 when account lockout is triggered -- emits coach_login_account_locked audit event", async () => {
+  it("returns 429 when account lockout is triggered - emits coach_login_account_locked audit event", async () => {
     verifyCoachPassword.mockResolvedValue(false);
     atomicRecordAndCheck.mockImplementation(async (key: string) =>
       key.startsWith("account_")
