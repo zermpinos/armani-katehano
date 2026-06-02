@@ -344,8 +344,8 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | `COACH_SESSION_SECRET`            | Coach auth             | HMAC key for the coach session cookie                      |
 | `BREVO_SMTP_USER`                 | Email                  | Brevo SMTP login (email address)                           |
 | `BREVO_SMTP_PASS`                 | Email                  | Brevo SMTP password / API key                              |
-| `TURNSTILE_SECRET_KEY`            | Subscribe form         | Cloudflare Turnstile server-side verification              |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`  | Subscribe form         | Cloudflare Turnstile client-side site key                  |
+| `TURNSTILE_SECRET_KEY`            | Admin / coach login    | Cloudflare Turnstile server-side verification (shown after 3 failed login attempts) |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`  | Admin / coach login    | Cloudflare Turnstile client-side site key                  |
 | `BROADCAST_LINK_SECRET`           | Broadcast              | HMAC key for one-click broadcast tokens (generate with `openssl rand -hex 32`) |
 | `BROADCAST_RECENCY_DAYS`          | Broadcast              | Integer (default `7`); max age in days for a game to qualify for a broadcast link, and the token TTL |
 | `CRON_SECRET`                     | Cron                   | Bearer token gating `/api/cron/*` endpoints                |
