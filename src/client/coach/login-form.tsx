@@ -1,20 +1,38 @@
 import { useState } from "react";
 import { TurnstileWidget } from "./turnstile";
 
+const CAPTCHA_KEY = "ak.coach.requiresCaptcha";
+
+// LoginForm only mounts after useCoachAuth resolves its session check on the
+// client, so reading sessionStorage in the lazy initializer is safe (no SSR pass
+// of this component, hence no hydration mismatch).
+function readPersistedCaptchaFlag(): boolean {
+  if (typeof window === "undefined") return false;
+  try { return sessionStorage.getItem(CAPTCHA_KEY) === "1"; }
+  catch { return false; }
+}
+
 export function LoginForm({ onLogin, error }: { onLogin: (pw: string, captchaToken?: string | null) => Promise<{ failed: boolean; requiresCaptcha?: boolean } | void>; error: string | null }) {
   const [password,     setPassword]     = useState("");
   const [loading,      setLoading]      = useState(false);
   const [failCount,    setFailCount]    = useState(0);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [serverRequiresCaptcha, setServerRequiresCaptcha] = useState(readPersistedCaptchaFlag);
 
-  const needsCaptcha = failCount >= 3;
+  const needsCaptcha = failCount >= 3 || serverRequiresCaptcha;
 
   const submit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
     const result = await onLogin(password, captchaToken);
     if (result?.failed) setFailCount(c => c + 1);
-    if (result?.requiresCaptcha) setCaptchaToken(null);
+    if (result?.requiresCaptcha) {
+      setServerRequiresCaptcha(true);
+      setCaptchaToken(null);
+      try { sessionStorage.setItem(CAPTCHA_KEY, "1"); } catch { /* ignore */ }
+    } else if (result && !result.failed) {
+      try { sessionStorage.removeItem(CAPTCHA_KEY); } catch { /* ignore */ }
+    }
     setLoading(false);
   };
 
