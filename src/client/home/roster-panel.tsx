@@ -52,7 +52,7 @@ function Avatar({ p }: { p: PlayerSlot }) {
 
 function PlayerRow({ p, dim, withAvatar }: { p: PlayerSlot; dim?: boolean; withAvatar: boolean }) {
   const nameBase = `flex-1 text-[13px] truncate transition-colors duration-150 hover:text-ak-red-text no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ak-red rounded-sm`;
-  const nameDimCls = dim ? "text-ak-text-sub font-normal" : "text-ak-text font-bold";
+  const nameDimCls = dim ? "text-ak-text-sub font-medium" : "text-ak-text font-bold";
   return (
     <div className={`flex items-center gap-2 py-1 border-b border-ak-border last:border-b-0 ${dim ? "opacity-70" : ""}`}>
       <span className={`text-[11px] font-black min-w-[28px] [font-variant-numeric:tabular-nums] ${dim ? "text-ak-text-dim" : "text-ak-red-text"}`}>
