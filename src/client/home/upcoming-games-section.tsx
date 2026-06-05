@@ -98,13 +98,24 @@ export function UpcomingGamesSection({ upcomingGames, openRosterId, onToggleRost
             <>
               <button
                 onClick={() => onToggleRoster(featured.id)}
+                aria-expanded={openRosterId === featured.id}
+                aria-controls={`featured-roster-${featured.id}`}
                 className="bg-transparent border-0 text-[11px] font-bold text-ak-text-dim cursor-pointer tracking-[0.1em] uppercase py-0.5 px-0 flex items-center gap-1.5 hover:text-ak-text-sub transition-colors duration-150"
               >
                 {openRosterId === featured.id
                   ? "Hide Roster ↑"
                   : `View Roster (${featured.announcement.players.length} players) ->`}
               </button>
-              {openRosterId === featured.id && <RosterPanel announcement={featured.announcement} />}
+              {openRosterId === featured.id && (
+                <div
+                  id={`featured-roster-${featured.id}`}
+                  role="region"
+                  aria-label={`Announced roster for ${featured.opponent}`}
+                  data-testid="featured-roster-panel"
+                >
+                  <RosterPanel announcement={featured.announcement} variant="featured" />
+                </div>
+              )}
             </>
           ) : (
             <div className="text-[11px] text-ak-text-dim tracking-[0.04em]">Roster TBA</div>
