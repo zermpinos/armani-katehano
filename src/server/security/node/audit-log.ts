@@ -1,6 +1,5 @@
 import "@/server/_internal/node-only";
 import { createHash } from "node:crypto";
-import * as Sentry from "@sentry/nextjs";
 import prisma from "@/server/db/client";
 
 export const SECURITY_ALERT_EVENTS = new Set([
@@ -33,11 +32,11 @@ export function auditLog(event: string, data: Record<string, unknown> = {}) {
   }));
 
   if (SECURITY_ALERT_EVENTS.has(event)) {
-    Sentry.captureMessage(`[AUDIT] ${event}`, {
-      level: "warning",
-      tags:  { audit_event: event },
-      extra: sanitized,
-    });
+    console.warn(JSON.stringify({
+      type:  "[AUDIT_ALERT]",
+      event,
+      ...sanitized,
+    }));
   }
 
   prisma.auditLog.create({

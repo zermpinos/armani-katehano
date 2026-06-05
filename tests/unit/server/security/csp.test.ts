@@ -62,22 +62,18 @@ describe("buildCsp", () => {
     expect(styleSrc).not.toContain("'unsafe-inline'");
   });
 
-  it("allows Sentry CDN in script-src", () => {
-    const csp       = buildCsp(generateNonce());
-    const scriptSrc = csp.split(";").find(d => d.trim().startsWith("script-src"));
-    expect(scriptSrc).toContain("https://*.sentry-cdn.com");
+  it("does not allow any sentry host in script-src or connect-src", () => {
+    const csp        = buildCsp(generateNonce());
+    const scriptSrc  = csp.split(";").find(d => d.trim().startsWith("script-src"));
+    const connectSrc = csp.split(";").find(d => d.trim().startsWith("connect-src"));
+    expect(scriptSrc).not.toContain("sentry");
+    expect(connectSrc).not.toContain("sentry");
   });
 
   it("allows Cloudinary in img-src", () => {
     const csp    = buildCsp(generateNonce());
     const imgSrc = csp.split(";").find(d => d.trim().startsWith("img-src"));
     expect(imgSrc).toContain("https://res.cloudinary.com");
-  });
-
-  it("allows Sentry ingestion in connect-src", () => {
-    const csp        = buildCsp(generateNonce());
-    const connectSrc = csp.split(";").find(d => d.trim().startsWith("connect-src"));
-    expect(connectSrc).toContain("https://*.sentry.io");
   });
 
   it("allows vercel.live in script-src and connect-src on preview deployments", () => {
