@@ -35,6 +35,7 @@ async function handler(req: any, res: any) {
     }
 
     auditLog("season_created", { ip, seasonId: season.id, name });
+    await Promise.allSettled(["/leaderboard", "/players", "/games", "/team-stats"].map(p => res.revalidate?.(p)));
     return res.status(201).json({ ok: true, season });
   } catch (err) {
     auditLog("season_create_error", { ip, error: (err as any).message });

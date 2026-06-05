@@ -55,6 +55,9 @@ async function runNow(req: any, res: any, id: string) {
 
     const updated = await prisma.gameImportJob.findUniqueOrThrow({ where: { id } });
     auditLog("import_job_run_now", { ip, jobId: id, resultState: updated.state });
+    if (updated.state === "IMPORTED") {
+      await Promise.allSettled(["/", "/players", "/leaderboard", "/games", "/team-stats"].map(p => res.revalidate?.(p)));
+    }
     return res.status(200).json({ ok: true, job: toDto(updated) });
   } catch (err) {
     return handleError(res, err);
