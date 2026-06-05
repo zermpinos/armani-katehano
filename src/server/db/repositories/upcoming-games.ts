@@ -28,7 +28,7 @@ export async function getUpcomingGamesWithAnnouncements() {
       announcement: {
         include: {
           players: {
-            include: { player: { select: { id: true, name: true, number: true, position: true } } },
+            include: { player: { select: { id: true, name: true, number: true, position: true, photoUrl: true, slug: true } } },
             orderBy: { player: { number: "asc" } },
           },
         },
@@ -50,6 +50,8 @@ export async function getUpcomingGamesWithAnnouncements() {
         name:     sp.player.name,
         number:   sp.player.number,
         position: sp.player.position,
+        photoUrl: sp.player.photoUrl ?? null,
+        slug:     sp.player.slug,
         note:     sp.note ?? null,
       })),
     } : null,
