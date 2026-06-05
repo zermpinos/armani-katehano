@@ -1,19 +1,10 @@
 import "@/server/_internal/node-only";
 import { getVenueUrl } from "@/domain/shared/venues";
 import { buildGoogleCalendarUrl } from "@/domain/shared/calendar";
-import { esc, formatDateFull, formatDayTime, sanitize, type Game, type PlayerSlot } from "./shared";
-
-function isStarter(note: string | null | undefined): boolean {
-  if (!note) return false;
-  return /^start(er|ing)?$/i.test(note.trim());
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const a = (parts[0]?.[0] ?? "").toUpperCase();
-  const b = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "").toUpperCase() : "";
-  return esc(a + b);
-}
+import { esc, formatDateFull, formatDayTime, type Game, type PlayerSlot } from "./shared";
+import { isStarter } from "@/domain/roster";
+import { initials } from "@/domain/players/format";
+import { sanitize } from "@/domain/shared/sanitize";
 
 function renderPlayerRow(p: PlayerSlot, i: number): string {
   const bg        = i % 2 === 0 ? "#ffffff" : "#f9fafb";
@@ -24,7 +15,7 @@ function renderPlayerRow(p: PlayerSlot, i: number): string {
   const avatarInner = p.photoUrl
     ? `<img src="${esc(p.photoUrl)}" width="32" height="32" border="0"
                style="display:block;width:32px;height:32px;border-radius:50%;object-fit:cover;object-position:top center;" alt="${esc(p.name)}" />`
-    : `<table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td width="32" height="32" bgcolor="#111111" style="background-color:#111111;border-radius:50%;text-align:center;vertical-align:middle;font-size:11px;font-weight:700;color:#ffffff;letter-spacing:0.04em;width:32px;height:32px;">${initials(p.name)}</td></tr></table>`;
+    : `<table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td width="32" height="32" bgcolor="#111111" style="background-color:#111111;border-radius:50%;text-align:center;vertical-align:middle;font-size:11px;font-weight:700;color:#ffffff;letter-spacing:0.04em;width:32px;height:32px;">${esc(initials(p.name))}</td></tr></table>`;
   return `
       <tr style="background:${bg};">
         <td style="padding:10px 12px;width:40px;font-size:12px;font-weight:900;color:#c92a2a;font-variant-numeric:tabular-nums;vertical-align:middle;">#${p.number}</td>
