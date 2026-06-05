@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/strip-next-polyfills.mjs && node scripts/strip-sentry-tracing.mjs && prisma generate && next build",
+    "build": "node scripts/strip-next-polyfills.mjs && prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
@@ -35,7 +35,6 @@
     "@neondatabase/serverless": "^1.1.0",
     "@prisma/adapter-neon": "^7.8.0",
     "@prisma/client": "^7.8.0",
-    "@sentry/nextjs": "^10.55.0",
     "@simplewebauthn/browser": "13.3.0",
     "@simplewebauthn/server": "13.3.1",
     "@vercel/analytics": "^2.0.1",

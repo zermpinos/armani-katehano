@@ -50,7 +50,6 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
 
       # Audit backstop: verify the produced middleware bundle pulls in no
       # Node built-ins. ESLint zones + `server-only` markers should already

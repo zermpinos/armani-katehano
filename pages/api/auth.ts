@@ -10,7 +10,6 @@
  *       Generate: node -e "require('bcryptjs').hash('YOUR_PW',12).then(console.log)"
  */
 
-import * as Sentry from "@sentry/nextjs";
 import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount } from "@/server/auth";
 import { getSessionToken, verifyPayload, verifyCredentials, getAdminUser, verifyTotp, buildSessionCookie, clearSessionCookie, generateCsrfToken, buildCsrfCookie, clearCsrfCookie, csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha } from "@/server/auth";
 import { securityHeaders } from "@/server/security/edge";
@@ -67,7 +66,7 @@ export default async function handler(req: any, res: any) {
     const accountLocked = await isLockedOut(ACCOUNT_KEY, 25, 3600);
     if (accountLocked) {
       auditLog("login_account_locked", { ip, username });
-      Sentry.captureMessage("Admin account lockout triggered", { level: "warning", extra: { username } });
+      console.warn("Admin account lockout triggered", { username });
       return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
     }
 

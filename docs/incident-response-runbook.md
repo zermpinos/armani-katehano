@@ -29,8 +29,7 @@ Control: A.5.24 / CC7.3 - Incident Response Readiness
 
 ## 3. Detection Sources
 
-- **Sentry** - runtime exceptions and unhandled errors
-- **Vercel** - deployment failures, function timeouts
+- **Vercel logs** - runtime exceptions, function timeouts, deployment failures, and `[AUDIT_ALERT]` audit events
 - **Neon console** - DB connection spikes, query errors
 - **User reports** - via webmaster@armani-katehano.com
 
@@ -38,7 +37,7 @@ Control: A.5.24 / CC7.3 - Incident Response Readiness
 
 ## 4. Triage Steps
 
-1. **Confirm the incident** - reproduce or verify via Sentry / Vercel logs.
+1. **Confirm the incident** - reproduce or verify via Vercel logs.
 2. **Classify severity** (see matrix above).
 3. **Contain** - if P1/P2: consider taking the deployment offline or rolling back via Vercel dashboard.
 4. **Assess personal data impact** - does the incident involve any user PII (email addresses, stats linked to identifiable individuals)?
@@ -88,7 +87,7 @@ If full scope is unknown within 72h, notify with available information and suppl
 
 Schedule one tabletop per calendar year. Scenario suggestions:
 - Neon DB credentials leaked via a public commit
-- Sentry reveals a query returning another user's data
+- Vercel logs reveal a query returning another user's data
 - Vercel deployment exposes an old build with a known vulnerability
 
 Record the drill in the log below.

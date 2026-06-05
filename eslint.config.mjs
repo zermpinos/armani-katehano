@@ -100,7 +100,7 @@ const eslintConfig = [
             // Edge runtime boundary: proxy.ts and anything under
             // ./middleware/** runs on Vercel's Edge runtime, which has no
             // Node built-ins. Anything that touches Node primitives (dns,
-            // crypto, fs, prisma, sentry server) MUST stay in src/server/**
+            // crypto, fs, prisma) MUST stay in src/server/**
             // and out of the Edge bundle. Edge code may only import from
             // src/server/security/edge/** (CSP nonce, header builders) and
             // from pure domain code.
