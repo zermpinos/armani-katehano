@@ -28,7 +28,7 @@ export default function UnsubscribePage() {
     }
 
     // Strip token from URL before any network call so it never appears in
-    // browser history, Referer headers, or Sentry breadcrumbs.
+    // browser history or Referer headers.
     history.replaceState(null, "", "/unsubscribe");
 
     fetch("/api/subscribe", {

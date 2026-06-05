@@ -98,7 +98,6 @@ PostgreSQL via Prisma. Core entities: `Season`, `League`, `SeasonLeague`, `Playe
 **Integrations**
 - Nodemailer + Brevo SMTP (transactional email)
 - Cheerio + `pdf-parse` (box-score scraping)
-- Sentry (`@sentry/nextjs`) - server, edge, and client
 - Vercel Analytics & Speed Insights
 
 **Tooling**
@@ -116,7 +115,6 @@ PostgreSQL via Prisma. Core entities: `Season`, `League`, `SeasonLeague`, `Playe
 | **Vercel**              | Hosting, Edge middleware, cron, deployment               |
 | **Neon (PostgreSQL)**   | Primary database                                         |
 | **Brevo (SMTP/Nodemailer)** | Transactional email (subscribe confirm, roster, admin) |
-| **Sentry**              | Error tracking and performance monitoring                |
 | **Cloudflare Turnstile**| CAPTCHA on the public subscribe form                     |
 | **GitHub Actions**      | CI (lint, build, tests), nightly secret scans                                     |
 | **Box-score sources**   | League listing pages and per-game box-score URLs scraped via Cheerio / `pdf-parse` |
@@ -174,7 +172,7 @@ All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECR
 - Strict CSP with per-request nonce (Edge middleware).
 - HTTPS-only, `Strict-Transport-Security`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` lockdown.
 - SSRF allow-list for outbound fetches.
-- Audit log via Sentry capture for sensitive auth events.
+- Audit log via structured stdout (`[AUDIT]`) with `console.warn` alerts (`[AUDIT_ALERT]`) on high-signal events.
 - ESLint security plugins + `no-unsanitized` + `node:` protocol enforcement + Semgrep + Gitleaks workflows.
 
 ---
@@ -246,7 +244,6 @@ armani-katehano/
 ├── scripts/
 │   ├── check-middleware-bundle.mjs Post-build assertion: no Node built-ins in Edge bundle
 │   ├── strip-next-polyfills.mjs    Prebuild: stubs out Next.js polyfill-module for Turbopack
-│   ├── strip-sentry-tracing.mjs    Prebuild: replaces __SENTRY_TRACING__ -> false in SDK files
 │   ├── preview-roster-email.ts     Local preview for roster announcement template
 │   ├── send-courtesy-email.ts      One-time courtesy email to existing subscribers
 │   └── smoke-discover.ts           Smoke-test the discover-source-url matcher
@@ -260,8 +257,7 @@ armani-katehano/
 │   ├── architecture.md             Source of truth for layer + runtime rules
 │   ├── backup-recovery-runbook.md
 │   ├── incident-response-runbook.md
-│   ├── key-rotation-runbook.md
-│   └── monitoring-alerts-runbook.md
+│   └── key-rotation-runbook.md
 │
 ├── public/                         Static assets
 ├── styles/                         Global styles
@@ -273,10 +269,6 @@ armani-katehano/
 ├── playwright.config.js
 ├── prisma.config.ts
 ├── vercel.json                     Vercel cron schedule
-├── instrumentation.js              Sentry server init
-├── instrumentation-client.js       Sentry client init (sole client entry point)
-├── sentry.server.config.js
-├── sentry.edge.config.js
 ├── tsconfig.json
 ├── package.json
 └── SECURITY.md                     Vulnerability disclosure policy
@@ -359,10 +351,6 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 
 | Variable                                  | Purpose                                                         |
 |-------------------------------------------|-----------------------------------------------------------------|
-| `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`    | Sentry server / client DSNs; error reporting is disabled when unset |
-| `SENTRY_ORG`                              | Sentry organisation slug, used at build time for sourcemap upload |
-| `SENTRY_PROJECT`                          | Sentry project slug, used at build time for sourcemap upload    |
-| `SENTRY_AUTH_TOKEN`                       | Source-map upload during build                                  |
 | `SCRAPE_LISTING_URL_CUP`                  | Listing URL for the Cup scrape job; required only when the scrape feature is used |
 | `SCRAPE_LISTING_URL_MEN`                  | Listing URL for the Men's scrape job; required only when the scrape feature is used |
 | `E2E_ADMIN_PASSWORD`                      | Plain admin password used by Playwright global setup            |
@@ -405,7 +393,7 @@ These variables are set by the build/runtime environment automatically. Do not s
 | Script              | What it does                                                        |
 |---------------------|---------------------------------------------------------------------|
 | `dev`               | `next dev` - local dev server                                       |
-| `build`             | prebuild polyfill/Sentry stubs -> `prisma generate` -> `next build`   |
+| `build`             | prebuild polyfill stub -> `prisma generate` -> `next build`         |
 | `start`             | `next start` - serve the production build                           |
 | `lint`              | `eslint .` - flat-config lint over the whole repo                   |
 | `test`              | `vitest run` - unit + integration tests                             |
@@ -417,7 +405,6 @@ These variables are set by the build/runtime environment automatically. Do not s
 | File                            | Purpose                                                                |
 |---------------------------------|------------------------------------------------------------------------|
 | `strip-next-polyfills.mjs`      | Prebuild: stubs out Next.js polyfill-module so Turbopack doesn't bundle it |
-| `strip-sentry-tracing.mjs`      | Prebuild: replaces `__SENTRY_TRACING__` -> `false` in Sentry SDK files  |
 | `check-middleware-bundle.mjs`   | Post-build CI guard: greps `.next/server/middleware.js` for Node built-ins |
 | `preview-roster-email.ts`       | Renders the roster-announcement email template to disk for review       |
 | `send-courtesy-email.ts`        | One-time CLI dispatcher for the courtesy "What's new" email to existing subscribers |
@@ -454,7 +441,7 @@ The app is deployed to **Vercel**. Production data is in **Neon Postgres**.
 
 ### Vercel configuration
 
-- **Build command** - `npm run build` (runs prebuild polyfill/Sentry stubs, `prisma generate`, `next build`, and the post-build middleware-bundle guard).
+- **Build command** - `npm run build` (runs the prebuild polyfill stub, `prisma generate`, `next build`, and the post-build middleware-bundle guard).
 - **Node version** - pinned via `.nvmrc` (≥ 24.14).
 - **Crons** - declared in [`vercel.json`](vercel.json):
   - `0 3 * * *` -> `/api/cron/purge-subscribers`
@@ -474,7 +461,6 @@ Operational procedures live in `docs/`:
 - [`backup-recovery-runbook.md`](docs/backup-recovery-runbook.md)
 - [`incident-response-runbook.md`](docs/incident-response-runbook.md)
 - [`key-rotation-runbook.md`](docs/key-rotation-runbook.md)
-- [`monitoring-alerts-runbook.md`](docs/monitoring-alerts-runbook.md)
 
 ---
 

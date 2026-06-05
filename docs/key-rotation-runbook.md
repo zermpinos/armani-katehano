@@ -139,7 +139,7 @@ Emergency trigger matrix:
 | Unauthorized coach access | `COACH_PASSWORD`, `COACH_SESSION_SECRET` |
 | Email sending abuse | `BREVO_SMTP_PASS` |
 | Cron endpoint abuse | `CRON_SECRET` |
-| Broadcast-link brute-force (Sentry: `broadcast_invalid_token` spike) | `BROADCAST_LINK_SECRET` |
+| Broadcast-link brute-force (`[AUDIT_ALERT]` log: `broadcast_invalid_token` spike) | `BROADCAST_LINK_SECRET` |
 | Secret committed to git | All secrets - treat as fully compromised |
 
 ---

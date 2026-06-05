@@ -57,7 +57,7 @@ Security helpers are split by runtime:
 | `src/server/security/edge/csp.ts`     | Edge-safe - CSP nonce, CSP header builder |
 | `src/server/security/edge/headers.ts` | Edge-safe - pure header object |
 | `src/server/security/node/ssrf.ts`    | Node-only - uses `node:dns` |
-| `src/server/security/node/audit-log.ts` | Node-only - Sentry capture |
+| `src/server/security/node/audit-log.ts` | Node-only - structured stdout audit log |
 | `src/server/security/node/client-ip.ts` | Node-only - request-shape coupling |
 
 There is **no top-level barrel**. Importers must declare which zone
@@ -157,7 +157,7 @@ Wired into CI via the `build` job in `.github/workflows/ci.yml`.
 When you add a file under `src/server/**`:
 
 1. Decide if it can run on Edge. If yes (pure functions, no Node
-   built-ins, no Prisma, no Sentry server), put it under
+   built-ins, no Prisma), put it under
    `src/server/security/edge/**` or wherever the Edge code lives.
 2. Otherwise, put it under one of the Node-only directories above
    and start the file with `import "@/server/_internal/node-only";`.
@@ -167,6 +167,6 @@ When you add a file under `src/server/**`:
 When you add a file under `middleware/**`:
 
 1. It runs on Edge. Treat it like a browser bundle: no Node built-
-   ins, no Prisma, no `@sentry/nextjs` server side.
+   ins, no Prisma.
 2. You may import from `src/server/security/edge/**` and from
    `src/domain/**`. Anything else is a build error.
