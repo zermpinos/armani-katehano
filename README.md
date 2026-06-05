@@ -128,7 +128,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 ## 5. Features
 
 ### Public site
-- **Home** (`/`) - record, win %, MVP card, recent results, scoring-trend chart (configurable range), top scorers chart, upcoming games with roster reveal, efficiency leader, email subscribe form.
+- **Home** (`/`) - record, win %, MVP card, recent results, scoring-trend chart (configurable range), top scorers chart, upcoming games with featured roster panel (player avatars via Cloudinary, starter/bench split, coach callout), efficiency leader, email subscribe form.
 - **Players** (`/players`) - full roster with per-player season averages and totals; player cards link to individual stat pages (`/players/[slug]`).
 - **Games** (`/games`) - chronological game list; completed games link to box-score pages (`/games/[id]`) with playoff round badges (QF / SF / Final); upcoming games open a details modal.
 - **Leaderboard** (`/leaderboard`) - sortable, multi-stat leaderboard with season-phase filter (All Season / Regular Season / Playoffs).
@@ -207,8 +207,12 @@ armani-katehano/
 │   │   │   admin/, coach/
 │   ├── components/                 Shared UI primitives (Layout, StatTile, ErrorBoundary)
 │   ├── domain/                     Pure logic - no I/O, no React, no Prisma
-│   │   ├── games/score.ts, games/phase.ts, players/format.ts, players/positions.ts,
-│   │   │   stats/{aggregate,allTime,efficiency,fromLog}.ts, calendar/, shared/
+│   │   ├── roster.ts               isStarter helper
+│   │   ├── games/score.ts, games/phase.ts
+│   │   ├── players/format.ts (fmt, initials, slugify), players/positions.ts,
+│   │   │   stats/{aggregate,allTime,efficiency,fromLog}.ts, calendar/
+│   │   └── shared/                 calendar.ts, cloudinary.ts (cloudinaryThumb),
+│   │                               constants.ts, format.ts, sanitize.ts, venues.ts
 │   ├── features/                   Reserved for cross-cutting page features
 │   ├── schemas/                    Zod schemas (player, game, league, season,
 │   │                                roster-announcement, schedule, scrape, ...)
