@@ -20,7 +20,6 @@ vi.mock("@/server/auth", async (importOriginal) => {
   };
 });
 
-vi.mock("@sentry/nextjs", () => ({ captureMessage: vi.fn() }));
 vi.mock("@/server/security/node", () => ({
   auditLog:    vi.fn(),
   getClientIp: vi.fn().mockReturnValue("1.2.3.4"),

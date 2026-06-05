@@ -9,7 +9,6 @@
  * Brute-force lockout reuses the shared LoginAttempt table (5 attempts -> 15 min).
  */
 
-import * as Sentry from "@sentry/nextjs";
 import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount } from "@/server/auth";
 import { csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha, generateCsrfToken, buildCsrfCookie, clearCsrfCookie } from "@/server/auth";
 import { securityHeaders } from "@/server/security/edge";
@@ -81,7 +80,7 @@ export default async function handler(req: any, res: any) {
     const accountLocked = await isLockedOut(ACCOUNT_KEY, 25, 3600);
     if (accountLocked) {
       auditLog("coach_login_account_locked", { ip });
-      Sentry.captureMessage("Coach account lockout triggered", { level: "warning" });
+      console.warn("Coach account lockout triggered");
       return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
     }
 

@@ -10,8 +10,6 @@ npm-debug.log*
 
 /lib/generated
 
-# Sentry Config File
-.env.sentry-build-plugin
 *.save
 *.swp
 *.swo

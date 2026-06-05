@@ -2,19 +2,15 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createHash } from "node:crypto";
 
-const { mockPrisma, mockSentry } = vi.hoisted(() => ({
+const { mockPrisma } = vi.hoisted(() => ({
   mockPrisma: {
     auditLog: {
       create: vi.fn().mockResolvedValue(undefined),
     },
   },
-  mockSentry: {
-    captureMessage: vi.fn(),
-  },
 }));
 
 vi.mock("@/server/db/client",   () => ({ default: mockPrisma }));
-vi.mock("@sentry/nextjs",       () => mockSentry);
 vi.mock("@/server/_internal/node-only", () => ({}));
 
 import { auditLog } from "@/server/security/node/audit-log";
@@ -98,28 +94,32 @@ describe("DB write", () => {
   });
 });
 
-describe("Sentry integration", () => {
-  it("sends security alert events to Sentry with sanitized data", async () => {
+describe("audit alert sink", () => {
+  it("emits [AUDIT_ALERT] on console.warn for security events with sanitized data", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     auditLog("login_account_locked", { ip: "1.2.3.4" });
     await flushPromises();
 
-    expect(mockSentry.captureMessage).toHaveBeenCalledOnce();
-    const [, opts] = mockSentry.captureMessage.mock.calls[0];
-    expect(opts.extra.ip).toBe(sha256("1.2.3.4"));
+    expect(warnSpy).toHaveBeenCalledOnce();
+    const logged = JSON.parse(warnSpy.mock.calls[0][0]);
+    expect(logged.type).toBe("[AUDIT_ALERT]");
+    expect(logged.event).toBe("login_account_locked");
+    expect(logged.ip).toBe(sha256("1.2.3.4"));
   });
 
-  it("does not send non-security events to Sentry", async () => {
+  it("does not emit [AUDIT_ALERT] for non-security events", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     auditLog("roster_email_delivered", { emailHash: "abc" });
     await flushPromises();
 
-    expect(mockSentry.captureMessage).not.toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 });
 
 describe("SECURITY_ALERT_EVENTS", () => {
-  it("includes broadcast_invalid_token so brute-force attempts page Sentry", async () => {
+  it("includes broadcast_invalid_token so brute-force attempts surface on alert sink", async () => {
     const { SECURITY_ALERT_EVENTS } = await import("@/server/security/node/audit-log");
     expect(SECURITY_ALERT_EVENTS.has("broadcast_invalid_token")).toBe(true);
   });

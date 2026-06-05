@@ -4,7 +4,7 @@
  *
  * Primary regression target: M-5 - the token must be stripped from the URL via
  * history.replaceState() before the DELETE /api/subscribe fetch fires, so it
- * never lands in browser history, Referer headers, or Sentry breadcrumbs.
+ * never lands in browser history or Referer headers.
  */
 import { test, expect } from "@playwright/test";
 
