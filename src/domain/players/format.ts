@@ -13,6 +13,13 @@ export function fmt(name: string) {
   return parts[parts.length - 1] + " " + parts[0][0].toUpperCase() + ".";
 }
 
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const a = (parts[0]?.[0] ?? "").toUpperCase();
+  const b = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "").toUpperCase() : "";
+  return a + b;
+}
+
 export function slugify(str: string) {
   return str
     .toLowerCase()

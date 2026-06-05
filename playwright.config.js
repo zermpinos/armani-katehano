@@ -16,6 +16,7 @@ const isRemote  = !!process.env.PLAYWRIGHT_BASE_URL;
 export default defineConfig({
   testDir:         "./e2e",
   globalSetup:     "./e2e/global-setup.js",
+  globalTeardown:  "./e2e/global-teardown.js",
   fullyParallel:   true,
   forbidOnly:      !!process.env.CI,
   retries:         process.env.CI ? 2 : 0,
