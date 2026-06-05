@@ -100,6 +100,9 @@ export default async function handler(req: any, res: any) {
       ok: true,
       summary: summary as unknown as Record<string, unknown>,
     });
+    if (summary.imported > 0) {
+      await Promise.allSettled(["/", "/players", "/leaderboard", "/games", "/team-stats"].map(p => res.revalidate?.(p)));
+    }
     return res.status(200).json({ ok: true, ...summary });
   } catch (err) {
     console.error("[discover-and-import]", err);

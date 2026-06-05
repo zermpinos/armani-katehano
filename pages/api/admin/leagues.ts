@@ -43,6 +43,7 @@ async function handler(req: any, res: any) {
     }
 
     auditLog("league_created", { ip, leagueId: league.id, name });
+    await Promise.allSettled([res.revalidate?.("/games")]);
     return res.status(201).json({ ok: true, league });
   } catch (err) {
     auditLog("league_create_error", { ip, error: (err as any).message });

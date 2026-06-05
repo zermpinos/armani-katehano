@@ -55,6 +55,7 @@ async function createPlayer(req: any, res: any) {
       },
     });
     auditLog("player_created", { ip, playerId: player.id, name });
+    await Promise.allSettled(["/", "/players", "/leaderboard", "/team-stats"].map(p => res.revalidate?.(p)));
     return res.status(201).json({ ok: true, player });
   } catch (err) {
     auditLog("player_create_error", { ip, error: (err as any).message });
@@ -92,6 +93,7 @@ async function updatePlayer(req: any, res: any) {
       },
     });
     auditLog("player_updated", { ip, playerId, name });
+    await Promise.allSettled(["/", "/players", "/leaderboard", "/team-stats"].map(p => res.revalidate?.(p)));
     return res.status(200).json({ ok: true, player });
   } catch (err) {
     auditLog("player_update_error", { ip, error: (err as any).message });
