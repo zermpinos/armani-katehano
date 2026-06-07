@@ -8,8 +8,6 @@ import {
   buildText,
   buildImportSuccess,
   buildImportFailure,
-  buildImportAbandoned,
-  buildImportHeartbeat,
   buildGameImportedHtml,
   buildGameImportedText,
   buildConfirmationEmailHtml,
@@ -18,16 +16,14 @@ import {
   buildBroadcastHtml,
   buildBroadcastText,
   type SendRosterAnnouncementParams,
-  type HeartbeatPayload,
   type GameImportedGame,
   type TopPerformer,
   type GameEmailContext,
 } from "./templates";
 
 export type ImportNotificationPayload =
-  | { kind: "success";   opponent: string; location: string; scheduledFor: string; importedAt: Date; broadcastLink?: string }
-  | { kind: "failure";   opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null; matchReason?: string | null }
-  | { kind: "abandoned"; opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null; matchReason?: string | null };
+  | { kind: "success"; opponent: string; location: string; scheduledFor: string; importedAt: Date }
+  | { kind: "failure"; opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null; matchReason?: string | null };
 
 const FROM = "Armani Katehano <noreply@armani-katehano.com>";
 
@@ -275,36 +271,13 @@ export async function sendImportNotification(payload: ImportNotificationPayload)
   }
   const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
 
-  let result: { subject: string; html: string; text: string };
-  if (payload.kind === "success") {
-    result = buildImportSuccess(payload);
-  } else if (payload.kind === "failure") {
-    result = buildImportFailure(payload);
-  } else {
-    result = buildImportAbandoned(payload);
-  }
+  const result = payload.kind === "success" ? buildImportSuccess(payload) : buildImportFailure(payload);
 
   try {
     await transport.sendMail({ from: FROM, to, subject: result.subject, html: result.html, text: result.text });
     auditLog("import_notification_sent", { kind: payload.kind });
   } catch (err: any) {
     auditLog("import_notification_failed", { kind: payload.kind, error: err.message });
-  }
-}
-
-export async function sendImportHeartbeat(payload: HeartbeatPayload): Promise<void> {
-  const transport = createTransport();
-  if (!transport) {
-    console.warn("[email] BREVO_SMTP_USER/PASS not set - skipping heartbeat");
-    return;
-  }
-  const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
-  const { subject, html, text } = buildImportHeartbeat(payload);
-  try {
-    await transport.sendMail({ from: FROM, to, subject, html, text });
-    auditLog("import_heartbeat_sent", { runs: payload.runs.length, dropouts: payload.dropouts.length });
-  } catch (err: any) {
-    auditLog("import_heartbeat_failed", { error: err.message });
   }
 }
 

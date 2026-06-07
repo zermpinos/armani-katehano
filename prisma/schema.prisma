@@ -79,9 +79,9 @@ model Game {
   round          String           @default("regular")
   offRating      Float?
   defRating      Float?
+  broadcastedAt  DateTime?
   seasonLeague   SeasonLeague     @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
   playerStats    PlayerGameStat[]
-  importJob      GameImportJob?
 
   @@index([playedOn])
 }
@@ -192,11 +192,9 @@ model UpcomingGame {
   notes          String?
   seasonLeagueId String?
   sourceUrl      String?                 @unique(where: raw("(\"sourceUrl\" IS NOT NULL)"))
-  listingUrl     String?
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
   announcement   GameRosterAnnouncement?
-  importJob      GameImportJob?
 
   @@index([scheduledFor])
 }
@@ -282,48 +280,6 @@ model BroadcastLog {
   @@index([sentAt])
 }
 
-model OpponentAlias {
-  id          String   @id @default(cuid())
-  myName      String   @unique
-  listingName String
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-enum ImportJobState {
-  PENDING
-  IMPORTED
-  ERROR
-  ABANDONED
-}
-
-model GameImportJob {
-  id                    String         @id @default(cuid())
-  upcomingGameId        String         @unique
-  sourceUrl             String?
-  state                 ImportJobState @default(PENDING)
-  attempts              Int            @default(0)
-  lastAttemptAt         DateTime?
-  lockedAt              DateTime?
-  lockedBy              String?
-  importedGameId        String?        @unique
-  importedAt            DateTime?
-  lastError             String?
-  // Plain-text error digest only - HTML is stripped before storage. Purged after 7 days.
-  lastErrorHtml         String?        @db.VarChar(2000)
-  warningSentAt         DateTime?
-  successSentAt         DateTime?
-  failureSentAt         DateTime?
-  subscriberBroadcastAt DateTime?
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
-  upcomingGame          UpcomingGame   @relation(fields: [upcomingGameId], references: [id], onDelete: Cascade)
-  importedGame          Game?          @relation(fields: [importedGameId], references: [id], onDelete: SetNull)
-
-  @@index([state])
-}
-
 // username maps to ADMIN_USERS env var, not a DB table.
 // Renaming a username in env vars orphans its credentials - auth-verify
 // rejects them. Off-boarding runbook must explicitly delete rows for
@@ -331,7 +287,7 @@ model GameImportJob {
 model PasskeyCredential {
   id           String    @id @default(cuid())
   credentialId String    @unique
-  publicKey    Bytes               // COSE key, CBOR-encoded; maps to BYTEA
+  publicKey    Bytes // COSE key, CBOR-encoded; maps to BYTEA
   counter      Int       @default(0)
   transports   String[]
   username     String
@@ -345,8 +301,8 @@ model PasskeyCredential {
 // Rows are single-use: deleted atomically before verification.
 // Cleanup cron purges rows where expiresAt < now().
 model WebAuthnChallenge {
-  id        String   @id  // NOT @default(cuid()) - set explicitly in handler
-  challenge String        // base64url-encoded random bytes
+  id        String   @id // NOT @default(cuid()) - set explicitly in handler
+  challenge String // base64url-encoded random bytes
   expiresAt DateTime
 
   @@index([expiresAt])

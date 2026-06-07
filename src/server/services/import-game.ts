@@ -196,29 +196,10 @@ export async function importGame(
           data: validatedBoxScore.map((row: any) => ({ ...row, gameId: g.id })),
         });
       }
-
-      if (sourceUrl) {
-        const upcoming = await tx.upcomingGame.findUnique({ where: { sourceUrl } });
-        if (upcoming) {
-          await tx.gameImportJob.updateMany({
-            where: { upcomingGameId: upcoming.id, state: "PENDING" },
-            data:  { state: "IMPORTED", importedGameId: g.id, importedAt: new Date() },
-          });
-        }
-      }
     });
   } catch (err) {
     if ((err as any).message === "DUPLICATE") {
       const dupGameId = (err as any).gameId as string;
-      if (sourceUrl) {
-        const upcoming = await prisma.upcomingGame.findUnique({ where: { sourceUrl } });
-        if (upcoming) {
-          await prisma.gameImportJob.updateMany({
-            where: { upcomingGameId: upcoming.id, state: "PENDING" },
-            data:  { state: "IMPORTED", importedGameId: dupGameId, importedAt: new Date() },
-          });
-        }
-      }
       throw Object.assign(new ImportError("This game has already been imported.", 409), { gameId: dupGameId });
     }
     throw err;
