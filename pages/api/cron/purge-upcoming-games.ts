@@ -2,15 +2,13 @@
  * pages/api/cron/purge-upcoming-games.ts
  *
  * GET - daily cron. Deletes UpcomingGame rows whose scheduledFor is in the
- * past AND whose linked GameImportJob has reached a terminal state
- * (IMPORTED or ABANDONED).
+ * past AND whose sourceUrl is set (meaning the admin has manually imported
+ * the game result and the upcoming entry is no longer needed).
  *
- * Stuck rows (PENDING / ERROR / no job) are left in place so an admin can
- * still inspect or retry them via /api/admin/schedule.
+ * Past rows with no sourceUrl are left in place so the admin can still see
+ * which games were not imported.
  *
- * Cascade: deleting an UpcomingGame cascades to its GameImportJob and
- * GameRosterAnnouncement; the imported Game itself is preserved
- * (importedGameId uses onDelete: SetNull).
+ * Cascade: deleting an UpcomingGame cascades to GameRosterAnnouncement.
  */
 
 import { timingSafeEqual } from "node:crypto";
@@ -39,7 +37,7 @@ export default async function handler(req: any, res: any) {
     const { count } = await prisma.upcomingGame.deleteMany({
       where: {
         scheduledFor: { lt: new Date() },
-        importJob:    { is: { state: { in: ["IMPORTED", "ABANDONED"] } } },
+        sourceUrl:    { not: null },
       },
     });
 

@@ -1,6 +1,5 @@
 import "@/server/_internal/node-only";
 import prisma from "@/server/db/client";
-import { verify } from "@/server/utils/broadcast-token";
 import { auditLog } from "@/server/security/node/audit-log";
 import { sendGameImportedBroadcast } from "@/server/integrations/email/client";
 import type {
@@ -11,11 +10,6 @@ import type {
   SeasonRecord,
   NextGameInfo,
 } from "@/server/integrations/email/templates";
-
-export type VerifyAndPreviewResult =
-  | { ok: false; reason: "malformed" | "bad_signature" | "expired" | "not_found" | "not_imported" | "no_imported_game" }
-  | { ok: true;  state: "already_broadcast"; broadcastedAt: Date; game: GameImportedGame }
-  | { ok: true;  state: "confirmable"; game: GameImportedGame; topPerformers: TopPerformer[]; ctx: GameEmailContext; recipientCount: number };
 
 function toGameImported(g: {
   id: string; opponent: string; location: string | null; teamScore: number;
@@ -119,49 +113,11 @@ export async function fetchBroadcastEnrichment(
   return { topPerformers, ctx };
 }
 
-export async function verifyAndPreview(token: string): Promise<VerifyAndPreviewResult> {
-  const v = verify(token);
-  if (!v.ok) return { ok: false, reason: v.reason };
-
-  const job = await prisma.gameImportJob.findUnique({
-    where:   { id: v.jobId },
-    include: {
-      importedGame: {
-        include: { seasonLeague: { include: { league: { select: { name: true } } } } },
-      },
-    },
-  });
-  if (!job) return { ok: false, reason: "not_found" };
-  if (job.state !== "IMPORTED") return { ok: false, reason: "not_imported" };
-  if (!job.importedGame || !job.importedGameId) return { ok: false, reason: "no_imported_game" };
-
-  const game = toGameImported(job.importedGame);
-
-  if (job.subscriberBroadcastAt) {
-    return { ok: true, state: "already_broadcast", broadcastedAt: job.subscriberBroadcastAt, game };
-  }
-
-  const [recipientCount, { topPerformers, ctx }] = await Promise.all([
-    prisma.subscriber.count({ where: { confirmedAt: { not: null } } }),
-    fetchBroadcastEnrichment(job.importedGameId, job.importedGame.seasonLeagueId, job.importedGame.playedOn),
-  ]);
-
-  auditLog("broadcast_link_viewed", { jobId: job.id });
-  return { ok: true, state: "confirmable", game, topPerformers, ctx, recipientCount };
-}
-
 function brevoConfigured(): boolean {
   return Boolean(process.env.BREVO_SMTP_USER && process.env.BREVO_SMTP_PASS);
 }
 
-export type ClaimReason =
-  | "malformed"
-  | "bad_signature"
-  | "expired"
-  | "not_found"
-  | "not_imported"
-  | "no_imported_game"
-  | "transport_unavailable";
+export type ClaimReason = "not_found" | "transport_unavailable";
 
 export type ClaimResult =
   | { ok: false; reason: ClaimReason }
@@ -175,11 +131,9 @@ export async function claimAndBroadcastByGameId(gameId: string): Promise<ClaimRe
   });
   if (!game) return { ok: false, reason: "not_found" };
 
-  const job = await prisma.gameImportJob.findFirst({ where: { importedGameId: gameId } });
-
-  if (job?.subscriberBroadcastAt) {
-    auditLog("broadcast_already_viewed", { gameId, jobId: job.id });
-    return { ok: true, state: "already_broadcast", broadcastedAt: job.subscriberBroadcastAt };
+  if (game.broadcastedAt) {
+    auditLog("broadcast_already_viewed", { gameId });
+    return { ok: true, state: "already_broadcast", broadcastedAt: game.broadcastedAt };
   }
 
   if (!brevoConfigured()) {
@@ -187,20 +141,16 @@ export async function claimAndBroadcastByGameId(gameId: string): Promise<ClaimRe
     return { ok: false, reason: "transport_unavailable" };
   }
 
-  if (job) {
-    const rowsAffected: number = await prisma.$executeRaw`
-      UPDATE "GameImportJob"
-      SET "subscriberBroadcastAt" = NOW()
-      WHERE id = ${job.id} AND "subscriberBroadcastAt" IS NULL
-    `;
-    if (rowsAffected === 0) {
-      const fresh = await prisma.gameImportJob.findUnique({
-        where:  { id: job.id },
-        select: { subscriberBroadcastAt: true },
-      });
-      auditLog("broadcast_already_claimed", { gameId, jobId: job.id });
-      return { ok: true, state: "already_broadcast", broadcastedAt: fresh?.subscriberBroadcastAt ?? new Date() };
-    }
+  // Atomic claim: only the first caller to set broadcastedAt wins.
+  const rowsAffected: number = await prisma.$executeRaw`
+    UPDATE "Game"
+    SET "broadcastedAt" = NOW()
+    WHERE id = ${gameId} AND "broadcastedAt" IS NULL
+  `;
+  if (rowsAffected === 0) {
+    const fresh = await prisma.game.findUnique({ where: { id: gameId }, select: { broadcastedAt: true } });
+    auditLog("broadcast_already_claimed", { gameId });
+    return { ok: true, state: "already_broadcast", broadcastedAt: fresh?.broadcastedAt ?? new Date() };
   }
 
   const [subscribers, { topPerformers, ctx }] = await Promise.all([
@@ -214,57 +164,6 @@ export async function claimAndBroadcastByGameId(gameId: string): Promise<ClaimRe
   const gameImported = toGameImported(game);
   await sendGameImportedBroadcast({ game: gameImported, topPerformers, ctx, subscribers });
 
-  auditLog("broadcast_sent_by_game_id", { gameId, jobId: job?.id ?? null, recipientCount: subscribers.length });
-  return { ok: true, state: "broadcasted", recipientCount: subscribers.length };
-}
-
-export async function claimAndBroadcast({ token, ip: _ip }: { token: string; ip: string }): Promise<ClaimResult> {
-  const v = verify(token);
-  if (!v.ok) {
-    auditLog("broadcast_invalid_token", { reason: v.reason });
-    return { ok: false, reason: v.reason };
-  }
-
-  const job = await prisma.gameImportJob.findUnique({
-    where:   { id: v.jobId },
-    include: {
-      importedGame: {
-        include: { seasonLeague: { include: { league: { select: { name: true } } } } },
-      },
-    },
-  });
-  if (!job)                                         return { ok: false, reason: "not_found" };
-  if (job.state !== "IMPORTED")                     return { ok: false, reason: "not_imported" };
-  if (!job.importedGame || !job.importedGameId)     return { ok: false, reason: "no_imported_game" };
-  if (job.subscriberBroadcastAt) {
-    auditLog("broadcast_already_viewed", { jobId: job.id });
-    return { ok: true, state: "already_broadcast", broadcastedAt: job.subscriberBroadcastAt };
-  }
-
-  if (!brevoConfigured()) {
-    auditLog("broadcast_transport_unavailable", { jobId: job.id });
-    return { ok: false, reason: "transport_unavailable" };
-  }
-
-  const rowsAffected: number = await prisma.$executeRaw`
-    UPDATE "GameImportJob"
-    SET "subscriberBroadcastAt" = NOW()
-    WHERE id = ${job.id} AND "subscriberBroadcastAt" IS NULL
-  `;
-  if (rowsAffected === 0) {
-    const fresh = await prisma.gameImportJob.findUnique({ where: { id: job.id }, select: { subscriberBroadcastAt: true } });
-    auditLog("broadcast_already_claimed", { jobId: job.id });
-    return { ok: true, state: "already_broadcast", broadcastedAt: fresh?.subscriberBroadcastAt ?? new Date() };
-  }
-
-  const [subscribers, { topPerformers, ctx }] = await Promise.all([
-    prisma.subscriber.findMany({ where: { confirmedAt: { not: null } }, select: { id: true, email: true, token: true } }),
-    fetchBroadcastEnrichment(job.importedGameId, job.importedGame.seasonLeagueId, job.importedGame.playedOn),
-  ]);
-
-  const game = toGameImported(job.importedGame);
-
-  await sendGameImportedBroadcast({ game, topPerformers, ctx, subscribers });
-
+  auditLog("broadcast_sent_by_game_id", { gameId, recipientCount: subscribers.length });
   return { ok: true, state: "broadcasted", recipientCount: subscribers.length };
 }
