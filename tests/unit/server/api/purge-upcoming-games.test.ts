@@ -75,7 +75,7 @@ describe("purge-upcoming-games auth", () => {
 });
 
 describe("purge-upcoming-games behavior", () => {
-  it("deletes UpcomingGame rows with scheduledFor < now and finalized importJob", async () => {
+  it("deletes UpcomingGame rows with scheduledFor < now and sourceUrl set", async () => {
     mockPrisma.upcomingGame.deleteMany.mockResolvedValue({ count: 3 });
     const res = mockRes();
     await handler(mockReq(), res);
@@ -84,7 +84,7 @@ describe("purge-upcoming-games behavior", () => {
     const args = mockPrisma.upcomingGame.deleteMany.mock.calls[0][0];
     expect(args.where).toEqual({
       scheduledFor: { lt: NOW },
-      importJob: { is: { state: { in: ["IMPORTED", "ABANDONED"] } } },
+      sourceUrl:    { not: null },
     });
     expect(res.body).toEqual({ ok: true, deleted: 3 });
   });

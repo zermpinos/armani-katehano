@@ -12,21 +12,6 @@ import { fmtDate } from "@/domain/shared/format";
 
 type ScheduleDraft = Partial<ScheduledGame> & { date?: string; time?: string };
 
-type ImportJob = {
-  id: string;
-  upcomingGameId: string;
-  state: "PENDING" | "IMPORTED" | "ERROR" | "ABANDONED";
-  attempts: number;
-  lastError: string | null;
-};
-
-const JOB_BADGE: Record<string, string> = {
-  PENDING:   "text-ak-gold",
-  IMPORTED:  "text-ak-green",
-  ERROR:     "text-ak-red-text",
-  ABANDONED: "text-ak-text-dim",
-};
-
 export default function SchedulePage({ validSlug, showFallback, noPasskeys }: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
   const router = useRouter();
   const slug = router.query.slug || validSlug;
@@ -34,7 +19,6 @@ export default function SchedulePage({ validSlug, showFallback, noPasskeys }: { 
   const { authed, loading: checking, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
 
   const [schedule,  setSchedule]  = useState<ScheduledGame[]>([]);
-  const [jobMap,    setJobMap]    = useState<Map<string, ImportJob>>(new Map());
   const [loading,   setLoading]   = useState(false);
   const [toast,     setToast]     = useState<{ msg: string; type?: string } | null>(null);
 
@@ -47,19 +31,10 @@ export default function SchedulePage({ validSlug, showFallback, noPasskeys }: { 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [schedRes, jobsRes] = await Promise.all([
-        fetch("/api/admin/schedule"),
-        fetch("/api/admin/import-jobs"),
-      ]);
+      const schedRes = await fetch("/api/admin/schedule");
       if (schedRes.ok) {
         const d = await schedRes.json();
         setSchedule(d.schedule ?? []);
-      }
-      if (jobsRes.ok) {
-        const d = await jobsRes.json();
-        const m = new Map<string, ImportJob>();
-        for (const j of (d.jobs ?? [])) m.set(j.upcomingGameId, j);
-        setJobMap(m);
       }
     } finally { setLoading(false); }
   };
@@ -75,7 +50,7 @@ export default function SchedulePage({ validSlug, showFallback, noPasskeys }: { 
     const year = now.getFullYear();
     const dateStr = `${day}-${month}-${year}`;
     const timeStr = "20:00";
-    setDraft({ opponent: "", date: dateStr, time: timeStr, location: "home", competition: "", notes: "", sourceUrl: "", listingUrl: "" });
+    setDraft({ opponent: "", date: dateStr, time: timeStr, location: "home", competition: "", notes: "", sourceUrl: "" });
     setEditId("new");
   };
 
@@ -116,7 +91,6 @@ export default function SchedulePage({ validSlug, showFallback, noPasskeys }: { 
         competition:  draft.competition || null,
         notes:        draft.notes || null,
         sourceUrl:    draft.sourceUrl || null,
-        listingUrl:   draft.listingUrl || null,
       }),
     });
     if (!res.ok) { const d = await res.json(); showToast(d.error, "error"); return; }
@@ -139,13 +113,6 @@ export default function SchedulePage({ validSlug, showFallback, noPasskeys }: { 
 
   const fmtTime = (isoStr: string) => isoStr.slice(11, 16);
 
-  const doJobAction = async (jobId: string, action: "run-now" | "abandon" | "reset") => {
-    const res = await apiFetch(`/api/admin/import-jobs/${jobId}/${action}`, { method: "POST" });
-    if (!res.ok) { const d = await res.json(); showToast(d.error ?? "Error", "error"); return; }
-    showToast(action === "run-now" ? "Import triggered" : action === "abandon" ? "Abandoned" : "Reset");
-    loadData();
-  };
-
   const gameForm = (
     <div className={[
       "rounded-xl border p-4 bg-ak-base mt-2",
@@ -166,14 +133,6 @@ export default function SchedulePage({ validSlug, showFallback, noPasskeys }: { 
       </div>
       <div className="mb-3">
         <F label="SOURCE URL" value={draft.sourceUrl ?? ""} onChange={v => updGame("sourceUrl", v)} placeholder="https://basketcity.sportstats.gr/.../gamedetails/..." />
-      </div>
-      <div className="mb-3">
-        <F label="LISTING URL" value={draft.listingUrl ?? ""} onChange={v => updGame("listingUrl", v)} placeholder="https://basketcity.sportstats.gr/<league>/teamdetails/id/<UUID>" />
-        <div className="text-[10px] text-ak-text-dim mt-1 leading-relaxed">
-          Team fixtures page. Used to auto-discover the source URL ~1h after tip-off.<br />
-          Men: <code>/men/teamdetails/id/&lt;uuid&gt;</code><br />
-          Cup: <code>/master-winter-cup/teamdetails/id/&lt;uuid&gt;</code>
-        </div>
       </div>
       <div className="mb-3">
         <F label="NOTES" value={draft.notes ?? ""} onChange={v => updGame("notes", v)} placeholder="Optional notes" />
@@ -223,33 +182,6 @@ export default function SchedulePage({ validSlug, showFallback, noPasskeys }: { 
                       {g.sourceUrl && <span className="ml-1 text-ak-green font-bold" title={g.sourceUrl}>· URL ✓</span>}
                     </div>
                   </div>
-                  {(() => {
-                    const job = jobMap.get(g.id);
-                    if (!job) return null;
-                    const tooltip =
-                      job.state === "IMPORTED"  ? "If you deleted the imported game, click RESET to re-import." :
-                      job.state === "ABANDONED" ? "Discovery gave up after 4 attempts. RESET to try again."     :
-                      job.state === "ERROR"     ? "Last scrape attempt errored. RESET to try again."            :
-                      job.lastError ?? undefined;
-                    return (
-                      <div className="flex items-center gap-[6px] flex-wrap">
-                        <span className={`text-[10px] font-black tracking-[0.12em] ${JOB_BADGE[job.state] ?? "text-ak-text-dim"}`}
-                              title={tooltip}>
-                          {job.state}
-                          {job.attempts > 0 && <> ×{job.attempts}</>}
-                        </span>
-                        {job.state !== "IMPORTED" && (
-                          <Btn size="sm" variant="green" onClick={() => doJobAction(job.id, "run-now")}>RUN</Btn>
-                        )}
-                        {(job.state === "PENDING" || job.state === "ERROR") && (
-                          <Btn size="sm" variant="ghost" onClick={() => doJobAction(job.id, "abandon")}>ABANDON</Btn>
-                        )}
-                        {(job.state === "ERROR" || job.state === "ABANDONED" || job.state === "IMPORTED") && (
-                          <Btn size="sm" variant="ghost" onClick={() => doJobAction(job.id, "reset")}>RESET</Btn>
-                        )}
-                      </div>
-                    );
-                  })()}
                   <div className="flex gap-[6px]">
                     <Btn size="sm" variant="ghost" onClick={() => startEdit(g)}>EDIT</Btn>
                     <Btn size="sm" variant="danger" onClick={() => setConfirm(g)}>DEL</Btn>

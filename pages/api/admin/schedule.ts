@@ -30,7 +30,6 @@ async function listSchedule(_req: any, res: any) {
         competition:  g.competition ?? null,
         notes:        g.notes ?? null,
         sourceUrl:    g.sourceUrl ?? null,
-        listingUrl:   g.listingUrl ?? null,
       })),
     });
   } catch (err) {
@@ -42,7 +41,7 @@ async function createSchedule(req: any, res: any) {
   const ip   = getClientIp(req);
   const data = parseBody(ScheduleWriteSchema, req.body, res);
   if (!data) return;
-  const { opponent, scheduledFor, location, competition, notes, sourceUrl, listingUrl } = data;
+  const { opponent, scheduledFor, location, competition, notes, sourceUrl } = data;
 
   try {
     const game = await prisma.upcomingGame.create({
@@ -53,14 +52,8 @@ async function createSchedule(req: any, res: any) {
         competition: competition ?? null,
         notes: notes ?? null,
         sourceUrl: sourceUrl ?? null,
-        listingUrl: listingUrl ?? null,
       },
     });
-    if (sourceUrl) {
-      await prisma.gameImportJob.create({
-        data: { upcomingGameId: game.id, sourceUrl, state: "PENDING" },
-      });
-    }
     auditLog("schedule_created", { ip, gameId: game.id, opponent });
     await Promise.allSettled(ISR_PATHS.map(p => res.revalidate?.(p)));
     return res.status(201).json({ ok: true, id: game.id });
@@ -74,7 +67,7 @@ async function updateSchedule(req: any, res: any) {
   const ip   = getClientIp(req);
   const data = parseBody(ScheduleUpdateSchema, req.body, res);
   if (!data) return;
-  const { id, opponent, scheduledFor, location, competition, notes, sourceUrl, listingUrl } = data;
+  const { id, opponent, scheduledFor, location, competition, notes, sourceUrl } = data;
 
   try {
     await prisma.upcomingGame.update({
@@ -86,30 +79,8 @@ async function updateSchedule(req: any, res: any) {
         competition: competition ?? null,
         notes: notes ?? null,
         sourceUrl: sourceUrl ?? null,
-        listingUrl: listingUrl ?? null,
       },
     });
-
-    const newUrl = sourceUrl ?? null;
-    const existingJob = await prisma.gameImportJob.findUnique({ where: { upcomingGameId: id } });
-
-    if (!newUrl) {
-      // sourceUrl cleared - abandon any pending job
-      if (existingJob?.state === "PENDING") {
-        await prisma.gameImportJob.update({
-          where: { upcomingGameId: id },
-          data:  { state: "ABANDONED" },
-        });
-      }
-    } else if (!existingJob) {
-      await prisma.gameImportJob.create({ data: { upcomingGameId: id, sourceUrl: newUrl, state: "PENDING" } });
-    } else if (existingJob.sourceUrl !== newUrl && existingJob.state !== "IMPORTED") {
-      // sourceUrl changed and job hasn't already completed - reset it
-      await prisma.gameImportJob.update({
-        where: { upcomingGameId: id },
-        data:  { sourceUrl: newUrl, state: "PENDING", attempts: 0, lockedAt: null, lockedBy: null, lastError: null, lastErrorHtml: null },
-      });
-    }
 
     auditLog("schedule_updated", { ip, gameId: id, opponent });
     await Promise.allSettled(ISR_PATHS.map(p => res.revalidate?.(p)));
