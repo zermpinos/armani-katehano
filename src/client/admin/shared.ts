@@ -5,6 +5,8 @@ export interface Player {
   position: string;
   height?: string;
   weight?: string;
+  photoUrl?: string | null;
+  isActive?: boolean;
 }
 
 export interface BoxScoreRow {
