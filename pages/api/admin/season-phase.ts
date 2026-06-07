@@ -2,6 +2,7 @@ import { requireAuth } from "@/server/auth";
 import { prodError }   from "@/domain/shared/format";
 import prisma from "@/server/db/client";
 import { z } from "zod";
+import { invalidateForSeasonPhaseChange } from "@/server/services/cache-invalidation";
 
 const VALID_PHASES = ["regular", "quarterfinal", "semifinal", "final"] as const;
 const PhaseSchema = z.enum(VALID_PHASES);
@@ -30,7 +31,7 @@ async function handler(req: any, res: any) {
         update: { value: phase },
         create: { key: "seasonPhase", value: phase },
       });
-      await Promise.allSettled([res.revalidate?.("/"), res.revalidate?.("/games")]);
+      await invalidateForSeasonPhaseChange({ revalidate: (p) => res.revalidate?.(p) });
       return res.status(200).json({ seasonPhase: phase });
     } catch (err) {
       console.error("[admin/season-phase:POST]", err);

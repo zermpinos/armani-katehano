@@ -13,6 +13,7 @@ import { PlayerWriteSchema, PlayerUpdateSchema } from "@/schemas/player";
 import { handleError }               from "@/server/http/handle-error";
 import { parseBody }                 from "@/server/http/parse-body";
 import { methodRouter }              from "@/server/http/method-router";
+import { invalidateForPlayerMutation } from "@/server/services/cache-invalidation";
 
 async function listPlayers(_req: any, res: any) {
   try {
@@ -55,7 +56,10 @@ async function createPlayer(req: any, res: any) {
       },
     });
     auditLog("player_created", { ip, playerId: player.id, name });
-    await Promise.allSettled(["/", "/players", "/leaderboard", "/team-stats"].map(p => res.revalidate?.(p)));
+    await invalidateForPlayerMutation({
+      revalidate: (p) => res.revalidate?.(p),
+      playerSlug: player.slug,
+    });
     return res.status(201).json({ ok: true, player });
   } catch (err) {
     auditLog("player_create_error", { ip, error: (err as any).message });
@@ -79,6 +83,10 @@ async function updatePlayer(req: any, res: any) {
       });
     }
 
+    const previous = await prisma.player.findUniqueOrThrow({
+      where:  { id: playerId },
+      select: { slug: true },
+    });
     const player = await prisma.player.update({
       where: { id: playerId },
       data: {
@@ -93,7 +101,11 @@ async function updatePlayer(req: any, res: any) {
       },
     });
     auditLog("player_updated", { ip, playerId, name });
-    await Promise.allSettled(["/", "/players", "/leaderboard", "/team-stats"].map(p => res.revalidate?.(p)));
+    await invalidateForPlayerMutation({
+      revalidate:   (p) => res.revalidate?.(p),
+      playerSlug:   player.slug,
+      previousSlug: previous.slug,
+    });
     return res.status(200).json({ ok: true, player });
   } catch (err) {
     auditLog("player_update_error", { ip, error: (err as any).message });

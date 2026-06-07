@@ -16,13 +16,21 @@ import { requireAuth } from "@/server/auth";
 import { auditLog, getClientIp } from "@/server/security/node";
 import prisma from "@/server/db/client";
 import { recalcAggregates } from "@/server/services/stats-recalc";
+import { invalidateForGameMutation } from "@/server/services/cache-invalidation";
 import { MAX_GAMES_PER_PAGE } from "@/domain/shared/constants";
 import { calcEff } from "@/domain/stats";
 import { handleError } from "@/server/http/handle-error";
 import { parseBody } from "@/server/http/parse-body";
 import { methodRouter } from "@/server/http/method-router";
 
-const ISR_PATHS = ["/", "/players", "/leaderboard", "/games", "/team-stats"];
+async function slugsForPlayerIds(playerIds: readonly string[]): Promise<string[]> {
+  if (!playerIds.length) return [];
+  const rows = await prisma.player.findMany({
+    where:  { id: { in: [...new Set(playerIds)] } },
+    select: { slug: true },
+  });
+  return rows.map(r => r.slug);
+}
 
 function toDbRow(r: any, gameId: string) {
   return {
@@ -191,7 +199,11 @@ async function createGame(req: any, res: any) {
       console.error("[games/create] recalcAggregates failed after commit:", err);
     }
     auditLog("game_created", { ip, gameId: game.id, opponent });
-    await Promise.allSettled(ISR_PATHS.map((p) => res.revalidate?.(p)));
+    await invalidateForGameMutation({
+      revalidate: (p) => res.revalidate?.(p),
+      gameId: game.id,
+      affectedPlayerSlugs: await slugsForPlayerIds(boxScore?.map(r => r.playerId) ?? []),
+    });
     return res.status(201).json({ ok: true, gameId: game.id });
   } catch (err) {
     auditLog("game_create_error", { ip, error: (err as any).message });
@@ -229,6 +241,7 @@ async function updateGame(req: any, res: any) {
   }
 
   let existingSeasonLeagueId: string;
+  let previousPlayerIds: string[] = [];
   let leagueChanged = false;
 
   try {
@@ -240,6 +253,9 @@ async function updateGame(req: any, res: any) {
       existingSeasonLeagueId = existing.seasonLeagueId;
       leagueChanged =
         newLeagueId !== undefined && newLeagueId !== existing.seasonLeagueId;
+      previousPlayerIds = (
+        await tx.playerGameStat.findMany({ where: { gameId }, select: { playerId: true } })
+      ).map(r => r.playerId);
       await tx.game.update({
         where: { id: gameId },
         data: {
@@ -273,7 +289,12 @@ async function updateGame(req: any, res: any) {
       console.error("[games/update] recalcAggregates failed after commit:", err);
     }
     auditLog("game_updated", { ip, gameId, opponent });
-    await Promise.allSettled(ISR_PATHS.map((p) => res.revalidate?.(p)));
+    const newPlayerIds = boxScore?.map(r => r.playerId) ?? [];
+    await invalidateForGameMutation({
+      revalidate: (p) => res.revalidate?.(p),
+      gameId,
+      affectedPlayerSlugs: await slugsForPlayerIds([...previousPlayerIds, ...newPlayerIds]),
+    });
     return res.status(200).json({ ok: true });
   } catch (err) {
     auditLog("game_update_error", { ip, error: (err as any).message });
@@ -288,6 +309,7 @@ async function deleteGame(req: any, res: any) {
   const { gameId } = data;
 
   let deletedSeasonLeagueId: string;
+  let deletedPlayerIds: string[] = [];
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -296,6 +318,9 @@ async function deleteGame(req: any, res: any) {
         select: { seasonLeagueId: true },
       });
       deletedSeasonLeagueId = existing.seasonLeagueId;
+      deletedPlayerIds = (
+        await tx.playerGameStat.findMany({ where: { gameId }, select: { playerId: true } })
+      ).map(r => r.playerId);
       await tx.game.delete({ where: { id: gameId } });
     });
     try {
@@ -305,7 +330,11 @@ async function deleteGame(req: any, res: any) {
       console.error("[games/delete] recalcAggregates failed after commit:", err);
     }
     auditLog("game_deleted", { ip, gameId });
-    await Promise.allSettled(ISR_PATHS.map((p) => res.revalidate?.(p)));
+    await invalidateForGameMutation({
+      revalidate: (p) => res.revalidate?.(p),
+      gameId,
+      affectedPlayerSlugs: await slugsForPlayerIds(deletedPlayerIds),
+    });
     return res.status(200).json({ ok: true });
   } catch (err) {
     auditLog("game_delete_error", { ip, error: (err as any).message });
