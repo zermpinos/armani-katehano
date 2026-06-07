@@ -12,6 +12,7 @@
 import { requireAuth }       from '@/server/auth';
 import prisma                from "@/server/db/client";
 import { recalcAggregates }  from "@/server/services/stats-recalc";
+import { invalidateForRecalc } from "@/server/services/cache-invalidation";
 
 async function handler(req: any, res: any) {
   if (req.method !== "POST") {
@@ -40,8 +41,7 @@ async function handler(req: any, res: any) {
 
     const failed = results.filter(r => r.status === "error");
 
-    const pagesToRevalidate = ["/", "/players", "/leaderboard", "/games", "/team-stats"];
-    await Promise.allSettled(pagesToRevalidate.map(p => res.revalidate(p)));
+    await invalidateForRecalc({ revalidate: (p) => res.revalidate(p) });
 
     return res.status(200).json({
       recalculated: results.length,

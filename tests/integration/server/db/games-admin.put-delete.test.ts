@@ -14,7 +14,9 @@ const { mockPrisma } = vi.hoisted(() => {
       delete:            vi.fn(),
       findUniqueOrThrow: vi.fn(),
     },
-    playerGameStat: { createMany: vi.fn(), deleteMany: vi.fn() },
+    playerGameStat: { createMany: vi.fn(), deleteMany: vi.fn(), findMany: vi.fn() },
+    player:         { findMany: vi.fn() },
+    upcomingGame:   { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     auditLog: { create: vi.fn().mockResolvedValue(undefined) },
     $transaction: vi.fn(),
   };

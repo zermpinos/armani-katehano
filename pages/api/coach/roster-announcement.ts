@@ -15,6 +15,7 @@ import prisma from "@/server/db/client";
 import { prodError } from "@/domain/shared/format";
 import { sendRosterAnnouncement } from "@/server/integrations/email/client";
 import { CoachAnnouncementWriteSchema, AnnouncementDeleteSchema } from "@/schemas/roster-announcement";
+import { invalidateForRosterAnnouncement } from "@/server/services/cache-invalidation";
 
 const BLAST_LIMIT  = 10;   // max email blasts per IP per hour
 const BLAST_WINDOW = 3600; // 1 hour in seconds
@@ -133,7 +134,7 @@ async function handler(req: any, res: any) {
 
       auditLog("coach_roster_published", { ip, upcomingGameId, playerCount: players.length });
 
-      await Promise.allSettled([res.revalidate?.("/")]);
+      await invalidateForRosterAnnouncement({ revalidate: (p) => res.revalidate?.(p) });
 
       // Send emails to all confirmed subscribers - awaited so Vercel doesn't kill the function early.
       try {
@@ -181,7 +182,7 @@ async function handler(req: any, res: any) {
     try {
       await prisma.gameRosterAnnouncement.delete({ where: { upcomingGameId } });
       auditLog("coach_roster_deleted", { ip, upcomingGameId });
-      await Promise.allSettled([res.revalidate?.("/")]);
+      await invalidateForRosterAnnouncement({ revalidate: (p) => res.revalidate?.(p) });
       return res.status(200).json({ ok: true });
     } catch (err) {
       auditLog("coach_roster_delete_error", { ip, error: (err as any).message });

@@ -1,6 +1,7 @@
 import "@/server/_internal/node-only";
 import prisma               from "@/server/db/client";
 import { recalcAggregates } from "@/server/services/stats-recalc";
+import { invalidateForGameMutation } from "@/server/services/cache-invalidation";
 import { BoxScoreRowSchema } from "@/schemas/box-score";
 import {
   parseGreekDate,
@@ -9,8 +10,6 @@ import {
 } from "@/domain/calendar/greek-date";
 
 const AK_IDENTIFIERS = ["ARMANI", "KATEHANO"];
-
-const ISR_PATHS = ["/", "/players", "/leaderboard", "/games", "/team-stats"];
 
 export class ImportError extends Error {
   constructor(
@@ -215,9 +214,18 @@ export async function importGame(
     console.error("[importGame] recalcAggregates failed after commit - aggregates may be stale:", err);
   }
 
-  if (opts?.revalidate) {
-    await Promise.allSettled(ISR_PATHS.map(p => opts.revalidate!(p)));
-  }
+  const affectedPlayerSlugs = affectedPlayerIds.length
+    ? (await prisma.player.findMany({
+        where: { id: { in: affectedPlayerIds } },
+        select: { slug: true },
+      })).map(p => p.slug)
+    : [];
+
+  await invalidateForGameMutation({
+    revalidate: opts?.revalidate,
+    gameId: gameId!,
+    affectedPlayerSlugs,
+  });
 
   return {
     gameId: gameId!,

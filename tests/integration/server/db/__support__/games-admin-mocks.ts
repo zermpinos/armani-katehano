@@ -30,7 +30,8 @@ export const VALID_GAME_BODY = {
   playedOn:       "2025-03-15",
 };
 
-export const ISR_PATHS = ["/", "/players", "/leaderboard", "/games", "/team-stats"];
+export const LISTING_PATHS = ["/", "/players", "/leaderboard", "/games", "/team-stats"];
+export const detailGamePath = (gameId: string) => `/games/${gameId}`;
 
 export function mockRes() {
   const res = {
@@ -78,6 +79,8 @@ export function setupMocks(mockPrisma: any, recalcAggregates: any) {
   mockPrisma.game.findUniqueOrThrow.mockResolvedValue({ seasonLeagueId: VALID_SEASON_LEAGUE });
   mockPrisma.playerGameStat.createMany.mockResolvedValue({ count: 0 });
   mockPrisma.playerGameStat.deleteMany.mockResolvedValue({ count: 0 });
+  if (mockPrisma.playerGameStat.findMany) mockPrisma.playerGameStat.findMany.mockResolvedValue([]);
+  if (mockPrisma.player?.findMany)        mockPrisma.player.findMany.mockResolvedValue([]);
   mockPrisma.$transaction.mockImplementation(async (fn: any) => fn(mockPrisma));
   recalcAggregates.mockResolvedValue(undefined);
 }
