@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { useRouter }  from "next/router";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { useRouter } from "next/router";
 import {
   AdminLayout, Spinner, PasskeyLoginForm, Btn, useAdminAuth, apiFetch,
 } from "@/client/admin";
@@ -23,9 +23,12 @@ type ResolveResult = {
 
 type PageMode = "compose" | "confirming" | "sending";
 
-export default function BroadcastPage({ validSlug, showFallback, noPasskeys, maskedAdminEmail }: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean; maskedAdminEmail: string }) {
+export default function BroadcastPage({
+  validSlug, showFallback, noPasskeys, maskedAdminEmail,
+}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean; maskedAdminEmail: string }) {
   const router = useRouter();
-  const slug   = router.query.slug || validSlug;
+  const slug = router.query.slug || validSlug;
+
   const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
 
   const [subject,        setSubject]        = useState("");
@@ -38,8 +41,8 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
   const [sendingPreview, setSendingPreview] = useState(false);
 
   const [resolveResult,   setResolveResult]   = useState<ResolveResult | null>(null);
-  const [resolvedForText, setResolvedForText]  = useState<string | null>(null);
-  const [resolving,       setResolving]        = useState(false);
+  const [resolvedForText, setResolvedForText] = useState<string | null>(null);
+  const [resolving,       setResolving]       = useState(false);
 
   const [mode,           setMode]           = useState<PageMode>("compose");
   const [confirmedCount, setConfirmedCount] = useState<number | null>(null);
@@ -91,21 +94,9 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
     });
   }, [renderedHtml]);
 
-  const handleSubjectChange = (v: string) => {
-    setSubject(v);
-    setPreviewKey(null);
-    setRenderedHtml(null);
-  };
-  const handleBodyChange = (v: string) => {
-    setBody(v);
-    setPreviewKey(null);
-    setRenderedHtml(null);
-  };
-  const handleSpecificEmailsChange = (v: string) => {
-    setSpecificEmails(v);
-    setResolveResult(null);
-    setResolvedForText(null);
-  };
+  const handleSubjectChange = (v: string) => { setSubject(v); setPreviewKey(null); setRenderedHtml(null); };
+  const handleBodyChange    = (v: string) => { setBody(v);    setPreviewKey(null); setRenderedHtml(null); };
+  const handleSpecificEmailsChange = (v: string) => { setSpecificEmails(v); setResolveResult(null); setResolvedForText(null); };
 
   const handleSendPreview = async () => {
     setSendingPreview(true);
@@ -119,7 +110,7 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
       if (!res.ok) throw new Error(data.error ?? "Preview failed");
       setRenderedHtml(data.renderedHtml);
       setPreviewKey(currentKey);
-      setToast({ msg: `Preview sent to ${maskedAdminEmail}` });
+      setToast({ msg: `Preview sent to ${maskedAdminEmail}`, type: "success" });
     } catch (err: any) {
       setToast({ msg: err.message ?? "Preview failed", type: "error" });
     } finally {
@@ -128,10 +119,7 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
   };
 
   const handleCheckRecipients = async () => {
-    const emails = specificEmails
-      .split(/[\n,]+/)
-      .map(e => e.trim())
-      .filter(Boolean);
+    const emails = specificEmails.split(/[\n,]+/).map(e => e.trim()).filter(Boolean);
     if (emails.length === 0) return;
     setResolving(true);
     try {
@@ -156,10 +144,7 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
     try {
       const payload: any = { mode: "send", subject, body };
       if (recipientMode === "specific") {
-        payload.targetEmails = specificEmails
-          .split(/[\n,]+/)
-          .map((e: string) => e.trim())
-          .filter(Boolean);
+        payload.targetEmails = specificEmails.split(/[\n,]+/).map((e: string) => e.trim()).filter(Boolean);
       }
       const res = await apiFetch("/api/admin/broadcast", {
         method:  "POST",
@@ -171,7 +156,7 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
       const msg = data.failed > 0
         ? `Delivered to ${data.delivered}, ${data.failed} failed`
         : `Delivered to ${data.delivered} subscribers`;
-      setToast({ msg });
+      setToast({ msg, type: "success" });
       setSubject(""); setBody(""); setSpecificEmails("");
       setRenderedHtml(null); setPreviewKey(null);
       setResolveResult(null); setResolvedForText(null);
@@ -184,16 +169,14 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
   };
 
   if (!validSlug) return null;
-
-  if (authLoading)
-    return <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>;
-
-  if (!authed)
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-        <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-      </div>
-    );
+  if (authLoading) return (
+    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
+  );
+  if (!authed) return (
+    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
+      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
+    </div>
+  );
 
   const recipientLabel = recipientMode === "all"
     ? `All confirmed subscribers${confirmedCount !== null ? ` (${confirmedCount})` : ""}`
@@ -203,35 +186,34 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
 
   return (
     <AdminLayout slug={slug} title="Broadcast" toast={toast} setToast={setToast} onLogout={handleLogout}>
+      <h1 className="text-[22px] md:text-[28px] font-black text-ak-text mb-6">Broadcast</h1>
 
-      {mode !== "sending" && (
+      {mode === "sending" ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <Spinner />
+          <p className="text-[13px] text-ak-text-dim">Sending...</p>
+        </div>
+      ) : (
         <>
-          <div className="mb-6">
-            <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-[2px]">Broadcast</div>
-            <div className="text-[22px] font-black text-ak-text">New Email</div>
-          </div>
-
           {mode === "compose" && (
-            <div className="space-y-5 max-w-[720px]">
-              <div>
-                <label className="block text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-[6px]">Subject</label>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={e => handleSubjectChange(e.target.value)}
-                  maxLength={200}
-                  placeholder="Email subject..."
-                  className="w-full py-[9px] px-[12px] text-sm rounded-[8px] border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none"
-                />
-                {subject.length >= 180 && (
-                  <div className={`text-[11px] mt-1 ${subject.length >= 200 ? "text-red-500" : "text-ak-text-dim"}`}>
-                    {subject.length}/200
-                  </div>
-                )}
-              </div>
+            <Panel label="New email">
+              <FieldLabel>Subject</FieldLabel>
+              <input
+                type="text"
+                value={subject}
+                onChange={e => handleSubjectChange(e.target.value)}
+                maxLength={200}
+                placeholder="Email subject..."
+                className="w-full py-[9px] px-[12px] text-sm rounded-[8px] border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none"
+              />
+              {subject.length >= 180 && (
+                <div className={["text-[11px] mt-1", subject.length >= 200 ? "text-ak-red-text" : "text-ak-text-dim"].join(" ")}>
+                  {subject.length}/200
+                </div>
+              )}
 
-              <div>
-                <label className="block text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-[6px]">Body (Markdown)</label>
+              <div className="mt-5">
+                <FieldLabel>Body (Markdown)</FieldLabel>
                 <textarea
                   value={body}
                   onChange={e => handleBodyChange(e.target.value)}
@@ -241,27 +223,30 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
                   className="w-full py-[9px] px-[12px] text-sm rounded-[8px] border border-ak-border2 bg-ak-base text-ak-text font-mono outline-none resize-y"
                 />
                 {body.length >= 48_000 && (
-                  <div className={`text-[11px] mt-1 ${body.length >= 50_000 ? "text-red-500" : "text-ak-text-dim"}`}>
+                  <div className={["text-[11px] mt-1", body.length >= 50_000 ? "text-ak-red-text" : "text-ak-text-dim"].join(" ")}>
                     {body.length.toLocaleString()}/50,000
                   </div>
                 )}
               </div>
 
-              <div>
-                <label className="block text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-[6px]">Recipients</label>
+              <div className="mt-5">
+                <FieldLabel>Recipients</FieldLabel>
                 <div className="flex rounded-[7px] border border-ak-border2 overflow-hidden mb-3 w-fit">
-                  {(["all", "specific"] as const).map(m => (
-                    <button
-                      key={m}
-                      onClick={() => { setRecipientMode(m); setResolveResult(null); setResolvedForText(null); }}
-                      className={[
-                        "px-4 py-[7px] text-[11px] font-black tracking-[0.1em] uppercase font-sans border-0 cursor-pointer",
-                        recipientMode === m ? "bg-ak-surface text-ak-text" : "bg-ak-base text-ak-text-dim",
-                      ].join(" ")}
-                    >
-                      {m === "all" ? "All confirmed" : "Specific"}
-                    </button>
-                  ))}
+                  {(["all", "specific"] as const).map(m => {
+                    const active = recipientMode === m;
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => { setRecipientMode(m); setResolveResult(null); setResolvedForText(null); }}
+                        className={[
+                          "px-4 py-[7px] text-[11px] font-black tracking-[0.1em] uppercase font-sans border-0 cursor-pointer",
+                          active ? "bg-ak-surface text-ak-text" : "bg-ak-base text-ak-text-dim",
+                        ].join(" ")}
+                      >
+                        {m === "all" ? "All confirmed" : "Specific"}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {recipientMode === "all" && confirmedCount !== null && (
@@ -286,7 +271,7 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
                       onClick={handleCheckRecipients}
                       disabled={resolving || !specificEmails.trim()}
                     >
-                      {resolving ? "Checking..." : "Check recipients"}
+                      {resolving ? "CHECKING..." : "CHECK RECIPIENTS"}
                     </Btn>
                     {resolveResult && resolveCurrent && (
                       <div className="mt-2 text-[12px]">
@@ -305,31 +290,31 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
                 )}
               </div>
 
-              <div className="flex items-center gap-3 pt-2">
+              <div className="flex items-center gap-3 flex-wrap mt-6 pt-4 border-t border-ak-border">
                 <Btn variant="ghost" onClick={handleSendPreview} disabled={sendingPreview || !subject.trim() || !body.trim()}>
-                  {sendingPreview ? "Sending preview..." : `Send preview to ${maskedAdminEmail}`}
+                  {sendingPreview ? "SENDING PREVIEW..." : `SEND PREVIEW TO ${maskedAdminEmail.toUpperCase()}`}
                 </Btn>
                 <Btn variant="primary" onClick={() => setMode("confirming")} disabled={!canReview}>
-                  Review &amp; send →
+                  REVIEW &amp; SEND
                 </Btn>
               </div>
               {!previewCurrent && subject.trim() && body.trim() && (
-                <p className="text-[11px] text-ak-text-dim">Send a preview first to enable sending.</p>
+                <p className="text-[11px] text-ak-text-dim mt-2">Send a preview first to enable sending.</p>
               )}
-            </div>
+            </Panel>
           )}
 
           {mode === "confirming" && (
-            <div className="max-w-[720px] space-y-5">
-              <div className="rounded-[10px] border border-ak-border bg-ak-surface p-5 space-y-3">
+            <Panel label="Review">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
                 <div>
                   <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-[4px]">Subject</div>
-                  <div className="text-[15px] font-bold text-ak-text">{subject}</div>
+                  <div className="text-[14px] font-bold text-ak-text">{subject}</div>
                 </div>
                 <div>
                   <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-[4px]">Recipients</div>
                   <div className="text-[13px] text-ak-text">{recipientLabel}</div>
-                  <div className="text-[11px] text-ak-text-dim mt-[2px]">Count is best-effort - actual send targets whoever is confirmed at send time.</div>
+                  <div className="text-[11px] text-ak-text-dim mt-[2px]">Count is best-effort; actual send targets whoever is confirmed at send time.</div>
                 </div>
               </div>
 
@@ -337,79 +322,100 @@ export default function BroadcastPage({ validSlug, showFallback, noPasskeys, mas
                 <div>
                   <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-[6px]">Preview</div>
                   <div
-                    className="rounded-[10px] border border-ak-border bg-white p-5 prose prose-sm max-w-none text-[14px]"
+                    className="rounded-[10px] border border-ak-border bg-white p-5 text-[14px] text-black prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
                   />
                 </div>
               ) : (
-                <div className="rounded-[10px] border border-amber-200 bg-amber-50 p-4 text-[13px] text-amber-800">
-                  You haven&apos;t sent a preview yet. Are you sure you want to proceed?
+                <div className="rounded-[10px] border border-[#c9a84c55] bg-[#c9a84c12] p-4 text-[13px] text-ak-gold">
+                  You have not sent a preview yet. Are you sure you want to proceed?
                 </div>
               )}
 
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setMode("compose")}
-                  className="text-[12px] font-bold text-ak-text-dim bg-transparent border-0 cursor-pointer"
-                >
-                  ← Back
-                </button>
+              <div className="flex items-center gap-3 flex-wrap mt-6 pt-4 border-t border-ak-border">
+                <Btn variant="ghost" onClick={() => setMode("compose")}>
+                  ← BACK
+                </Btn>
                 <Btn variant="primary" onClick={handleSend}>
-                  Send to {recipientMode === "specific" && resolveResult
-                    ? `${resolveResult.matched} subscriber${resolveResult.matched !== 1 ? "s" : ""}`
-                    : `${confirmedCount ?? "..."} subscribers`}
+                  SEND TO {recipientMode === "specific" && resolveResult
+                    ? `${resolveResult.matched} SUBSCRIBER${resolveResult.matched !== 1 ? "S" : ""}`
+                    : `${confirmedCount ?? "..."} SUBSCRIBERS`}
                 </Btn>
               </div>
-            </div>
+            </Panel>
           )}
+
+          <HistorySection logs={logs} />
         </>
       )}
-
-      {mode === "sending" && (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <Spinner />
-          <p className="text-[13px] text-ak-text-dim">Sending...</p>
-        </div>
-      )}
-
-      <div className="mt-10">
-        <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-3">Broadcast History</div>
-        {logs.length === 0 ? (
-          <div className="text-[13px] text-ak-text-dim py-6 text-center">No broadcasts sent yet.</div>
-        ) : (
-          <div className="border border-ak-border rounded-[10px] overflow-hidden">
-            <div className="flex items-center py-[8px] px-[14px] bg-ak-surface2 border-b border-ak-border">
-              <span className="flex-1 text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase">Subject</span>
-              <span className="w-[80px] text-right text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase">Recipients</span>
-              <span className="w-[80px] text-right text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase ml-3">Delivered</span>
-              <span className="w-[60px] text-right text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase ml-3">Failed</span>
-              <span className="w-[100px] text-right text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase ml-3">Sent at</span>
-            </div>
-            {logs.map((log, i) => (
-              <div
-                key={log.id}
-                className={[
-                  "flex items-center py-[9px] px-[14px]",
-                  i % 2 === 0 ? "bg-ak-surface" : "bg-ak-surface2",
-                  i === 0 ? "" : "border-t border-ak-border",
-                ].join(" ")}
-              >
-                <span className="flex-1 text-[13px] text-ak-text truncate pr-3">{log.subject}</span>
-                <span className="w-[80px] text-right text-[11px] text-ak-text-dim">{log.recipientCount}</span>
-                <span className="w-[80px] text-right text-[11px] text-ak-text-dim ml-3">{log.deliveredCount}</span>
-                <span className={`w-[60px] text-right text-[11px] ml-3 ${log.failedCount > 0 ? "text-red-500" : "text-ak-text-dim"}`}>
-                  {log.failedCount}
-                </span>
-                <span className="w-[100px] text-right text-[11px] text-ak-text-dim whitespace-nowrap ml-3">
-                  {new Date(log.sentAt).toLocaleDateString("el-GR")}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
     </AdminLayout>
+  );
+}
+
+function Panel({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <section className="rounded-xl border border-ak-border bg-ak-surface p-4 md:p-5 mb-5">
+      <div className="text-[10px] font-black tracking-[0.15em] uppercase text-ak-text-dim mb-3">{label}</div>
+      {children}
+    </section>
+  );
+}
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <label className="block text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-[6px]">
+      {children}
+    </label>
+  );
+}
+
+function HistorySection({ logs }: { logs: BroadcastLogRow[] }) {
+  return (
+    <section className="mt-8">
+      <div className="text-[10px] font-black tracking-[0.15em] uppercase text-ak-text-dim mb-3">History</div>
+      {logs.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-ak-border bg-ak-surface px-6 py-8 text-center text-[12px] text-ak-text-dim">
+          No broadcasts sent yet.
+        </div>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {logs.map(log => (
+            <li key={log.id}>
+              <article className="rounded-xl border border-ak-border bg-ak-surface p-3 md:p-4">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] font-bold text-ak-text truncate">{log.subject}</div>
+                    <div className="text-[11px] text-ak-text-dim mt-1">
+                      {new Date(log.sentAt).toLocaleDateString("el-GR")}
+                      {" · "}
+                      {log.sentToAll ? "All confirmed" : "Specific list"}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] flex-wrap">
+                    <Stat label="Sent" value={log.recipientCount} />
+                    <Stat label="Delivered" value={log.deliveredCount} tone="ok" />
+                    <Stat label="Failed" value={log.failedCount} tone={log.failedCount > 0 ? "bad" : "dim"} />
+                  </div>
+                </div>
+              </article>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function Stat({ label, value, tone = "dim" }: { label: string; value: number; tone?: "dim" | "ok" | "bad" }) {
+  const color =
+    tone === "ok"  ? "text-ak-green" :
+    tone === "bad" ? "text-ak-red-text" :
+                     "text-ak-text-dim";
+  return (
+    <div className="text-right">
+      <div className={["text-[14px] font-black leading-none", color].join(" ")}>{value}</div>
+      <div className="text-[9px] font-black tracking-[0.12em] uppercase text-ak-text-dim mt-0.5">{label}</div>
+    </div>
   );
 }
 
@@ -417,8 +423,8 @@ export async function getServerSideProps({ params, query }: { params: { slug: st
   const result = await getAdminPasskeyLoginProps(params, query);
   if ("notFound" in result) return result;
 
-  const rawEmail       = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
-  const at             = rawEmail.indexOf("@");
+  const rawEmail         = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
+  const at               = rawEmail.indexOf("@");
   const maskedAdminEmail = at >= 0 ? `***@${rawEmail.slice(at + 1)}` : "***";
 
   return { props: { ...result.props, maskedAdminEmail } };
