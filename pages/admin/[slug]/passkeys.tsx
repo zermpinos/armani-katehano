@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
-import { useRouter }                         from "next/router";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { useRouter } from "next/router";
 import {
   AdminLayout,
   Spinner,
   PasskeyLoginForm,
+  Btn,
+  Confirm,
   useAdminAuth,
   apiFetch,
-  Confirm,
-}                                            from "@/client/admin";
-import { getAdminPasskeyLoginProps }         from "@/server/auth";
+} from "@/client/admin";
+import { getAdminPasskeyLoginProps } from "@/server/auth";
 
 type CredentialRow = {
   id:         string;
@@ -17,6 +18,13 @@ type CredentialRow = {
   lastUsedAt: string | null;
   transports: string[];
 };
+
+function transportLabel(transports: string[]): string {
+  if (transports.includes("internal")) return "Built-in";
+  if (transports.includes("usb"))      return "USB key";
+  if (transports.includes("hybrid"))   return "Phone";
+  return transports.join(", ") || "Unknown";
+}
 
 export default function PasskeysPage({
   validSlug,
@@ -28,18 +36,16 @@ export default function PasskeysPage({
   noPasskeys:   boolean;
 }) {
   const router = useRouter();
-  const slug   = router.query.slug || validSlug;
+  const slug = router.query.slug || validSlug;
 
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } =
-    useAdminAuth(slug);
+  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
 
   const [credentials, setCredentials] = useState<CredentialRow[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [toast,       setToast]       = useState<{ type?: string; msg: string } | null>(null);
   const [registering, setRegistering] = useState(false);
   const [labelInput,  setLabelInput]  = useState("");
-  const [confirmMsg,  setConfirmMsg]  = useState<string | null>(null);
-  const [confirmId,   setConfirmId]   = useState<string | null>(null);
+  const [confirmCred, setConfirmCred] = useState<CredentialRow | null>(null);
   const [noPasskeys,  setNoPasskeys]  = useState(initialNoPasskeys);
 
   const loadCredentials = useCallback(async () => {
@@ -47,7 +53,7 @@ export default function PasskeysPage({
     try {
       const res = await apiFetch("/api/admin/passkeys");
       if (res.ok) {
-        const rows = await res.json();
+        const rows: CredentialRow[] = await res.json();
         setCredentials(rows);
         setNoPasskeys(rows.length === 0);
       }
@@ -61,28 +67,20 @@ export default function PasskeysPage({
   }, [authed, loadCredentials]);
 
   if (!validSlug) return null;
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-ak-base">
-        <Spinner />
-      </div>
-    );
-  }
-
-  if (!authed) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-        <PasskeyLoginForm
-          onPasskeyLogin={handlePasskeyLogin}
-          onFallbackLogin={handleLogin}
-          loginError={loginError}
-          showFallback={showFallback}
-          noPasskeys={noPasskeys}
-        />
-      </div>
-    );
-  }
+  if (authLoading) return (
+    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
+  );
+  if (!authed) return (
+    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
+      <PasskeyLoginForm
+        onPasskeyLogin={handlePasskeyLogin}
+        onFallbackLogin={handleLogin}
+        loginError={loginError}
+        showFallback={showFallback}
+        noPasskeys={noPasskeys}
+      />
+    </div>
+  );
 
   const handleRegister = async () => {
     setRegistering(true);
@@ -114,6 +112,7 @@ export default function PasskeysPage({
         setToast({ type: "error", msg: body.error ?? "Registration failed" });
       }
     } catch (err: unknown) {
+      // NotAllowedError = user cancelled the browser prompt; not a real failure.
       if ((err as { name?: string })?.name !== "NotAllowedError") {
         setToast({ type: "error", msg: "Registration failed. Try again." });
       }
@@ -122,11 +121,12 @@ export default function PasskeysPage({
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
+    if (!confirmCred) return;
     const res = await apiFetch("/api/admin/passkeys", {
       method:  "DELETE",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ id }),
+      body:    JSON.stringify({ id: confirmCred.id }),
     });
     if (res.ok) {
       setToast({ type: "success", msg: "Passkey deleted" });
@@ -134,104 +134,100 @@ export default function PasskeysPage({
     } else {
       setToast({ type: "error", msg: "Delete failed" });
     }
-    setConfirmId(null);
-    setConfirmMsg(null);
+    setConfirmCred(null);
   };
-
-  const openConfirm = (cred: CredentialRow) => {
-    setConfirmId(cred.id);
-    setConfirmMsg(
-      credentials.length === 1
-        ? "This is your last passkey. Deleting it means you can only sign in using the password recovery token. Proceed?"
-        : "Delete this passkey?"
-    );
-  };
-
-  const transportLabel = (transports: string[]) => {
-    if (transports.includes("internal"))    return "Built-in";
-    if (transports.includes("usb"))         return "USB key";
-    if (transports.includes("hybrid"))      return "Phone";
-    return transports.join(", ") || "Unknown";
-  };
-
-  const inputCls = "py-[9px] px-3 text-[13px] rounded-lg border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none";
-  const btnCls   = "py-2 px-4 font-black text-[12px] tracking-[0.1em] uppercase rounded-lg border-0 cursor-pointer";
 
   return (
     <AdminLayout slug={slug} title="Passkeys" toast={toast} setToast={setToast} onLogout={handleLogout}>
-      <div className="max-w-[600px]">
-        <h1 className="text-[20px] font-black text-ak-text mb-6">Passkeys</h1>
+      <h1 className="text-[22px] md:text-[28px] font-black text-ak-text mb-6">Passkeys</h1>
 
-        {/* Registered passkeys */}
-        <div className="mb-8">
-          <div className="text-[11px] font-black tracking-[0.15em] uppercase text-ak-text-dim mb-3">
-            Registered passkeys
-          </div>
+      <div className="flex flex-col gap-5 max-w-[720px]">
+        <Panel
+          label="Registered"
+          hint="Each passkey is bound to one device. Removing all of them falls back to password sign-in."
+        >
           {listLoading ? (
-            <Spinner />
+            <PasskeySkeleton />
           ) : credentials.length === 0 ? (
-            <div className="text-[13px] text-ak-text-dim">No passkeys registered yet.</div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {credentials.map((cred) => (
-                <div
-                  key={cred.id}
-                  className="flex items-center justify-between rounded-xl px-4 py-3 border border-ak-border bg-ak-surface"
-                >
-                  <div>
-                    <div className="text-[13px] font-black text-ak-text">{cred.label}</div>
-                    <div className="text-[11px] text-ak-text-dim">
-                      {transportLabel(cred.transports)} · Added{" "}
-                      {new Date(cred.createdAt).toLocaleDateString()}
-                      {cred.lastUsedAt && (
-                        <> · Last used {new Date(cred.lastUsedAt).toLocaleDateString()}</>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => openConfirm(cred)}
-                    className={`${btnCls} bg-[#8b1a1a22] text-ak-red-text border border-[#8b1a1a45]`}
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
+            <div className="py-6 text-center text-[12px] text-ak-text-dim">
+              No passkeys registered yet. Add one below to enable one-tap sign-in.
             </div>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {credentials.map(cred => (
+                <li key={cred.id}>
+                  <article className="flex items-center justify-between gap-3 flex-wrap rounded-[9px] border border-ak-border bg-ak-base px-3 md:px-4 py-3">
+                    <div className="min-w-0">
+                      <div className="text-[13px] font-black text-ak-text truncate">{cred.label}</div>
+                      <div className="text-[11px] text-ak-text-dim mt-0.5">
+                        {transportLabel(cred.transports)} · Added {new Date(cred.createdAt).toLocaleDateString()}
+                        {cred.lastUsedAt && (
+                          <> · Last used {new Date(cred.lastUsedAt).toLocaleDateString()}</>
+                        )}
+                      </div>
+                    </div>
+                    <Btn size="sm" variant="danger" onClick={() => setConfirmCred(cred)}>
+                      DELETE
+                    </Btn>
+                  </article>
+                </li>
+              ))}
+            </ul>
           )}
-        </div>
+        </Panel>
 
-        {/* Add passkey */}
-        <div className="border border-ak-border rounded-xl p-5 bg-ak-surface">
-          <div className="text-[11px] font-black tracking-[0.15em] uppercase text-ak-text-dim mb-3">
-            Register new passkey
-          </div>
-          <div className="flex gap-2 items-center mb-3">
+        <Panel
+          label="Register a new passkey"
+          hint='Pick a label that identifies the device, like "MacBook" or "iPhone".'
+        >
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
-              placeholder="Label (e.g. MacBook, iPhone)"
+              placeholder="Device label"
               value={labelInput}
-              onChange={(e) => setLabelInput(e.target.value)}
+              onChange={e => setLabelInput(e.target.value)}
               maxLength={100}
-              className={`${inputCls} flex-1`}
+              className="flex-1 py-[9px] px-3 text-[13px] rounded-lg border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none"
             />
+            <Btn onClick={handleRegister} disabled={registering}>
+              {registering ? "WAITING..." : "ADD PASSKEY"}
+            </Btn>
           </div>
-          <button
-            onClick={handleRegister}
-            disabled={registering}
-            className={`${btnCls} bg-ak-red text-ak-text ${registering ? "opacity-50 cursor-not-allowed" : ""}`}
-          >
-            {registering ? "WAITING..." : "ADD PASSKEY"}
-          </button>
-        </div>
+        </Panel>
       </div>
 
-      {/* Delete confirmation */}
-      <Confirm
-        msg={confirmMsg}
-        onConfirm={() => confirmId && handleDelete(confirmId)}
-        onCancel={() => { setConfirmId(null); setConfirmMsg(null); }}
-      />
+      {confirmCred && (
+        <Confirm
+          msg={
+            credentials.length === 1
+              ? `"${confirmCred.label}" is your last passkey. Deleting it forces password sign-in until you register another. Proceed?`
+              : `Delete "${confirmCred.label}"?`
+          }
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmCred(null)}
+        />
+      )}
     </AdminLayout>
+  );
+}
+
+function Panel({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <section className="rounded-xl border border-ak-border bg-ak-surface p-4 md:p-5">
+      <div className="text-[10px] font-black tracking-[0.15em] uppercase text-ak-text-dim mb-1">{label}</div>
+      {hint && <div className="text-[11px] text-ak-text-dim mb-3 leading-relaxed">{hint}</div>}
+      <div className="mt-2">{children}</div>
+    </section>
+  );
+}
+
+function PasskeySkeleton() {
+  return (
+    <ul className="flex flex-col gap-2">
+      {[0, 1].map(i => (
+        <li key={i} className="rounded-[9px] border border-ak-border bg-ak-base h-[58px] animate-pulse" />
+      ))}
+    </ul>
   );
 }
 
