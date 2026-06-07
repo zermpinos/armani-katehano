@@ -26,6 +26,9 @@ function todayDDMMYYYY(): string {
 }
 
 function gameToDraft(g: ScheduledGame): Draft {
+  // UTC accessors give the Athens digits directly: stored times follow the
+  // convention where UTC timestamp digits equal the Athens local time the
+  // admin originally entered.
   const date = new Date(g.scheduledFor);
   const d = String(date.getUTCDate()).padStart(2, "0");
   const m = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -64,14 +67,18 @@ export default function ScheduleEditPage({
     if (!authed || !slug || isNew || !idParam) return;
     let cancelled = false;
     (async () => {
-      const res = await fetch("/api/admin/schedule");
-      if (!res.ok) { setLoading(false); return; }
-      const data = await res.json();
-      const game = (data.schedule as ScheduledGame[] | undefined)?.find(g => g.id === idParam);
-      if (cancelled) return;
-      if (!game) { setNotFound(true); setLoading(false); return; }
-      setDraft(gameToDraft(game));
-      setLoading(false);
+      try {
+        const res = await fetch("/api/admin/schedule");
+        if (!res.ok) { if (!cancelled) { setNotFound(true); setLoading(false); } return; }
+        const data = await res.json();
+        const game = (data.schedule as ScheduledGame[] | undefined)?.find(g => g.id === idParam);
+        if (cancelled) return;
+        if (!game) { setNotFound(true); setLoading(false); return; }
+        setDraft(gameToDraft(game));
+        setLoading(false);
+      } catch {
+        if (!cancelled) { setNotFound(true); setLoading(false); }
+      }
     })();
     return () => { cancelled = true; };
   }, [router.isReady, authed, slug, idParam, isNew]);
