@@ -2,7 +2,7 @@ import Link from "next/link";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import { BoxScoreTable } from "@/client/games/box-score";
-import { getGameById, getGameIds } from "@/server/db/repositories";
+import { getGameById } from "@/server/db/repositories";
 import { SITE_NAME } from "@/domain/shared/constants";
 
 export default function GamePage({ game }: { game: any }) {
@@ -27,19 +27,12 @@ export default function GamePage({ game }: { game: any }) {
   );
 }
 
-export async function getStaticPaths() {
-  const ids = await getGameIds();
-  return {
-    paths: ids.map((id: string) => ({ params: { id } })),
-    fallback: "blocking",
-  };
-}
-
-export async function getStaticProps({ params }: any) {
+export async function getServerSideProps({ params, res }: any) {
+  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
   try {
     const game = await getGameById(params.id as string);
     if (!game) return { notFound: true };
-    return { props: { game }, revalidate: 86400 };
+    return { props: { game } };
   } catch {
     return { notFound: true };
   }
