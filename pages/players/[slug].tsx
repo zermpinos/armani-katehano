@@ -6,7 +6,7 @@ import SeasonSelector from "@/components/ui/SeasonSelector";
 import { SeasonAverages } from "@/client/players/SeasonAverages";
 import { SeasonHistoryTable } from "@/client/players/SeasonHistoryTable";
 import { PlayerHero } from "@/client/players/PlayerHero";
-import { getAllPublicData, getAllSeasonsStats, getPlayerGameLog, getPlayers } from "@/server/db/repositories";
+import { getAllPublicData, getAllSeasonsStats, getPlayerGameLog } from "@/server/db/repositories";
 import { buildAllTimeStatsMap, computeStatsFromLog } from "@/domain/stats";
 
 const SkillRadar   = dynamic(() => import("@/client/players/SkillRadar").then(m => ({ default: m.SkillRadar })),     { ssr: false });
@@ -105,15 +105,8 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
   );
 }
 
-export async function getStaticPaths() {
-  const players = await getPlayers();
-  return {
-    paths: players.map(p => ({ params: { slug: p.slug } })),
-    fallback: "blocking",
-  };
-}
-
-export async function getStaticProps({ params }: any) {
+export async function getServerSideProps({ params, res }: any) {
+  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
   const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
   const player = players.find((p: any) => p.slug === params.slug);
   if (!player) return { notFound: true };
@@ -134,6 +127,5 @@ export async function getStaticProps({ params }: any) {
 
   return {
     props: { player, statsMap: stats, allTimeStatsMap, seasons, currentSeason, playerSeasonHistory, allGameLog },
-    revalidate: 86400,
   };
 }
