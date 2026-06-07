@@ -8,6 +8,7 @@ import { auditLog, getClientIp }     from "@/server/security/node";
 import prisma                        from "@/server/db/client";
 import { prodError }                 from "@/domain/shared/format";
 import { SeasonCreateSchema }        from "@/schemas/season";
+import { invalidateForSeasonMutation } from "@/server/services/cache-invalidation";
 
 async function handler(req: any, res: any) {
   const ip = getClientIp(req);
@@ -35,7 +36,7 @@ async function handler(req: any, res: any) {
     }
 
     auditLog("season_created", { ip, seasonId: season.id, name });
-    await Promise.allSettled(["/leaderboard", "/players", "/games", "/team-stats"].map(p => res.revalidate?.(p)));
+    await invalidateForSeasonMutation({ revalidate: (p) => res.revalidate?.(p) });
     return res.status(201).json({ ok: true, season });
   } catch (err) {
     auditLog("season_create_error", { ip, error: (err as any).message });

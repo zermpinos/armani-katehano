@@ -9,6 +9,7 @@ import prisma                        from "@/server/db/client";
 import { slugify } from "@/domain/players/format";
 import { prodError } from "@/domain/shared/format";
 import { LeagueCreateSchema }        from "@/schemas/league";
+import { invalidateForLeagueMutation } from "@/server/services/cache-invalidation";
 
 async function handler(req: any, res: any) {
   const ip = getClientIp(req);
@@ -43,7 +44,7 @@ async function handler(req: any, res: any) {
     }
 
     auditLog("league_created", { ip, leagueId: league.id, name });
-    await Promise.allSettled([res.revalidate?.("/games")]);
+    await invalidateForLeagueMutation({ revalidate: (p) => res.revalidate?.(p) });
     return res.status(201).json({ ok: true, league });
   } catch (err) {
     auditLog("league_create_error", { ip, error: (err as any).message });
