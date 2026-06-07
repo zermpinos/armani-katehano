@@ -57,14 +57,18 @@ export default function RosterEditPage({
     if (!authed || !slug || isNew || !idParam) return;
     let cancelled = false;
     (async () => {
-      const res = await fetch("/api/admin/players");
-      if (!res.ok) { setLoading(false); return; }
-      const data = await res.json();
-      const p = (data.players as Player[] | undefined)?.find(x => x.id === idParam);
-      if (cancelled) return;
-      if (!p) { setNotFound(true); setLoading(false); return; }
-      setDraft(playerToDraft(p));
-      setLoading(false);
+      try {
+        const res = await fetch("/api/admin/players");
+        if (!res.ok) { if (!cancelled) { setNotFound(true); setLoading(false); } return; }
+        const data = await res.json();
+        const p = (data.players as Player[] | undefined)?.find(x => x.id === idParam);
+        if (cancelled) return;
+        if (!p) { setNotFound(true); setLoading(false); return; }
+        setDraft(playerToDraft(p));
+        setLoading(false);
+      } catch {
+        if (!cancelled) { setNotFound(true); setLoading(false); }
+      }
     })();
     return () => { cancelled = true; };
   }, [router.isReady, authed, slug, idParam, isNew]);
