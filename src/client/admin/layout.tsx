@@ -27,7 +27,6 @@ export function AdminLayout({
     { href: `/admin/${slug}/schedule`,             label: "Schedule"    },
     { href: `/admin/${slug}/subscribers`,          label: "Subscribers" },
     { href: `/admin/${slug}/broadcast`,            label: "Broadcast"   },
-    { href: `/admin/${slug}/opponent-aliases`,     label: "Aliases"     },
     { href: `/admin/${slug}/import`,               label: "Import"      },
     { href: `/admin/${slug}/passkeys`,             label: "Passkeys"    },
   ];

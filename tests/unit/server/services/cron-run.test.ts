@@ -16,16 +16,16 @@ import { startCronRun, finishCronRun } from "@/server/services/cron-run";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockPrisma.cronRun.create.mockResolvedValue({ id: "run1", job: "discover-and-import", startedAt: new Date() });
+  mockPrisma.cronRun.create.mockResolvedValue({ id: "run1", job: "purge-subscribers", startedAt: new Date() });
   mockPrisma.cronRun.update.mockResolvedValue({});
 });
 
 describe("startCronRun", () => {
   it("creates a CronRun row and returns its id", async () => {
-    const id = await startCronRun("discover-and-import");
+    const id = await startCronRun("purge-subscribers");
     expect(id).toBe("run1");
     expect(mockPrisma.cronRun.create).toHaveBeenCalledWith({
-      data: { job: "discover-and-import" },
+      data: { job: "purge-subscribers" },
     });
   });
 });
