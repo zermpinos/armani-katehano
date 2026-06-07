@@ -134,7 +134,8 @@ export default function GamesPage({ allGames, seasons, currentSeason, seasonPhas
   );
 }
 
-export async function getStaticProps() {
+export async function getServerSideProps({ res }: any) {
+  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
   const [allGames, seasons, config, upcomingGames] = await Promise.all([
     getAllGames(),
     getSeasons(),
@@ -150,6 +151,5 @@ export async function getStaticProps() {
       seasonPhase: config.seasonPhase,
       upcomingGames,
     },
-    revalidate: 86400,
   };
 }
