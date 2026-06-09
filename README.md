@@ -27,10 +27,10 @@ A statistics, scheduling, and roster-management web app for the **Armani Katehan
 The app is a single-team basketball-stats platform built around a Postgres data model of seasons, leagues, games, players, per-game stat lines, season aggregates, upcoming games, and roster announcements. It serves three audiences:
 
 - **Public visitors** - read-only access to team record, player cards, season leaderboards, game results, scoring trends, and the next-game roster.
-- **Team admins** - full CRUD over seasons, leagues, players, schedule, games, and stats; trigger imports; manage email subscribers; recompute aggregates. Reached at a randomized `/admin/<slug>` path and gated by password + TOTP.
+- **Team admins** - full CRUD over seasons, leagues, players, schedule, games, and stats; trigger imports; manage email subscribers; recompute aggregates. Reached at a randomized `/admin/<slug>` path and gated by passkey (WebAuthn); password + TOTP is an opt-in fallback.
 - **Head coach** - separate `/coach/<token>` portal for managing rosters and publishing per-game roster announcements via email. Distinct password and session secret from the admin portal.
 
-Box-score ingestion is automated where possible: a discovery service crawls the league listings, matches scheduled opponents (with Greek↔Latin transliteration), scrapes the box score, classifies the page, and persists `PlayerGameStat` rows; aggregates are recomputed transactionally afterwards.
+Box-score data is ingested manually: an admin pastes a box-score URL or uploads a file; the scraper classifies, parses, and persists `PlayerGameStat` rows; aggregates are recomputed transactionally afterwards.
 
 ---
 
@@ -65,7 +65,7 @@ Node built-ins must be imported via the `node:` protocol (`import crypto from "n
 
 ### Data model
 
-PostgreSQL via Prisma. Core entities: `Season`, `League`, `SeasonLeague`, `Player`, `RosterEntry`, `Game`, `PlayerGameStat`, `PlayerSeasonAggregate`, `UpcomingGame`, `GameRosterAnnouncement`, `GameRosterPlayer`, `GameImportJob`, `Subscriber`, `Setting`, `LoginAttempt`. Aggregates store both averages (`ptsAvg`, `rebAvg`, ...) and totals (`ptsTotal`, `rebTotal`, ...) computed from raw stat sums.
+PostgreSQL via Prisma. Core entities: `Season`, `League`, `SeasonLeague`, `Player`, `RosterEntry`, `Game`, `PlayerGameStat`, `PlayerSeasonAggregate`, `UpcomingGame`, `GameRosterAnnouncement`, `GameRosterPlayer`, `GameImportJob`, `PasskeyCredential`, `Subscriber`, `Setting`, `LoginAttempt`. Aggregates store both averages (`ptsAvg`, `rebAvg`, ...) and totals (`ptsTotal`, `rebTotal`, ...) computed from raw stat sums.
 
 ---
 
@@ -89,8 +89,9 @@ PostgreSQL via Prisma. Core entities: `Season`, `League`, `SeasonLeague`, `Playe
 - Zod 4 (request/response, scrape outputs, schedule rows)
 
 **Auth & security**
+- `@simplewebauthn/server` + `@simplewebauthn/browser` (passkeys / WebAuthn)
 - `bcryptjs` (password hashing)
-- `otpauth` (TOTP for admin)
+- `otpauth` (TOTP; password+TOTP fallback path)
 - Cloudflare Turnstile (subscribe-form CAPTCHA)
 - Custom session cookies (signed with `SESSION_SECRET` / `COACH_SESSION_SECRET`)
 - CSP with per-request nonce, SSRF allow-list, audit log
@@ -136,15 +137,14 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - **Sitemap** (`/sitemap.xml`).
 
 ### Admin portal (`/admin/<slug>`)
-- Password + TOTP login with per-IP login-attempt rate limiting and CSRF tokens.
-- Dashboard with totals, recent activity, import-job status, and season-phase selector (Regular Season / Playoffs).
+- Passkey (WebAuthn) login with per-IP login-attempt rate limiting and CSRF tokens; password + TOTP retained as opt-in fallback (gated by `PASSKEY_FALLBACK_TOKEN`).
+- Dashboard with totals, recent activity, and season-phase selector (Regular Season / Playoffs).
+- **Maintenance** page for global maintenance-mode toggle and operational controls.
 - CRUD for **seasons**, **leagues**, **season-leagues**, **players**, **schedule** (`UpcomingGame`), **games** (with round field for playoff tagging), and **per-game stat lines**.
 - **Roster** management (active/inactive, per-season-league entries).
-- **Manual stats import** (paste box-score URL or upload).
-- **Auto-discovery import** - admin enqueues an `UpcomingGame`; a background job (cron-triggered via Vercel cron and a GitHub Actions hourly heartbeat) discovers the matching listing URL, scrapes the box score, classifies, and persists.
+- **Stats import** (paste box-score URL or upload); scraper classifies, parses, and persists results.
 - **Aggregate recompute** endpoint for backfills.
 - **Roster announcements** - pick the upcoming game, pick the active roster, write a note; the system emails confirmed subscribers via Brevo.
-- **Opponent aliases** - manage alternate name mappings so the discovery matcher can resolve opponent names that differ from the league listing.
 - **Subscriber management** with cleanup endpoints.
 
 ### Coach portal (`/coach/<token>`)
@@ -153,9 +153,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - Forced password change flow.
 
 ### Imports & scraping
-- `discover-source-url.ts` - fuzzy matches scheduled opponents to listing rows (Levenshtein with Greek->Latin transliteration so `ΑΟ Νέας Αλικαρνασσού` and `AO Neas Alikarnassou` collapse to the same canonical form).
 - `scrape-game.ts` + `import-classifier.ts` + `import-game.ts` - fetch, classify, parse, and persist a box score idempotently.
-- `import-job.ts` - locking + retry semantics on `GameImportJob` (PENDING -> IMPORTED / ERROR / ABANDONED) with warning, success, and failure email notifications.
 - `stats-recalc.ts` - transactional aggregate recompute (totals from raw DB sums, never approximated from averages).
 
 ### Cron / scheduled jobs
@@ -163,10 +161,9 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECRET}`, compared in constant time with `node:crypto.timingSafeEqual` and a length-guard.
 
 - `/api/cron/purge-subscribers` - daily at 03:00 UTC (Vercel cron). Drops unconfirmed subscribers older than 1 day and confirmed subscribers idle for over a year.
-- `/api/cron/purge-error-html` - daily at 04:00 UTC (Vercel cron). Clears `GameImportJob.lastErrorHtml` older than 7 days (GDPR storage limitation).
-- `/api/cron/purge-upcoming-games` - daily at 04:30 UTC (Vercel cron). Deletes `UpcomingGame` rows whose `scheduledFor` is past **and** whose linked `GameImportJob.state` is `IMPORTED` or `ABANDONED`. Stuck `PENDING` / `ERROR` rows are left for admin review; the imported `Game` is preserved (`importedGameId` uses `onDelete: SetNull`).
-- `/api/cron/discover-and-import` - daily at 20:00 UTC (Vercel cron, `0 20 * * *`). T+1h/T+2h/T+3h/T+4h backoff per game; `ABANDONED` after 4 misses with admin email. (Vercel Hobby caps each cron expression at one firing per day; running closer to hourly requires Pro or an external scheduler.)
-- `/api/cron/import-heartbeat` - daily at 05:05 UTC (Vercel cron). Emails the admin a digest: last 24 h of cron runs, in-window candidates (last 7 days, not yet `IMPORTED`), dropouts (7-14 days back, not `IMPORTED` / `ABANDONED`), and the next 7 days of scheduled games (excluding `IMPORTED`).
+- `/api/cron/purge-upcoming-games` - daily at 04:30 UTC (Vercel cron). Deletes `UpcomingGame` rows whose `scheduledFor` is past and whose `sourceUrl` has been set (admin-imported). Rows still pending review are left untouched; the imported `Game` is preserved (`importedGameId` uses `onDelete: SetNull`).
+- `/api/cron/purge-audit-log` - daily at 06:00 UTC (Vercel cron). Deletes `AuditLog` rows older than 90 days.
+- `/api/admin/cleanup` - daily at 02:00 UTC (Vercel cron). Purges expired `LoginAttempt` rows.
 
 ### Security baseline
 - Strict CSP with per-request nonce (Edge middleware).
@@ -188,13 +185,14 @@ armani-katehano/
 │   ├── games/[id].tsx              Individual game box-score page
 │   ├── coming-soon.tsx             Pre-launch gate page
 │   ├── admin/[slug]/               Admin portal pages (slug-randomized)
-│   │   └── opponent-aliases.tsx    Alternate opponent-name mappings
+│   │   ├── passkeys.tsx            Passkey credential management
+│   │   └── maintenance.tsx         Maintenance-mode and operational controls
 │   ├── coach/[token].tsx           Coach portal page (token-routed)
 │   └── api/                        API routes
 │       ├── auth.ts, subscribe.ts, confirm.ts
-│       ├── admin/                  Admin endpoints (CRUD, recalc, import)
+│       ├── admin/                  Admin endpoints (CRUD, recalc, import, cleanup)
 │       ├── coach/                  Coach auth + endpoints
-│       ├── cron/                   Scheduled jobs
+│       ├── cron/                   Scheduled jobs (purge-subscribers, purge-upcoming-games, purge-audit-log)
 │       ├── games/[id].ts           Public box score
 │       └── public/data.ts          Public data feed
 │
@@ -217,18 +215,19 @@ armani-katehano/
 │   ├── server/                     Node-only business logic
 │   │   ├── _internal/node-only.ts  Runtime marker
 │   │   ├── auth/                   admin-slug, coach, csrf, login-attempts,
-│   │   │                            password, session, totp + middleware/
+│   │   │                            passkey, password, session, totp + middleware/
 │   │   ├── db/                     Prisma client + repositories
 │   │   ├── http/                   method-router, parse-body, handle-error
 │   │   ├── integrations/
 │   │   │   ├── email/              Nodemailer/Brevo client + templates
-│   │   │   └── scraper/            listing + boxscore scrapers
+│   │   │   └── scraper/            boxscore scraper
 │   │   ├── security/
 │   │   │   ├── edge/               CSP, headers (portable across runtimes)
 │   │   │   └── node/               SSRF, audit log, client IP (Node-only)
-│   │   └── services/               discover-source-url, import-classifier,
-│   │                                import-game, import-job, scrape-game,
-│   │                                stats-recalc
+│   │   └── services/               audit-log-purge, broadcast-import,
+│   │                                cache-invalidation, import-classifier,
+│   │                                import-game, maintenance-flag,
+│   │                                scrape-game, stats-recalc, subscriber
 │   ├── theme/                      Tailwind theme tokens
 │   └── types/                      Shared TS types
 │
@@ -243,10 +242,12 @@ armani-katehano/
 │
 ├── scripts/
 │   ├── check-middleware-bundle.mjs Post-build assertion: no Node built-ins in Edge bundle
+│   ├── check-postcss-override.mjs  Scan postcss config for overridden entries and report lowest
 │   ├── strip-next-polyfills.mjs    Prebuild: stubs out Next.js polyfill-module for Turbopack
+│   ├── preview-confirmation-email.ts  Local preview for subscriber confirmation email
+│   ├── preview-game-imported-email.ts Local preview for game-import notification email
 │   ├── preview-roster-email.ts     Local preview for roster announcement template
-│   ├── send-courtesy-email.ts      One-time courtesy email to existing subscribers
-│   └── smoke-discover.ts           Smoke-test the discover-source-url matcher
+│   └── ci/                         CI helper scripts
 │
 ├── tests/
 │   ├── unit/                       Vitest unit tests
@@ -307,13 +308,13 @@ npm run dev                        # http://localhost:3000
 | End-to-end tests (Playwright UI)  | `npm run test:e2e:ui`                                    |
 | Apply a new migration             | `npx prisma migrate dev --name <slug>`                   |
 | Open Prisma Studio                | `npx prisma studio`                                      |
-| Smoke-test the URL matcher        | `npx tsx scripts/smoke-discover.ts`                      |
 | Preview the roster email template | `npx tsx scripts/preview-roster-email.ts`                |
-| Send the one-time game-emails courtesy notice | `npx tsx scripts/send-courtesy-email.ts [--dry-run \| --to=<email> \| --force]` |
+| Preview the confirmation email    | `npx tsx scripts/preview-confirmation-email.ts`          |
+| Preview the game-imported email   | `npx tsx scripts/preview-game-imported-email.ts`         |
 
 ### Logging in
 
-- **Admin portal** - visit `/admin/<ADMIN_SLUG>`, enter username, password, and TOTP code. The slug is randomized to keep the login form off public crawlers.
+- **Admin portal** - visit `/admin/<ADMIN_SLUG>`. The slug is randomized to keep the login form off public crawlers. Primary auth is passkey (WebAuthn); if `PASSKEY_FALLBACK_TOKEN` is set, a password + TOTP fallback path is also available.
 - **Coach portal** - visit `/coach/<COACH_TOKEN>`, enter the coach password.
 
 ---
@@ -327,11 +328,10 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | Variable                          | Used by                | Purpose                                                    |
 |-----------------------------------|------------------------|------------------------------------------------------------|
 | `DATABASE_URL`                    | Prisma                 | Postgres connection string                                 |
-| `APP_URL`                         | Server                 | Canonical base URL                                         |
 | `NEXT_PUBLIC_APP_URL`             | Client                 | Public base URL used in emails and OG tags                 |
 | `NEXT_PUBLIC_BASE_URL`            | Client / SEO           | Public base URL used by sitemap, layout, and `security.txt` |
 | `SESSION_SECRET`                  | Admin auth             | HMAC key for the admin session cookie                      |
-| `ADMIN_USERS`                     | Admin auth             | JSON array of `{ username, passwordHash, totpSecret }`     |
+| `ADMIN_USERS`                     | Admin auth             | JSON array of `{ username, passwordHash }`                 |
 | `ADMIN_SLUG`                      | Admin auth             | Random URL segment for the admin entry path                |
 | `ADMIN_PASSWORD`                  | Admin auth             | bcrypt hash of the admin password                          |
 | `ADMIN_ALERT_EMAIL`               | Ops                    | Destination address for admin operational alert emails     |
@@ -342,8 +342,6 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | `BREVO_SMTP_PASS`                 | Email                  | Brevo SMTP password / API key                              |
 | `TURNSTILE_SECRET_KEY`            | Admin / coach login    | Cloudflare Turnstile server-side verification (shown after 3 failed login attempts) |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`  | Admin / coach login    | Cloudflare Turnstile client-side site key                  |
-| `BROADCAST_LINK_SECRET`           | Broadcast              | HMAC key for one-click broadcast tokens (generate with `openssl rand -hex 32`) |
-| `BROADCAST_RECENCY_DAYS`          | Broadcast              | Integer (default `7`); max age in days for a game to qualify for a broadcast link, and the token TTL |
 | `CRON_SECRET`                     | Cron                   | Bearer token gating `/api/cron/*` endpoints                |
 | `SCRAPE_HOSTNAME_ALLOWLIST`       | Scrape SSRF guard      | Comma-separated allowlist of hostnames the scraper may reach |
 
@@ -351,19 +349,10 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 
 | Variable                                  | Purpose                                                         |
 |-------------------------------------------|-----------------------------------------------------------------|
-| `SCRAPE_LISTING_URL_CUP`                  | Listing URL for the Cup scrape job; required only when the scrape feature is used |
-| `SCRAPE_LISTING_URL_MEN`                  | Listing URL for the Men's scrape job; required only when the scrape feature is used |
+| `PASSKEY_FALLBACK_TOKEN`                  | Enables the password + TOTP fallback login path; if unset, passkey is the only admin auth method |
+| `E2E_ADMIN_USERNAME`                      | Admin username used by Playwright global setup                  |
 | `E2E_ADMIN_PASSWORD`                      | Plain admin password used by Playwright global setup            |
-| `APP_BASE_URL`                            | Public base URL of the deployed app, used by server-side code that builds absolute URLs |
-
-#### Game-imported broadcast - manual smoke
-
-1. Import a recent test game (any path that lands the `GameImportJob` in `IMPORTED` state).
-2. Confirm the admin import-success email contains a "Review & broadcast" button.
-3. Click it - a confirmation page renders with the matchup, score, top-3 performers, and "Send to N subscribers" button.
-4. With a 1-subscriber test list, click the button - verify the subscriber receives the recap.
-5. Click the original email link again - verify the "Already broadcast" page renders.
-6. Inspect the `AuditLog` table for `broadcast_link_viewed`, `broadcast_emails_summary`, etc.
+| `PLAYWRIGHT_BASE_URL`                     | Base URL targeted by E2E tests (defaults to `http://localhost:3000`) |
 
 ### Platform-supplied
 
@@ -375,7 +364,6 @@ These variables are set by the build/runtime environment automatically. Do not s
 | `NODE_ENV` | Node.js runtime |
 | `NEXT_RUNTIME` | Next.js (`"nodejs"` or `"edge"`) |
 | `VERCEL_ENV` | Vercel (`"production"`, `"preview"`, `"development"`) |
-| `VERCEL_URL` | Vercel deployment URL |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | Configured per-project in the Vercel dashboard |
 
 ### Secret hygiene
@@ -402,13 +390,14 @@ These variables are set by the build/runtime environment automatically. Do not s
 
 ### Standalone scripts (`scripts/`)
 
-| File                            | Purpose                                                                |
-|---------------------------------|------------------------------------------------------------------------|
-| `strip-next-polyfills.mjs`      | Prebuild: stubs out Next.js polyfill-module so Turbopack doesn't bundle it |
-| `check-middleware-bundle.mjs`   | Post-build CI guard: greps `.next/server/middleware.js` for Node built-ins |
-| `preview-roster-email.ts`       | Renders the roster-announcement email template to disk for review       |
-| `send-courtesy-email.ts`        | One-time CLI dispatcher for the courtesy "What's new" email to existing subscribers |
-| `smoke-discover.ts`             | Runs the discover-source-url matcher against fixture listings           |
+| File                              | Purpose                                                                |
+|-----------------------------------|------------------------------------------------------------------------|
+| `strip-next-polyfills.mjs`        | Prebuild: stubs out Next.js polyfill-module so Turbopack doesn't bundle it |
+| `check-middleware-bundle.mjs`     | Post-build CI guard: greps `.next/server/middleware.js` for Node built-ins |
+| `check-postcss-override.mjs`      | Scans postcss config for nested entries and reports the lowest override |
+| `preview-roster-email.ts`         | Renders the roster-announcement email template to disk for review       |
+| `preview-confirmation-email.ts`   | Renders the subscriber confirmation email template to disk for review   |
+| `preview-game-imported-email.ts`  | Renders the game-imported admin notification email to disk for review   |
 
 ### CI workflows (`.github/workflows/`)
 
@@ -444,11 +433,10 @@ The app is deployed to **Vercel**. Production data is in **Neon Postgres**.
 - **Build command** - `npm run build` (runs the prebuild polyfill stub, `prisma generate`, `next build`, and the post-build middleware-bundle guard).
 - **Node version** - pinned via `.nvmrc` (≥ 24.14).
 - **Crons** - declared in [`vercel.json`](vercel.json):
+  - `0 2 * * *` -> `/api/admin/cleanup`
   - `0 3 * * *` -> `/api/cron/purge-subscribers`
-  - `0 4 * * *` -> `/api/cron/purge-error-html`
   - `30 4 * * *` -> `/api/cron/purge-upcoming-games`
-  - `5 5 * * *` -> `/api/cron/import-heartbeat`
-  - `0 20 * * *` -> `/api/cron/discover-and-import`
+  - `0 6 * * *` -> `/api/cron/purge-audit-log`
 - **Environment variables** - set in the Vercel dashboard (Production, Preview, Development scopes).
 
 ### Database migrations
@@ -471,7 +459,6 @@ Operational procedures live in `docs/`:
 - **Pages Router, not App Router.** The runtime marker (`src/server/_internal/node-only.ts`) is custom because the npm `server-only` package is gated on the `react-server` export condition, which only resolves inside App Router server components. If the codebase migrates to App Router, swap it for `import "server-only";`.
 - **No top-level barrel under `src/server/security/`.** Importers must declare `edge` or `node` explicitly; this is what stopped a regression where `proxy.ts` dragged `node:dns` into the Edge bundle via a transitive barrel re-export.
 - **Totals are stored, not derived.** `PlayerSeasonAggregate` keeps both `*Avg` and `*Total` columns; totals must come from raw `PlayerGameStat` sums (`stats-recalc.ts`), never approximated from `avg × gp`.
-- **Greek↔Latin transliteration** in opponent matching: Levenshtein over raw codepoints fails across scripts, so `discover-source-url.ts` collapses both sides to a canonical Latin form before computing distance.
 - **Validation at the boundary.** Every API route and external scrape parses inputs through Zod schemas in `src/schemas/` before they reach business logic; `z.string().cuid()` is used directly (no custom wrappers).
 
 ### Limitations
