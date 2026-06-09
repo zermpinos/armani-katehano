@@ -13,7 +13,14 @@
 // package.json and package-lock.json are never modified - no restoration logic
 // needed, no risk to the user's checkout.
 //
-// On success: prints the resolved version (e.g. "8.4.31") to stdout, exit 0.
+// We scan *every* postcss entry in the resolved lockfile and report the lowest
+// version. next pins postcss to an exact older version, so without the override
+// npm nests `node_modules/next/node_modules/postcss` at that older version even
+// when other consumers hoist a newer one at the top level. Reading only the
+// top-level entry would miss the nested copy and falsely report the override as
+// removable.
+//
+// On success: prints the lowest resolved version (e.g. "8.4.31") to stdout, exit 0.
 // On error: prints nothing, exit non-zero - callers fall back to "unknown".
 
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
@@ -46,8 +53,19 @@ try {
   });
   // eslint-disable-next-line security/detect-non-literal-fs-filename
   const lock = JSON.parse(readFileSync(join(dir, 'package-lock.json'), 'utf8'));
-  const version = lock.packages?.['node_modules/postcss']?.version;
-  if (version) process.stdout.write(version);
+  const versions = [];
+  for (const [path, info] of Object.entries(lock.packages ?? {})) {
+    if ((path === 'node_modules/postcss' || path.endsWith('/node_modules/postcss')) && info.version) {
+      versions.push(info.version);
+    }
+  }
+  const cmp = (a, b) => {
+    const [aM, am, ap] = a.split('.').map(Number);
+    const [bM, bm, bp] = b.split('.').map(Number);
+    return aM - bM || am - bm || ap - bp;
+  };
+  const lowest = versions.sort(cmp)[0];
+  if (lowest) process.stdout.write(lowest);
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }
