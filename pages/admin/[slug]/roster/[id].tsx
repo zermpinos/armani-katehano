@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -236,13 +237,11 @@ function AvatarPreview({ name, photoUrl }: { name: string; photoUrl: string }) {
   const showImg = !!photoUrl && brokenUrl !== photoUrl;
   if (showImg) {
     return (
-      <img
+      <Image
         src={cloudinaryThumb(photoUrl, 160)}
         alt=""
         width={64}
         height={64}
-        loading="lazy"
-        decoding="async"
         onError={() => setBrokenUrl(photoUrl)}
         className="w-16 h-16 rounded-full object-cover border border-ak-border2"
         style={{ objectPosition: "top center" }}

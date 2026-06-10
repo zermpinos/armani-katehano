@@ -203,7 +203,7 @@ export function FinalFourPopup({
               boxShadow: "0 4px 18px rgba(192,57,43,0.38), inset 0 1px 0 rgba(255,255,255,0.1)",
             }}
           >
-            I'LL BE THERE
+            {"I'LL BE THERE"}
           </button>
 
           {/* Secondary link */}

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { isStarter } from "@/domain/roster";
@@ -27,13 +28,11 @@ function Avatar({ p }: { p: PlayerSlot }) {
   const showImg = !!p.photoUrl && !broken;
   if (showImg) {
     return (
-      <img
+      <Image
         src={cloudinaryThumb(p.photoUrl as string, 64)}
         alt={p.name}
         width={32}
         height={32}
-        loading="lazy"
-        decoding="async"
         onError={() => setBroken(true)}
         className="w-8 h-8 rounded-full object-cover shrink-0"
         style={{ objectPosition: "top center" }}
