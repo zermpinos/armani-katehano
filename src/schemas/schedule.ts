@@ -19,6 +19,7 @@ export const ScheduleWriteSchema = z.object({
   opponent:     z.string().min(1).max(100),
   scheduledFor: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)),
   location:     z.enum(["home", "away"]).default("home"),
+  round:        z.enum(["regular", "quarterfinal", "semifinal", "final"]).default("regular"),
   competition:  z.string().max(200).optional().nullable(),
   notes:        z.string().max(1000).optional().nullable(),
   sourceUrl:    z.string().max(1000).optional().nullable().superRefine((v, ctx) => {

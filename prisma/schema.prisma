@@ -188,6 +188,7 @@ model UpcomingGame {
   opponent       String
   scheduledFor   DateTime
   location       String                  @default("home")
+  round          String                  @default("regular")
   competition    String?
   notes          String?
   seasonLeagueId String?

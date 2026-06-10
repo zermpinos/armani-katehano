@@ -10,14 +10,22 @@ type Draft = {
   date:        string;
   time:        string;
   location:    "home" | "away";
+  round:       string;
   competition: string;
   sourceUrl:   string;
   notes:       string;
 };
 
+const ROUNDS = [
+  { value: "regular",      label: "Regular Season" },
+  { value: "quarterfinal", label: "Quarterfinal"   },
+  { value: "semifinal",    label: "Semifinal"      },
+  { value: "final",        label: "Final"          },
+];
+
 const EMPTY: Draft = {
   opponent: "", date: "", time: "20:00",
-  location: "home", competition: "", sourceUrl: "", notes: "",
+  location: "home", round: "regular", competition: "", sourceUrl: "", notes: "",
 };
 
 function todayDDMMYYYY(): string {
@@ -38,6 +46,7 @@ function gameToDraft(g: ScheduledGame): Draft {
     date:        `${d}-${m}-${y}`,
     time:        g.scheduledFor.slice(11, 16),
     location:    g.location,
+    round:       (g as { round?: string }).round ?? "regular",
     competition: g.competition ?? "",
     sourceUrl:   g.sourceUrl ?? "",
     notes:       g.notes ?? "",
@@ -106,6 +115,7 @@ export default function ScheduleEditPage({
         opponent:     draft.opponent,
         scheduledFor,
         location:     draft.location,
+        round:        draft.round,
         competition:  draft.competition || null,
         notes:        draft.notes || null,
         sourceUrl:    draft.sourceUrl || null,
@@ -186,6 +196,7 @@ export default function ScheduleEditPage({
                 options={[{ value: "home", label: "Home" }, { value: "away", label: "Away" }]}
               />
               <F label="DATE (DD-MM-YYYY)" value={draft.date} onChange={v => upd("date", v)} placeholder="09-04-2026" />
+              <Sel label="ROUND" value={draft.round} onChange={v => upd("round", v)} options={ROUNDS} />
               <F label="TIME" value={draft.time} onChange={v => upd("time", v)} placeholder="18:45" type="time" />
               <F label="COMPETITION" value={draft.competition} onChange={v => upd("competition", v)} placeholder="e.g. Super Winter Cup" />
             </div>

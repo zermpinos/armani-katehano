@@ -13,6 +13,7 @@ export async function getUpcomingGames() {
     opponent:     g.opponent,
     scheduledFor: g.scheduledFor.toISOString(),
     location:     g.location,
+    round:        g.round,
     competition:  g.competition ?? null,
     notes:        g.notes ?? null,
   }));
@@ -40,6 +41,7 @@ export async function getUpcomingGamesWithAnnouncements() {
     opponent:     g.opponent,
     scheduledFor: g.scheduledFor.toISOString(),
     location:     g.location,
+    round:        g.round,
     competition:  g.competition ?? null,
     notes:        g.notes ?? null,
     announcement: g.announcement ? {
@@ -69,7 +71,27 @@ export async function getAllUpcomingGames() {
     opponent:     g.opponent,
     scheduledFor: g.scheduledFor.toISOString(),
     location:     g.location,
+    round:        g.round,
     competition:  g.competition ?? null,
     notes:        g.notes ?? null,
   }));
+}
+
+export async function getNextPlayoffGame() {
+  const now = new Date();
+  const game = await prisma.upcomingGame.findFirst({
+    where: {
+      scheduledFor: { gte: now },
+      round: { in: ["quarterfinal", "semifinal", "final"] },
+    },
+    orderBy: { scheduledFor: "asc" },
+  });
+  if (!game) return null;
+  return {
+    opponent:     game.opponent,
+    scheduledFor: game.scheduledFor.toISOString(),
+    location:     game.location,
+    round:        game.round,
+    notes:        game.notes ?? null,
+  };
 }

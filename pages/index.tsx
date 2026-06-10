@@ -2,7 +2,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { StatTile, SectionHeading } from "@/components/ui";
-import { getAllPublicData, getAllPlayerGameLogs, getUpcomingGamesWithAnnouncements } from "@/server/db/repositories";
+import { getAllPublicData, getAllPlayerGameLogs, getUpcomingGamesWithAnnouncements, getNextPlayoffGame } from "@/server/db/repositories";
 import { computeRecord } from "@/domain/games/score";
 import { fmt } from "@/domain/players/format";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
@@ -57,8 +57,12 @@ const ScoringTrendModal = dynamic(
   () => import("@/client/home/scoring-trend-modal").then(m => ({ default: m.ScoringTrendModal })),
   { ssr: false }
 );
+const FinalFourPopup = dynamic(
+  () => import("@/client/home/final-four-popup").then(m => ({ default: m.FinalFourPopup })),
+  { ssr: false }
+);
 
-export default function HomePage({ players, games, stats, upcomingGames, currentSeason, seasonPhase, allPlayerGameLogs }: any) {
+export default function HomePage({ players, games, stats, upcomingGames, currentSeason, seasonPhase, allPlayerGameLogs, nextPlayoffGame }: any) {
   const [trendRange, setTrendRange] = useState(10);
   const [showTrendModal, setShowTrendModal] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
@@ -188,6 +192,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
         setTrendRange={setTrendRange}
         totalGames={games.length}
       />
+      <FinalFourPopup nextGame={nextPlayoffGame} />
 
     </Layout>
   );
@@ -195,12 +200,13 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 
 export async function getServerSideProps({ res }: any) {
   res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
-  const [{ players, games, stats, currentSeason, config }, upcomingGames, allPlayerGameLogs] = await Promise.all([
+  const [{ players, games, stats, currentSeason, config }, upcomingGames, allPlayerGameLogs, nextPlayoffGame] = await Promise.all([
     getAllPublicData(),
     getUpcomingGamesWithAnnouncements(),
     getAllPlayerGameLogs(),
+    getNextPlayoffGame(),
   ]);
   return {
-    props: { players, games, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, allPlayerGameLogs },
+    props: { players, games, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, allPlayerGameLogs, nextPlayoffGame },
   };
 }
