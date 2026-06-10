@@ -27,8 +27,10 @@ export default function MaintenancePage({
 
   const [maintenanceOn,   setMaintenanceOn]   = useState<boolean | null>(null);
   const [seasonPhase,     setSeasonPhase]     = useState<string | null>(null);
+  const [popupEnabled,    setPopupEnabled]    = useState<boolean | null>(null);
   const [maintenanceBusy, setMaintenanceBusy] = useState(false);
   const [phaseBusy,       setPhaseBusy]       = useState(false);
+  const [popupBusy,       setPopupBusy]       = useState(false);
   const [recalcing,       setRecalcing]       = useState(false);
   const [loading,         setLoading]         = useState(false);
   const [toast,           setToast]           = useState<{ type?: string; msg: string } | null>(null);
@@ -36,12 +38,14 @@ export default function MaintenancePage({
   const load = async () => {
     setLoading(true);
     try {
-      const [m, p] = await Promise.all([
+      const [m, p, pc] = await Promise.all([
         apiFetch("/api/admin/maintenance"),
         apiFetch("/api/admin/season-phase"),
+        apiFetch("/api/admin/popup-config"),
       ]);
-      if (m.ok) setMaintenanceOn((await m.json()).enabled);
-      if (p.ok) setSeasonPhase((await p.json()).seasonPhase);
+      if (m.ok)  setMaintenanceOn((await m.json()).enabled);
+      if (p.ok)  setSeasonPhase((await p.json()).seasonPhase);
+      if (pc.ok) setPopupEnabled((await pc.json()).enabled);
     } finally {
       setLoading(false);
     }
@@ -96,6 +100,30 @@ export default function MaintenancePage({
       setToast({ type: "error", msg: "Failed to set phase" });
     } finally {
       setPhaseBusy(false);
+    }
+  };
+
+  const handleTogglePopup = async () => {
+    if (popupEnabled === null) return;
+    const next = !popupEnabled;
+    setPopupBusy(true);
+    try {
+      const res = await apiFetch("/api/admin/popup-config", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ enabled: next }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setPopupEnabled(json.enabled);
+        setToast({ type: "success", msg: json.enabled ? "Playoff popup ON" : "Playoff popup OFF" });
+      } else {
+        setToast({ type: "error", msg: json.error ?? "Toggle failed" });
+      }
+    } catch {
+      setToast({ type: "error", msg: "Toggle failed" });
+    } finally {
+      setPopupBusy(false);
     }
   };
 
@@ -193,6 +221,41 @@ export default function MaintenancePage({
                 </button>
               ))}
             </div>
+          </Section>
+
+          <Section
+            label="Playoff popup"
+            hint="Shows a one-time announcement popup to visitors. Each time you re-enable it the dismissal counter resets, so returning visitors see it again."
+          >
+            <button
+              onClick={handleTogglePopup}
+              disabled={popupBusy || popupEnabled === null}
+              className={[
+                "w-full md:w-auto py-[10px] px-[18px] text-[12px] font-black tracking-[0.08em] rounded-[9px] border font-sans inline-flex items-center gap-[10px]",
+                popupEnabled
+                  ? "border-[#8b1a1a55] bg-[#8b1a1a22] text-ak-red-text"
+                  : "border-ak-border bg-ak-surface text-ak-text",
+                (popupBusy || popupEnabled === null) ? "cursor-not-allowed opacity-70" : "cursor-pointer",
+              ].join(" ")}
+            >
+              <span
+                className={[
+                  "h-2 w-2 rounded-full",
+                  popupEnabled === null
+                    ? "bg-ak-text-dim"
+                    : popupEnabled
+                    ? "bg-ak-red-bright animate-ak-pulse"
+                    : "bg-ak-green",
+                ].join(" ")}
+              />
+              {popupBusy
+                ? "Switching..."
+                : popupEnabled === null
+                ? "Popup: ..."
+                : popupEnabled
+                ? "Popup: ON - Click to disable"
+                : "Popup: OFF - Click to enable"}
+            </button>
           </Section>
 
           <Section
