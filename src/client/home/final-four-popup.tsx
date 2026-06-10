@@ -23,15 +23,16 @@ function formatGameDateTime(iso: string): string {
   }) + " · " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
-const LS_KEY = "ak_f4_dismissed";
+const DEFAULT_KEY = "ak_f4_dismissed";
 
-export function FinalFourPopup({ nextGame }: { nextGame: NextPlayoffGame | null }) {
+export function FinalFourPopup({ nextGame, dismissKey = DEFAULT_KEY }: { nextGame: NextPlayoffGame | null; dismissKey?: string }) {
   const [open,    setOpen]    = useState(false);
   const [closing, setClosing] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!localStorage.getItem(LS_KEY)) setOpen(true);
+    if (!localStorage.getItem(dismissKey)) setOpen(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -73,7 +74,7 @@ export function FinalFourPopup({ nextGame }: { nextGame: NextPlayoffGame | null 
     setClosing(true);
     setTimeout(() => {
       setOpen(false);
-      localStorage.setItem(LS_KEY, "1");
+      localStorage.setItem(dismissKey, "1");
     }, 240);
   }
 

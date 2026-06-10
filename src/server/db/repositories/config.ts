@@ -12,12 +12,16 @@ export async function getConfig() {
     orderBy: { year: "desc" },
   });
 
-  const phaseSetting = await prisma.setting.findUnique({
-    where: { key: "seasonPhase" },
-  });
+  const [phaseSetting, popupEnabledSetting, popupVersionSetting] = await Promise.all([
+    prisma.setting.findUnique({ where: { key: "seasonPhase" } }),
+    prisma.setting.findUnique({ where: { key: "popupEnabled" } }),
+    prisma.setting.findUnique({ where: { key: "popupVersion" } }),
+  ]);
 
   return {
-    currentSeason: season?.name ?? "2025-26",
-    seasonPhase: (phaseSetting?.value ?? "regular") as SeasonPhase,
+    currentSeason:  season?.name ?? "2025-26",
+    seasonPhase:    (phaseSetting?.value ?? "regular") as SeasonPhase,
+    popupEnabled:   popupEnabledSetting?.value === "true",
+    popupVersion:   parseInt(popupVersionSetting?.value ?? "1", 10),
   };
 }
