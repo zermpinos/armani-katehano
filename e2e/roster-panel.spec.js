@@ -41,7 +41,8 @@ test.describe("Home page featured roster panel", () => {
     test.skip(imgCount === 0, "Featured roster has no players with photoUrl");
 
     const srcs = await imgs.evaluateAll(els => els.map(e => e.getAttribute("src") || ""));
-    const transformed = srcs.find(s => s.includes("/image/upload/c_fill,g_face,w_64,h_64,f_auto,q_auto/"));
+    // next/image proxies through /_next/image?url=..., so decode before matching
+    const transformed = srcs.find(s => decodeURIComponent(s).includes("/image/upload/c_fill,g_face,w_64,h_64,f_auto,q_auto/"));
     expect(transformed).toBeTruthy();
   });
 
