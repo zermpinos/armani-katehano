@@ -33,7 +33,7 @@ export default function SchedulePage({
       setToast({ msg, type: "success" });
       router.replace(`/admin/${slug}/schedule`, undefined, { shallow: true });
     }
-  }, [router.isReady]);
+  }, [router, slug]);
 
   const loadData = async () => {
     setLoading(true);

@@ -41,7 +41,7 @@ export default function GamesListPage({
       setToast({ msg, type: "success" });
       router.replace(`/admin/${slug}/games`, undefined, { shallow: true });
     }
-  }, [router.isReady]);
+  }, [router, slug]);
 
   const loadData = async () => {
     setLoading(true);

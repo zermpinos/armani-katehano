@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -33,7 +34,7 @@ export default function RosterPage({
       setToast({ msg, type: "success" });
       router.replace(`/admin/${slug}/roster`, undefined, { shallow: true });
     }
-  }, [router.isReady]);
+  }, [router, slug]);
 
   const loadPlayers = async () => {
     setLoading(true);
@@ -123,13 +124,11 @@ function Avatar({ name, photoUrl }: { name: string; photoUrl: string | null }) {
   const [broken, setBroken] = useState(false);
   if (photoUrl && !broken) {
     return (
-      <img
+      <Image
         src={cloudinaryThumb(photoUrl, 80)}
         alt={name}
         width={40}
         height={40}
-        loading="lazy"
-        decoding="async"
         onError={() => setBroken(true)}
         className="w-10 h-10 rounded-full object-cover shrink-0"
         style={{ objectPosition: "top center" }}
