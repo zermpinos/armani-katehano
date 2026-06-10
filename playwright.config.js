@@ -31,6 +31,18 @@ export default defineConfig({
     // Neon DB cold-starts can take ~10 s; give pages 30 s to fully render.
     // actionTimeout is left at the Playwright default (30 s) - no override.
     navigationTimeout: 30_000,
+    // Pre-dismiss the Final Four popup for all known version keys so its
+    // fixed inset-0 backdrop never intercepts pointer events during tests.
+    storageState: {
+      cookies: [],
+      origins: [{
+        origin: BASE_URL,
+        localStorage: Array.from({ length: 10 }, (_, i) => ({
+          name:  `ak_f4_dismissed_v${i + 1}`,
+          value: "1",
+        })),
+      }],
+    },
     // Bypass Vercel Deployment Protection when running against a preview URL.
     // The secret is set in Vercel project settings -> "Protection Bypass for
     // Automation", then stored as the VERCEL_AUTOMATION_BYPASS_SECRET GitHub
