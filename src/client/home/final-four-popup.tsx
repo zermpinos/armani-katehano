@@ -25,7 +25,20 @@ function formatGameDateTime(iso: string): string {
 
 const DEFAULT_KEY = "ak_f4_dismissed";
 
-export function FinalFourPopup({ nextGame, dismissKey = DEFAULT_KEY }: { nextGame: NextPlayoffGame | null; dismissKey?: string }) {
+const HEADLINES: Record<string, { kicker: string; main: string }> = {
+  semifinal: { kicker: "WE'RE IN THE", main: "FINAL FOUR" },
+  final:     { kicker: "WE'RE IN THE", main: "FINAL"      },
+};
+
+export function FinalFourPopup({
+  nextGame,
+  dismissKey = DEFAULT_KEY,
+  round = "semifinal",
+}: {
+  nextGame:    NextPlayoffGame | null;
+  dismissKey?: string;
+  round?:      "semifinal" | "final";
+}) {
   const [open,    setOpen]    = useState(false);
   const [closing, setClosing] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -80,6 +93,7 @@ export function FinalFourPopup({ nextGame, dismissKey = DEFAULT_KEY }: { nextGam
 
   if (!open) return null;
 
+  const headline = HEADLINES[round] ?? HEADLINES.semifinal;
   const today = new Date();
   const dateKicker = `${String(today.getMonth() + 1).padStart(2, "0")}.${String(today.getDate()).padStart(2, "0")}.${today.getFullYear()}`;
 
@@ -173,10 +187,10 @@ export function FinalFourPopup({ nextGame, dismissKey = DEFAULT_KEY }: { nextGam
           {/* Headline */}
           <div className="text-center mb-7">
             <div className="text-[11px] font-black tracking-[0.28em] uppercase mb-[5px]" style={{ color: "rgba(236,102,102,0.75)" }}>
-              WE'RE IN THE
+              {headline.kicker}
             </div>
             <div className="ak-shimmer-text text-[clamp(40px,11vw,56px)] font-black leading-none tracking-[-0.02em] uppercase">
-              FINAL FOUR
+              {headline.main}
             </div>
           </div>
 
