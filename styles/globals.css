@@ -47,6 +47,36 @@ a { color: inherit; text-decoration: none; }
 .fade-in  { animation: fadeIn  0.3s ease both; }
 .slide-up { animation: slideUp 0.4s ease both; }
 
+/* ── Final Four popup animations ── */
+@keyframes ak-modal-in {
+  from { opacity: 0; transform: scale(0.92); filter: blur(8px);  }
+  to   { opacity: 1; transform: scale(1);    filter: blur(0px);  }
+}
+@keyframes ak-modal-out {
+  from { opacity: 1; transform: scale(1);    filter: blur(0px);  }
+  to   { opacity: 0; transform: scale(0.92); filter: blur(8px);  }
+}
+@keyframes ak-backdrop-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ak-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes ak-shimmer {
+  0%   { background-position: -250% center; }
+  100% { background-position:  250% center; }
+}
+
+.ak-modal-enter    { animation: ak-modal-in     0.32s cubic-bezier(0.2,0.8,0.3,1) both; }
+.ak-modal-exit     { animation: ak-modal-out    0.24s cubic-bezier(0.4,0,1,1)     both; }
+.ak-backdrop-enter { animation: ak-backdrop-in  0.28s ease both; }
+.ak-backdrop-exit  { animation: ak-backdrop-out 0.24s ease both; }
+
+.ak-shimmer-text {
+  background: linear-gradient(90deg, #c0392b 0%, #ec6666 28%, #fff5f5 47%, #ec6666 54%, #c0392b 72%, #8b1a1a 100%);
+  background-size: 260% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ak-shimmer 3.2s linear infinite;
+}
+
 /* ── Hero diagonal texture ── */
 .ak-hero-texture {
   background-image: repeating-linear-gradient(45deg,#8b1a1a 0,#8b1a1a 1px,transparent 0,transparent 50%);
