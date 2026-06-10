@@ -12,10 +12,11 @@ export async function getConfig() {
     orderBy: { year: "desc" },
   });
 
-  const [phaseSetting, popupEnabledSetting, popupVersionSetting] = await Promise.all([
-    prisma.setting.findUnique({ where: { key: "seasonPhase" } }),
-    prisma.setting.findUnique({ where: { key: "popupEnabled" } }),
-    prisma.setting.findUnique({ where: { key: "popupVersion" } }),
+  const [phaseSetting, popupEnabledSetting, popupVersionSetting, popupRoundSetting] = await Promise.all([
+    prisma.setting.findUnique({ where: { key: "seasonPhase"   } }),
+    prisma.setting.findUnique({ where: { key: "popupEnabled"  } }),
+    prisma.setting.findUnique({ where: { key: "popupVersion"  } }),
+    prisma.setting.findUnique({ where: { key: "popupRound"    } }),
   ]);
 
   return {
@@ -23,5 +24,6 @@ export async function getConfig() {
     seasonPhase:    (phaseSetting?.value ?? "regular") as SeasonPhase,
     popupEnabled:   popupEnabledSetting?.value === "true",
     popupVersion:   parseInt(popupVersionSetting?.value ?? "1", 10),
+    popupRound:     (popupRoundSetting?.value ?? "semifinal") as "semifinal" | "final",
   };
 }

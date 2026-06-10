@@ -28,9 +28,11 @@ export default function MaintenancePage({
   const [maintenanceOn,   setMaintenanceOn]   = useState<boolean | null>(null);
   const [seasonPhase,     setSeasonPhase]     = useState<string | null>(null);
   const [popupEnabled,    setPopupEnabled]    = useState<boolean | null>(null);
+  const [popupRound,      setPopupRound]      = useState<"semifinal" | "final" | null>(null);
   const [maintenanceBusy, setMaintenanceBusy] = useState(false);
   const [phaseBusy,       setPhaseBusy]       = useState(false);
   const [popupBusy,       setPopupBusy]       = useState(false);
+  const [roundBusy,       setRoundBusy]       = useState(false);
   const [recalcing,       setRecalcing]       = useState(false);
   const [loading,         setLoading]         = useState(false);
   const [toast,           setToast]           = useState<{ type?: string; msg: string } | null>(null);
@@ -45,7 +47,7 @@ export default function MaintenancePage({
       ]);
       if (m.ok)  setMaintenanceOn((await m.json()).enabled);
       if (p.ok)  setSeasonPhase((await p.json()).seasonPhase);
-      if (pc.ok) setPopupEnabled((await pc.json()).enabled);
+      if (pc.ok) { const d = await pc.json(); setPopupEnabled(d.enabled); setPopupRound(d.round ?? "semifinal"); }
     } finally {
       setLoading(false);
     }
@@ -124,6 +126,29 @@ export default function MaintenancePage({
       setToast({ type: "error", msg: "Toggle failed" });
     } finally {
       setPopupBusy(false);
+    }
+  };
+
+  const handleSetPopupRound = async (round: "semifinal" | "final") => {
+    if (round === popupRound) return;
+    setRoundBusy(true);
+    try {
+      const res = await apiFetch("/api/admin/popup-config", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ round }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setPopupRound(json.round);
+        setToast({ type: "success", msg: round === "final" ? "Popup: Finals" : "Popup: Semifinals (F4)" });
+      } else {
+        setToast({ type: "error", msg: json.error ?? "Failed" });
+      }
+    } catch {
+      setToast({ type: "error", msg: "Failed" });
+    } finally {
+      setRoundBusy(false);
     }
   };
 
@@ -256,6 +281,28 @@ export default function MaintenancePage({
                 ? "Popup: ON - Click to disable"
                 : "Popup: OFF - Click to enable"}
             </button>
+
+            <div className="mt-3 flex gap-1.5">
+              {([
+                { value: "semifinal" as const, label: "Semifinals (F4)" },
+                { value: "final"     as const, label: "Finals"          },
+              ]).map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => handleSetPopupRound(value)}
+                  disabled={roundBusy || popupRound === null}
+                  className={[
+                    "py-[8px] px-[14px] text-[11px] font-black tracking-[0.06em] rounded-[9px] border font-sans transition-colors duration-150",
+                    popupRound === value
+                      ? "border-[#8b1a1a55] bg-[#8b1a1a22] text-ak-red-text"
+                      : "border-ak-border bg-ak-surface text-ak-text",
+                    (roundBusy || popupRound === null) ? "cursor-not-allowed opacity-70" : "cursor-pointer",
+                  ].join(" ")}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </Section>
 
           <Section

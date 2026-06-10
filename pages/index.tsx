@@ -62,7 +62,7 @@ const FinalFourPopup = dynamic(
   { ssr: false }
 );
 
-export default function HomePage({ players, games, stats, upcomingGames, currentSeason, seasonPhase, allPlayerGameLogs, nextPlayoffGame, popupEnabled, popupVersion }: any) {
+export default function HomePage({ players, games, stats, upcomingGames, currentSeason, seasonPhase, allPlayerGameLogs, nextPlayoffGame, popupEnabled, popupVersion, popupRound }: any) {
   const [trendRange, setTrendRange] = useState(10);
   const [showTrendModal, setShowTrendModal] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
@@ -192,7 +192,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
         setTrendRange={setTrendRange}
         totalGames={games.length}
       />
-      {popupEnabled && <FinalFourPopup nextGame={nextPlayoffGame} dismissKey={`ak_f4_dismissed_v${popupVersion}`} />}
+      {popupEnabled && <FinalFourPopup nextGame={nextPlayoffGame} dismissKey={`ak_f4_dismissed_v${popupVersion}`} round={popupRound ?? "semifinal"} />}
 
     </Layout>
   );
@@ -207,6 +207,6 @@ export async function getServerSideProps({ res }: any) {
     getNextPlayoffGame(),
   ]);
   return {
-    props: { players, games, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, allPlayerGameLogs, nextPlayoffGame, popupEnabled: config.popupEnabled, popupVersion: config.popupVersion },
+    props: { players, games, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, allPlayerGameLogs, nextPlayoffGame, popupEnabled: config.popupEnabled, popupVersion: config.popupVersion, popupRound: config.popupRound },
   };
 }
