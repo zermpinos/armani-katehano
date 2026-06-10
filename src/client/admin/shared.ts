@@ -64,6 +64,7 @@ export interface ScheduledGame {
   opponent: string;
   scheduledFor: string;
   location: "home" | "away";
+  round: string;
   competition?: string | null;
   notes?: string | null;
   sourceUrl?: string | null;
