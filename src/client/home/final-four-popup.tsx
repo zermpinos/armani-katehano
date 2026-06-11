@@ -95,7 +95,7 @@ export function FinalFourPopup({
 
   const headline = round === "final" ? HEADLINES.final : HEADLINES.semifinal;
   const today = new Date();
-  const dateKicker = `${String(today.getMonth() + 1).padStart(2, "0")}.${String(today.getDate()).padStart(2, "0")}.${today.getFullYear()}`;
+  const dateKicker = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
 
   return (
     <div
