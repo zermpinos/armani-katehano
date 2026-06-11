@@ -26,34 +26,51 @@ export default async function globalSetup() {
     orderBy: { number: "asc" },
     select: { id: true },
   });
-  if (players.length < 1) {
-    await prisma.$disconnect();
-    return;
+
+  if (players.length >= 1) {
+    const game = await prisma.upcomingGame.create({
+      data: {
+        opponent,
+        scheduledFor: future,
+        location:     "home",
+        competition:  "E2E Cup",
+        notes:        null,
+      },
+    });
+    await prisma.gameRosterAnnouncement.create({
+      data: {
+        upcomingGameId: game.id,
+        message:        "Stay locked in defense.",
+        publishedAt:    new Date(),
+        players: {
+          create: players.map((p, i) => ({
+            playerId: p.id,
+            note:     i < Math.min(3, players.length) ? "starter" : null,
+          })),
+        },
+      },
+    });
   }
 
-  const game = await prisma.upcomingGame.create({
-    data: {
-      opponent,
-      scheduledFor: future,
-      location:     "home",
-      competition:  "E2E Cup",
-      notes:        null,
-    },
-  });
-
-  await prisma.gameRosterAnnouncement.create({
-    data: {
-      upcomingGameId: game.id,
-      message:        "Stay locked in defense.",
-      publishedAt:    new Date(),
-      players: {
-        create: players.map((p, i) => ({
-          playerId: p.id,
-          note:     i < Math.min(3, players.length) ? "starter" : null,
-        })),
-      },
-    },
-  });
-
   await prisma.$disconnect();
+
+  // Warm Turbopack dev compile of the admin routes the tests visit. Without
+  // this, parallel workers all trigger the first compile of /admin/[slug]
+  // simultaneously and the cold SSR exceeds the 30s navigationTimeout.
+  // Serialized fetches here run while only one consumer exists.
+  const slug = process.env.ADMIN_SLUG;
+  if (!slug) return;
+  const base = "http://localhost:3000";
+  for (const path of [
+    `/admin/${slug}/`,
+    `/admin/${slug}/passkeys`,
+    `/admin/${slug}/games`,
+  ]) {
+    try {
+      await fetch(`${base}${path}`, { redirect: "follow" });
+    } catch {
+      // Dev not ready or route compile failed. Tests will surface the real
+      // error with full context instead of a generic setup failure.
+    }
+  }
 }

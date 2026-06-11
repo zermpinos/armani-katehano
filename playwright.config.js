@@ -64,7 +64,13 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout:             60_000,
     env: {
-      SESSION_SECRET: process.env.SESSION_SECRET,
+      SESSION_SECRET:        process.env.SESSION_SECRET,
+      // Override the production domain so WebAuthn rpID == "localhost" and
+      // expectedOrigin == "http://localhost:3000" during local e2e tests.
+      // The passkey virtual-authenticator test requires this; without it,
+      // navigator.credentials.create() throws SecurityError because
+      // "armani-katehano.com" is not a registrable suffix of "localhost".
+      NEXT_PUBLIC_APP_URL:   BASE_URL,
     },
   },
 });
