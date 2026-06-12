@@ -94,8 +94,6 @@ export function FinalFourPopup({
   if (!open) return null;
 
   const headline = round === "final" ? HEADLINES.final : HEADLINES.semifinal;
-  const today = new Date();
-  const dateKicker = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
 
   return (
     <div
@@ -174,15 +172,6 @@ export function FinalFourPopup({
               priority
             />
           </div>
-
-          {/* Date kicker */}
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <span className="inline-block w-[7px] h-[7px] rounded-full bg-ak-red-bright animate-ak-pulse flex-shrink-0" />
-            <span className="text-[10px] font-black tracking-[0.2em] uppercase text-ak-text-dim">{dateKicker}</span>
-          </div>
-
-          {/* Separator between kicker and headline */}
-          <div className="border-t border-ak-border opacity-50 mb-5 mx-2" />
 
           {/* Headline */}
           <div className="text-center mb-7">
