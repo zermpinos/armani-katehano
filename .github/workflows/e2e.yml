@@ -16,14 +16,9 @@ permissions:
 jobs:
   e2e:
     name: Playwright E2E
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     if: github.event.deployment_status.state == 'success'
-    # Playwright does not yet recognise ubuntu26.04 in its platform map (upstream
-    # fix tracked in microsoft/playwright#40117, targeting v1.61). Override to the
-    # 24.04 binaries, which are ABI-compatible and run on 26.04 via t64 libs.
-    env:
-      PLAYWRIGHT_HOST_PLATFORM_OVERRIDE: ubuntu24.04-x64
 
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -35,9 +30,6 @@ jobs:
 
       - run: npm ci
 
-      # On a persistent self-hosted runner, ~/.cache/ms-playwright survives
-      # between runs. playwright install is idempotent - skips the download
-      # when the browser binary is already present for the current version.
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
