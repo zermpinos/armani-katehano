@@ -58,6 +58,8 @@
     "@hono/node-server": ">=1.19.13",
     "postcss": "^8.5.10",
     "encoding-sniffer": "^1.0.2",
+    "@babel/core": ">=7.29.7",
+    "js-yaml": ">=4.2.0",
     "@typescript-eslint/typescript-estree": {
       "minimatch": {
         ".": "^10.2.5",
@@ -68,7 +70,7 @@
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4.3.1",
-    "@types/dompurify": "^3.2.0",
+
     "@types/nodemailer": "^8.0.0",
     "@types/ws": "^8.18.1",
     "dotenv": "^17.4.2",
@@ -82,5 +84,12 @@
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.8.0": true,
+    "esbuild@0.28.1": true,
+    "prisma@7.8.0": true,
+    "sharp@0.34.5": true,
+    "unrs-resolver@1.11.1": true
   }
 }
