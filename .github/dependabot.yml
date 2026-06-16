@@ -20,15 +20,10 @@ updates:
           - "minor"
           - "patch"
     ignore:
-      # ESLint 10: blocked until eslint-plugin-import (transitive via
-      # eslint-config-next) ships a release with peer eslint ^10.
-      # Current eslint-plugin-import@2.32.0 peer: "... || ^9".
+      # ESLint 10: blocked until eslint-plugin-import ships a release with
+      # peer eslint ^10. Current eslint-plugin-import@2.32.0 peer: "... || ^9".
       # Track upstream: https://github.com/import-js/eslint-plugin-import
       - dependency-name: "eslint"
-        update-types: ["version-update:semver-major"]
-      # TypeScript 6: blocked until tsconfig.json no longer uses baseUrl
-      # (TS 6 deprecates with TS5101 error; TS 7 removes). See Task 8.
-      - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: pip
