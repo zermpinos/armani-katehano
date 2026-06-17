@@ -114,8 +114,7 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
   );
 }
 
-export async function getServerSideProps({ res }: any) {
-  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
+export async function getStaticProps() {
   const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
   const allSeasonsStats = await getAllSeasonsStats(seasons);
   const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
@@ -131,5 +130,5 @@ export async function getServerSideProps({ res }: any) {
     }
   }
 
-  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory } };
+  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }, revalidate: 86400 };
 }

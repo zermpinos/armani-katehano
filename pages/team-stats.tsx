@@ -251,8 +251,7 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
   );
 }
 
-export async function getServerSideProps({ res }: any) {
-  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
+export async function getStaticProps() {
   const { seasons, currentSeason, players, games } = await getAllPublicData(null);
-  return { props: { players, games, seasons, currentSeason } };
+  return { props: { players, games, seasons, currentSeason }, revalidate: 86400 };
 }

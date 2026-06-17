@@ -116,8 +116,7 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
   );
 }
 
-export async function getServerSideProps({ res }: any) {
-  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
+export async function getStaticProps() {
   const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
   const [allSeasonsStats, allPlayerGameLogs] = await Promise.all([
     getAllSeasonsStats(seasons),
@@ -127,5 +126,6 @@ export async function getServerSideProps({ res }: any) {
 
   return {
     props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs },
+    revalidate: 86400,
   };
 }
