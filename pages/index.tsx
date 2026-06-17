@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { StatTile, SectionHeading } from "@/components/ui";
@@ -68,6 +68,14 @@ export default function HomePage({ players, games, stats, upcomingGames, current
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const [openRosterId, setOpenRosterId] = useState<string | null>(null);
   const toggleRoster = (id: string) => setOpenRosterId(prev => prev === id ? null : id);
+
+  const [liveUpcomingGames, setLiveUpcomingGames] = useState<any[]>(upcomingGames);
+  useEffect(() => {
+    fetch("/api/public/upcoming-games")
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d.upcomingGames)) setLiveUpcomingGames(d.upcomingGames); })
+      .catch(() => {});
+  }, []);
 
   const playersWithStats = players.map((p: any) => ({
     ...p,
@@ -149,7 +157,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
       </div>
 
       <UpcomingGamesSection
-        upcomingGames={upcomingGames}
+        upcomingGames={liveUpcomingGames}
         openRosterId={openRosterId}
         onToggleRoster={toggleRoster}
         showAllUpcoming={showAllUpcoming}
