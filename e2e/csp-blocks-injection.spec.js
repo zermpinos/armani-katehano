@@ -19,6 +19,6 @@ test("CSP blocks injected inline script", async ({ page }) => {
   await page.goto("/");
   await page.waitForLoadState("networkidle");
 
-  const pwned = await page.evaluate(m => window[m], marker);
-  expect(pwned).toBeUndefined();
+  const injected = await page.evaluate(key => key in window, marker);
+  expect(injected).toBe(false);
 });
