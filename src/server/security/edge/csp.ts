@@ -1,13 +1,13 @@
-export function generateNonce(): string {
-  return Buffer.from(globalThis.crypto.randomUUID()).toString("base64");
-}
+import { scriptHashes, styleHashes } from "./csp-hashes";
 
-export function buildCsp(nonce: string): string {
+export function buildCsp(): string {
   const isPreview = process.env.VERCEL_ENV !== "production";
+  const fmt = (hs: readonly string[]) =>
+    hs.length ? " " + hs.map(h => `'${h}'`).join(" ") : "";
   return [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}'${isPreview ? " https://vercel.live" : ""}`,
-    `style-src 'self' 'nonce-${nonce}'`,
+    `script-src 'self'${fmt(scriptHashes)}${isPreview ? " https://vercel.live" : ""}`,
+    `style-src 'self'${fmt(styleHashes)}`,
     `style-src-attr 'unsafe-inline'`,
     `object-src 'none'`,
     `img-src 'self' data: https://res.cloudinary.com`,

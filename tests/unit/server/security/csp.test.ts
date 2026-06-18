@@ -104,6 +104,15 @@ describe("buildCsp", () => {
   });
 });
 
+import { scriptHashes, styleHashes } from "@/server/security/edge/csp-hashes";
+
+describe("hash-based buildCsp", () => {
+  it("no nonce token appears", () => {
+    expect(() => (buildCsp as () => string)()).not.toThrow();
+    expect((buildCsp as () => string)()).not.toContain("'nonce-");
+  });
+});
+
 describe("next.config.mjs fallback CSP", () => {
   const cfg = readFileSync(resolve(ROOT, "next.config.mjs"), "utf8");
 
