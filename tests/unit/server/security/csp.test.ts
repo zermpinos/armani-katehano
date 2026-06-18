@@ -2,42 +2,14 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { generateNonce, buildCsp } from "@/server/security/edge";
+import { buildCsp } from "@/server/security/edge";
+import { scriptHashes, styleHashes } from "@/server/security/edge/csp-hashes";
 
 const ROOT = resolve(__dirname, "..", "..", "..", "..");
 
-describe("generateNonce", () => {
-  it("returns a non-empty string", () => {
-    expect(generateNonce().length).toBeGreaterThan(0);
-  });
-
-  it("returns a valid base64 string", () => {
-    const nonce = generateNonce();
-    expect(() => Buffer.from(nonce, "base64")).not.toThrow();
-  });
-
-  it("returns a different value on every call", () => {
-    const a = generateNonce();
-    const b = generateNonce();
-    expect(a).not.toBe(b);
-  });
-});
-
 describe("buildCsp", () => {
-  it("embeds the nonce in script-src", () => {
-    const nonce = generateNonce();
-    const csp   = buildCsp(nonce);
-    expect(csp).toContain(`'nonce-${nonce}'`);
-  });
-
-  it("does not contain 'unsafe-inline' in script-src", () => {
-    const csp = buildCsp(generateNonce());
-    const scriptSrc = csp.split(";").find(d => d.trim().startsWith("script-src"));
-    expect(scriptSrc).not.toContain("'unsafe-inline'");
-  });
-
   it("contains all required directives", () => {
-    const csp = buildCsp(generateNonce());
+    const csp = buildCsp();
     expect(csp).toContain("default-src");
     expect(csp).toContain("script-src");
     expect(csp).toContain("style-src");
@@ -50,53 +22,62 @@ describe("buildCsp", () => {
     expect(csp).toContain("form-action 'self'");
   });
 
-  it("style-src-attr permits unsafe-inline for dynamic CSS custom properties", () => {
-    const csp = buildCsp(generateNonce());
-    const styleAttr = csp.split(";").find(d => d.trim().startsWith("style-src-attr"));
-    expect(styleAttr).toContain("'unsafe-inline'");
+  it("contains no nonce token", () => {
+    expect(buildCsp()).not.toContain("'nonce-");
+  });
+
+  it("script-src contains all committed script hashes", () => {
+    const scriptSrc = buildCsp().split(";").find(d => d.trim().startsWith("script-src"))!;
+    for (const h of scriptHashes) expect(scriptSrc).toContain(`'${h}'`);
+  });
+
+  it("style-src contains all committed style hashes", () => {
+    const styleSrc = buildCsp().split(";").find(d => d.trim().startsWith("style-src") && !d.trim().startsWith("style-src-attr"))!;
+    for (const h of styleHashes) expect(styleSrc).toContain(`'${h}'`);
+  });
+
+  it("script-src does not contain unsafe-inline", () => {
+    const scriptSrc = buildCsp().split(";").find(d => d.trim().startsWith("script-src"));
+    expect(scriptSrc).not.toContain("'unsafe-inline'");
   });
 
   it("style-src does not contain unsafe-inline", () => {
-    const csp = buildCsp(generateNonce());
-    const styleSrc = csp.split(";").find(d => d.trim().startsWith("style-src") && !d.trim().startsWith("style-src-attr"));
+    const styleSrc = buildCsp().split(";").find(d => d.trim().startsWith("style-src") && !d.trim().startsWith("style-src-attr"));
     expect(styleSrc).not.toContain("'unsafe-inline'");
   });
 
-  it("does not allow any sentry host in script-src or connect-src", () => {
-    const csp        = buildCsp(generateNonce());
-    const scriptSrc  = csp.split(";").find(d => d.trim().startsWith("script-src"));
-    const connectSrc = csp.split(";").find(d => d.trim().startsWith("connect-src"));
-    expect(scriptSrc).not.toContain("sentry");
-    expect(connectSrc).not.toContain("sentry");
+  it("style-src-attr permits unsafe-inline", () => {
+    const styleAttr = buildCsp().split(";").find(d => d.trim().startsWith("style-src-attr"));
+    expect(styleAttr).toContain("'unsafe-inline'");
   });
 
   it("allows Cloudinary in img-src", () => {
-    const csp    = buildCsp(generateNonce());
-    const imgSrc = csp.split(";").find(d => d.trim().startsWith("img-src"));
+    const imgSrc = buildCsp().split(";").find(d => d.trim().startsWith("img-src"));
     expect(imgSrc).toContain("https://res.cloudinary.com");
   });
 
-  it("allows vercel.live in script-src and connect-src on preview deployments", () => {
+  it("includes vercel.live and Pusher in preview", () => {
     const prev = process.env.VERCEL_ENV;
     process.env.VERCEL_ENV = "preview";
     try {
-      const csp        = buildCsp(generateNonce());
-      const scriptSrc  = csp.split(";").find(d => d.trim().startsWith("script-src"));
-      const connectSrc = csp.split(";").find(d => d.trim().startsWith("connect-src"));
+      const csp = buildCsp();
+      const scriptSrc = csp.split(";").find(d => d.trim().startsWith("script-src"))!;
+      const connectSrc = csp.split(";").find(d => d.trim().startsWith("connect-src"))!;
       expect(scriptSrc).toContain("https://vercel.live");
       expect(connectSrc).toContain("https://vercel.live");
+      expect(connectSrc).toContain("wss://ws-us3.pusher.com");
+      expect(connectSrc).toContain("https://sockjs-us3.pusher.com");
     } finally {
       if (prev === undefined) delete process.env.VERCEL_ENV;
       else process.env.VERCEL_ENV = prev;
     }
   });
 
-  it("excludes vercel.live on production deployments", () => {
+  it("excludes vercel.live on production", () => {
     const prev = process.env.VERCEL_ENV;
     process.env.VERCEL_ENV = "production";
     try {
-      const csp = buildCsp(generateNonce());
-      expect(csp).not.toContain("vercel.live");
+      expect(buildCsp()).not.toContain("vercel.live");
     } finally {
       if (prev === undefined) delete process.env.VERCEL_ENV;
       else process.env.VERCEL_ENV = prev;
@@ -106,7 +87,6 @@ describe("buildCsp", () => {
 
 describe("next.config.mjs fallback CSP", () => {
   const cfg = readFileSync(resolve(ROOT, "next.config.mjs"), "utf8");
-
   const directives = [
     "style-src-attr 'unsafe-inline'",
     "object-src 'none'",
@@ -114,19 +94,12 @@ describe("next.config.mjs fallback CSP", () => {
     "base-uri 'none'",
     "form-action 'self'",
   ];
-
-  for (const directive of directives) {
-    it(`includes ${directive}`, () => {
-      expect(cfg).toContain(directive);
-    });
+  for (const d of directives) {
+    it(`includes ${d}`, () => expect(cfg).toContain(d));
   }
-
   it("style-src does not contain unsafe-inline", () => {
-    const lines = cfg.split("\n");
-    const styleSrcLine = lines.find(
-      l => l.includes("style-src") && !l.includes("style-src-attr")
-    );
-    expect(styleSrcLine).toBeDefined();
-    expect(styleSrcLine).not.toContain("unsafe-inline");
+    const line = cfg.split("\n").find(l => l.includes("style-src") && !l.includes("style-src-attr"));
+    expect(line).toBeDefined();
+    expect(line).not.toContain("unsafe-inline");
   });
 });

@@ -1,33 +1,15 @@
-import Document, {
-  Html,
-  Head,
-  Main,
-  NextScript,
-  DocumentContext,
-  DocumentInitialProps,
-} from "next/document";
+import Document, { Html, Head, Main, NextScript } from "next/document";
 
-interface Props extends DocumentInitialProps {
-  nonce: string;
-}
-
-export default class MyDocument extends Document<Props> {
-  static async getInitialProps(ctx: DocumentContext): Promise<Props> {
-    const initialProps = await Document.getInitialProps(ctx);
-    const nonce = (ctx.req?.headers["x-nonce"] as string) ?? "";
-    return { ...initialProps, nonce };
-  }
-
+export default class MyDocument extends Document {
   render() {
-    const { nonce } = this.props;
     return (
       <Html lang="en">
-        <Head nonce={nonce}>
+        <Head>
           <link rel="icon" href="/logo.png" />
         </Head>
         <body>
           <Main />
-          <NextScript nonce={nonce} />
+          <NextScript />
         </body>
       </Html>
     );
