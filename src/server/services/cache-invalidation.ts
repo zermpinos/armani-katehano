@@ -2,10 +2,10 @@ import "@/server/_internal/node-only";
 
 export type RevalidateFn = (path: string) => Promise<unknown>;
 
-const LISTINGS_STATS_AND_HOME = ["/", "/players", "/leaderboard", "/games", "/team-stats"] as const;
+const LISTINGS_STATS_AND_HOME = ["/", "/players", "/leaderboard", "/games", "/team-stats", "/sitemap.xml"] as const;
 const LISTINGS_STATS          = ["/leaderboard", "/players", "/games", "/team-stats"] as const;
 const LISTINGS_ROSTER         = ["/", "/players", "/leaderboard", "/team-stats"] as const;
-const LISTINGS_HOME_GAMES     = ["/", "/games"] as const;
+const LISTINGS_HOME_GAMES     = ["/", "/games", "/sitemap.xml"] as const;
 
 async function fanout(revalidate: RevalidateFn | undefined, paths: readonly string[]) {
   if (!revalidate) return;
@@ -58,5 +58,9 @@ export async function invalidateForPlayerMutation(opts: PlayerMutationInvalidati
 }
 
 export async function invalidateForRosterAnnouncement(opts: { revalidate?: RevalidateFn }) {
+  await fanout(opts.revalidate, ["/"]);
+}
+
+export async function invalidateForPopupConfig(opts: { revalidate?: RevalidateFn }): Promise<void> {
   await fanout(opts.revalidate, ["/"]);
 }

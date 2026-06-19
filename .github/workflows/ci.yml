@@ -46,9 +46,16 @@ jobs:
         env:
           SESSION_SECRET: ci-placeholder-secret
 
+      - name: Verify build artifacts (L3 + L5)
+        if: github.actor != 'dependabot[bot]'
+        run: npm run test:build && node scripts/check-isr-pages.mjs
+        env:
+          SESSION_SECRET: ci-placeholder-secret
+
       # Audit backstop: verify the produced middleware bundle pulls in no
       # Node built-ins. ESLint zones + `server-only` markers should already
       # keep these out at source - this catches the case where any of those
       # were bypassed. See docs/architecture.md §4.
       - name: Verify middleware bundle has no Node built-ins
+        if: github.actor != 'dependabot[bot]'
         run: node scripts/check-middleware-bundle.mjs

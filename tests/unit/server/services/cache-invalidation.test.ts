@@ -9,6 +9,7 @@ import {
   invalidateForSeasonPhaseChange,
   invalidateForPlayerMutation,
   invalidateForRosterAnnouncement,
+  invalidateForPopupConfig,
 } from "@/server/services/cache-invalidation";
 
 function recorder() {
@@ -34,6 +35,7 @@ describe("cache-invalidation", () => {
         "/players",
         "/players/alex",
         "/players/marios",
+        "/sitemap.xml",
         "/team-stats",
       ]);
     });
@@ -66,7 +68,7 @@ describe("cache-invalidation", () => {
     it("hits home and games listing only", async () => {
       const { fn, calls } = recorder();
       await invalidateForScheduleMutation({ revalidate: fn });
-      expect(calls.sort()).toEqual(["/", "/games"]);
+      expect(calls.sort()).toEqual(["/", "/games", "/sitemap.xml"]);
     });
   });
 
@@ -74,7 +76,7 @@ describe("cache-invalidation", () => {
     it("hits every public listing", async () => {
       const { fn, calls } = recorder();
       await invalidateForRecalc({ revalidate: fn });
-      expect(calls.sort()).toEqual(["/", "/games", "/leaderboard", "/players", "/team-stats"]);
+      expect(calls.sort()).toEqual(["/", "/games", "/leaderboard", "/players", "/sitemap.xml", "/team-stats"]);
     });
   });
 
@@ -98,7 +100,7 @@ describe("cache-invalidation", () => {
     it("hits home and games listing", async () => {
       const { fn, calls } = recorder();
       await invalidateForSeasonPhaseChange({ revalidate: fn });
-      expect(calls.sort()).toEqual(["/", "/games"]);
+      expect(calls.sort()).toEqual(["/", "/games", "/sitemap.xml"]);
     });
   });
 
@@ -136,6 +138,39 @@ describe("cache-invalidation", () => {
       const { fn, calls } = recorder();
       await invalidateForRosterAnnouncement({ revalidate: fn });
       expect(calls).toEqual(["/"]);
+    });
+  });
+
+  describe("invalidateForGameMutation — sitemap included", () => {
+    it("includes /sitemap.xml in the fan-out", async () => {
+      const { fn, calls } = recorder();
+      await invalidateForGameMutation({ revalidate: fn, gameId: "g1" });
+      expect(calls).toContain("/sitemap.xml");
+    });
+  });
+
+  describe("invalidateForScheduleMutation — sitemap included", () => {
+    it("includes /sitemap.xml in the fan-out", async () => {
+      const { fn, calls } = recorder();
+      await invalidateForScheduleMutation({ revalidate: fn });
+      expect(calls).toContain("/sitemap.xml");
+    });
+  });
+
+  describe("invalidateForPopupConfig", () => {
+    it("fans out exactly ['/']", async () => {
+      const { fn, calls } = recorder();
+      await invalidateForPopupConfig({ revalidate: fn });
+      expect(calls).toEqual(["/"]);
+    });
+
+    it("is a no-op when no revalidate is provided", async () => {
+      await expect(invalidateForPopupConfig({})).resolves.toBeUndefined();
+    });
+
+    it("does not let a rejected revalidate call reject the batch", async () => {
+      const fn = vi.fn(async () => { throw new Error("boom"); });
+      await expect(invalidateForPopupConfig({ revalidate: fn })).resolves.toBeUndefined();
     });
   });
 });

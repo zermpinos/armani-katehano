@@ -17,6 +17,7 @@ describe("buildCsp", () => {
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("img-src");
     expect(csp).toContain("connect-src");
+    expect(csp).toContain("frame-src");
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("base-uri 'none'");
     expect(csp).toContain("form-action 'self'");
@@ -63,10 +64,12 @@ describe("buildCsp", () => {
       const csp = buildCsp();
       const scriptSrc = csp.split(";").find(d => d.trim().startsWith("script-src"))!;
       const connectSrc = csp.split(";").find(d => d.trim().startsWith("connect-src"))!;
+      const frameSrc = csp.split(";").find(d => d.trim().startsWith("frame-src"))!;
       expect(scriptSrc).toContain("https://vercel.live");
       expect(connectSrc).toContain("https://vercel.live");
       expect(connectSrc).toContain("wss://ws-us3.pusher.com");
       expect(connectSrc).toContain("https://sockjs-us3.pusher.com");
+      expect(frameSrc).toContain("https://vercel.live");
     } finally {
       if (prev === undefined) delete process.env.VERCEL_ENV;
       else process.env.VERCEL_ENV = prev;

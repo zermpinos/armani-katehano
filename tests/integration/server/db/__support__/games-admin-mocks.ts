@@ -30,7 +30,7 @@ export const VALID_GAME_BODY = {
   playedOn:       "2025-03-15",
 };
 
-export const LISTING_PATHS = ["/", "/players", "/leaderboard", "/games", "/team-stats"];
+export const LISTING_PATHS = ["/", "/players", "/leaderboard", "/games", "/team-stats", "/sitemap.xml"];
 export const detailGamePath = (gameId: string) => `/games/${gameId}`;
 
 export function mockRes() {

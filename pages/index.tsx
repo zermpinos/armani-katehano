@@ -207,14 +207,19 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 }
 
 export async function getStaticProps() {
-  const [{ players, games, stats, currentSeason, config }, upcomingGames, allPlayerGameLogs, nextPlayoffGame] = await Promise.all([
-    getAllPublicData(),
-    getUpcomingGamesWithAnnouncements(),
-    getAllPlayerGameLogs(),
-    getNextPlayoffGame(),
-  ]);
-  return {
-    props: { players, games, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, allPlayerGameLogs, nextPlayoffGame, popupEnabled: config.popupEnabled, popupVersion: config.popupVersion, popupRound: config.popupRound },
-    revalidate: 86400,
-  };
+  try {
+    const [{ players, games, stats, currentSeason, config }, upcomingGames, allPlayerGameLogs, nextPlayoffGame] = await Promise.all([
+      getAllPublicData(),
+      getUpcomingGamesWithAnnouncements(),
+      getAllPlayerGameLogs(),
+      getNextPlayoffGame(),
+    ]);
+    return {
+      props: { players, games, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, allPlayerGameLogs, nextPlayoffGame, popupEnabled: config.popupEnabled, popupVersion: config.popupVersion, popupRound: config.popupRound },
+      revalidate: 3600,
+    };
+  } catch {
+    // ponytail: DB unavailable at build time (e.g. CI); ISR revalidates on first request.
+    return { props: { players: [], games: [], stats: {}, upcomingGames: [], currentSeason: "", seasonPhase: null, allPlayerGameLogs: [], nextPlayoffGame: null, popupEnabled: false, popupVersion: 0, popupRound: null }, revalidate: 60 };
+  }
 }
