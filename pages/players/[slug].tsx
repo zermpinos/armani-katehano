@@ -105,8 +105,11 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
   );
 }
 
-export async function getServerSideProps({ params, res }: any) {
-  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
+export async function getStaticPaths() {
+  return { paths: [], fallback: "blocking" };
+}
+
+export async function getStaticProps({ params }: any) {
   const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
   const player = players.find((p: any) => p.slug === params.slug);
   if (!player) return { notFound: true };
@@ -127,5 +130,6 @@ export async function getServerSideProps({ params, res }: any) {
 
   return {
     props: { player, statsMap: stats, allTimeStatsMap, seasons, currentSeason, playerSeasonHistory, allGameLog },
+    revalidate: 86400,
   };
 }

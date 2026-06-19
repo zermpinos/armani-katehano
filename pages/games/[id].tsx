@@ -27,12 +27,15 @@ export default function GamePage({ game }: { game: any }) {
   );
 }
 
-export async function getServerSideProps({ params, res }: any) {
-  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
+export async function getStaticPaths() {
+  return { paths: [], fallback: "blocking" };
+}
+
+export async function getStaticProps({ params }: any) {
   try {
     const game = await getGameById(params.id as string);
     if (!game) return { notFound: true };
-    return { props: { game } };
+    return { props: { game }, revalidate: 86400 };
   } catch {
     return { notFound: true };
   }

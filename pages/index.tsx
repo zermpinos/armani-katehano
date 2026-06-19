@@ -206,8 +206,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
   );
 }
 
-export async function getServerSideProps({ res }: any) {
-  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
+export async function getStaticProps() {
   const [{ players, games, stats, currentSeason, config }, upcomingGames, allPlayerGameLogs, nextPlayoffGame] = await Promise.all([
     getAllPublicData(),
     getUpcomingGamesWithAnnouncements(),
@@ -216,5 +215,6 @@ export async function getServerSideProps({ res }: any) {
   ]);
   return {
     props: { players, games, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, allPlayerGameLogs, nextPlayoffGame, popupEnabled: config.popupEnabled, popupVersion: config.popupVersion, popupRound: config.popupRound },
+    revalidate: 86400,
   };
 }
