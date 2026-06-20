@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test";
+import { makeAdminAuth } from "./helpers/admin-auth.js";
+
+const SESSION_SECRET = process.env.SESSION_SECRET;
+const BASE_URL       = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 
 async function pollFor(page, url, condition, { timeout = 30_000, interval = 1_000 } = {}) {
   const deadline = Date.now() + timeout;
@@ -12,26 +16,45 @@ async function pollFor(page, url, condition, { timeout = 30_000, interval = 1_00
 }
 
 test.describe("ISR freshness after admin write", () => {
-  test("new game appears on /games within 30 s of POST", async ({ page, request }) => {
-    const create = await request.post("/api/admin/games", {
+  test.skip(!SESSION_SECRET, "SESSION_SECRET not configured — skipping ISR freshness test");
+
+  test("new game appears on /games within 30 s of POST", async ({ page }) => {
+    const { cookies, authHeaders } = makeAdminAuth();
+    await page.context().addCookies(cookies);
+
+    // Fetch the first available season-league from the preview DB.
+    const slRes = await page.request.get(`${BASE_URL}/api/admin/season-leagues`, { headers: authHeaders });
+    expect(slRes.ok()).toBeTruthy();
+    const { seasonLeagues } = await slRes.json();
+    if (!seasonLeagues?.length) {
+      test.skip(true, "No season-leagues in preview DB — skipping freshness test");
+      return;
+    }
+    const seasonLeagueId = seasonLeagues[0].id;
+
+    const create = await page.request.post(`${BASE_URL}/api/admin/games`, {
+      headers: authHeaders,
       data: {
-        seasonLeagueId: process.env.TEST_SEASON_LEAGUE_ID,
-        opponent: `E2E Test Opponent ${Date.now()}`,
-        location: "home",
-        teamScore: 80,
+        seasonLeagueId,
+        opponent:      `E2E ISR Test ${Date.now()}`,
+        location:      "home",
+        teamScore:     80,
         opponentScore: 70,
-        result: "W",
-        playedOn: new Date().toISOString().split("T")[0],
+        result:        "W",
+        playedOn:      new Date().toISOString().split("T")[0],
       },
     });
     expect(create.ok()).toBeTruthy();
     const { gameId } = await create.json();
 
-    await pollFor(page, "/games", body => body.includes(gameId));
-    await pollFor(page, `/games/${gameId}`, body => body.includes(gameId));
-    await pollFor(page, "/sitemap.xml", body => body.includes(gameId));
+    await pollFor(page, "/games",             body => body.includes(gameId));
+    await pollFor(page, `/games/${gameId}`,   body => body.includes(gameId));
+    await pollFor(page, "/sitemap.xml",       body => body.includes(gameId));
 
-    const del = await request.delete("/api/admin/games", { data: { gameId } });
+    const del = await page.request.delete(`${BASE_URL}/api/admin/games`, {
+      headers: authHeaders,
+      data: { gameId },
+    });
     expect(del.ok()).toBeTruthy();
 
     await pollFor(page, "/games", body => !body.includes(gameId));
