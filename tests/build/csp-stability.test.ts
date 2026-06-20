@@ -59,10 +59,11 @@ describe.skipIf(!hasBuild)("CSP inline-script stability", () => {
     const hasNextData = html.includes('id="__NEXT_DATA__"');
     if (hasNextData) {
       expect(json.length).toBeGreaterThan(0);
+      // The type attribute must live IN the opening tag; without it the script
+      // becomes executable and breaks the hash-based CSP.
+      const tag = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>/)?.[0] ?? "";
+      expect(tag).toMatch(/type=("|')application\/json\1/);
     }
-    expect(html).not.toMatch(
-      /<script[^>]*id="__NEXT_DATA__"[^>]*>(?![\s\S]*type="application\/json")/
-    );
   });
 
   it("executable inline-script count per page is at most 5", () => {
