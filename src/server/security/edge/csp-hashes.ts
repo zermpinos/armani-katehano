@@ -1,6 +1,6 @@
 export const scriptHashes: readonly string[] = [];
 
-// ponytail: hashes sourced from browser CSP violation reports on Vercel Preview.
+// Hashes sourced from browser CSP violation reports on Vercel Preview.
 // Re-run `npm run regenerate-csp-hashes` after any CSS change and commit the result.
 export const styleHashes: readonly string[] = [
   "sha256-19U6/ccNF8aPwxmQzpRtgfKkvWkb+WjEmvRtplbo75Q=",

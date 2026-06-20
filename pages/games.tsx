@@ -147,7 +147,7 @@ export async function getStaticProps() {
       revalidate: 3600,
     };
   } catch {
-    // ponytail: DB unavailable at build time (e.g. CI); ISR revalidates on first request.
+    // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
     return { props: { allGames: [], seasons: [], currentSeason: "", seasonPhase: null, upcomingGames: [] }, revalidate: 60 };
   }
 }

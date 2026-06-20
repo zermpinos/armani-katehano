@@ -126,7 +126,7 @@ export async function getStaticProps() {
     const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
     return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs }, revalidate: 3600 };
   } catch {
-    // ponytail: DB unavailable at build time (e.g. CI); ISR revalidates on first request.
+    // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
     return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, allPlayerGameLogs: [] }, revalidate: 60 };
   }
 }

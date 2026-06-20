@@ -256,7 +256,7 @@ export async function getStaticProps() {
     const { seasons, currentSeason, players, games } = await getAllPublicData(null);
     return { props: { players, games, seasons, currentSeason }, revalidate: 3600 };
   } catch {
-    // ponytail: DB unavailable at build time (e.g. CI); ISR revalidates on first request.
+    // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
     return { props: { players: [], games: [], seasons: [], currentSeason: "" }, revalidate: 60 };
   }
 }
