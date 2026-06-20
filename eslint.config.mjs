@@ -122,6 +122,18 @@ const eslintConfig = [
       ],
     },
   },
+  // ─── Scripts and build-test overrides ────────────────────────────────────
+  // These files operate on compile-time-known paths (join(__dirname, ...) or
+  // import.meta.url), not user input. The fs-filename and unsafe-regex rules
+  // are false positives here.
+  {
+    files: ["scripts/**", "tests/build/**"],
+    rules: {
+      "security/detect-non-literal-fs-filename": "off",
+      "security/detect-unsafe-regex":            "off",
+      "security/detect-non-literal-regexp":      "off",
+    },
+  },
 ];
 
 export default eslintConfig;

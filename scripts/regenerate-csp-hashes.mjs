@@ -15,7 +15,6 @@ function sha256(s) {
 function walk(dir) {
   let out = [];
   try {
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       const p = join(dir, e.name);
       if (e.isDirectory()) out = out.concat(walk(p));
@@ -40,7 +39,6 @@ function scripts(html) {
 }
 
 function styles(html) {
-  // eslint-disable-next-line security/detect-unsafe-regex
   const re = /<style(?:\s[^>]*)?>([^<]+)<\/style>/gi;
   const out = [];
   let m;
@@ -64,7 +62,6 @@ const scriptSet = new Set();
 const styleSet  = new Set();
 
 for (const f of files) {
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
   const html = readFileSync(f, "utf8");
   for (const s of scripts(html)) scriptSet.add(sha256(s));
   for (const s of styles(html))  styleSet.add(sha256(s));
