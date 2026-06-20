@@ -208,8 +208,11 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 
 export async function getStaticProps() {
   try {
-    const [{ players, games, stats, currentSeason, config }, upcomingGames, allPlayerGameLogs, nextPlayoffGame] = await Promise.all([
-      getAllPublicData(),
+    // ponytail: gate on primary data first so a missing DB fails fast (single
+    // connection attempt) rather than hanging 3 parallel WebSocket connections
+    // for their full timeout. Secondary calls are still parallel in production.
+    const { players, games, stats, currentSeason, config } = await getAllPublicData();
+    const [upcomingGames, allPlayerGameLogs, nextPlayoffGame] = await Promise.all([
       getUpcomingGamesWithAnnouncements(),
       getAllPlayerGameLogs(),
       getNextPlayoffGame(),
