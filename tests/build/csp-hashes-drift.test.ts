@@ -65,17 +65,10 @@ describe.skipIf(!hasBuild)("CSP hash drift", () => {
     }
   });
 
-  it("every committed scriptHash is present in the build output", () => {
-    for (const h of scriptHashes) {
-      if (!buildScriptHashes.has(h)) {
-        throw new Error(
-          `Committed script hash ${h} not found in build output.\n` +
-          `Run: node scripts/regenerate-csp-hashes.mjs`
-        );
-      }
-    }
-  });
-
+  // Only the build-to-committed direction is asserted: runtime-injected styles
+  // (Recharts, React, Tailwind preflight) appear in browser CSP reports but
+  // never in the build output, so a committed hash that is absent from the
+  // build is not necessarily stale.
   it("build output contains no script hashes absent from the committed list", () => {
     for (const h of buildScriptHashes) {
       if (!scriptHashes.includes(h)) {
@@ -87,12 +80,12 @@ describe.skipIf(!hasBuild)("CSP hash drift", () => {
     }
   });
 
-  it("every committed styleHash is present in the build output", () => {
-    for (const h of styleHashes) {
-      if (!buildStyleHashes.has(h)) {
+  it("build output contains no style hashes absent from the committed list", () => {
+    for (const h of buildStyleHashes) {
+      if (!styleHashes.includes(h)) {
         throw new Error(
-          `Committed style hash ${h} not found in build output.\n` +
-          `Run: node scripts/regenerate-csp-hashes.mjs`
+          `Build output has style hash ${h} not in csp-hashes.ts.\n` +
+          `Run: node scripts/regenerate-csp-hashes.mjs and append any runtime hashes.`
         );
       }
     }
