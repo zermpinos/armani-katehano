@@ -21,6 +21,8 @@ test.describe("ISR freshness after admin write", () => {
   test("new game appears on /games within 30 s of POST", async ({ page }) => {
     const { cookies, authHeaders } = makeAdminAuth();
     await page.context().addCookies(cookies);
+    // Navigate first so page.request sends SameSite=Strict cookies (about:blank context blocks them).
+    await page.goto(BASE_URL + "/");
 
     // Fetch the first available season-league from the preview DB.
     const slRes = await page.request.get(`${BASE_URL}/api/admin/season-leagues`, { headers: authHeaders });
