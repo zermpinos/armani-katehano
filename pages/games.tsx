@@ -134,22 +134,20 @@ export default function GamesPage({ allGames, seasons, currentSeason, seasonPhas
   );
 }
 
-export async function getServerSideProps({ res }: any) {
-  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
-  const [allGames, seasons, config, upcomingGames] = await Promise.all([
-    getAllGames(),
-    getSeasons(),
-    getConfig(),
-    getAllUpcomingGames(),
-  ]);
-
-  return {
-    props: {
-      allGames,
-      seasons,
-      currentSeason: config.currentSeason,
-      seasonPhase: config.seasonPhase,
-      upcomingGames,
-    },
-  };
+export async function getStaticProps() {
+  try {
+    const [allGames, seasons, config, upcomingGames] = await Promise.all([
+      getAllGames(),
+      getSeasons(),
+      getConfig(),
+      getAllUpcomingGames(),
+    ]);
+    return {
+      props: { allGames, seasons, currentSeason: config.currentSeason, seasonPhase: config.seasonPhase, upcomingGames },
+      revalidate: 3600,
+    };
+  } catch {
+    // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
+    return { props: { allGames: [], seasons: [], currentSeason: "", seasonPhase: null, upcomingGames: [] }, revalidate: 60 };
+  }
 }

@@ -105,10 +105,28 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
   );
 }
 
-export async function getServerSideProps({ params, res }: any) {
-  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
+const SLUG_RE = /^[a-z0-9-]+$/;
+
+export async function getStaticPaths() {
+  try {
+    const { players } = await getAllPublicData();
+    const active = players.filter((p: any) => p.isActive);
+    return {
+      paths: active.map((p: any) => ({ params: { slug: p.slug } })),
+      fallback: "blocking" as const,
+    };
+  } catch (err) {
+    console.error("[getStaticPaths] /players/[slug] DB read failed", err);
+    return { paths: [], fallback: "blocking" as const };
+  }
+}
+
+export async function getStaticProps({ params }: any) {
+  const { slug } = params;
+  if (!SLUG_RE.test(slug)) return { notFound: true };
+
   const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
-  const player = players.find((p: any) => p.slug === params.slug);
+  const player = players.find((p: any) => p.slug === slug);
   if (!player) return { notFound: true };
 
   const allSeasonsStats = await getAllSeasonsStats(seasons);
@@ -127,5 +145,6 @@ export async function getServerSideProps({ params, res }: any) {
 
   return {
     props: { player, statsMap: stats, allTimeStatsMap, seasons, currentSeason, playerSeasonHistory, allGameLog },
+    revalidate: 14400,
   };
 }

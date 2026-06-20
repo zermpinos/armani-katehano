@@ -1,3 +1,4 @@
+import type { NextApiRequest, NextApiResponse } from "next";
 import { getGameIds } from "@/server/db/repositories";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://armani-katehano.com";
@@ -10,7 +11,7 @@ const STATIC_PAGES = [
   { url: "/team-stats",  priority: "0.8", changefreq: "weekly" },
 ];
 
-function buildSitemap(lastmod: string, gameIds: string[]) {
+function buildSitemap(lastmod: string, gameIds: string[]): string {
   const staticEntries = STATIC_PAGES.map(({ url, priority, changefreq }) =>
     `  <url>\n    <loc>${BASE_URL}${url}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`
   );
@@ -21,19 +22,11 @@ function buildSitemap(lastmod: string, gameIds: string[]) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>`;
 }
 
-export default function Sitemap() {
-  return null;
-}
-
-export async function getServerSideProps({ res }: any) {
+export default async function handler(_req: NextApiRequest, res: NextApiResponse) {
   const lastmod = new Date().toISOString().split("T")[0];
   const gameIds = await getGameIds();
-  const xml     = buildSitemap(lastmod, gameIds);
-
+  const xml = buildSitemap(lastmod, gameIds);
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
-  res.write(xml);
-  res.end();
-
-  return { props: {} };
+  res.status(200).send(xml);
 }

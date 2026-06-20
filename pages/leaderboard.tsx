@@ -116,16 +116,17 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
   );
 }
 
-export async function getServerSideProps({ res }: any) {
-  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
-  const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
-  const [allSeasonsStats, allPlayerGameLogs] = await Promise.all([
-    getAllSeasonsStats(seasons),
-    getAllPlayerGameLogs(),
-  ]);
-  const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
-
-  return {
-    props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs },
-  };
+export async function getStaticProps() {
+  try {
+    const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
+    const [allSeasonsStats, allPlayerGameLogs] = await Promise.all([
+      getAllSeasonsStats(seasons),
+      getAllPlayerGameLogs(),
+    ]);
+    const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
+    return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs }, revalidate: 3600 };
+  } catch {
+    // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
+    return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, allPlayerGameLogs: [] }, revalidate: 60 };
+  }
 }

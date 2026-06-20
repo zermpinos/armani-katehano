@@ -2,6 +2,7 @@ import { requireAuth } from "@/server/auth";
 import { prodError }   from "@/domain/shared/format";
 import prisma from "@/server/db/client";
 import { z } from "zod";
+import { invalidateForPopupConfig } from "@/server/services/cache-invalidation";
 
 const RoundSchema = z.enum(["semifinal", "final"]);
 
@@ -38,6 +39,7 @@ async function handler(req: any, res: any) {
           update: { value: parsed.data },
           create: { key: "popupRound", value: parsed.data },
         });
+        await invalidateForPopupConfig({ revalidate: res.revalidate });
         return res.status(200).json({ round: parsed.data });
       } catch (err) {
         console.error("[admin/popup-config:POST round]", err);
@@ -69,6 +71,7 @@ async function handler(req: any, res: any) {
           create: { key: "popupVersion", value: String(nextVersion) },
         }),
       ]);
+      await invalidateForPopupConfig({ revalidate: res.revalidate });
       return res.status(200).json({ enabled: body.enabled, version: nextVersion });
     } catch (err) {
       console.error("[admin/popup-config:POST enabled]", err);

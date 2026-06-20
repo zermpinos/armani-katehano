@@ -7,15 +7,14 @@ import { getStats } from "./stats";
 import { getUpcomingGames } from "./upcoming-games";
 
 export async function getAllPublicData(seasonName: string | null = null) {
-  const [config, seasons, players] = await Promise.all([
-    getConfig(),
-    getSeasons(),
-    getPlayers(),
-  ]);
-
+  // Sequential probe so a missing DB rejects on one connection instead of
+  // leaking 5 parallel WebSocket attempts for their full TCP timeout (~60s).
+  const config = await getConfig();
   const activeSeason = seasonName ?? config.currentSeason;
 
-  const [games, stats, upcomingGames] = await Promise.all([
+  const [seasons, players, games, stats, upcomingGames] = await Promise.all([
+    getSeasons(),
+    getPlayers(),
     getGames(activeSeason),
     getStats(activeSeason),
     getUpcomingGames(),

@@ -27,12 +27,29 @@ export default function GamePage({ game }: { game: any }) {
   );
 }
 
-export async function getServerSideProps({ params, res }: any) {
-  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
+const CUID_RE = /^c[0-9a-z]{24}$/;
+
+export async function getStaticPaths() {
   try {
-    const game = await getGameById(params.id as string);
+    const { getGameIds } = await import("@/server/db/repositories");
+    const ids = await getGameIds();
+    return {
+      paths: ids.map((id: string) => ({ params: { id } })),
+      fallback: "blocking" as const,
+    };
+  } catch (err) {
+    console.error("[getStaticPaths] /games/[id] DB read failed", err);
+    return { paths: [], fallback: "blocking" as const };
+  }
+}
+
+export async function getStaticProps({ params }: any) {
+  const { id } = params;
+  if (!CUID_RE.test(id)) return { notFound: true };
+  try {
+    const game = await getGameById(id);
     if (!game) return { notFound: true };
-    return { props: { game } };
+    return { props: { game }, revalidate: 86400 };
   } catch {
     return { notFound: true };
   }

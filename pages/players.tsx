@@ -114,22 +114,26 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
   );
 }
 
-export async function getServerSideProps({ res }: any) {
-  res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=172800");
-  const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
-  const allSeasonsStats = await getAllSeasonsStats(seasons);
-  const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
+export async function getStaticProps() {
+  try {
+    const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
+    const allSeasonsStats = await getAllSeasonsStats(seasons);
+    const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
 
-  const playerSeasonHistory: Record<string, any> = {};
-  for (const [sid, seasonMap] of Object.entries(allSeasonsStats)) {
-    for (const player of players) {
-      const s = (seasonMap as any)[player.id];
-      if (s && s.gp > 0) {
-        if (!Reflect.has(playerSeasonHistory, player.id)) Reflect.set(playerSeasonHistory, player.id, {});
-        Reflect.set(Reflect.get(playerSeasonHistory as object, player.id), sid, s);
+    const playerSeasonHistory: Record<string, any> = {};
+    for (const [sid, seasonMap] of Object.entries(allSeasonsStats)) {
+      for (const player of players) {
+        const s = (seasonMap as any)[player.id];
+        if (s && s.gp > 0) {
+          if (!Reflect.has(playerSeasonHistory, player.id)) Reflect.set(playerSeasonHistory, player.id, {});
+          Reflect.set(Reflect.get(playerSeasonHistory as object, player.id), sid, s);
+        }
       }
     }
-  }
 
-  return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory } };
+    return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }, revalidate: 3600 };
+  } catch {
+    // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
+    return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, playerSeasonHistory: {} }, revalidate: 60 };
+  }
 }

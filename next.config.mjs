@@ -32,6 +32,7 @@ const nextConfig = {
   async rewrites() {
     return [
       { source: "/humans.txt", destination: "/api/humans-txt" },
+      { source: "/sitemap.xml", destination: "/api/sitemap.xml" },
     ];
   },
 

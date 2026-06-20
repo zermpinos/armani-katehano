@@ -8,9 +8,6 @@
  *
  * Run after `next build` - wired in via .github/workflows/ci.yml.
  */
-/* eslint-disable security/detect-non-literal-fs-filename, security/detect-non-literal-regexp --
- * fs reads only walk .next/server/ build output (no user input);
- * RegExp inputs come from the hardcoded FORBIDDEN_MODULES list below. */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
