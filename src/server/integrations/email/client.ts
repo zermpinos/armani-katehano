@@ -3,23 +3,18 @@ import crypto       from "node:crypto";
 import nodemailer   from "nodemailer";
 import { auditLog } from "@/server/security/node/audit-log";
 import prisma       from "@/server/db/client";
+import { buildHtml, buildText } from "./templates/roster-announcement";
+import type { SendRosterAnnouncementParams, Game, PlayerSlot } from "./templates/shared";
+import { buildImportSuccess, buildImportFailure } from "./templates/admin-notifications";
 import {
-  buildHtml,
-  buildText,
-  buildImportSuccess,
-  buildImportFailure,
   buildGameImportedHtml,
   buildGameImportedText,
-  buildConfirmationEmailHtml,
-  buildConfirmationEmailText,
-  renderMarkdown,
-  buildBroadcastHtml,
-  buildBroadcastText,
-  type SendRosterAnnouncementParams,
   type GameImportedGame,
   type TopPerformer,
   type GameEmailContext,
-} from "./templates";
+} from "./templates/game-imported";
+import { buildConfirmationEmailHtml, buildConfirmationEmailText } from "./templates/confirmation";
+import { renderMarkdown, buildBroadcastHtml, buildBroadcastText } from "./templates/broadcast";
 
 export type ImportNotificationPayload =
   | { kind: "success"; opponent: string; location: string; scheduledFor: string; importedAt: Date }
@@ -186,8 +181,8 @@ export async function sendRosterAnnouncementTestEmail({
   message = null,
 }: {
   to:      string;
-  game:    import("./templates").Game;
-  players: import("./templates").PlayerSlot[];
+  game:    Game;
+  players: PlayerSlot[];
   message?: string | null;
 }): Promise<void> {
   const transport = createTransport();
@@ -303,4 +298,4 @@ export async function sendBroadcastTestEmail({
   await transport.sendMail({ from: FROM, to, subject: safeSubject, html, text });
 }
 
-export type { SendRosterAnnouncementParams, PlayerSlot, Game, Subscriber } from "./templates";
+export type { SendRosterAnnouncementParams, PlayerSlot, Game, Subscriber } from "./templates/shared";

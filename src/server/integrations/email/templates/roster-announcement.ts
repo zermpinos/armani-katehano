@@ -4,7 +4,7 @@ import { buildGoogleCalendarUrl } from "@/domain/shared/calendar";
 import { esc, formatDateFull, formatDayTime, type Game, type PlayerSlot } from "./shared";
 import { isStarter } from "@/domain/roster";
 import { initials } from "@/domain/players/format";
-import { sanitize } from "@/domain/shared/sanitize";
+import { sanitize } from "@/domain/shared/format";
 
 function renderPlayerRow(p: PlayerSlot, i: number): string {
   const bg        = i % 2 === 0 ? "#ffffff" : "#f9fafb";

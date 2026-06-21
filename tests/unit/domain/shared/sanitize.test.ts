@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { describe, it, expect } from "vitest";
-import { sanitize } from "@/domain/shared/sanitize";
+import { sanitize } from "@/domain/shared/format";
 
 describe("sanitize", () => {
   it("returns plain string unchanged", () => {

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { isStarter } from "@/domain/roster";
 import { initials } from "@/domain/players/format";
-import { sanitize } from "@/domain/shared/sanitize";
+import { sanitize } from "@/domain/shared/format";
 import { cloudinaryThumb } from "@/domain/shared/cloudinary";
 
 type Variant = "compact" | "featured";
