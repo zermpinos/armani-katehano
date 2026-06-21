@@ -51,28 +51,32 @@ export interface ResolvedTarget {
  * Returns the resolved IP so callers can pin their connection to it,
  * eliminating the TOCTOU window between this check and the actual fetch.
  */
+function rejectUrl(): never {
+  throw Object.assign(new Error("URL not allowed"), { status: 400 });
+}
+
 export async function assertSsrfSafe(url: string): Promise<ResolvedTarget> {
   let urlObj: URL;
   try { urlObj = new URL(url); } catch {
-    throw Object.assign(new Error("URL not allowed"), { status: 400 });
+    rejectUrl();
   }
 
   if (urlObj.protocol !== "http:" && urlObj.protocol !== "https:")
-    throw Object.assign(new Error("URL not allowed"), { status: 400 });
+    rejectUrl();
 
   if (!isAllowedHostname(urlObj.hostname))
-    throw Object.assign(new Error("URL not allowed"), { status: 400 });
+    rejectUrl();
 
   let address: string;
   let family: number;
   try {
     ({ address, family } = await dns.promises.lookup(urlObj.hostname));
   } catch {
-    throw Object.assign(new Error("URL not allowed"), { status: 400 });
+    rejectUrl();
   }
 
   if (isPrivateIp(address))
-    throw Object.assign(new Error("URL not allowed"), { status: 400 });
+    rejectUrl();
 
   return { address, family };
 }
