@@ -1,5 +1,5 @@
 import { requireAuth }  from "@/server/auth";
-import { ScrapeSchema } from "@/schemas";
+import { ScrapeSchema } from "@/schemas/scrape";
 import { scrapeGameFromUrl, ScrapeError } from "@/server/services/scrape-game";
 
 export default requireAuth(async function handler(req: any, res: any) {

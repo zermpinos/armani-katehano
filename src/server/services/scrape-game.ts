@@ -2,7 +2,7 @@ import "@/server/_internal/node-only";
 import dns        from "node:dns";
 import type { Agent } from "undici";
 import { scrapeGame } from "@/server/integrations/scraper/boxscore";
-import { ScrapedGameSchema } from "@/schemas";
+import { ScrapedGameSchema } from "@/schemas/box-score";
 import { assertSsrfSafe, isAllowedHostname, isPrivateIp, makeLockedDispatcher } from "@/server/security/node/ssrf";
 import { classifyScrapedGame, type ClassifyResult } from "@/server/services/import-classifier";
 
