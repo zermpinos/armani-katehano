@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildHtml, buildText, type Game, type PlayerSlot } from "@/server/integrations/email/templates";
+import { buildHtml, buildText } from "@/server/integrations/email/templates/roster-announcement";
+import type { Game, PlayerSlot } from "@/server/integrations/email/templates/shared";
 
 const game: Game = {
   opponent:     "Παναθηναϊκός",

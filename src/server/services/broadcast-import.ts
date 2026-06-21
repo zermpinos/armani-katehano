@@ -9,7 +9,7 @@ import type {
   TeamGameStats,
   SeasonRecord,
   NextGameInfo,
-} from "@/server/integrations/email/templates";
+} from "@/server/integrations/email/templates/game-imported";
 
 function toGameImported(g: {
   id: string; opponent: string; location: string | null; teamScore: number;

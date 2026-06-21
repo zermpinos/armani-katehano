@@ -7,7 +7,7 @@ import {
   renderMarkdown,
   buildBroadcastHtml,
   buildBroadcastText,
-} from "@/server/integrations/email/templates";
+} from "@/server/integrations/email/templates/broadcast";
 import nodemailer from "nodemailer";
 
 const FROM          = "Armani Katehano <noreply@armani-katehano.com>";
