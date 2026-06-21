@@ -1,7 +1,7 @@
 import "@/server/_internal/node-only";
 export type { ImportNotificationResult, PlayerSlot, Game, Subscriber, SendRosterAnnouncementParams } from "./shared";
 export { esc, formatDate } from "./shared";
-export { sanitize } from "@/domain/shared/sanitize";
+export { sanitize } from "@/domain/shared/format";
 export { buildImportSuccess, buildImportFailure } from "./admin-notifications";
 export { buildHtml, buildText } from "./roster-announcement";
 export {
