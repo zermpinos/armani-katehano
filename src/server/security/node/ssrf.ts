@@ -1,5 +1,6 @@
 import "@/server/_internal/node-only";
 import dns from "node:dns";
+import net from "node:net";
 import { Agent, buildConnector } from "undici";
 
 const ALLOWLIST: string[] = (
@@ -14,31 +15,22 @@ export function isAllowedHostname(hostname: string): boolean {
   return ALLOWLIST.some(entry => h === entry || h.endsWith("." + entry));
 }
 
+const PRIVATE = new net.BlockList();
+PRIVATE.addSubnet("127.0.0.0",   8);
+PRIVATE.addSubnet("10.0.0.0",    8);
+PRIVATE.addSubnet("172.16.0.0", 12);
+PRIVATE.addSubnet("192.168.0.0",16);
+PRIVATE.addSubnet("169.254.0.0",16);
+PRIVATE.addSubnet("0.0.0.0",     8);
+PRIVATE.addSubnet("100.64.0.0", 10);
+PRIVATE.addSubnet("198.18.0.0", 15);
+PRIVATE.addAddress("::1",                          "ipv6");
+PRIVATE.addSubnet ("fe80::",                  10, "ipv6");
+PRIVATE.addSubnet ("fc00::",                   7, "ipv6");
+
 export function isPrivateIp(ip: string): boolean {
-  if (
-    /^127\./.test(ip)                                           ||
-    /^10\./.test(ip)                                            ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(ip)                      ||
-    /^192\.168\./.test(ip)                                      ||
-    /^169\.254\./.test(ip)                                      ||
-    /^0\./.test(ip)                                             ||
-    /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(ip)       ||
-    /^198\.1[89]\./.test(ip)
-  ) return true;
-
-  if (
-    ip === "::1"                                                ||
-    /^::ffff:127\./i.test(ip)                                   ||
-    /^::ffff:10\./i.test(ip)                                    ||
-    /^::ffff:172\.(1[6-9]|2\d|3[01])\./i.test(ip)              ||
-    /^::ffff:192\.168\./i.test(ip)                              ||
-    /^::ffff:169\.254\./i.test(ip)                              ||
-    /^fe80:/i.test(ip)                                          ||
-    /^fc00:/i.test(ip)                                          ||
-    /^fd[0-9a-f]{2}:/i.test(ip)
-  ) return true;
-
-  return false;
+  const family = net.isIP(ip) === 6 ? "ipv6" : "ipv4";
+  return PRIVATE.check(ip, family);
 }
 
 export interface ResolvedTarget {
