@@ -27,14 +27,9 @@ export async function isLockedOut(
   return count >= maxAttempts;
 }
 
-export async function pruneStaleAttempts() {
+async function pruneStaleAttempts() {
   const cutoff = new Date(Date.now() - LOCKOUT_TTL_S * 1000);
   await prisma.loginAttempt.deleteMany({ where: { attemptedAt: { lt: cutoff } } });
-}
-
-export async function recordAttempt(key: string) {
-  await prisma.loginAttempt.create({ data: { ip: rlKey(key) } });
-  pruneStaleAttempts().catch(err => console.error("[loginAttempts] prune failed", err));
 }
 
 export async function clearAttempts(key: string) {

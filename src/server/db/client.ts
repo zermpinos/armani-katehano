@@ -10,7 +10,7 @@ const globalForPrisma = globalThis as typeof globalThis & { prisma?: PrismaClien
 
 const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL });
 
-export const prisma =
+const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({ adapter });
 

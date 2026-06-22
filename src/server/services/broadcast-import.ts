@@ -91,7 +91,7 @@ async function fetchNextGame(): Promise<NextGameInfo | null> {
   };
 }
 
-export async function fetchBroadcastEnrichment(
+async function fetchBroadcastEnrichment(
   gameId:         string,
   seasonLeagueId: string,
   playedOn:       Date,

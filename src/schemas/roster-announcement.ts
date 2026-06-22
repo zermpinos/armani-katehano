@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const PlayerSlotSchema = z.object({
+const PlayerSlotSchema = z.object({
   playerId: z.string().cuid(),
   note:     z.string().max(200).optional().nullable(),
 });
