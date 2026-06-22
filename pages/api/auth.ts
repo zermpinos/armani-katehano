@@ -15,6 +15,22 @@ import { getSessionToken, verifyPayload, verifyCredentials, getAdminUser, verify
 import { securityHeaders } from "@/server/security/edge";
 import { auditLog, getClientIp } from "@/server/security/node";
 
+async function recordAndCheckLockouts(ip: string, accountKey: string, username: string) {
+  const [ipRes, accountRes] = await Promise.all([
+    atomicRecordAndCheck(ip),
+    atomicRecordAndCheck(accountKey, 25, 3600),
+  ]);
+  if (ipRes.locked) {
+    auditLog("login_locked", { ip });
+    return { status: 429, body: { error: "Too many failed attempts. Try again later.", retryAfter: 900 } };
+  }
+  if (accountRes.locked) {
+    auditLog("login_account_locked", { ip, username });
+    return { status: 429, body: { error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 } };
+  }
+  return null;
+}
+
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
 
@@ -79,18 +95,8 @@ export default async function handler(req: any, res: any) {
       }
       const captchaOk = await verifyCaptcha(captchaToken, ip);
       if (!captchaOk) {
-        const [ipRes, accountRes] = await Promise.all([
-          atomicRecordAndCheck(ip),
-          atomicRecordAndCheck(ACCOUNT_KEY, 25, 3600),
-        ]);
-        if (ipRes.locked) {
-          auditLog("login_locked", { ip });
-          return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
-        }
-        if (accountRes.locked) {
-          auditLog("login_account_locked", { ip, username });
-          return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
-        }
+        const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY, username);
+        if (locked) return res.status(locked.status).json(locked.body);
         auditLog("login_captcha_failed", { ip, username });
         return res.status(401).json({ error: "Captcha verification failed", requiresCaptcha: true });
       }
@@ -98,18 +104,8 @@ export default async function handler(req: any, res: any) {
 
     const valid = await verifyCredentials(username, password);
     if (!valid) {
-      const [ipRes, accountRes] = await Promise.all([
-        atomicRecordAndCheck(ip),
-        atomicRecordAndCheck(ACCOUNT_KEY, 25, 3600),
-      ]);
-      if (ipRes.locked) {
-        auditLog("login_locked", { ip });
-        return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
-      }
-      if (accountRes.locked) {
-        auditLog("login_account_locked", { ip, username });
-        return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
-      }
+      const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY, username);
+      if (locked) return res.status(locked.status).json(locked.body);
       auditLog("login_failed", { ip, username });
       return res.status(401).json({ error: "Invalid credentials" });
     }
@@ -118,18 +114,8 @@ export default async function handler(req: any, res: any) {
     const userRecord = getAdminUser(username);
     if (userRecord?.totpSecret) {
       if (!totpToken || typeof totpToken !== "string" || !verifyTotp(userRecord.totpSecret, totpToken)) {
-        const [ipRes, accountRes] = await Promise.all([
-          atomicRecordAndCheck(ip),
-          atomicRecordAndCheck(ACCOUNT_KEY, 25, 3600),
-        ]);
-        if (ipRes.locked) {
-          auditLog("login_locked", { ip });
-          return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
-        }
-        if (accountRes.locked) {
-          auditLog("login_account_locked", { ip, username });
-          return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
-        }
+        const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY, username);
+        if (locked) return res.status(locked.status).json(locked.body);
         auditLog("login_totp_failed", { ip, username });
         return res.status(401).json({ error: "Invalid authenticator code" });
       }

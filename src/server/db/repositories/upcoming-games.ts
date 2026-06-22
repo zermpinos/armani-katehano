@@ -1,12 +1,11 @@
 import "@/server/_internal/node-only";
 import prisma from "@/server/db/client";
 
-export async function getUpcomingGames() {
-  const now = new Date();
+export async function getUpcomingGames({ limit = 10 }: { limit?: number } = {}) {
   const rows = await prisma.upcomingGame.findMany({
-    where: { scheduledFor: { gte: now } },
+    where:   { scheduledFor: { gte: new Date() } },
     orderBy: { scheduledFor: "asc" },
-    take: 10,
+    ...(limit ? { take: limit } : {}),
   });
   return rows.map(g => ({
     id:           g.id,
@@ -60,22 +59,7 @@ export async function getUpcomingGamesWithAnnouncements() {
   }));
 }
 
-export async function getAllUpcomingGames() {
-  const now = new Date();
-  const rows = await prisma.upcomingGame.findMany({
-    where: { scheduledFor: { gte: now } },
-    orderBy: { scheduledFor: "asc" },
-  });
-  return rows.map(g => ({
-    id:           g.id,
-    opponent:     g.opponent,
-    scheduledFor: g.scheduledFor.toISOString(),
-    location:     g.location,
-    round:        g.round,
-    competition:  g.competition ?? null,
-    notes:        g.notes ?? null,
-  }));
-}
+export const getAllUpcomingGames = () => getUpcomingGames({ limit: 0 });
 
 export async function getNextPlayoffGame() {
   const now = new Date();

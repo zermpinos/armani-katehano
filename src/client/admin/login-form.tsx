@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TurnstileWidget } from "./turnstile";
+import { TurnstileWidget } from "@/client/shared/turnstile";
 
 const CAPTCHA_KEY = "ak.admin.requiresCaptcha";
 

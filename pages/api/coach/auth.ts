@@ -23,6 +23,22 @@ import {
   COACH_SESSION_TTL_S,
 } from "@/server/auth";
 
+async function recordAndCheckLockouts(ip: string, accountKey: string) {
+  const [ipRes, accountRes] = await Promise.all([
+    atomicRecordAndCheck(ip),
+    atomicRecordAndCheck(accountKey, 25, 3600),
+  ]);
+  if (ipRes.locked) {
+    auditLog("coach_login_locked", { ip });
+    return { status: 429, body: { error: "Too many failed attempts. Try again later.", retryAfter: 900 } };
+  }
+  if (accountRes.locked) {
+    auditLog("coach_login_account_locked", { ip });
+    return { status: 429, body: { error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 } };
+  }
+  return null;
+}
+
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
 
@@ -93,18 +109,8 @@ export default async function handler(req: any, res: any) {
       }
       const captchaOk = await verifyCaptcha(captchaToken, ip);
       if (!captchaOk) {
-        const [ipRes, accountRes] = await Promise.all([
-          atomicRecordAndCheck(ip),
-          atomicRecordAndCheck(ACCOUNT_KEY, 25, 3600),
-        ]);
-        if (ipRes.locked) {
-          auditLog("coach_login_locked", { ip });
-          return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
-        }
-        if (accountRes.locked) {
-          auditLog("coach_login_account_locked", { ip });
-          return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
-        }
+        const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY);
+        if (locked) return res.status(locked.status).json(locked.body);
         auditLog("coach_login_captcha_failed", { ip });
         return res.status(401).json({ error: "Captcha verification failed", requiresCaptcha: true });
       }
@@ -112,18 +118,8 @@ export default async function handler(req: any, res: any) {
 
     const valid = await verifyCoachPassword(password);
     if (!valid) {
-      const [ipRes, accountRes] = await Promise.all([
-        atomicRecordAndCheck(ip),
-        atomicRecordAndCheck(ACCOUNT_KEY, 25, 3600),
-      ]);
-      if (ipRes.locked) {
-        auditLog("coach_login_locked", { ip });
-        return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
-      }
-      if (accountRes.locked) {
-        auditLog("coach_login_account_locked", { ip });
-        return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
-      }
+      const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY);
+      if (locked) return res.status(locked.status).json(locked.body);
       auditLog("coach_login_failed", { ip });
       return res.status(401).json({ error: "Invalid credentials" });
     }
