@@ -1,9 +1,7 @@
-export { fmt }         from "@/domain/players/format";
 export *               from "@/client/admin/shared";
 export * from "@/client/admin/csrf";
 export * from "@/client/admin/use-admin-auth";
 export * from "@/client/admin/layout";
-export { AdminShell } from "@/client/admin/shell/AdminShell";
 export * from "@/client/admin/spinner";
 export * from "@/client/admin/turnstile";
 export * from "@/client/admin/primitives";

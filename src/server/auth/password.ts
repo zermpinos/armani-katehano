@@ -10,7 +10,7 @@ export const CAPTCHA_THRESHOLD  = 3;
 // which usernames exist.
 const _sentinelHash: Promise<string> = bcrypt.hash("__sentinel__", 12);
 
-export async function verifyPassword(plaintext: string) {
+async function verifyPassword(plaintext: string) {
   const hash = process.env.ADMIN_PASSWORD;
   if (!hash) { console.error("[security] ADMIN_PASSWORD is not set"); return false; }
   if (!hash.startsWith("$2b$") && !hash.startsWith("$2a$")) {

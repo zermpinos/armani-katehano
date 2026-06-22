@@ -1,7 +1,7 @@
 import "@/server/_internal/node-only";
 import prisma from "@/server/db/client";
 
-export type SeasonPhase = "regular" | "quarterfinal" | "semifinal" | "final";
+type SeasonPhase = "regular" | "quarterfinal" | "semifinal" | "final";
 
 export async function getConfig() {
   const seasonWithGames = await prisma.season.findFirst({

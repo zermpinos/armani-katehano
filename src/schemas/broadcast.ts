@@ -13,7 +13,3 @@ export const PreviewSendSchema = z.object({
 });
 
 export const BroadcastSchema = z.discriminatedUnion("mode", [ResolveSchema, PreviewSendSchema]);
-
-export type ResolveInput     = z.infer<typeof ResolveSchema>;
-export type PreviewSendInput = z.infer<typeof PreviewSendSchema>;
-export type BroadcastInput   = z.infer<typeof BroadcastSchema>;

@@ -1,4 +1,4 @@
-export const VENUE_MAP: Record<string, string> = {
+const VENUE_MAP: Record<string, string> = {
   "Basketcity Arena": "https://maps.app.goo.gl/m4HwgEDNmE8TCwpD8",
 };
 

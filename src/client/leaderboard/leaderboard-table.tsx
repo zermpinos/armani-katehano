@@ -2,7 +2,7 @@ import { fmt } from "@/domain/players/format";
 import { fmtMinutes } from "@/domain/shared/format";
 import Link from "next/link";
 
-export const MEDALS = [
+const MEDALS = [
   { label: "🥇", textCls: "text-ak-gold",   rowBgCls: "bg-[#c9a84c18]", borderCls: "border-[#c9a84c45]", numBgCls: "bg-[#c9a84c30]", numBorderCls: "border-[#c9a84c55]" },
   { label: "🥈", textCls: "text-ak-silver", rowBgCls: "bg-[#9ba3af15]", borderCls: "border-[#9ba3af40]", numBgCls: "bg-[#9ba3af30]", numBorderCls: "border-[#9ba3af55]" },
   { label: "🥉", textCls: "text-ak-bronze", rowBgCls: "bg-[#b8733315]", borderCls: "border-[#b8733340]", numBgCls: "bg-[#b8733330]", numBorderCls: "border-[#b8733355]" },

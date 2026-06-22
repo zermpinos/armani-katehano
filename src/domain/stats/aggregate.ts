@@ -213,12 +213,3 @@ export function computeTeamAverages(games: any[]) {
   };
 }
 
-// Backward-compat wrapper - new code should call buildStatsMap directly.
-export function recalcPlayerAverages(players: any[], games: any[]) {
-  const statsMap = buildStatsMap(players, games);
-  return players.map(player => ({
-    ...player,
-    stats:   statsMap[player.id] ?? {},
-    gameLog: statsMap[player.id]?.gameLog ?? [],
-  }));
-}

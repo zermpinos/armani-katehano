@@ -14,7 +14,6 @@ import {
   type GameEmailContext,
 } from "./templates/game-imported";
 import { buildConfirmationEmailHtml, buildConfirmationEmailText } from "./templates/confirmation";
-import { renderMarkdown, buildBroadcastHtml, buildBroadcastText } from "./templates/broadcast";
 
 export type ImportNotificationPayload =
   | { kind: "success"; opponent: string; location: string; scheduledFor: string; importedAt: Date }
@@ -174,90 +173,6 @@ export async function sendGameImportedBroadcast({
   });
 }
 
-export async function sendRosterAnnouncementTestEmail({
-  to,
-  game,
-  players,
-  message = null,
-}: {
-  to:      string;
-  game:    Game;
-  players: PlayerSlot[];
-  message?: string | null;
-}): Promise<void> {
-  const transport = createTransport();
-  if (!transport) throw new Error("BREVO_SMTP_USER/PASS not configured");
-
-  const appUrl             = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const previewUnsubscribe = `${appUrl}/unsubscribe?token=PREVIEW_TOKEN`;
-  const isHome             = game.location === "home";
-  const safeOpponent       = game.opponent.slice(0, 100).replace(/[\r\n]/g, " ");
-  const subject            = `Roster announced: ${isHome ? "vs" : "@"} ${safeOpponent}`;
-  const html               = buildHtml(game, players, message, appUrl, previewUnsubscribe);
-  const text               = buildText(game, players, message, appUrl, previewUnsubscribe);
-
-  await transport.sendMail({ from: FROM, to, subject, html, text });
-}
-
-export async function sendConfirmationTestEmail({ to }: { to: string }): Promise<void> {
-  const transport = createTransport();
-  if (!transport) throw new Error("BREVO_SMTP_USER/PASS not configured");
-
-  const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const confirmUrl = `${appUrl}/api/confirm?token=PREVIEW_TOKEN`;
-  const subject    = "Confirm your subscription - Armani Katehano";
-  const html       = buildConfirmationEmailHtml(confirmUrl, appUrl);
-  const text       = buildConfirmationEmailText(confirmUrl, appUrl);
-
-  await transport.sendMail({ from: FROM, to, subject, html, text });
-}
-
-export async function sendGameImportedTestEmail({
-  to,
-  game,
-  topPerformers,
-  ctx = { teamStats: null, record: null, nextGame: null },
-}: {
-  to:            string;
-  game:          GameImportedGame;
-  topPerformers: TopPerformer[];
-  ctx?:          GameEmailContext;
-}): Promise<void> {
-  const transport = createTransport();
-  if (!transport) throw new Error("BREVO_SMTP_USER/PASS not configured");
-
-  const appUrl             = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const previewUnsubscribe = `${appUrl}/unsubscribe?token=PREVIEW_TOKEN`;
-  const vsAt               = game.location === "home" ? "vs" : "@";
-  const safeOpponent       = game.opponent.slice(0, 100).replace(/[\r\n]/g, " ");
-  const subject            = `${vsAt} ${safeOpponent}: ${game.teamScore}-${game.opponentScore} (${game.result})`;
-  const html               = buildGameImportedHtml(game, topPerformers, ctx, appUrl, previewUnsubscribe);
-  const text               = buildGameImportedText(game, topPerformers, ctx, appUrl, previewUnsubscribe);
-
-  await transport.sendMail({ from: FROM, to, subject, html, text });
-}
-
-export async function sendAdminAlert({
-  subject,
-  body,
-}: {
-  subject: string;
-  body: string;
-}): Promise<void> {
-  const transport = createTransport();
-  if (!transport) {
-    console.warn("[email] BREVO_SMTP_USER/PASS not set - skipping admin alert");
-    return;
-  }
-  const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
-  try {
-    await transport.sendMail({ from: FROM, to, subject, text: body });
-    auditLog("admin_alert_sent", { subject });
-  } catch (err: any) {
-    auditLog("admin_alert_failed", { subject, error: err.message });
-  }
-}
-
 export async function sendImportNotification(payload: ImportNotificationPayload): Promise<void> {
   const transport = createTransport();
   if (!transport) {
@@ -276,26 +191,4 @@ export async function sendImportNotification(payload: ImportNotificationPayload)
   }
 }
 
-export async function sendBroadcastTestEmail({
-  to,
-  subject,
-  body,
-}: {
-  to:      string;
-  subject: string;
-  body:    string;
-}): Promise<void> {
-  const transport = createTransport();
-  if (!transport) throw new Error("BREVO_SMTP_USER/PASS not configured");
-
-  const appUrl       = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const fakeUnsub    = `${appUrl}/unsubscribe?token=PREVIEW_TOKEN`;
-  const renderedHtml = renderMarkdown(body);
-  const html         = buildBroadcastHtml(renderedHtml, appUrl, fakeUnsub);
-  const text         = buildBroadcastText(renderedHtml, appUrl, fakeUnsub);
-  const safeSubject  = subject.replace(/[\r\n]/g, " ");
-
-  await transport.sendMail({ from: FROM, to, subject: safeSubject, html, text });
-}
-
-export type { SendRosterAnnouncementParams, PlayerSlot, Game, Subscriber } from "./templates/shared";
+export type { SendRosterAnnouncementParams } from "./templates/shared";

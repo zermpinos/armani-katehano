@@ -14,7 +14,6 @@ vi.mock("@/server/auth", async (importOriginal) => {
     verifyTotp:        vi.fn(),
     verifyCaptcha:     vi.fn(),
     isLockedOut:       vi.fn().mockResolvedValue(false),
-    recordAttempt:     vi.fn().mockResolvedValue(undefined),
     clearAttempts:     vi.fn().mockResolvedValue(undefined),
     getFailureCount:   vi.fn().mockResolvedValue(0),
   };

@@ -1,4 +1,4 @@
-export function getCsrfToken(): string {
+function getCsrfToken(): string {
   if (typeof document === "undefined") return "";
   const match = document.cookie.match(/(?:^|;\s*)__Host-ak_csrf=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : "";

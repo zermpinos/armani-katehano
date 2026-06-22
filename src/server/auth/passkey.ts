@@ -121,7 +121,7 @@ export async function verifyAuthResp(
 // Challenge helpers
 // ---------------------------------------------------------------------------
 
-export function generateChallengeId(): string {
+function generateChallengeId(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 

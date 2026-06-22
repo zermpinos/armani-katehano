@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// fallow-ignore-file unused-file -- invoked from scripts/ci/weekly-security-report.sh
 // Resolve the postcss version next would pull on its own, ignoring our override.
 //
 // Why: package.json pins `overrides.postcss` to keep transitive postcss above the
