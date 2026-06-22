@@ -3,7 +3,6 @@ export * from "@/client/admin/csrf";
 export * from "@/client/admin/use-admin-auth";
 export * from "@/client/admin/layout";
 export * from "@/client/admin/spinner";
-export * from "@/client/admin/turnstile";
 export * from "@/client/admin/primitives";
 export * from "@/client/admin/confirm";
 export * from "@/client/admin/login-form";
