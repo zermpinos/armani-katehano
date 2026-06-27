@@ -1,11 +1,21 @@
 import { fmtDate } from "@/domain/shared/format";
 
+const ATHENS_YMD = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Athens",
+  year: "numeric", month: "2-digit", day: "2-digit",
+});
+
+function athensDayStartUtc(d: Date): number {
+  const [y, m, day] = ATHENS_YMD.format(d).split("-").map(Number);
+  return Date.UTC(y, m - 1, day);
+}
+
 export function getCountdownInfo(isoStr: string): { label: string; tier: "today" | "week" | "future" } {
-  const now = new Date();
   const gameTime = new Date(isoStr);
-  // Times are stored with UTC digits equal to the Athens time the admin entered.
-  // Use UTC accessors throughout so the digits are read as Athens values directly.
-  const todayStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  // Stored convention: UTC digits == Athens digits. So game-side UTC accessors
+  // give Athens digits directly. For `now`, we have to convert real-UTC to the
+  // current Athens calendar day, or near-midnight crossings give a 1-day skew.
+  const todayStart = athensDayStartUtc(new Date());
   const gameDay    = Date.UTC(gameTime.getUTCFullYear(), gameTime.getUTCMonth(), gameTime.getUTCDate());
   const daysUntil  = Math.ceil((gameDay - todayStart) / 86400000);
   const fmtTime    = () => isoStr.slice(11, 16);
