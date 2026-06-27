@@ -17,7 +17,10 @@ export function validateSourceUrl(url: string | null | undefined): true | string
 
 export const ScheduleWriteSchema = z.object({
   opponent:     z.string().min(1).max(100),
-  scheduledFor: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/)),
+  scheduledFor: z.string()
+    .datetime({ offset: true })
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/))
+    .transform(s => /Z$|[+-]\d{2}:?\d{2}$/.test(s) ? s : `${s}Z`),
   location:     z.enum(["home", "away"]).default("home"),
   round:        z.enum(["regular", "quarterfinal", "semifinal", "final"]).default("regular"),
   competition:  z.string().max(200).optional().nullable(),
