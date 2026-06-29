@@ -38,7 +38,7 @@
     "@prisma/adapter-neon": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@simplewebauthn/browser": "13.3.0",
-    "@simplewebauthn/server": "13.3.1",
+    "@simplewebauthn/server": "13.3.2",
     "@vercel/analytics": "^2.0.1",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
@@ -50,7 +50,7 @@
     "pdf-parse": "^2.4.5",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "recharts": "^3.8.1",
+    "recharts": "^3.9.0",
     "undici": "^7.16.0",
     "ws": "^8.21.0",
     "zod": "^4.4.3"
@@ -70,7 +70,7 @@
     }
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.0",
+    "@playwright/test": "^1.61.1",
     "@prisma/adapter-pg": "^7.8.0",
     "@tailwindcss/postcss": "^4.3.1",
 
