@@ -20,10 +20,13 @@ model Player {
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
   photoUrl         String?
+  contactEmail     String?
   gameStats        PlayerGameStat[]
   seasonAggregates PlayerSeasonAggregate[]
   rosterEntries    RosterEntry[]
   rosterSlots      GameRosterPlayer[]
+  credential       PlayerCredential?
+  invites          PlayerInvite[]
 }
 
 model Season {
@@ -306,5 +309,30 @@ model WebAuthnChallenge {
   challenge String // base64url-encoded random bytes
   expiresAt DateTime
 
+  @@index([expiresAt])
+}
+
+model PlayerCredential {
+  id           String   @id @default(cuid())
+  playerId     String   @unique
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([username])
+}
+
+model PlayerInvite {
+  id         String    @id @default(cuid())
+  playerId   String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+  player     Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
   @@index([expiresAt])
 }
