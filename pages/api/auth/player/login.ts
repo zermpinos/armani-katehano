@@ -3,14 +3,22 @@ import prisma from "@/server/db/client";
 import { LoginSchema } from "@/schemas/player-auth";
 import { buildPlayerSessionCookie } from "@/server/auth/player";
 import { csrfCheck } from "@/server/auth/csrf";
-import { rlKey } from "@/server/auth/login-attempts";
+import { atomicRecordAndCheck, clearAttempts } from "@/server/auth/login-attempts";
 import { securityHeaders } from "@/server/security/edge/headers";
 import { auditLog } from "@/server/security/node/audit-log";
 import { getClientIp } from "@/server/security/node/client-ip";
 
-const LOGIN_LIMIT = 5;
-const LOGIN_WINDOW = 15 * 60;
 const DUMMY_HASH = "$2a$12$" + "a".repeat(53);
+
+async function recordAndCheckLockouts(ipKey: string, accountKey: string) {
+  const [ipRes, accountRes] = await Promise.all([
+    atomicRecordAndCheck(ipKey, 5, 15 * 60),
+    atomicRecordAndCheck(accountKey, 25, 3600),
+  ]);
+  if (ipRes.locked) return { status: 429, body: { error: "Too many attempts. Try again later.", retryAfter: 900 } };
+  if (accountRes.locked) return { status: 429, body: { error: "Too many attempts. Try again in an hour.", retryAfter: 3600 } };
+  return null;
+}
 
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
@@ -25,21 +33,18 @@ export default async function handler(req: any, res: any) {
   }
   const { username, password } = parsed.data;
 
-  const since = new Date(Date.now() - LOGIN_WINDOW * 1000);
-  const attempts = await prisma.loginAttempt.count({
-    where: { ip: rlKey(`pl_${ip}`), attemptedAt: { gte: since } },
-  });
-  if (attempts >= LOGIN_LIMIT) {
-    return res.status(429).json({ error: "Too many attempts. Try again later." });
-  }
+  const ipKey = `pl:${ip}`;
+  const accountKey = `pl:u:${username}`;
 
-  prisma.loginAttempt
-    .create({ data: { ip: rlKey(`pl_${ip}`) } })
-    .catch((err: unknown) => console.error("[player-login] rate-limit record failed:", err));
+  const lockout = await recordAndCheckLockouts(ipKey, accountKey);
+  if (lockout) {
+    auditLog("player_login_locked", { ip });
+    return res.status(lockout.status).json(lockout.body);
+  }
 
   const cred = await prisma.playerCredential.findUnique({ where: { username } });
   if (!cred) {
-    // note: constant-time compare against a dummy hash keeps timing similar for unknown users.
+    // note: constant-time compare against a dummy hash flattens timing for unknown users.
     await bcrypt.compare(password, DUMMY_HASH);
     auditLog("player_login_unknown_user", { ip });
     return res.status(401).json({ error: "Invalid credentials" });
@@ -47,9 +52,11 @@ export default async function handler(req: any, res: any) {
 
   const ok = await bcrypt.compare(password, cred.passwordHash);
   if (!ok) {
-    auditLog("player_login_bad_password", { ip, username });
+    auditLog("player_login_bad_password", { ip, playerId: cred.playerId });
     return res.status(401).json({ error: "Invalid credentials" });
   }
+
+  await Promise.all([clearAttempts(ipKey), clearAttempts(accountKey)]);
 
   const payload = JSON.stringify({ role: "player", playerId: cred.playerId, ts: Date.now() });
   res.setHeader("Set-Cookie", buildPlayerSessionCookie(payload));

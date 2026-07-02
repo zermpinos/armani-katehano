@@ -25,16 +25,17 @@ async function handler(req: any, res: any) {
   const existingCred = await prisma.playerCredential.findUnique({ where: { playerId } });
   if (existingCred) return res.status(409).json({ error: "Player already enrolled" });
 
-  await prisma.playerInvite.updateMany({
-    where: { playerId, consumedAt: null },
-    data: { consumedAt: new Date() },
-  });
-
   const token = crypto.randomBytes(32).toString("hex");
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
   const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
 
-  await prisma.playerInvite.create({ data: { playerId, tokenHash, expiresAt } });
+  await prisma.$transaction([
+    prisma.playerInvite.updateMany({
+      where: { playerId, consumedAt: null },
+      data:  { consumedAt: new Date() },
+    }),
+    prisma.playerInvite.create({ data: { playerId, tokenHash, expiresAt } }),
+  ]);
 
   await sendPlayerInviteEmail({
     to: player.contactEmail,

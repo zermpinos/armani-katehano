@@ -23,39 +23,54 @@ export default async function handler(req: any, res: any) {
     | { status: number; body: { error: string } }
     | { status: 200; body: { ok: true; username: string }; playerId: string };
 
-  const result: EnrollResult = await prisma.$transaction(async (tx) => {
-    const invite = await tx.playerInvite.findUnique({
-      where: { tokenHash },
-      include: { player: true },
-    });
-    if (!invite) return { status: 404, body: { error: "Not found" } };
-    if (invite.consumedAt) return { status: 410, body: { error: "Already used" } };
-    if (invite.expiresAt.getTime() < Date.now()) return { status: 410, body: { error: "Expired" } };
+  let result: EnrollResult;
+  try {
+    result = await prisma.$transaction(async (tx) => {
+      const invite = await tx.playerInvite.findUnique({
+        where: { tokenHash },
+        include: { player: true },
+      });
+      if (!invite) return { status: 404, body: { error: "Not found" } };
+      if (invite.consumedAt) return { status: 410, body: { error: "Already used" } };
+      if (invite.expiresAt.getTime() < Date.now()) return { status: 410, body: { error: "Expired" } };
 
-    const existingCred = await tx.playerCredential.findUnique({
-      where: { playerId: invite.playerId },
-    });
-    if (existingCred) return { status: 409, body: { error: "Already enrolled" } };
+      const existingCred = await tx.playerCredential.findUnique({
+        where: { playerId: invite.playerId },
+      });
+      if (existingCred) return { status: 409, body: { error: "Already enrolled" } };
 
-    const base = deriveUsername(invite.player.name);
-    let username = base;
-    let collisions = 0;
-    while (await tx.playerCredential.findUnique({ where: { username } })) {
-      collisions += 1;
-      username = deriveUsernameWithSuffix(base, collisions);
+      let base: string;
+      try {
+        base = deriveUsername(invite.player.name);
+      } catch {
+        return { status: 400, body: { error: "Player name has no valid username characters" } };
+      }
+      let username = base;
+      let collisions = 0;
+      while (await tx.playerCredential.findUnique({ where: { username } })) {
+        collisions += 1;
+        username = deriveUsernameWithSuffix(base, collisions);
+      }
+
+      const passwordHash = await bcrypt.hash(password, 12);
+      await tx.playerCredential.create({
+        data: { playerId: invite.playerId, username, passwordHash },
+      });
+      await tx.playerInvite.update({
+        where: { tokenHash },
+        data: { consumedAt: new Date() },
+      });
+
+      return { status: 200, body: { ok: true, username }, playerId: invite.playerId };
+    });
+  } catch (err: any) {
+    // Concurrent enroll of the same token: the loser hits a unique-constraint on
+    // PlayerCredential.playerId or PlayerCredential.username. Report as 409, not 500.
+    if (err?.code === "P2002") {
+      return res.status(409).json({ error: "Already enrolled" });
     }
-
-    const passwordHash = await bcrypt.hash(password, 12);
-    await tx.playerCredential.create({
-      data: { playerId: invite.playerId, username, passwordHash },
-    });
-    await tx.playerInvite.update({
-      where: { tokenHash },
-      data: { consumedAt: new Date() },
-    });
-
-    return { status: 200, body: { ok: true, username }, playerId: invite.playerId };
-  });
+    throw err;
+  }
 
   if (!("playerId" in result)) return res.status(result.status).json(result.body);
 
