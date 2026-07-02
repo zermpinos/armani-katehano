@@ -2,7 +2,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, byJersey } from "@/client/admin";
+import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, byJersey, apiFetch } from "@/client/admin";
 import type { Player } from "@/client/admin";
 import { getAdminPasskeyLoginProps } from "@/server/auth";
 import { initials } from "@/domain/players/format";
@@ -138,10 +138,9 @@ function EnrollmentControls({
   async function sendInvite() {
     setSending(true);
     try {
-      const r = await fetch("/api/admin/player-invites", {
+      const r = await apiFetch("/api/admin/player-invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
         body: JSON.stringify({ playerId: player.id }),
       });
       const data = await r.json().catch(() => ({}));
