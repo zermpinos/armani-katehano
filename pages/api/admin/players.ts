@@ -20,6 +20,15 @@ async function listPlayers(_req: any, res: any) {
     const players = await prisma.player.findMany({
       where:   { isActive: true },
       orderBy: { number: "asc" },
+      include: {
+        credential: { select: { username: true } },
+        invites: {
+          where:   { consumedAt: null, expiresAt: { gt: new Date() } },
+          orderBy: { createdAt: "desc" },
+          take:    1,
+          select:  { expiresAt: true },
+        },
+      },
     });
     return res.status(200).json({ players });
   } catch (err) {
