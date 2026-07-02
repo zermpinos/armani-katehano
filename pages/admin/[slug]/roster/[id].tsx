@@ -10,29 +10,31 @@ import { initials } from "@/domain/players/format";
 import { cloudinaryThumb } from "@/domain/shared/cloudinary";
 
 type Draft = {
-  name:     string;
-  number:   string;
-  position: string;
-  height:   string;
-  weight:   string;
-  photoUrl: string;
-  isActive: boolean;
+  name:         string;
+  number:       string;
+  position:     string;
+  height:       string;
+  weight:       string;
+  photoUrl:     string;
+  contactEmail: string;
+  isActive:     boolean;
 };
 
 const EMPTY: Draft = {
   name: "", number: "", position: "PG",
-  height: "", weight: "", photoUrl: "", isActive: true,
+  height: "", weight: "", photoUrl: "", contactEmail: "", isActive: true,
 };
 
 function playerToDraft(p: Player): Draft {
   return {
-    name:     p.name,
-    number:   String(p.number),
-    position: p.position,
-    height:   p.height ?? "",
-    weight:   p.weight ?? "",
-    photoUrl: p.photoUrl ?? "",
-    isActive: p.isActive ?? true,
+    name:         p.name,
+    number:       String(p.number),
+    position:     p.position,
+    height:       p.height ?? "",
+    weight:       p.weight ?? "",
+    photoUrl:     p.photoUrl ?? "",
+    contactEmail: p.contactEmail ?? "",
+    isActive:     p.isActive ?? true,
   };
 }
 
@@ -92,13 +94,14 @@ export default function RosterEditPage({
     }
     setSaving(true);
     const payload = {
-      name:     draft.name.trim(),
-      number:   numberNum,
-      position: draft.position,
-      height:   draft.height.trim() || null,
-      weight:   draft.weight.trim() || null,
-      photoUrl: draft.photoUrl.trim() || null,
-      isActive: draft.isActive,
+      name:         draft.name.trim(),
+      number:       numberNum,
+      position:     draft.position,
+      height:       draft.height.trim()       || null,
+      weight:       draft.weight.trim()       || null,
+      photoUrl:     draft.photoUrl.trim()     || null,
+      contactEmail: draft.contactEmail.trim() || null,
+      isActive:     draft.isActive,
     };
     const res = await apiFetch("/api/admin/players", {
       method:  isNew ? "POST" : "PUT",
@@ -121,14 +124,15 @@ export default function RosterEditPage({
       method:  "PUT",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({
-        playerId: idParam,
-        name:     draft.name.trim(),
-        number:   Number(draft.number),
-        position: draft.position,
-        height:   draft.height.trim() || null,
-        weight:   draft.weight.trim() || null,
-        photoUrl: draft.photoUrl.trim() || null,
-        isActive: false,
+        playerId:     idParam,
+        name:         draft.name.trim(),
+        number:       Number(draft.number),
+        position:     draft.position,
+        height:       draft.height.trim()       || null,
+        weight:       draft.weight.trim()       || null,
+        photoUrl:     draft.photoUrl.trim()     || null,
+        contactEmail: draft.contactEmail.trim() || null,
+        isActive:     false,
       }),
     });
     if (!res.ok) {
@@ -199,6 +203,7 @@ export default function RosterEditPage({
               <F label="WEIGHT" value={draft.weight} onChange={v => upd("weight", v)} placeholder="e.g. 90 kg" />
             </div>
             <F label="PHOTO URL" value={draft.photoUrl} onChange={v => upd("photoUrl", v)} placeholder="https://res.cloudinary.com/..." />
+            <F label="CONTACT EMAIL" value={draft.contactEmail} onChange={v => upd("contactEmail", v)} placeholder="player@example.com" type="email" />
           </div>
 
           <div className="sticky bottom-0 -mx-4 px-4 py-3 bg-ak-base border-t border-ak-border flex items-center justify-between gap-3 flex-wrap">

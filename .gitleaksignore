@@ -11,3 +11,11 @@
 # also reference this blob and can only be removed via a GitHub Support
 # "remove sensitive data" request.
 b4c67d8b8c754a3343932a5ce86cd99176fcdb3e:test-login.js:generic-api-key:5
+
+# Playwright E2E test-only password for the player-auth happy path. The
+# literal is a fixed test input (must be >= 12 chars to satisfy the login
+# zod schema minimum); it is never a real credential. A later commit added
+# a `gitleaks:allow` pragma inline, but the introducing commit remains in
+# the scan range. Test was added 2026-07-02; if the file moves or the
+# literal changes, retire this entry.
+0e81b9cf37bbc18fb2c4293809fbea3399499c20:e2e/player-enroll-login.spec.js:generic-api-key:17

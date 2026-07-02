@@ -6,7 +6,10 @@ export interface Player {
   height?: string;
   weight?: string;
   photoUrl?: string | null;
+  contactEmail?: string | null;
   isActive?: boolean;
+  credential?: { username: string } | null;
+  invites?: { expiresAt: string }[];
 }
 
 export interface BoxScoreRow {
