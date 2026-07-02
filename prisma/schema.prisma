@@ -320,8 +320,6 @@ model PlayerCredential {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-
-  @@index([username])
 }
 
 model PlayerInvite {
