@@ -14,10 +14,14 @@ async function loadPrisma() {
 const RUN_ID     = crypto.randomBytes(4).toString("hex");
 const PLAYER_NAME = `E2E Person${RUN_ID}`;
 const SLUG        = `e2e-player-${RUN_ID}`;
-const PASSWORD    = "very-long-passphrase-1";
+const PASSWORD    = "very-long-passphrase-1"; // gitleaks:allow
 
 test.describe("player enroll then login", () => {
   test("enrolls with an invite, then logs in with the same credentials", async ({ page, context }) => {
+    test.skip(
+      !!process.env.PLAYWRIGHT_BASE_URL,
+      "Seed uses local Prisma. In CI (Vercel preview) this test would need HTTP-based seeding with mock SMTP or a test-only invite lookup endpoint.",
+    );
     const prisma = await loadPrisma();
 
     // Seed: unique player + invite. Number 99 is unlikely to collide with an active roster row.
