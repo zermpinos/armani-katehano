@@ -10,6 +10,7 @@ export const PlayerWriteSchema = z.object({
   photoUrl: z.string().url().max(255)
     .refine((u) => /^https?:\/\//i.test(u), { message: "photoUrl must use http or https" })
     .optional().nullable(),
+  contactEmail: z.string().email().max(200).optional().nullable(),
 });
 
 export const PlayerUpdateSchema = PlayerWriteSchema.extend({

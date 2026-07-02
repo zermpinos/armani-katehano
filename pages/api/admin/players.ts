@@ -40,7 +40,7 @@ async function createPlayer(req: any, res: any) {
   const ip   = getClientIp(req);
   const data = parseBody(PlayerWriteSchema, req.body, res, "flatten");
   if (!data) return;
-  const { name, number, position, height, weight, photoUrl } = data;
+  const { name, number, position, height, weight, photoUrl, contactEmail } = data;
 
   try {
     const taken = await prisma.player.findFirst({
@@ -54,14 +54,15 @@ async function createPlayer(req: any, res: any) {
 
     const player = await prisma.player.create({
       data: {
-        slug:     slugify(name),
+        slug:         slugify(name),
         name,
         number,
         position,
-        height:   height   ?? null,
-        weight:   weight   ?? null,
-        photoUrl: photoUrl ?? null,
-        isActive: true,
+        height:       height       ?? null,
+        weight:       weight       ?? null,
+        photoUrl:     photoUrl     ?? null,
+        contactEmail: contactEmail ?? null,
+        isActive:     true,
       },
     });
     auditLog("player_created", { ip, playerId: player.id, name });
@@ -80,7 +81,7 @@ async function updatePlayer(req: any, res: any) {
   const ip   = getClientIp(req);
   const data = parseBody(PlayerUpdateSchema, req.body, res, "flatten");
   if (!data) return;
-  const { playerId, name, number, position, height, weight, isActive, photoUrl } = data;
+  const { playerId, name, number, position, height, weight, isActive, photoUrl, contactEmail } = data;
 
   try {
     const taken = await prisma.player.findFirst({
@@ -100,13 +101,14 @@ async function updatePlayer(req: any, res: any) {
       where: { id: playerId },
       data: {
         name,
-        slug:     slugify(name),
+        slug:         slugify(name),
         number,
         position,
-        height:   height   ?? null,
-        weight:   weight   ?? null,
-        photoUrl: photoUrl ?? null,
-        isActive: isActive ?? true,
+        height:       height       ?? null,
+        weight:       weight       ?? null,
+        photoUrl:     photoUrl     ?? null,
+        contactEmail: contactEmail ?? null,
+        isActive:     isActive     ?? true,
       },
     });
     auditLog("player_updated", { ip, playerId, name });
