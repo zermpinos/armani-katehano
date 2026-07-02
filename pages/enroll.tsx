@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/router";
 
 export default function EnrollPage() {
@@ -23,7 +23,7 @@ export default function EnrollPage() {
       .catch(() => setError("Network error"));
   }, [token]);
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     if (password.length < 12) return setError("Password must be at least 12 characters.");

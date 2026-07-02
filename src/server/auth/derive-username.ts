@@ -1,15 +1,15 @@
 // Greek uppercase to Latin per ELOT 743 (simplified subset used for names).
-const GREEK_TO_LATIN: Record<string, string> = {
-  Α: "A", Β: "V", Γ: "G", Δ: "D", Ε: "E", Ζ: "Z", Η: "I", Θ: "TH",
-  Ι: "I", Κ: "K", Λ: "L", Μ: "M", Ν: "N", Ξ: "X", Ο: "O", Π: "P",
-  Ρ: "R", Σ: "S", Τ: "T", Υ: "Y", Φ: "F", Χ: "CH", Ψ: "PS", Ω: "O",
-};
+const GREEK_TO_LATIN = new Map<string, string>([
+  ["Α","A"], ["Β","V"], ["Γ","G"], ["Δ","D"], ["Ε","E"], ["Ζ","Z"], ["Η","I"], ["Θ","TH"],
+  ["Ι","I"], ["Κ","K"], ["Λ","L"], ["Μ","M"], ["Ν","N"], ["Ξ","X"], ["Ο","O"], ["Π","P"],
+  ["Ρ","R"], ["Σ","S"], ["Τ","T"], ["Υ","Y"], ["Φ","F"], ["Χ","CH"], ["Ψ","PS"], ["Ω","O"],
+]);
 
 function transliterate(input: string): string {
   const withDigraphs = input.replace(/ΟΥ/g, "OU");
   let out = "";
   for (const ch of withDigraphs) {
-    out += GREEK_TO_LATIN[ch] ?? ch;
+    out += GREEK_TO_LATIN.get(ch) ?? ch;
   }
   return out;
 }

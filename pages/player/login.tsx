@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/router";
 
 export default function PlayerLogin() {
@@ -8,7 +8,7 @@ export default function PlayerLogin() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
