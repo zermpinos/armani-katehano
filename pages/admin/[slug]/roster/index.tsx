@@ -2,7 +2,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, byJersey, apiFetch } from "@/client/admin";
+import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, byJersey } from "@/client/admin";
 import type { Player } from "@/client/admin";
 import { getAdminPasskeyLoginProps } from "@/server/auth";
 import { initials } from "@/domain/players/format";
@@ -84,7 +84,6 @@ export default function RosterPage({
           {sorted.map(p => (
             <li key={p.id} className="rounded-xl border border-ak-border bg-ak-surface">
               <PlayerCard player={p} slug={String(slug)} />
-              <EnrollmentControls player={p} onChange={loadPlayers} setToast={setToast} />
             </li>
           ))}
         </ul>
@@ -118,71 +117,6 @@ function PlayerCard({ player, slug }: { player: Player; slug: string }) {
         </div>
       </div>
     </Link>
-  );
-}
-
-function EnrollmentControls({
-  player,
-  onChange,
-  setToast,
-}: {
-  player: Player;
-  onChange: () => void;
-  setToast: (t: { msg: string; type?: string } | null) => void;
-}) {
-  const [sending, setSending] = useState(false);
-  const enrolled = !!player.credential;
-  const pendingInvite = (player.invites?.[0]?.expiresAt) ?? null;
-  const hasEmail = !!player.contactEmail;
-
-  async function sendInvite() {
-    setSending(true);
-    try {
-      const r = await apiFetch("/api/admin/player-invites", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerId: player.id }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setToast({ msg: data.error ?? "Invite failed", type: "error" });
-      } else {
-        setToast({ msg: "Invite sent.", type: "success" });
-        onChange();
-      }
-    } finally {
-      setSending(false);
-    }
-  }
-
-  let statusLabel: string;
-  let statusClass: string;
-  if (enrolled) {
-    statusLabel = `Enrolled: ${player.credential!.username}`;
-    statusClass = "text-ak-text-dim";
-  } else if (pendingInvite) {
-    statusLabel = `Invite pending, expires ${new Date(pendingInvite).toLocaleDateString()}`;
-    statusClass = "text-ak-text-dim";
-  } else {
-    statusLabel = "Not enrolled";
-    statusClass = "text-ak-text-dim";
-  }
-
-  return (
-    <div className="flex items-center justify-between gap-2 border-t border-ak-border px-4 py-2 text-[11px]">
-      <span className={statusClass}>{statusLabel}</span>
-      {!enrolled && (
-        <button
-          type="button"
-          onClick={sendInvite}
-          disabled={sending || !hasEmail}
-          title={!hasEmail ? "Add contact email on the edit page first" : ""}
-          className="py-1 px-2 text-[10px] font-black tracking-[0.1em] uppercase rounded bg-ak-red text-ak-text disabled:opacity-40"
-        >
-          {sending ? "Sending..." : pendingInvite ? "Resend invite" : "Send invite"}
-        </button>
-      )}
-    </div>
   );
 }
 
