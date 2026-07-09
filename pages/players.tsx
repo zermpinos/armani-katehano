@@ -7,6 +7,7 @@ import { getAllPublicData, getAllSeasonsStats } from "@/server/db/repositories";
 import { buildAllTimeStatsMap } from "@/domain/stats";
 import { fmt } from "@/domain/players/format";
 import SeasonSelector from "@/components/ui/SeasonSelector";
+import ArchivedBanner from "@/components/ui/ArchivedBanner";
 
 const playerImg = (player: any) => player.photoUrl || null;
 
@@ -54,7 +55,7 @@ function PlayerCard({ player }: any) {
   );
 }
 
-export default function PlayersPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }: any) {
+export default function PlayersPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, archivedSeasonNames }: any) {
   const [activeSeason, setActiveSeason] = useState(currentSeason);
   const [search, setSearch] = useState("");
 
@@ -80,6 +81,7 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
         showAllTime={true}
         right={`${players.length} Players`}
       />
+      <ArchivedBanner archived={archivedSeasonNames.includes(activeSeason)} seasonName={activeSeason} />
       <div className="mb-4">
         <label className="relative inline-flex items-center w-full max-w-[260px]">
           <svg className="absolute left-3 text-ak-text-dim pointer-events-none shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -116,7 +118,7 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
 
 export async function getStaticProps() {
   try {
-    const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
+    const { seasons, currentSeason, players, stats, archivedSeasonNames } = await getAllPublicData(null);
     const allSeasonsStats = await getAllSeasonsStats(seasons);
     const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
 
@@ -131,9 +133,9 @@ export async function getStaticProps() {
       }
     }
 
-    return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory }, revalidate: 3600 };
+    return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, archivedSeasonNames }, revalidate: 3600 };
   } catch {
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
-    return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, playerSeasonHistory: {} }, revalidate: 60 };
+    return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, playerSeasonHistory: {}, archivedSeasonNames: [] }, revalidate: 60 };
   }
 }

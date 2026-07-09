@@ -5,6 +5,7 @@ import { getPlayers } from "./players";
 import { getGames } from "./games";
 import { getStats } from "./stats";
 import { getUpcomingGames } from "./upcoming-games";
+import { getAwardsForArchivedSeasons, getArchivedSeasonNames } from "./awards";
 
 export async function getAllPublicData(seasonName: string | null = null) {
   // Sequential probe so a missing DB rejects on one connection instead of
@@ -12,12 +13,14 @@ export async function getAllPublicData(seasonName: string | null = null) {
   const config = await getConfig();
   const activeSeason = seasonName ?? config.currentSeason;
 
-  const [seasons, players, games, stats, upcomingGames] = await Promise.all([
+  const [seasons, players, games, stats, upcomingGames, archivedSeasonNames, awardsBySeasonName] = await Promise.all([
     getSeasons(),
     getPlayers(),
     getGames(activeSeason),
     getStats(activeSeason),
     getUpcomingGames(),
+    getArchivedSeasonNames(),
+    getAwardsForArchivedSeasons(),
   ]);
 
   return {
@@ -28,5 +31,7 @@ export async function getAllPublicData(seasonName: string | null = null) {
     games,
     stats,
     upcomingGames,
+    archivedSeasonNames,
+    awardsBySeasonName,
   };
 }

@@ -6,3 +6,4 @@ export * from "./players";
 export * from "./seasons";
 export * from "./stats";
 export * from "./upcoming-games";
+export * from "./awards";

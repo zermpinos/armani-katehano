@@ -4,13 +4,15 @@ import { SectionHeading } from "@/components/ui";
 import { getAllPublicData, getAllSeasonsStats, getAllPlayerGameLogs } from "@/server/db/repositories";
 import { buildAllTimeStatsMap, computeStatsFromLog } from "@/domain/stats";
 import SeasonSelector from "@/components/ui/SeasonSelector";
+import ArchivedBanner from "@/components/ui/ArchivedBanner";
+import SeasonAwards from "@/components/ui/SeasonAwards";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { LeaderboardTable, COLS, TOTAL_COLS } from "@/client/leaderboard/leaderboard-table";
 
 type PhaseFilter = "all" | "regular" | "playoffs";
 const PLAYOFF_ROUNDS = ["quarterfinal", "semifinal", "final"];
 
-export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs }: any) {
+export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs, archivedSeasonNames, awardsBySeasonName }: any) {
   const [sortKey, setSortKey] = useState("ppg");
   const [sortDir, setSortDir] = useState("desc");
   const [activeSeason, setActiveSeason] = useState(currentSeason);
@@ -87,6 +89,11 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
         }
       />
 
+      <ArchivedBanner archived={archivedSeasonNames.includes(activeSeason)} seasonName={activeSeason} />
+      {archivedSeasonNames.includes(activeSeason) && activeSeason !== "all-time" && (
+        <SeasonAwards awards={Reflect.get(awardsBySeasonName as object, activeSeason) ?? null} />
+      )}
+
       <div className="flex items-center gap-1.5 mb-4">
         {(["all", "regular", "playoffs"] as const).map(f => (
           <button
@@ -118,15 +125,15 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
 
 export async function getStaticProps() {
   try {
-    const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
+    const { seasons, currentSeason, players, stats, archivedSeasonNames, awardsBySeasonName } = await getAllPublicData(null);
     const [allSeasonsStats, allPlayerGameLogs] = await Promise.all([
       getAllSeasonsStats(seasons),
       getAllPlayerGameLogs(),
     ]);
     const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
-    return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs }, revalidate: 3600 };
+    return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs, archivedSeasonNames, awardsBySeasonName }, revalidate: 3600 };
   } catch {
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
-    return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, allPlayerGameLogs: [] }, revalidate: 60 };
+    return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, allPlayerGameLogs: [], archivedSeasonNames: [], awardsBySeasonName: {} }, revalidate: 60 };
   }
 }
