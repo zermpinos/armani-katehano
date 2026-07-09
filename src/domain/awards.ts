@@ -21,11 +21,11 @@ export type PlayerRef = {
 };
 
 export type Awards = {
-  mvp: PlayerRef | null;
-  scorer: PlayerRef | null;
-  rebounds: PlayerRef | null;
-  assists: PlayerRef | null;
-  shooting: PlayerRef | null;
+  mvp: PlayerRef[];
+  scorer: PlayerRef[];
+  rebounds: PlayerRef[];
+  assists: PlayerRef[];
+  shooting: PlayerRef[];
 };
 
 type Collapsed = {
@@ -86,22 +86,20 @@ function toRef(c: Collapsed, value: number): PlayerRef {
   };
 }
 
-function pickMax(
+function pickTopN(
   rows: readonly Collapsed[],
   keyValue: (c: Collapsed) => number,
-  eligible: (c: Collapsed) => boolean
-): PlayerRef | null {
+  eligible: (c: Collapsed) => boolean,
+  n: number
+): PlayerRef[] {
   const pool = rows.filter(eligible);
-  if (!pool.length) return null;
-  let best = pool[0];
-  for (const r of pool.slice(1)) {
-    const rv = keyValue(r);
-    const bv = keyValue(best);
-    if (rv > bv || (rv === bv && r.playerName.localeCompare(best.playerName) < 0)) {
-      best = r;
-    }
-  }
-  return toRef(best, keyValue(best));
+  const sorted = [...pool].sort((a, b) => {
+    const av = keyValue(a);
+    const bv = keyValue(b);
+    if (bv !== av) return bv - av;
+    return a.playerName.localeCompare(b.playerName);
+  });
+  return sorted.slice(0, n).map((c) => toRef(c, keyValue(c)));
 }
 
 export function computeAwards(
@@ -114,18 +112,20 @@ export function computeAwards(
   const gpFloor = Math.min(5, totalGamesInSeason);
   const fgaFloor = Math.min(20, totalGamesInSeason);
 
-  const mvp = pickMax(
+  const mvp = pickTopN(
     collapsed,
     (c) => (c.gp > 0 ? c.effAvgWeighted / c.gp : 0),
-    (c) => c.gp >= gpFloor
+    (c) => c.gp >= gpFloor,
+    3
   );
-  const scorer = pickMax(collapsed, (c) => c.ptsTotal, () => true);
-  const rebounds = pickMax(collapsed, (c) => c.rebTotal, () => true);
-  const assists = pickMax(collapsed, (c) => c.astTotal, () => true);
-  const shooting = pickMax(
+  const scorer   = pickTopN(collapsed, (c) => c.ptsTotal, () => true, 3);
+  const rebounds = pickTopN(collapsed, (c) => c.rebTotal, () => true, 3);
+  const assists  = pickTopN(collapsed, (c) => c.astTotal, () => true, 3);
+  const shooting = pickTopN(
     collapsed,
     (c) => (c.fgaTotal > 0 ? c.tsPctWeighted / c.fgaTotal : 0),
-    (c) => c.fgaTotal >= fgaFloor && fgaFloor > 0
+    (c) => c.fgaTotal >= fgaFloor && fgaFloor > 0,
+    3
   );
 
   return { mvp, scorer, rebounds, assists, shooting };

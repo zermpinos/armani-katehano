@@ -30,7 +30,7 @@ describe("computeAwards", () => {
       row({ playerId: "c", playerName: "Charlie", effAvg: 18, gp: 8 }),
     ];
     const awards = computeAwards(rows, 20);
-    expect(awards?.mvp?.playerId).toBe("a");
+    expect(awards?.mvp[0]?.playerId).toBe("a");
   });
 
   it("uses min(5, totalGames) so short seasons still produce MVP", () => {
@@ -39,7 +39,7 @@ describe("computeAwards", () => {
       row({ playerId: "b", playerName: "Bravo", effAvg: 15, gp: 3 }),
     ];
     const awards = computeAwards(rows, 3);
-    expect(awards?.mvp?.playerId).toBe("b");
+    expect(awards?.mvp[0]?.playerId).toBe("b");
   });
 
   it("picks top scorer by ptsTotal", () => {
@@ -47,7 +47,7 @@ describe("computeAwards", () => {
       row({ playerId: "a", playerName: "Alpha", ptsTotal: 100 }),
       row({ playerId: "b", playerName: "Bravo", ptsTotal: 200 }),
     ];
-    expect(computeAwards(rows, 10)?.scorer?.playerId).toBe("b");
+    expect(computeAwards(rows, 10)?.scorer[0]?.playerId).toBe("b");
   });
 
   it("picks rebounds leader by rebTotal", () => {
@@ -55,7 +55,7 @@ describe("computeAwards", () => {
       row({ playerId: "a", playerName: "Alpha", rebTotal: 100 }),
       row({ playerId: "b", playerName: "Bravo", rebTotal: 200 }),
     ];
-    expect(computeAwards(rows, 10)?.rebounds?.playerId).toBe("b");
+    expect(computeAwards(rows, 10)?.rebounds[0]?.playerId).toBe("b");
   });
 
   it("picks assists leader by astTotal", () => {
@@ -63,7 +63,7 @@ describe("computeAwards", () => {
       row({ playerId: "a", playerName: "Alpha", astTotal: 100 }),
       row({ playerId: "b", playerName: "Bravo", astTotal: 200 }),
     ];
-    expect(computeAwards(rows, 10)?.assists?.playerId).toBe("b");
+    expect(computeAwards(rows, 10)?.assists[0]?.playerId).toBe("b");
   });
 
   it("shooting excludes players below min(20, totalGames) fga", () => {
@@ -71,7 +71,7 @@ describe("computeAwards", () => {
       row({ playerId: "a", playerName: "Alpha", tsPct: 0.9, fgaTotal: 5 }),
       row({ playerId: "b", playerName: "Bravo", tsPct: 0.6, fgaTotal: 30 }),
     ];
-    expect(computeAwards(rows, 10)?.shooting?.playerId).toBe("b");
+    expect(computeAwards(rows, 10)?.shooting[0]?.playerId).toBe("b");
   });
 
   it("shooting: short season uses min(20, totalGames)", () => {
@@ -79,7 +79,7 @@ describe("computeAwards", () => {
       row({ playerId: "a", playerName: "Alpha", tsPct: 0.9, fgaTotal: 10 }),
       row({ playerId: "b", playerName: "Bravo", tsPct: 0.6, fgaTotal: 8 }),
     ];
-    expect(computeAwards(rows, 3)?.shooting?.playerId).toBe("a");
+    expect(computeAwards(rows, 3)?.shooting[0]?.playerId).toBe("a");
   });
 
   it("ties broken alphabetically by player name", () => {
@@ -87,7 +87,7 @@ describe("computeAwards", () => {
       row({ playerId: "b", playerName: "Bravo", ptsTotal: 100 }),
       row({ playerId: "a", playerName: "Alpha", ptsTotal: 100 }),
     ];
-    expect(computeAwards(rows, 10)?.scorer?.playerId).toBe("a");
+    expect(computeAwards(rows, 10)?.scorer[0]?.playerId).toBe("a");
   });
 
   it("collapses multi-league rows by playerId (totals summed, effAvg + tsPct weighted by gp)", () => {
@@ -96,8 +96,8 @@ describe("computeAwards", () => {
       row({ playerId: "a", playerName: "Alpha", gp: 5, ptsTotal: 100, effAvg: 20, tsPct: 0.7, fgaTotal: 30 }),
     ];
     const awards = computeAwards(rows, 10);
-    expect(awards?.mvp?.playerId).toBe("a");
-    expect(awards?.scorer?.playerId).toBe("a");
+    expect(awards?.mvp[0]?.playerId).toBe("a");
+    expect(awards?.scorer[0]?.playerId).toBe("a");
   });
 
   it("counting-stat leaders have no eligibility floor (zero stats still crown)", () => {
@@ -105,10 +105,10 @@ describe("computeAwards", () => {
       row({ playerId: "a", playerName: "Alpha", gp: 1, ptsTotal: 0, rebTotal: 0, astTotal: 0, effAvg: 0, fgaTotal: 0 }),
     ];
     const awards = computeAwards(rows, 20);
-    expect(awards?.mvp).toBeNull();
-    expect(awards?.scorer?.playerId).toBe("a");
-    expect(awards?.rebounds?.playerId).toBe("a");
-    expect(awards?.assists?.playerId).toBe("a");
+    expect(awards?.mvp).toEqual([]);
+    expect(awards?.scorer[0]?.playerId).toBe("a");
+    expect(awards?.rebounds[0]?.playerId).toBe("a");
+    expect(awards?.assists[0]?.playerId).toBe("a");
   });
 
   it("hides null slots but keeps non-null ones", () => {
@@ -117,9 +117,59 @@ describe("computeAwards", () => {
     ];
     const awards = computeAwards(rows, 20);
     expect(awards).not.toBeNull();
-    expect(awards?.mvp).toBeNull();
-    expect(awards?.shooting).toBeNull();
-    expect(awards?.scorer?.playerId).toBe("a");
+    expect(awards?.mvp).toEqual([]);
+    expect(awards?.shooting).toEqual([]);
+    expect(awards?.scorer[0]?.playerId).toBe("a");
+  });
+
+  it("returns top 3 in each counting-stat slot", () => {
+    const rows = [
+      row({ playerId: "a", playerName: "Alpha",   ptsTotal: 100 }),
+      row({ playerId: "b", playerName: "Bravo",   ptsTotal: 300 }),
+      row({ playerId: "c", playerName: "Charlie", ptsTotal: 200 }),
+      row({ playerId: "d", playerName: "Delta",   ptsTotal: 150 }),
+    ];
+    const awards = computeAwards(rows, 20);
+    expect(awards?.scorer.map((r) => r.playerId)).toEqual(["b", "c", "d"]);
+  });
+
+  it("returns fewer than 3 when fewer players are eligible", () => {
+    const rows = [
+      row({ playerId: "a", playerName: "Alpha", gp: 10, effAvg: 15 }),
+      row({ playerId: "b", playerName: "Bravo", gp: 10, effAvg: 20 }),
+    ];
+    const awards = computeAwards(rows, 20);
+    expect(awards?.mvp).toHaveLength(2);
+    expect(awards?.mvp[0].playerId).toBe("b");
+    expect(awards?.mvp[1].playerId).toBe("a");
+  });
+
+  it("returns empty array when nobody meets eligibility floor", () => {
+    const rows = [
+      row({ playerId: "a", playerName: "Alpha", gp: 2, effAvg: 20 }),
+    ];
+    const awards = computeAwards(rows, 20);
+    expect(awards?.mvp).toEqual([]);
+  });
+
+  it("breaks ties alphabetically within the podium", () => {
+    const rows = [
+      row({ playerId: "c", playerName: "Charlie", ptsTotal: 100 }),
+      row({ playerId: "a", playerName: "Alpha",   ptsTotal: 100 }),
+      row({ playerId: "b", playerName: "Bravo",   ptsTotal: 100 }),
+    ];
+    const awards = computeAwards(rows, 20);
+    expect(awards?.scorer.map((r) => r.playerId)).toEqual(["a", "b", "c"]);
+  });
+
+  it("respects shooting fga floor for all podium spots", () => {
+    const rows = [
+      row({ playerId: "a", playerName: "Alpha", tsPct: 0.9, fgaTotal: 5 }),
+      row({ playerId: "b", playerName: "Bravo", tsPct: 0.8, fgaTotal: 30 }),
+      row({ playerId: "c", playerName: "Charlie", tsPct: 0.7, fgaTotal: 25 }),
+    ];
+    const awards = computeAwards(rows, 20);
+    expect(awards?.shooting.map((r) => r.playerId)).toEqual(["b", "c"]);
   });
 });
 
