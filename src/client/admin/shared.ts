@@ -8,8 +8,6 @@ export interface Player {
   photoUrl?: string | null;
   contactEmail?: string | null;
   isActive?: boolean;
-  credential?: { username: string } | null;
-  invites?: { expiresAt: string }[];
 }
 
 export interface BoxScoreRow {
