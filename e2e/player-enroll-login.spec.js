@@ -24,17 +24,19 @@ test.describe("player enroll then login", () => {
     );
     const prisma = await loadPrisma();
 
-    // Seed: unique player + invite. Number 99 is unlikely to collide with an active roster row.
-    const player = await prisma.player.create({
-      data: { slug: SLUG, name: PLAYER_NAME, number: 99, position: "SF", contactEmail: `${SLUG}@example.test` },
-    });
-    const token     = crypto.randomBytes(32).toString("hex");
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-    await prisma.playerInvite.create({
-      data: { playerId: player.id, tokenHash, expiresAt: new Date(Date.now() + 60_000) },
-    });
-
+    // Player row is created inside the try so the finally block always cleans it up,
+    // even if invite creation or enrolment throws before the assertions run.
+    let player;
     try {
+      player = await prisma.player.create({
+        data: { slug: SLUG, name: PLAYER_NAME, number: 99, position: "SF", contactEmail: `${SLUG}@example.test` },
+      });
+      const token     = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+      await prisma.playerInvite.create({
+        data: { playerId: player.id, tokenHash, expiresAt: new Date(Date.now() + 60_000) },
+      });
+
       await page.goto(`/enroll?token=${token}`);
       await expect(page.getByRole("heading")).toContainText(PLAYER_NAME);
       await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
@@ -56,7 +58,7 @@ test.describe("player enroll then login", () => {
       await page.waitForURL(/\/$/);
     } finally {
       // Cleanup: cascade removes credential and invite via FK.
-      await prisma.player.delete({ where: { id: player.id } }).catch(() => {});
+      if (player?.id) await prisma.player.delete({ where: { id: player.id } }).catch(() => {});
     }
   });
 });
