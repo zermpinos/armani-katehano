@@ -6,4 +6,4 @@ export * from "./players";
 export * from "./seasons";
 export * from "./stats";
 export * from "./upcoming-games";
-export { getAwardsForArchivedSeasons, getArchivedSeasonNames } from "./awards";
+export * from "./awards";

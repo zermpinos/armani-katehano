@@ -9,12 +9,20 @@ import { computeAwards, type AggregateInput, type Awards } from "@/domain/awards
 export async function getAwardsForArchivedSeasons(): Promise<Record<string, Awards | null>> {
   const archivedSeasons = await prisma.season.findMany({
     where: { archivedAt: { not: null } },
-    include: {
+    select: {
+      name: true,
       seasonLeagues: {
-        include: {
-          games: { select: { id: true } },
+        select: {
+          _count: { select: { games: true } },
           seasonAggregates: {
-            include: {
+            select: {
+              gp: true,
+              ptsTotal: true,
+              rebTotal: true,
+              astTotal: true,
+              effAvg: true,
+              tsPct: true,
+              fgaTotal: true,
               player: { select: { id: true, name: true, slug: true, number: true } },
             },
           },
@@ -26,7 +34,7 @@ export async function getAwardsForArchivedSeasons(): Promise<Record<string, Awar
   const out: Record<string, Awards | null> = {};
   for (const season of archivedSeasons) {
     const totalGames = season.seasonLeagues.reduce(
-      (n, sl) => n + sl.games.length,
+      (n, sl) => n + sl._count.games,
       0
     );
     const rows: AggregateInput[] = season.seasonLeagues.flatMap((sl) =>
