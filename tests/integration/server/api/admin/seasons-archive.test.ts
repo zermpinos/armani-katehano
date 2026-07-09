@@ -18,7 +18,8 @@ const { mockPrisma } = vi.hoisted(() => {
 vi.mock("@/server/db/client", () => ({ default: mockPrisma, prisma: mockPrisma }));
 vi.mock("@/server/security/node/audit-log", () => ({ auditLog: vi.fn() }));
 
-import archiveHandler from "../../../../../pages/api/admin/seasons/[id]/archive";
+import archiveHandler   from "../../../../../pages/api/admin/seasons/[id]/archive";
+import unarchiveHandler from "../../../../../pages/api/admin/seasons/[id]/unarchive";
 import { authedReq, mockRes, mockResWithRevalidate, mockReq } from "../../db/__support__/games-admin-mocks";
 
 const LIVE_SEASON = {
@@ -92,5 +93,47 @@ describe("POST /api/admin/seasons/[id]/archive", () => {
     await archiveHandler(req, res);
     expect(res.revalidate).toHaveBeenCalledWith("/leaderboard");
     expect(res.revalidate).toHaveBeenCalledWith("/team-stats");
+  });
+});
+
+describe("POST /api/admin/seasons/[id]/unarchive", () => {
+  it("clears archivedAt on an archived season", async () => {
+    mockPrisma.season.findUnique.mockResolvedValue(ARCHIVED_SEASON);
+    mockPrisma.season.update.mockResolvedValue(LIVE_SEASON);
+    const req = authedReq({ method: "POST", query: { id: "s1" } });
+    const res = mockResWithRevalidate();
+    await unarchiveHandler(req, res);
+    expect(res.statusCode).toBe(200);
+    expect(mockPrisma.season.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "s1" },
+        data: { archivedAt: null },
+      })
+    );
+  });
+
+  it("is idempotent when already live (no update call)", async () => {
+    mockPrisma.season.findUnique.mockResolvedValue(LIVE_SEASON);
+    const req = authedReq({ method: "POST", query: { id: "s1" } });
+    const res = mockResWithRevalidate();
+    await unarchiveHandler(req, res);
+    expect(res.statusCode).toBe(200);
+    expect(res._body.alreadyLive).toBe(true);
+    expect(mockPrisma.season.update).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 for unknown season id", async () => {
+    mockPrisma.season.findUnique.mockResolvedValue(null);
+    const req = authedReq({ method: "POST", query: { id: "nope" } });
+    const res = mockRes();
+    await unarchiveHandler(req, res);
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("returns 403 without auth (CSRF blocked)", async () => {
+    const req = mockReq({ method: "POST", query: { id: "s1" } });
+    const res = mockRes();
+    await unarchiveHandler(req, res);
+    expect(res.statusCode).toBe(403);
   });
 });
