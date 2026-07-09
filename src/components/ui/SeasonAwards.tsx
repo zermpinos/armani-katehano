@@ -65,7 +65,7 @@ export default function SeasonAwards({ awards }: Props) {
       label:    "TS%",
       category: "shooting",
       players:  awards.shooting,
-      tooltip:  "True Shooting % — measures scoring efficiency including free throws and 3-pointers. Formula: PTS ÷ (2 × (FGA + 0.44 × FTA)) × 100. Higher than FG% for players who draw fouls.",
+      tooltip:  "True Shooting % measures scoring efficiency including free throws and 3-pointers. Formula: PTS / (2 x (FGA + 0.44 x FTA)) x 100. Higher than FG% for players who draw fouls.",
     },
   ];
   const visible = slots.filter((s) => s.players.length > 0);
