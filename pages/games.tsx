@@ -2,7 +2,8 @@ import { useState, useMemo } from "react";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import SeasonSelector from "@/components/ui/SeasonSelector";
-import { getAllGames, getSeasons, getConfig, getAllUpcomingGames } from "@/server/db/repositories";
+import ArchivedBanner from "@/components/ui/ArchivedBanner";
+import { getAllGames, getSeasons, getConfig, getAllUpcomingGames, getArchivedSeasonNames } from "@/server/db/repositories";
 import { LeagueFilter } from "@/client/games/league-filter";
 import { ResultFilter } from "@/client/games/result-filter";
 import { CalendarView } from "@/client/games/calendar-view";
@@ -10,7 +11,7 @@ import { GamesTable } from "@/client/games/games-table";
 import { UpcomingGameModal } from "@/client/games/upcoming-game-modal";
 import { phaseLabel } from "@/domain/games/phase";
 
-export default function GamesPage({ allGames, seasons, currentSeason, seasonPhase, upcomingGames }: any) {
+export default function GamesPage({ allGames, seasons, currentSeason, seasonPhase, upcomingGames, archivedSeasonNames }: any) {
   const [selectedSeason, setSelectedSeason] = useState(currentSeason);
   const [selectedLeague, setSelectedLeague] = useState("all");
   const [selectedResult, setSelectedResult] = useState("all");
@@ -93,6 +94,8 @@ export default function GamesPage({ allGames, seasons, currentSeason, seasonPhas
         }
       />
 
+      <ArchivedBanner archived={archivedSeasonNames.includes(selectedSeason)} seasonName={selectedSeason} />
+
       <LeagueFilter leagues={seasonLeagues} selected={selectedLeague} onChange={setSelectedLeague} />
       <ResultFilter selected={selectedResult} onChange={setSelectedResult} />
 
@@ -136,18 +139,19 @@ export default function GamesPage({ allGames, seasons, currentSeason, seasonPhas
 
 export async function getStaticProps() {
   try {
-    const [allGames, seasons, config, upcomingGames] = await Promise.all([
+    const [allGames, seasons, config, upcomingGames, archivedSeasonNames] = await Promise.all([
       getAllGames(),
       getSeasons(),
       getConfig(),
       getAllUpcomingGames(),
+      getArchivedSeasonNames(),
     ]);
     return {
-      props: { allGames, seasons, currentSeason: config.currentSeason, seasonPhase: config.seasonPhase, upcomingGames },
+      props: { allGames, seasons, currentSeason: config.currentSeason, seasonPhase: config.seasonPhase, upcomingGames, archivedSeasonNames },
       revalidate: 3600,
     };
   } catch {
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
-    return { props: { allGames: [], seasons: [], currentSeason: "", seasonPhase: null, upcomingGames: [] }, revalidate: 60 };
+    return { props: { allGames: [], seasons: [], currentSeason: "", seasonPhase: null, upcomingGames: [], archivedSeasonNames: [] }, revalidate: 60 };
   }
 }

@@ -6,6 +6,7 @@ import { getAllPublicData, getAllPlayerGameLogs, getUpcomingGamesWithAnnouncemen
 import { computeRecord } from "@/domain/games/score";
 import { fmt } from "@/domain/players/format";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import ArchivedBanner from "@/components/ui/ArchivedBanner";
 import { ConfirmToast } from "@/client/home/confirm-toast";
 import { SubscribeForm } from "@/client/home/subscribe-form";
 import { RecentResultsCard } from "@/client/home/recent-results-card";
@@ -62,7 +63,7 @@ const FinalFourPopup = dynamic(
   { ssr: false }
 );
 
-export default function HomePage({ players, games, stats, upcomingGames, currentSeason, seasonPhase, allPlayerGameLogs, nextPlayoffGame, popupEnabled, popupVersion, popupRound }: any) {
+export default function HomePage({ players, games, stats, upcomingGames, currentSeason, seasonPhase, allPlayerGameLogs, nextPlayoffGame, popupEnabled, popupVersion, popupRound, archivedSeasonNames }: any) {
   const [trendRange, setTrendRange] = useState(10);
   const [showTrendModal, setShowTrendModal] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
@@ -148,6 +149,8 @@ export default function HomePage({ players, games, stats, upcomingGames, current
         </div>
       </div>
 
+      <ArchivedBanner archived={archivedSeasonNames.includes(currentSeason)} seasonName={currentSeason} />
+
       {/* Record tiles */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3 mb-6">
         <StatTile label="Record"  value={`${record.wins}-${record.losses}`} sub={`${winPct}% win rate`} highlight />
@@ -208,18 +211,18 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 
 export async function getStaticProps() {
   try {
-    const { players, games, stats, currentSeason, config } = await getAllPublicData();
+    const { players, games, stats, currentSeason, config, archivedSeasonNames } = await getAllPublicData();
     const [upcomingGames, allPlayerGameLogs, nextPlayoffGame] = await Promise.all([
       getUpcomingGamesWithAnnouncements(),
       getAllPlayerGameLogs(),
       getNextPlayoffGame(),
     ]);
     return {
-      props: { players, games, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, allPlayerGameLogs, nextPlayoffGame, popupEnabled: config.popupEnabled, popupVersion: config.popupVersion, popupRound: config.popupRound },
+      props: { players, games, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, allPlayerGameLogs, nextPlayoffGame, popupEnabled: config.popupEnabled, popupVersion: config.popupVersion, popupRound: config.popupRound, archivedSeasonNames },
       revalidate: 3600,
     };
   } catch {
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
-    return { props: { players: [], games: [], stats: {}, upcomingGames: [], currentSeason: "", seasonPhase: null, allPlayerGameLogs: [], nextPlayoffGame: null, popupEnabled: false, popupVersion: 0, popupRound: null }, revalidate: 60 };
+    return { props: { players: [], games: [], stats: {}, upcomingGames: [], currentSeason: "", seasonPhase: null, allPlayerGameLogs: [], nextPlayoffGame: null, popupEnabled: false, popupVersion: 0, popupRound: null, archivedSeasonNames: [] }, revalidate: 60 };
   }
 }

@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import SeasonSelector from "@/components/ui/SeasonSelector";
+import ArchivedBanner from "@/components/ui/ArchivedBanner";
 import { SeasonAverages } from "@/client/players/SeasonAverages";
 import { SeasonHistoryTable } from "@/client/players/SeasonHistoryTable";
 import { PlayerHero } from "@/client/players/PlayerHero";
@@ -21,7 +22,7 @@ const EMPTY_STATS = {
   ftmPg: 0, ftaPg: 0, mpg: 0, eff: 0, gp: 0,
 };
 
-export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons, currentSeason, playerSeasonHistory, allGameLog }: any) {
+export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons, currentSeason, playerSeasonHistory, allGameLog, archivedSeasonNames }: any) {
   const [activeSeason, setActiveSeason] = useState(currentSeason);
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("all");
 
@@ -63,6 +64,7 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
         onChange={handleSeasonChange}
         showAllTime={true}
       />
+      <ArchivedBanner archived={archivedSeasonNames.includes(activeSeason)} seasonName={activeSeason} />
       <div className="flex items-center gap-1.5 mb-4">
         {(["all", "regular", "playoffs"] as const).map(f => (
           <button
@@ -125,7 +127,7 @@ export async function getStaticProps({ params }: any) {
   const { slug } = params;
   if (!SLUG_RE.test(slug)) return { notFound: true };
 
-  const { seasons, currentSeason, players, stats } = await getAllPublicData(null);
+  const { seasons, currentSeason, players, stats, archivedSeasonNames } = await getAllPublicData(null);
   const player = players.find((p: any) => p.slug === slug);
   if (!player) return { notFound: true };
 
@@ -144,7 +146,7 @@ export async function getStaticProps({ params }: any) {
   const allGameLog = await getPlayerGameLog(player.id);
 
   return {
-    props: { player, statsMap: stats, allTimeStatsMap, seasons, currentSeason, playerSeasonHistory, allGameLog },
+    props: { player, statsMap: stats, allTimeStatsMap, seasons, currentSeason, playerSeasonHistory, allGameLog, archivedSeasonNames },
     revalidate: 14400,
   };
 }

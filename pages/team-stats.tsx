@@ -7,6 +7,7 @@ import { computeRecord } from "@/domain/games/score";
 import { computeTeamAverages } from "@/domain/stats";
 import { fmt } from "@/domain/players/format";
 import SeasonSelector from "@/components/ui/SeasonSelector";
+import ArchivedBanner from "@/components/ui/ArchivedBanner";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { RecordBreakdown } from "@/client/team-stats/record-breakdown";
 import { ShootingSplits } from "@/client/team-stats/shooting-splits";
@@ -25,7 +26,7 @@ const TAB_INACTIVE = "border-ak-border bg-transparent text-ak-text-dim hover:tex
 type PhaseFilter = "all" | "regular" | "playoffs";
 const PLAYOFF_ROUNDS = ["quarterfinal", "semifinal", "final"];
 
-export default function TeamPage({ players, games, seasons, currentSeason }: any) {
+export default function TeamPage({ players, games, seasons, currentSeason, archivedSeasonNames }: any) {
   const [league, setLeague] = useState("all");
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("all");
 
@@ -120,6 +121,8 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
       <SectionHeading label="2025-26 Season" title="Team Stats" />
 
       <SeasonSelector seasons={seasons} currentSeason={currentSeason} onChange={handleSeasonChange} showAllTime={false} right={`${gp} Games Played`} />
+
+      <ArchivedBanner archived={archivedSeasonNames.includes(currentSeason)} seasonName={currentSeason} />
 
       <div className="flex items-center gap-1.5 mb-4">
         {(["all", "regular", "playoffs"] as const).map(f => (
@@ -253,10 +256,10 @@ export default function TeamPage({ players, games, seasons, currentSeason }: any
 
 export async function getStaticProps() {
   try {
-    const { seasons, currentSeason, players, games } = await getAllPublicData(null);
-    return { props: { players, games, seasons, currentSeason }, revalidate: 3600 };
+    const { seasons, currentSeason, players, games, archivedSeasonNames } = await getAllPublicData(null);
+    return { props: { players, games, seasons, currentSeason, archivedSeasonNames }, revalidate: 3600 };
   } catch {
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
-    return { props: { players: [], games: [], seasons: [], currentSeason: "" }, revalidate: 60 };
+    return { props: { players: [], games: [], seasons: [], currentSeason: "", archivedSeasonNames: [] }, revalidate: 60 };
   }
 }
