@@ -21,6 +21,7 @@ const MOCK_PUBLIC_DATA = {
 vi.mock("@/server/db/repositories", () => ({
   getAllPublicData:                   vi.fn().mockResolvedValue(MOCK_PUBLIC_DATA),
   getAllGames:                        vi.fn().mockResolvedValue([]),
+  getGames:                           vi.fn().mockResolvedValue([]),
   getSeasons:                         vi.fn().mockResolvedValue(["2025-26"]),
   getConfig:                          vi.fn().mockResolvedValue(MOCK_PUBLIC_DATA.config),
   getAllUpcomingGames:                vi.fn().mockResolvedValue([]),
