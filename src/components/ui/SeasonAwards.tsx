@@ -30,7 +30,7 @@ function AwardCell({ label, category, players }: Slot) {
         {label}
       </span>
       {players.slice(0, 3).map((p, i) => (
-        <PodiumRow key={p.playerId} medal={MEDALS[i]} category={category} player={p} />
+        <PodiumRow key={p.playerId} medal={Reflect.get(MEDALS, i) as string} category={category} player={p} />
       ))}
     </div>
   );
