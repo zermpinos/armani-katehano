@@ -55,11 +55,11 @@ function PlayerCard({ player }: any) {
   );
 }
 
-export default function PlayersPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, archivedSeasonNames }: any) {
+export default function PlayersPage({ players, statsMap, statsBySeason, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, archivedSeasonNames }: any) {
   const [activeSeason, setActiveSeason] = useState(currentSeason);
   const [search, setSearch] = useState("");
 
-  const activeStatsMap = activeSeason === "all-time" ? allTimeStatsMap : statsMap;
+  const activeStatsMap = activeSeason === "all-time" ? allTimeStatsMap : (statsBySeason?.[activeSeason] ?? statsMap);
   const playersWithStats = players.map((p: any) => ({
     ...p,
     stats:         activeStatsMap[p.id] ?? { ppg:0,rpg:0,orpg:0,drpg:0,apg:0,spg:0,bpg:0,tpg:0,fpg:0,fgPct:0,fg2Pct:0,fg3Pct:0,ftPct:0,ftmPg:0,ftaPg:0,mpg:0,eff:0,gp:0 },
@@ -73,7 +73,7 @@ export default function PlayersPage({ players, statsMap, seasons, currentSeason,
 
   return (
     <Layout title="Players">
-      <SectionHeading label="2025-26 Season" title="Players" />
+      <SectionHeading label={activeSeason === "all-time" ? "All Time" : activeSeason} title="Players" />
       <SeasonSelector
         seasons={seasons}
         currentSeason={activeSeason}
@@ -133,7 +133,7 @@ export async function getStaticProps() {
       }
     }
 
-    return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, archivedSeasonNames }, revalidate: 3600 };
+    return { props: { players, statsMap: stats, statsBySeason: allSeasonsStats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, archivedSeasonNames }, revalidate: 3600 };
   } catch {
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
     return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, playerSeasonHistory: {}, archivedSeasonNames: [] }, revalidate: 60 };

@@ -43,7 +43,7 @@ export default function SeasonAwards({ awards }: Props) {
     { label: "Top Scorer",  category: "scorer",   players: awards.scorer },
     { label: "Rebounds",    category: "rebounds", players: awards.rebounds },
     { label: "Assists",     category: "assists",  players: awards.assists },
-    { label: "Shooting",    category: "shooting", players: awards.shooting },
+    { label: "TS%",         category: "shooting", players: awards.shooting },
   ];
   const visible = slots.filter((s) => s.players.length > 0);
   if (!visible.length) return null;

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading, StatTile } from "@/components/ui";
-import { getAllPublicData } from "@/server/db/repositories";
+import { getAllPublicData, getGames } from "@/server/db/repositories";
 import { computeRecord } from "@/domain/games/score";
 import { computeTeamAverages } from "@/domain/stats";
 import { fmt } from "@/domain/players/format";
@@ -26,12 +26,17 @@ const TAB_INACTIVE = "border-ak-border bg-transparent text-ak-text-dim hover:tex
 type PhaseFilter = "all" | "regular" | "playoffs";
 const PLAYOFF_ROUNDS = ["quarterfinal", "semifinal", "final"];
 
-export default function TeamPage({ players, games, seasons, currentSeason, archivedSeasonNames }: any) {
+export default function TeamPage({ players, gamesBySeason, seasons, currentSeason, archivedSeasonNames }: any) {
+  const [selectedSeason, setSelectedSeason] = useState(currentSeason);
   const [league, setLeague] = useState("all");
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("all");
 
+  const games = (gamesBySeason[selectedSeason] ?? []) as any[];
+
   const handleSeasonChange = (sid: any) => {
-    window.location.href = sid === "all-time" ? "/team-stats" : `/team-stats?season=${sid}`;
+    setSelectedSeason(sid);
+    setLeague("all");
+    setPhaseFilter("all");
   };
 
   const leagueTabs = useMemo(() => {
@@ -107,7 +112,8 @@ export default function TeamPage({ players, games, seasons, currentSeason, archi
   if (games.length === 0) {
     return (
       <Layout title="Team Stats">
-        <SectionHeading label="2025-26 Season" title="Team Stats" />
+        <SectionHeading label={selectedSeason} title="Team Stats" />
+        <SeasonSelector seasons={seasons} currentSeason={selectedSeason} onChange={handleSeasonChange} showAllTime={false} />
         <div className="text-center p-12 text-ak-text-dim">
           <div className="text-4xl mb-3">📊</div>
           <div className="text-[15px] font-bold">No data yet</div>
@@ -118,11 +124,11 @@ export default function TeamPage({ players, games, seasons, currentSeason, archi
 
   return (
     <Layout title="Team Stats">
-      <SectionHeading label="2025-26 Season" title="Team Stats" />
+      <SectionHeading label={selectedSeason} title="Team Stats" />
 
-      <SeasonSelector seasons={seasons} currentSeason={currentSeason} onChange={handleSeasonChange} showAllTime={false} right={`${gp} Games Played`} />
+      <SeasonSelector seasons={seasons} currentSeason={selectedSeason} onChange={handleSeasonChange} showAllTime={false} right={`${gp} Games Played`} />
 
-      <ArchivedBanner archived={archivedSeasonNames.includes(currentSeason)} seasonName={currentSeason} />
+      <ArchivedBanner archived={archivedSeasonNames.includes(selectedSeason)} seasonName={selectedSeason} />
 
       <div className="flex items-center gap-1.5 mb-4">
         {(["all", "regular", "playoffs"] as const).map(f => (
@@ -256,10 +262,17 @@ export default function TeamPage({ players, games, seasons, currentSeason, archi
 
 export async function getStaticProps() {
   try {
-    const { seasons, currentSeason, players, games, archivedSeasonNames } = await getAllPublicData(null);
-    return { props: { players, games, seasons, currentSeason, archivedSeasonNames }, revalidate: 3600 };
+    const { seasons, currentSeason, players, archivedSeasonNames } = await getAllPublicData(null);
+    // Load full game data (with box scores) for every known season so the
+    // client-side season selector can switch without a round-trip.
+    // getStaticProps cannot read query params, so window.location navigation
+    // would silently show stale data — client state is the correct approach.
+    const gamesBySeason = Object.fromEntries(
+      await Promise.all(seasons.map(async s => [s, await getGames(s)]))
+    );
+    return { props: { players, gamesBySeason, seasons, currentSeason, archivedSeasonNames }, revalidate: 3600 };
   } catch {
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
-    return { props: { players: [], games: [], seasons: [], currentSeason: "", archivedSeasonNames: [] }, revalidate: 60 };
+    return { props: { players: [], gamesBySeason: {}, seasons: [], currentSeason: "", archivedSeasonNames: [] }, revalidate: 60 };
   }
 }
