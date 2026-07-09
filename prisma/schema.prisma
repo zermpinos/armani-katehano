@@ -33,6 +33,7 @@ model Season {
   year          Int
   startDate     DateTime?
   endDate       DateTime?
+  archivedAt    DateTime?
   createdAt     DateTime       @default(now())
   seasonLeagues SeasonLeague[]
 }
