@@ -90,7 +90,7 @@ describe("SeasonAwards", () => {
       ...emptyAwards,
       mvp:      [ref("Alpha", 1, 15.288)],
       scorer:   [ref("Bravo", 2, 200)],
-      shooting: [ref("Delta", 4, 0.567)],
+      shooting: [ref("Delta", 4, 56.7)],
     };
     const html = render(awards);
     expect(html).toMatch(/15\.3/);

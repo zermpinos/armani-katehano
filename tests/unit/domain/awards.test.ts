@@ -209,8 +209,8 @@ describe("formatAwardValue", () => {
     expect(formatAwardValue("assists", 30)).toBe("30");
   });
 
-  it("shooting renders tsPct as one-decimal percent", () => {
-    expect(formatAwardValue("shooting", 0.567)).toBe("56.7%");
-    expect(formatAwardValue("shooting", 0.5)).toBe("50.0%");
+  it("shooting renders tsPct (stored 0-100) as one-decimal percent", () => {
+    expect(formatAwardValue("shooting", 56.7)).toBe("56.7%");
+    expect(formatAwardValue("shooting", 50)).toBe("50.0%");
   });
 });
