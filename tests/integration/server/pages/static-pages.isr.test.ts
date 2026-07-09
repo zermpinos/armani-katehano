@@ -7,25 +7,29 @@ vi.mock("@/server/db/client", () => ({
 }));
 
 const MOCK_PUBLIC_DATA = {
-  config:        { currentSeason: "2025-26", seasonPhase: "regular", popupEnabled: false, popupVersion: 1, popupRound: null },
-  seasons:       ["2025-26"],
-  currentSeason: "2025-26",
-  players:       [],
-  games:         [],
-  stats:         {},
-  upcomingGames: [],
+  config:               { currentSeason: "2025-26", seasonPhase: "regular", popupEnabled: false, popupVersion: 1, popupRound: null },
+  seasons:              ["2025-26"],
+  currentSeason:        "2025-26",
+  players:              [],
+  games:                [],
+  stats:                {},
+  upcomingGames:        [],
+  archivedSeasonNames:  [],
+  awardsBySeasonName:   {},
 };
 
 vi.mock("@/server/db/repositories", () => ({
   getAllPublicData:                   vi.fn().mockResolvedValue(MOCK_PUBLIC_DATA),
   getAllGames:                        vi.fn().mockResolvedValue([]),
-  getSeasons:                        vi.fn().mockResolvedValue(["2025-26"]),
-  getConfig:                         vi.fn().mockResolvedValue(MOCK_PUBLIC_DATA.config),
+  getSeasons:                         vi.fn().mockResolvedValue(["2025-26"]),
+  getConfig:                          vi.fn().mockResolvedValue(MOCK_PUBLIC_DATA.config),
   getAllUpcomingGames:                vi.fn().mockResolvedValue([]),
   getAllSeasonsStats:                 vi.fn().mockResolvedValue({}),
   getAllPlayerGameLogs:               vi.fn().mockResolvedValue({}),
-  getUpcomingGamesWithAnnouncements: vi.fn().mockResolvedValue([]),
-  getNextPlayoffGame:                vi.fn().mockResolvedValue(null),
+  getUpcomingGamesWithAnnouncements:  vi.fn().mockResolvedValue([]),
+  getNextPlayoffGame:                 vi.fn().mockResolvedValue(null),
+  getArchivedSeasonNames:             vi.fn().mockResolvedValue([]),
+  getAwardsForArchivedSeasons:        vi.fn().mockResolvedValue({}),
 }));
 
 vi.mock("@/domain/stats", () => ({ buildAllTimeStatsMap: vi.fn().mockReturnValue({}) }));

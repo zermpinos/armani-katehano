@@ -91,7 +91,7 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
 
       <ArchivedBanner archived={archivedSeasonNames.includes(activeSeason)} seasonName={activeSeason} />
       {archivedSeasonNames.includes(activeSeason) && activeSeason !== "all-time" && (
-        <SeasonAwards awards={awardsBySeasonName[activeSeason] ?? null} />
+        <SeasonAwards awards={Reflect.get(awardsBySeasonName as object, activeSeason) ?? null} />
       )}
 
       <div className="flex items-center gap-1.5 mb-4">
