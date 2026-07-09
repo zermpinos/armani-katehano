@@ -20,7 +20,7 @@ export default function LeaderboardPage({ players, statsMap, statsBySeason, seas
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("all");
 
   const activeCols = viewMode === "avg" ? COLS : TOTAL_COLS;
-  const activeStats = activeSeason === "all-time" ? allTimeStatsMap : (statsBySeason?.[activeSeason] ?? statsMap);
+  const activeStats = activeSeason === "all-time" ? allTimeStatsMap : (Reflect.get((statsBySeason ?? {}) as object, activeSeason) ?? statsMap);
 
   const handleSort = (key: string) => {
     if (key === sortKey) setSortDir(d => d === "desc" ? "asc" : "desc");

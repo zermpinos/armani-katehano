@@ -59,7 +59,7 @@ export default function PlayersPage({ players, statsMap, statsBySeason, seasons,
   const [activeSeason, setActiveSeason] = useState(currentSeason);
   const [search, setSearch] = useState("");
 
-  const activeStatsMap = activeSeason === "all-time" ? allTimeStatsMap : (statsBySeason?.[activeSeason] ?? statsMap);
+  const activeStatsMap = activeSeason === "all-time" ? allTimeStatsMap : (Reflect.get((statsBySeason ?? {}) as object, activeSeason) ?? statsMap);
   const playersWithStats = players.map((p: any) => ({
     ...p,
     stats:         activeStatsMap[p.id] ?? { ppg:0,rpg:0,orpg:0,drpg:0,apg:0,spg:0,bpg:0,tpg:0,fpg:0,fgPct:0,fg2Pct:0,fg3Pct:0,ftPct:0,ftmPg:0,ftaPg:0,mpg:0,eff:0,gp:0 },

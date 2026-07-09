@@ -31,7 +31,10 @@ export default function TeamPage({ players, gamesBySeason, seasons, currentSeaso
   const [league, setLeague] = useState("all");
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("all");
 
-  const games = (gamesBySeason[selectedSeason] ?? []) as any[];
+  const games = useMemo(
+    () => (Reflect.get(gamesBySeason as object, selectedSeason) ?? []) as any[],
+    [gamesBySeason, selectedSeason],
+  );
 
   const handleSeasonChange = (sid: any) => {
     setSelectedSeason(sid);
