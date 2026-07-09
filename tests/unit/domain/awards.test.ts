@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeAwards, type AggregateInput } from "@/domain/awards";
+import { computeAwards, type AggregateInput, shortName, formatAwardValue } from "@/domain/awards";
 
 function row(overrides: Partial<AggregateInput>): AggregateInput {
   return {
@@ -120,5 +120,47 @@ describe("computeAwards", () => {
     expect(awards?.mvp).toBeNull();
     expect(awards?.shooting).toBeNull();
     expect(awards?.scorer?.playerId).toBe("a");
+  });
+});
+
+describe("shortName", () => {
+  it("returns first initial + dot + space + last name", () => {
+    expect(shortName("Panagiotis Zermpinos")).toBe("P. Zermpinos");
+  });
+
+  it("passes single-word names through unchanged", () => {
+    expect(shortName("Zermpinos")).toBe("Zermpinos");
+  });
+
+  it("takes only the first token as the initial, keeps the rest verbatim", () => {
+    expect(shortName("Anna Maria Kollia")).toBe("A. Maria Kollia");
+  });
+
+  it("collapses extra whitespace between first and last", () => {
+    expect(shortName("Alpha   Beta")).toBe("A. Beta");
+  });
+});
+
+describe("formatAwardValue", () => {
+  it("MVP formats effAvg to one decimal", () => {
+    expect(formatAwardValue("mvp", 15.288)).toBe("15.3");
+  });
+
+  it("scorer rounds ptsTotal to integer", () => {
+    expect(formatAwardValue("scorer", 200)).toBe("200");
+    expect(formatAwardValue("scorer", 200.7)).toBe("201");
+  });
+
+  it("rebounds rounds rebTotal to integer", () => {
+    expect(formatAwardValue("rebounds", 50)).toBe("50");
+  });
+
+  it("assists rounds astTotal to integer", () => {
+    expect(formatAwardValue("assists", 30)).toBe("30");
+  });
+
+  it("shooting renders tsPct as one-decimal percent", () => {
+    expect(formatAwardValue("shooting", 0.567)).toBe("56.7%");
+    expect(formatAwardValue("shooting", 0.5)).toBe("50.0%");
   });
 });

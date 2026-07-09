@@ -130,3 +130,22 @@ export function computeAwards(
 
   return { mvp, scorer, rebounds, assists, shooting };
 }
+
+export type AwardCategory = "mvp" | "scorer" | "rebounds" | "assists" | "shooting";
+
+export function shortName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length < 2) return fullName;
+  const [first, ...rest] = parts;
+  return `${first[0]}. ${rest.join(" ")}`;
+}
+
+export function formatAwardValue(category: AwardCategory, value: number): string {
+  switch (category) {
+    case "mvp":      return value.toFixed(1);
+    case "shooting": return `${(value * 100).toFixed(1)}%`;
+    case "scorer":
+    case "rebounds":
+    case "assists":  return Math.round(value).toString();
+  }
+}
