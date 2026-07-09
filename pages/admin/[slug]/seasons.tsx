@@ -75,6 +75,22 @@ export default function SeasonsPage({
     loadData();
   };
 
+  const archiveSeason = async (season: Season) => {
+    if (!confirm(`Archive ${season.name}? Fans will see a "season complete" banner.`)) return;
+    const res = await apiFetch(`/api/admin/seasons/${season.id}/archive`, { method: "POST" });
+    if (!res.ok) { showToast(`Archive failed: ${res.status}`, "error"); return; }
+    showToast(`${season.name} archived.`);
+    loadData();
+  };
+
+  const unarchiveSeason = async (season: Season) => {
+    if (!confirm(`Unarchive ${season.name}? The "season complete" banner will disappear.`)) return;
+    const res = await apiFetch(`/api/admin/seasons/${season.id}/unarchive`, { method: "POST" });
+    if (!res.ok) { showToast(`Unarchive failed: ${res.status}`, "error"); return; }
+    showToast(`${season.name} unarchived.`);
+    loadData();
+  };
+
   const linkLeague = async () => {
     if (!linkLeagueId || !linkSeasonId) return;
     const season = seasons.find(s => s.id === linkSeasonId);
@@ -137,6 +153,63 @@ export default function SeasonsPage({
                     </div>
                   </li>
                 ))}
+              </ul>
+            )}
+          </Panel>
+
+          <Panel
+            label="Seasons"
+            hint="Archive a completed season to show fans a 'season complete' banner with awards. Unarchive to hide it again."
+          >
+            {seasons.length === 0 ? (
+              <div className="py-6 text-center text-[12px] text-ak-text-dim">
+                No seasons yet.
+              </div>
+            ) : (
+              <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {seasons.map(s => {
+                  const archived = Boolean(s.archivedAt);
+                  const empty    = (s.gameCount ?? 0) === 0;
+                  return (
+                    <li
+                      key={s.id}
+                      className="flex items-center gap-2 py-[10px] px-[14px] rounded-[9px] border border-ak-border bg-ak-base"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-black text-[13px] text-ak-text truncate">
+                          {s.name}
+                          {archived && (
+                            <span className="ml-2 text-[10px] font-black tracking-[0.1em] uppercase text-ak-text-dim">
+                              archived
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-ak-text-dim mt-0.5">
+                          {s.gameCount ?? 0} game{(s.gameCount ?? 0) === 1 ? "" : "s"}
+                        </div>
+                      </div>
+                      {archived ? (
+                        <button
+                          type="button"
+                          onClick={() => unarchiveSeason(s)}
+                          className="text-[10px] font-black tracking-[0.1em] uppercase px-2 py-1 rounded-md border border-ak-border text-ak-text-dim hover:text-ak-text cursor-pointer"
+                        >
+                          Unarchive
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => archiveSeason(s)}
+                          disabled={empty}
+                          title={empty ? "No games in this season yet." : ""}
+                          className="text-[10px] font-black tracking-[0.1em] uppercase px-2 py-1 rounded-md border border-[#c0392b60] bg-[#8b1a1a25] text-ak-red-text disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          Archive
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </Panel>

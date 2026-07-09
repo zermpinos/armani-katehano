@@ -82,6 +82,8 @@ export interface Season {
   id: string;
   name: string;
   year: string | number;
+  archivedAt?: string | null;
+  gameCount?: number;
 }
 
 export interface League {
