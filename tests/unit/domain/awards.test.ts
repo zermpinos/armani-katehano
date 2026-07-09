@@ -100,13 +100,15 @@ describe("computeAwards", () => {
     expect(awards?.scorer?.playerId).toBe("a");
   });
 
-  it("returns outer null when every slot is null", () => {
+  it("counting-stat leaders have no eligibility floor (zero stats still crown)", () => {
     const rows = [
       row({ playerId: "a", playerName: "Alpha", gp: 1, ptsTotal: 0, rebTotal: 0, astTotal: 0, effAvg: 0, fgaTotal: 0 }),
     ];
     const awards = computeAwards(rows, 20);
     expect(awards?.mvp).toBeNull();
     expect(awards?.scorer?.playerId).toBe("a");
+    expect(awards?.rebounds?.playerId).toBe("a");
+    expect(awards?.assists?.playerId).toBe("a");
   });
 
   it("hides null slots but keeps non-null ones", () => {

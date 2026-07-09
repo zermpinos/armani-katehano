@@ -42,7 +42,7 @@ type Collapsed = {
   fgaTotal: number;
 };
 
-// ponytail: multi-league collapse weights averages by gp — pragmatic default.
+// ponytail: multi-league collapse weights averages by gp, a pragmatic default.
 // Upgrade to per-league normalization if a wrong winner is reported for a season
 // that mixes wildly different competition levels.
 function collapseByPlayer(rows: readonly AggregateInput[]): Collapsed[] {
@@ -128,7 +128,5 @@ export function computeAwards(
     (c) => c.fgaTotal >= fgaFloor && fgaFloor > 0
   );
 
-  const awards: Awards = { mvp, scorer, rebounds, assists, shooting };
-  const allNull = !mvp && !scorer && !rebounds && !assists && !shooting;
-  return allNull ? null : awards;
+  return { mvp, scorer, rebounds, assists, shooting };
 }
