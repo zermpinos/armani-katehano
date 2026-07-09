@@ -12,7 +12,7 @@ import { LeaderboardTable, COLS, TOTAL_COLS } from "@/client/leaderboard/leaderb
 type PhaseFilter = "all" | "regular" | "playoffs";
 const PLAYOFF_ROUNDS = ["quarterfinal", "semifinal", "final"];
 
-export default function LeaderboardPage({ players, statsMap, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs, archivedSeasonNames, awardsBySeasonName }: any) {
+export default function LeaderboardPage({ players, statsMap, statsBySeason, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs, archivedSeasonNames, awardsBySeasonName }: any) {
   const [sortKey, setSortKey] = useState("ppg");
   const [sortDir, setSortDir] = useState("desc");
   const [activeSeason, setActiveSeason] = useState(currentSeason);
@@ -20,7 +20,7 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("all");
 
   const activeCols = viewMode === "avg" ? COLS : TOTAL_COLS;
-  const activeStats = activeSeason === "all-time" ? allTimeStatsMap : statsMap;
+  const activeStats = activeSeason === "all-time" ? allTimeStatsMap : (Reflect.get((statsBySeason ?? {}) as object, activeSeason) ?? statsMap);
 
   const handleSort = (key: string) => {
     if (key === sortKey) setSortDir(d => d === "desc" ? "asc" : "desc");
@@ -63,7 +63,7 @@ export default function LeaderboardPage({ players, statsMap, seasons, currentSea
 
   return (
     <Layout title="Leaderboard">
-      <SectionHeading label="2025-26 Season" title="Leaderboard" />
+      <SectionHeading label={activeSeason === "all-time" ? "All Time" : activeSeason} title="Leaderboard" />
 
       <SeasonSelector
         seasons={seasons}
@@ -131,7 +131,7 @@ export async function getStaticProps() {
       getAllPlayerGameLogs(),
     ]);
     const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
-    return { props: { players, statsMap: stats, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs, archivedSeasonNames, awardsBySeasonName }, revalidate: 3600 };
+    return { props: { players, statsMap: stats, statsBySeason: allSeasonsStats, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs, archivedSeasonNames, awardsBySeasonName }, revalidate: 3600 };
   } catch {
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
     return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, allPlayerGameLogs: [], archivedSeasonNames: [], awardsBySeasonName: {} }, revalidate: 60 };
