@@ -77,6 +77,14 @@ describe("detectLeagueSlug", () => {
     expect(detectLeagueSlug("https://basketcity.sportstats.gr/winter-cup/game/123")).toBe("wintercup");
   });
 
+  it("detects wintercup from /master-winter-cup/ path", () => {
+    expect(detectLeagueSlug("https://basketcity.sportstats.gr/master-winter-cup/gamedetails/id/abc")).toBe("wintercup");
+  });
+
+  it("detects wintercup from /super-winter-cup/ path", () => {
+    expect(detectLeagueSlug("https://basketcity.sportstats.gr/super-winter-cup/gamedetails/id/172B9468-3076-4D51-ADF8-560555B99406")).toBe("wintercup");
+  });
+
   it("detects rookie", () => {
     expect(detectLeagueSlug("https://basketcity.sportstats.gr/rookie/game/456")).toBe("rookie");
   });
