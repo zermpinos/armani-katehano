@@ -2,10 +2,6 @@ import "@/server/_internal/node-only";
 import prisma from "@/server/db/client";
 import { computeAwards, type AggregateInput, type Awards } from "@/domain/awards";
 
-/**
- * Compute awards for every archived Season.
- * Returns `{ [seasonName]: Awards | null }`. Non-archived seasons are omitted.
- */
 export async function getAwardsForArchivedSeasons(): Promise<Record<string, Awards | null>> {
   const archivedSeasons = await prisma.season.findMany({
     where: { archivedAt: { not: null } },
