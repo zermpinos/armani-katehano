@@ -22,8 +22,8 @@ export default function SeasonsPage({
   const [leagues,       setLeagues]       = useState<League[]>([]);
   const [seasonLeagues, setSeasonLeagues] = useState<SeasonLeague[]>([]);
   const [players,       setPlayers]       = useState<Player[]>([]);
-  const [enrolledMap,   setEnrolledMap]   = useState<Record<string, Set<string>>>({});
-  const [draftMap,      setDraftMap]      = useState<Record<string, Set<string>>>({});
+  const [enrolledMap,   setEnrolledMap]   = useState<Map<string, Set<string>>>(new Map());
+  const [draftMap,      setDraftMap]      = useState<Map<string, Set<string>>>(new Map());
   const [busySaving,    setBusySaving]    = useState<Record<string, boolean>>({});
   const [loading,       setLoading]       = useState(false);
   const [toast,         setToast]         = useState<{ msg: string; type?: string } | null>(null);
@@ -55,15 +55,15 @@ export default function SeasonsPage({
       if (pRes.ok)  { const d = await pRes.json();  setPlayers(d.players ?? []); }
       if (reRes.ok) {
         const d = await reRes.json();
-        const map: Record<string, Set<string>> = {};
+        const map = new Map<string, Set<string>>();
         for (const e of d.entries ?? []) {
-          if (!map[e.seasonId]) map[e.seasonId] = new Set();
-          map[e.seasonId].add(e.playerId);
+          if (!map.has(e.seasonId)) map.set(e.seasonId, new Set());
+          map.get(e.seasonId)!.add(e.playerId);
         }
         setEnrolledMap(map);
-        const draftCopy: Record<string, Set<string>> = {};
-        for (const [sid, set] of Object.entries(map)) {
-          draftCopy[sid] = new Set(set);
+        const draftCopy = new Map<string, Set<string>>();
+        for (const [sid, set] of map) {
+          draftCopy.set(sid, new Set(set));
         }
         setDraftMap(draftCopy);
       }
@@ -140,7 +140,7 @@ export default function SeasonsPage({
 
   const saveRoster = async (seasonId: string) => {
     setBusySaving(s => ({ ...s, [seasonId]: true }));
-    const playerIds = [...(draftMap[seasonId] ?? new Set())];
+    const playerIds = [...(draftMap.get(seasonId) ?? new Set())];
     const res = await apiFetch("/api/admin/roster-entries", {
       method:  "PUT",
       headers: { "Content-Type": "application/json" },
@@ -148,7 +148,7 @@ export default function SeasonsPage({
     });
     setBusySaving(s => ({ ...s, [seasonId]: false }));
     if (!res.ok) { const d = await res.json(); showToast(d.error || "Save failed", "error"); return; }
-    setEnrolledMap(m => ({ ...m, [seasonId]: new Set(draftMap[seasonId] ?? new Set()) }));
+    setEnrolledMap(m => new Map(m).set(seasonId, new Set(draftMap.get(seasonId) ?? new Set())));
     showToast("Roster saved.");
   };
 
@@ -205,7 +205,7 @@ export default function SeasonsPage({
               <div className="flex flex-col gap-3">
                 {seasons.map(s => {
                   const seasonLeagueCount = seasonLeagues.filter(sl => sl.seasonName === s.name).length;
-                  const enrolled = enrolledMap[s.id]?.size ?? 0;
+                  const enrolled = enrolledMap.get(s.id)?.size ?? 0;
                   const isArchived = Boolean(s.archivedAt);
                   return (
                     <SeasonRosterRow
@@ -216,15 +216,15 @@ export default function SeasonsPage({
                       totalCount={players.length}
                       leagueCount={seasonLeagueCount}
                       isArchived={isArchived}
-                      draftSet={draftMap[s.id] ?? new Set()}
-                      isDirty={!setsEqual(draftMap[s.id] ?? new Set(), enrolledMap[s.id] ?? new Set())}
+                      draftSet={draftMap.get(s.id) ?? new Set()}
+                      isDirty={!setsEqual(draftMap.get(s.id) ?? new Set(), enrolledMap.get(s.id) ?? new Set())}
                       isSaving={busySaving[s.id] ?? false}
                       onToggle={(playerId) => {
                         setDraftMap(m => {
-                          const next = new Set(m[s.id] ?? new Set());
+                          const next = new Set<string>(m.get(s.id));
                           if (next.has(playerId)) next.delete(playerId);
                           else next.add(playerId);
-                          return { ...m, [s.id]: next };
+                          return new Map(m).set(s.id, next);
                         });
                       }}
                       onSave={() => saveRoster(s.id)}
