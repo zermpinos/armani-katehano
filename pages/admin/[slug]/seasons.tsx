@@ -148,7 +148,7 @@ export default function SeasonsPage({
     });
     setBusySaving(s => ({ ...s, [seasonId]: false }));
     if (!res.ok) { const d = await res.json(); showToast(d.error || "Save failed", "error"); return; }
-    setEnrolledMap(m => ({ ...m, [seasonId]: new Set(draftMap[seasonId]) }));
+    setEnrolledMap(m => ({ ...m, [seasonId]: new Set(draftMap[seasonId] ?? new Set()) }));
     showToast("Roster saved.");
   };
 
