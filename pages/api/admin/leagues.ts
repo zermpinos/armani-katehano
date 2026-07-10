@@ -38,9 +38,25 @@ async function handler(req: any, res: any) {
     });
 
     if (seasonId) {
-      await prisma.seasonLeague.create({
+      const newSeasonLeague = await prisma.seasonLeague.create({
         data: { seasonId, leagueId: league.id },
       });
+
+      // Carry the existing roster across so the new league starts fully enrolled
+      const existingEntries = await prisma.rosterEntry.findMany({
+        where: {
+          seasonLeague: { seasonId },
+          seasonLeagueId: { not: newSeasonLeague.id },
+        },
+        select: { playerId: true },
+        distinct: ["playerId"],
+      });
+      if (existingEntries.length > 0) {
+        await prisma.rosterEntry.createMany({
+          data: existingEntries.map(e => ({ playerId: e.playerId, seasonLeagueId: newSeasonLeague.id })),
+          skipDuplicates: true,
+        });
+      }
     }
 
     auditLog("league_created", { ip, leagueId: league.id, name });
