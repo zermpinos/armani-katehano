@@ -26,7 +26,15 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
   const [activeSeason, setActiveSeason] = useState(currentSeason);
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("all");
 
-  const activeStatsMap = activeSeason === "all-time" ? allTimeStatsMap : statsMap;
+  const seasonHistory  = playerSeasonHistory[player.id] ?? {};
+
+  // For past seasons, seasonHistory already holds the DB aggregate (same source as leaderboard/players).
+  // statsMap only carries currentSeason; allTimeStatsMap covers "all-time".
+  const activeStatsMap = activeSeason === "all-time"
+    ? allTimeStatsMap
+    : activeSeason !== currentSeason && seasonHistory[activeSeason]
+      ? { [player.id]: seasonHistory[activeSeason] }
+      : statsMap;
 
   const baseGameLog = activeSeason === "all-time"
     ? allGameLog
@@ -39,18 +47,15 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
   }, [baseGameLog, phaseFilter]);
 
   const activeStats = useMemo(() => {
-    // ponytail: statsMap only holds currentSeason data; past-season picks must recompute from log
-    const useLog = phaseFilter !== "all" || (activeSeason !== currentSeason && activeSeason !== "all-time");
-    if (useLog) return computeStatsFromLog(gameLog) ?? EMPTY_STATS;
+    if (phaseFilter !== "all") return computeStatsFromLog(gameLog) ?? EMPTY_STATS;
     return activeStatsMap[player.id] ?? EMPTY_STATS;
-  }, [phaseFilter, gameLog, activeStatsMap, player.id, activeSeason, currentSeason]);
+  }, [phaseFilter, gameLog, activeStatsMap, player.id]);
 
   const handleSeasonChange = (sid: string) => {
     setActiveSeason(sid);
     setPhaseFilter("all");
   };
 
-  const seasonHistory  = playerSeasonHistory[player.id] ?? {};
   const playerWithHistory = { ...player, seasonHistory };
   const hasStats = activeStats.gp > 0;
 
