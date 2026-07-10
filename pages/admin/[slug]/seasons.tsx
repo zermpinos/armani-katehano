@@ -1,8 +1,14 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout, F, Sel, Btn, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch } from "@/client/admin";
-import type { SeasonLeague, Season, League } from "@/client/admin";
+import type { SeasonLeague, Season, League, Player } from "@/client/admin";
 import { getAdminPasskeyLoginProps } from "@/server/auth";
+
+function setsEqual(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const v of a) if (!b.has(v)) return false;
+  return true;
+}
 
 export default function SeasonsPage({
   validSlug, showFallback, noPasskeys,
@@ -15,6 +21,10 @@ export default function SeasonsPage({
   const [seasons,       setSeasons]       = useState<Season[]>([]);
   const [leagues,       setLeagues]       = useState<League[]>([]);
   const [seasonLeagues, setSeasonLeagues] = useState<SeasonLeague[]>([]);
+  const [players,       setPlayers]       = useState<Player[]>([]);
+  const [enrolledMap,   setEnrolledMap]   = useState<Map<string, Set<string>>>(new Map());
+  const [draftMap,      setDraftMap]      = useState<Map<string, Set<string>>>(new Map());
+  const [busySaving,    setBusySaving]    = useState<Record<string, boolean>>({});
   const [loading,       setLoading]       = useState(false);
   const [toast,         setToast]         = useState<{ msg: string; type?: string } | null>(null);
 
@@ -32,14 +42,31 @@ export default function SeasonsPage({
   const loadData = async () => {
     setLoading(true);
     try {
-      const [sRes, lRes, slRes] = await Promise.all([
+      const [sRes, lRes, slRes, pRes, reRes] = await Promise.all([
         fetch("/api/admin/seasons-list"),
         fetch("/api/admin/leagues-list"),
         fetch("/api/admin/season-leagues"),
+        fetch("/api/admin/players"),
+        fetch("/api/admin/roster-entries"),
       ]);
       if (sRes.ok)  { const d = await sRes.json();  setSeasons(d.seasons ?? []);             setLinkSeasonId(prev => prev || d.seasons?.[0]?.id || ""); }
       if (lRes.ok)  { const d = await lRes.json();  setLeagues(d.leagues ?? []);             setLinkLeagueId(prev => prev || d.leagues?.[0]?.id || ""); }
       if (slRes.ok) { const d = await slRes.json(); setSeasonLeagues(d.seasonLeagues ?? []); }
+      if (pRes.ok)  { const d = await pRes.json();  setPlayers(d.players ?? []); }
+      if (reRes.ok) {
+        const d = await reRes.json();
+        const map = new Map<string, Set<string>>();
+        for (const e of d.entries ?? []) {
+          if (!map.has(e.seasonId)) map.set(e.seasonId, new Set());
+          map.get(e.seasonId)!.add(e.playerId);
+        }
+        setEnrolledMap(map);
+        const draftCopy = new Map<string, Set<string>>();
+        for (const [sid, set] of map) {
+          draftCopy.set(sid, new Set(set));
+        }
+        setDraftMap(draftCopy);
+      }
     } finally { setLoading(false); }
   };
 
@@ -111,6 +138,20 @@ export default function SeasonsPage({
     loadData();
   };
 
+  const saveRoster = async (seasonId: string) => {
+    setBusySaving(s => ({ ...s, [seasonId]: true }));
+    const playerIds = [...(draftMap.get(seasonId) ?? new Set())];
+    const res = await apiFetch("/api/admin/roster-entries", {
+      method:  "PUT",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ seasonId, playerIds }),
+    });
+    setBusySaving(s => ({ ...s, [seasonId]: false }));
+    if (!res.ok) { const d = await res.json(); showToast(d.error || "Save failed", "error"); return; }
+    setEnrolledMap(m => new Map(m).set(seasonId, new Set(draftMap.get(seasonId) ?? new Set())));
+    showToast("Roster saved.");
+  };
+
   if (!validSlug) return null;
   if (authLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
@@ -154,6 +195,43 @@ export default function SeasonsPage({
                   </li>
                 ))}
               </ul>
+            )}
+          </Panel>
+
+          <Panel label="Season Rosters" hint="Check which players are active in each season.">
+            {seasons.length === 0 ? (
+              <div className="py-6 text-center text-[12px] text-ak-text-dim">No seasons yet.</div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {seasons.map(s => {
+                  const seasonLeagueCount = seasonLeagues.filter(sl => sl.seasonName === s.name).length;
+                  const enrolled = enrolledMap.get(s.id)?.size ?? 0;
+                  const isArchived = Boolean(s.archivedAt);
+                  return (
+                    <SeasonRosterRow
+                      key={s.id}
+                      season={s}
+                      players={players}
+                      enrolledCount={enrolled}
+                      totalCount={players.length}
+                      leagueCount={seasonLeagueCount}
+                      isArchived={isArchived}
+                      draftSet={draftMap.get(s.id) ?? new Set()}
+                      isDirty={!setsEqual(draftMap.get(s.id) ?? new Set(), enrolledMap.get(s.id) ?? new Set())}
+                      isSaving={busySaving[s.id] ?? false}
+                      onToggle={(playerId) => {
+                        setDraftMap(m => {
+                          const next = new Set<string>(m.get(s.id));
+                          if (next.has(playerId)) next.delete(playerId);
+                          else next.add(playerId);
+                          return new Map(m).set(s.id, next);
+                        });
+                      }}
+                      onSave={() => saveRoster(s.id)}
+                    />
+                  );
+                })}
+              </div>
             )}
           </Panel>
 
@@ -319,6 +397,90 @@ function SeasonsSkeleton() {
         <div className="rounded-xl border border-ak-border bg-ak-surface h-[200px] animate-pulse" />
         <div className="rounded-xl border border-ak-border bg-ak-surface h-[200px] animate-pulse" />
       </div>
+    </div>
+  );
+}
+
+function SeasonRosterRow({
+  season, players, enrolledCount, totalCount, leagueCount,
+  isArchived, draftSet, isDirty, isSaving, onToggle, onSave,
+}: {
+  season: Season;
+  players: Player[];
+  enrolledCount: number;
+  totalCount: number;
+  leagueCount: number;
+  isArchived: boolean;
+  draftSet: Set<string>;
+  isDirty: boolean;
+  isSaving: boolean;
+  onToggle: (playerId: string) => void;
+  onSave: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const hasLeagues = leagueCount > 0;
+
+  return (
+    <div className="rounded-[9px] border border-ak-border bg-ak-base overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-3 py-[10px] px-[14px] text-left cursor-pointer"
+      >
+        <span className="flex-1 min-w-0">
+          <span className="font-black text-[13px] text-ak-text">
+            {season.name}
+            {isArchived && (
+              <span className="ml-2 text-[10px] font-black tracking-[0.1em] uppercase text-ak-text-dim">archived</span>
+            )}
+          </span>
+          <span className="ml-2 text-[11px] text-ak-text-dim">
+            &middot; {leagueCount} league{leagueCount === 1 ? "" : "s"}
+          </span>
+        </span>
+        <span className="text-[11px] font-black text-ak-text-dim whitespace-nowrap">
+          {enrolledCount}/{totalCount}
+        </span>
+        <span className="text-ak-text-dim text-[12px]">{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <div className="border-t border-ak-border px-[14px] py-3">
+          {!hasLeagues ? (
+            <div className="text-[11px] text-ak-text-dim py-2">Link a league to this season first.</div>
+          ) : players.length === 0 ? (
+            <div className="text-[11px] text-ak-text-dim py-2">No active players.</div>
+          ) : (
+            <>
+              <ul className="flex flex-col gap-1 mb-3">
+                {players.map(p => (
+                  <li key={p.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id={`rp-${season.id}-${p.id}`}
+                      checked={draftSet.has(p.id)}
+                      disabled={isArchived}
+                      onChange={() => onToggle(p.id)}
+                      className="cursor-pointer"
+                    />
+                    <label
+                      htmlFor={`rp-${season.id}-${p.id}`}
+                      className={`text-[12px] cursor-pointer select-none ${isArchived ? "text-ak-text-dim" : "text-ak-text"}`}
+                    >
+                      #{p.number} {p.name} <span className="text-ak-text-dim">{p.position}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              {!isArchived && (
+                <Btn onClick={onSave} disabled={!isDirty || isSaving} size="sm">
+                  {isSaving ? "SAVING..." : "SAVE ROSTER"}
+                </Btn>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

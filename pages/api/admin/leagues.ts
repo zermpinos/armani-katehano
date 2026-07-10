@@ -1,5 +1,5 @@
 /**
- * pages/api/admin/leagues.js
+ * pages/api/admin/leagues.ts
  * POST /api/admin/leagues -> create a new league and optionally link to a season
  */
 
@@ -38,8 +38,23 @@ async function handler(req: any, res: any) {
     });
 
     if (seasonId) {
-      await prisma.seasonLeague.create({
-        data: { seasonId, leagueId: league.id },
+      // Read existing roster outside transaction (no contention risk)
+      const existingEntries = await prisma.rosterEntry.findMany({
+        where: { seasonLeague: { seasonId } },
+        select: { playerId: true },
+      });
+
+      await prisma.$transaction(async (tx) => {
+        const sl = await tx.seasonLeague.create({
+          data: { seasonId, leagueId: league.id },
+        });
+        if (existingEntries.length > 0) {
+          await tx.rosterEntry.createMany({
+            data: existingEntries.map(e => ({ playerId: e.playerId, seasonLeagueId: sl.id })),
+            skipDuplicates: true,
+          });
+        }
+        return sl;
       });
     }
 
@@ -48,7 +63,7 @@ async function handler(req: any, res: any) {
     return res.status(201).json({ ok: true, league });
   } catch (err) {
     auditLog("league_create_error", { ip, error: (err as any).message });
-    return res.status(500).json({ error: prodError(err) });  // ← prodError now imported (fixes B-02 for this file too)
+    return res.status(500).json({ error: prodError(err) });
   }
 }
 
