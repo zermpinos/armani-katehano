@@ -26,7 +26,7 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
   const [activeSeason, setActiveSeason] = useState(currentSeason);
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("all");
 
-  const activeStatsMap = activeSeason === "all-time" ? allTimeStatsMap : statsMap;
+  const seasonHistory = Reflect.get(playerSeasonHistory as object, player.id) as Record<string, any> | undefined;
 
   const baseGameLog = activeSeason === "all-time"
     ? allGameLog
@@ -38,20 +38,23 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
     return baseGameLog.filter((g: any) => PLAYOFF_ROUNDS.includes(g.round));
   }, [baseGameLog, phaseFilter]);
 
+  // statsMap carries currentSeason only; past seasons live in seasonHistory (same DB aggregate
+  // source as leaderboard/players); allTimeStatsMap covers "all-time".
   const activeStats = useMemo(() => {
-    if (phaseFilter !== "all") {
-      return computeStatsFromLog(gameLog) ?? EMPTY_STATS;
-    }
-    return activeStatsMap[player.id] ?? EMPTY_STATS;
-  }, [phaseFilter, gameLog, activeStatsMap, player.id]);
+    if (phaseFilter !== "all")          return computeStatsFromLog(gameLog) ?? EMPTY_STATS;
+    if (activeSeason === "all-time")    return allTimeStatsMap[player.id]   ?? EMPTY_STATS;
+    if (activeSeason === currentSeason) return statsMap[player.id]          ?? EMPTY_STATS;
+    if (!seasonHistory) return EMPTY_STATS;
+    // eslint-disable-next-line security/detect-object-injection
+    return seasonHistory[activeSeason] ?? EMPTY_STATS;
+  }, [phaseFilter, gameLog, allTimeStatsMap, statsMap, seasonHistory, activeSeason, currentSeason, player.id]);
 
   const handleSeasonChange = (sid: string) => {
     setActiveSeason(sid);
     setPhaseFilter("all");
   };
 
-  const seasonHistory  = playerSeasonHistory[player.id] ?? {};
-  const playerWithHistory = { ...player, seasonHistory };
+  const playerWithHistory = { ...player, seasonHistory: seasonHistory ?? {} };
   const hasStats = activeStats.gp > 0;
 
   return (
