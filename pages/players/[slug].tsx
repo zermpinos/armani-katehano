@@ -26,7 +26,7 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
   const [activeSeason, setActiveSeason] = useState(currentSeason);
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("all");
 
-  const seasonHistory = playerSeasonHistory[player.id] ?? {};
+  const seasonHistory = Reflect.get(playerSeasonHistory as object, player.id) as Record<string, any> | undefined;
 
   const baseGameLog = activeSeason === "all-time"
     ? allGameLog
@@ -44,8 +44,9 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
     if (phaseFilter !== "all")          return computeStatsFromLog(gameLog) ?? EMPTY_STATS;
     if (activeSeason === "all-time")    return allTimeStatsMap[player.id]   ?? EMPTY_STATS;
     if (activeSeason === currentSeason) return statsMap[player.id]          ?? EMPTY_STATS;
+    if (!seasonHistory) return EMPTY_STATS;
     // eslint-disable-next-line security/detect-object-injection
-    return (seasonHistory[activeSeason] as any) ?? EMPTY_STATS;
+    return seasonHistory[activeSeason] ?? EMPTY_STATS;
   }, [phaseFilter, gameLog, allTimeStatsMap, statsMap, seasonHistory, activeSeason, currentSeason, player.id]);
 
   const handleSeasonChange = (sid: string) => {
@@ -53,7 +54,7 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
     setPhaseFilter("all");
   };
 
-  const playerWithHistory = { ...player, seasonHistory };
+  const playerWithHistory = { ...player, seasonHistory: seasonHistory ?? {} };
   const hasStats = activeStats.gp > 0;
 
   return (

@@ -17,6 +17,7 @@ const eslintConfig = [
       "next-env.d.ts",
       "lib/generated/**",
       "actions-runner/**",
+      ".internal/**",
     ],
   },
   {
