@@ -39,11 +39,11 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
   }, [baseGameLog, phaseFilter]);
 
   const activeStats = useMemo(() => {
-    if (phaseFilter !== "all") {
-      return computeStatsFromLog(gameLog) ?? EMPTY_STATS;
-    }
+    // ponytail: statsMap only holds currentSeason data; past-season picks must recompute from log
+    const useLog = phaseFilter !== "all" || (activeSeason !== currentSeason && activeSeason !== "all-time");
+    if (useLog) return computeStatsFromLog(gameLog) ?? EMPTY_STATS;
     return activeStatsMap[player.id] ?? EMPTY_STATS;
-  }, [phaseFilter, gameLog, activeStatsMap, player.id]);
+  }, [phaseFilter, gameLog, activeStatsMap, player.id, activeSeason, currentSeason]);
 
   const handleSeasonChange = (sid: string) => {
     setActiveSeason(sid);
