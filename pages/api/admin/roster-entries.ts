@@ -4,20 +4,21 @@
  * PUT /api/admin/roster-entries  -> full sync for one season
  */
 
-import { z }                          from "zod";
-import { requireAuth }                from "@/server/auth";
-import { auditLog, getClientIp }      from "@/server/security/node";
-import prisma                         from "@/server/db/client";
-import { methodRouter }               from "@/server/http/method-router";
-import { handleError }                from "@/server/http/handle-error";
-import { parseBody }                  from "@/server/http/parse-body";
+import { NextApiRequest, NextApiResponse } from "next";
+import { z }                               from "zod";
+import { requireAuth }                     from "@/server/auth";
+import { auditLog, getClientIp }           from "@/server/security/node";
+import prisma                              from "@/server/db/client";
+import { methodRouter }                    from "@/server/http/method-router";
+import { handleError }                     from "@/server/http/handle-error";
+import { parseBody }                       from "@/server/http/parse-body";
 
 const RosterSyncSchema = z.object({
   seasonId:  z.string().min(1),
   playerIds: z.array(z.string().min(1)),
 });
 
-async function getEntries(_req: any, res: any) {
+async function getEntries(_req: NextApiRequest, res: NextApiResponse) {
   try {
     const rows = await prisma.rosterEntry.findMany({
       where: { player: { isActive: true } },
@@ -44,70 +45,68 @@ async function getEntries(_req: any, res: any) {
   }
 }
 
-async function putEntries(req: any, res: any) {
+async function putEntries(req: NextApiRequest, res: NextApiResponse) {
   const ip   = getClientIp(req);
   const data = parseBody(RosterSyncSchema, req.body, res, "flatten");
   if (!data) return;
   const { seasonId, playerIds } = data;
 
-  // 1. verify season exists
-  const season = await prisma.season.findUnique({ where: { id: seasonId } });
-  if (!season) {
-    return res.status(404).json({ error: "Season not found." });
-  }
-
-  // 2. fetch all active player IDs
-  const activePlayers = await prisma.player.findMany({
-    where:  { isActive: true },
-    select: { id: true },
-  });
-  const activePids = new Set(activePlayers.map((p) => p.id));
-
-  // 3. reject any unknown or retired player
-  const invalid = playerIds.filter((id) => !activePids.has(id));
-  if (invalid.length > 0) {
-    return res.status(400).json({ error: `Unknown or inactive player IDs: ${invalid.join(", ")}` });
-  }
-
-  // 4. resolve SeasonLeague IDs for this season
-  const seasonLeagues = await prisma.seasonLeague.findMany({
-    where:  { seasonId },
-    select: { id: true },
-  });
-  const slIds = seasonLeagues.map((sl) => sl.id);
-
   try {
-    await prisma.$transaction(async (tx) => {
-      for (const seasonLeagueId of slIds) {
-        // 5. remove active players not in the new set (never touch retired players)
+    const result = await prisma.$transaction(async (tx) => {
+      const season = await tx.season.findUnique({ where: { id: seasonId } });
+      if (!season) throw new Error("NOT_FOUND");
+
+      const activePlayers = await tx.player.findMany({
+        where:  { isActive: true },
+        select: { id: true },
+      });
+      const activePids = new Set(activePlayers.map((p) => p.id));
+
+      const invalid = playerIds.filter((id) => !activePids.has(id));
+      if (invalid.length > 0) {
+        throw new Error(`BAD_REQUEST:Unknown or inactive player IDs: ${invalid.join(", ")}`);
+      }
+
+      const seasonLeagues = await tx.seasonLeague.findMany({
+        where:  { seasonId },
+        select: { id: true },
+      });
+
+      for (const { id: seasonLeagueId } of seasonLeagues) {
         await tx.rosterEntry.deleteMany({
           where: {
             seasonLeagueId,
-            playerId: {
-              in:    [...activePids],
-              notIn: playerIds,
-            },
+            player:   { isActive: true },
+            playerId: { notIn: playerIds },
           },
         });
 
-        // 6. upsert the requested players
         await tx.rosterEntry.createMany({
           data:           playerIds.map((playerId) => ({ playerId, seasonLeagueId })),
           skipDuplicates: true,
         });
       }
+
+      return { enrolled: playerIds.length, seasonLeagueCount: seasonLeagues.length };
     });
 
     auditLog("roster_synced", {
       ip,
       seasonId,
-      seasonLeagueCount: slIds.length,
-      enrolled:          playerIds.length,
+      seasonLeagueCount: result.seasonLeagueCount,
+      enrolled:          result.enrolled,
     });
 
-    return res.status(200).json({ ok: true, enrolled: playerIds.length });
+    return res.status(200).json({ ok: true, enrolled: result.enrolled });
   } catch (err) {
-    auditLog("roster_sync_error", { ip, seasonId, error: (err as any).message });
+    const msg = (err as Error).message ?? "";
+    if (msg === "NOT_FOUND") {
+      return res.status(404).json({ error: "Season not found." });
+    }
+    if (msg.startsWith("BAD_REQUEST:")) {
+      return res.status(400).json({ error: msg.slice("BAD_REQUEST:".length) });
+    }
+    auditLog("roster_sync_error", { ip, seasonId, error: msg });
     return handleError(res, err);
   }
 }
