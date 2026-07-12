@@ -1,6 +1,6 @@
 # Armani Katehano Stats
 
-A statistics, scheduling, and roster-management web app for the **Armani Katehano** basketball team. The public site surfaces season aggregates, per-game box scores, leaderboards, scoring trends, and upcoming-game roster announcements; an authenticated admin portal handles roster, schedule, and stats ingestion (manual and automated); a separate coach portal lets the head coach publish roster announcements without admin privileges.
+A statistics, scheduling, and roster-management web app for the **Armani Katehano** basketball team. The public site surfaces season aggregates, per-game box scores, leaderboards, scoring trends, season-end awards, and upcoming-game roster announcements (with calendar export); an authenticated admin portal handles roster, schedule, stats ingestion, season archiving, subscriber broadcasts, and site-wide toggles; a separate coach portal lets the head coach publish roster announcements without admin privileges.
 
 > Source-available under [PolyForm Noncommercial 1.0.0](LICENSE). Commercial use requires permission.
 
@@ -26,11 +26,11 @@ A statistics, scheduling, and roster-management web app for the **Armani Katehan
 
 The app is a single-team basketball-stats platform built around a Postgres data model of seasons, leagues, games, players, per-game stat lines, season aggregates, upcoming games, and roster announcements. It serves three audiences:
 
-- **Public visitors** - read-only access to team record, player cards, season leaderboards, game results, scoring trends, and the next-game roster.
-- **Team admins** - full CRUD over seasons, leagues, players, schedule, games, and stats; trigger imports; manage email subscribers; recompute aggregates. Reached at a randomized `/admin/<slug>` path and gated by passkey (WebAuthn); password + TOTP is an opt-in fallback.
+- **Public visitors** - read-only access to team record, player cards, season leaderboards (with a season-end MVP/leader awards podium), game results, scoring trends, and the next-game roster (with add-to-calendar / Google Calendar links).
+- **Team admins** - full CRUD over seasons, leagues, players, schedule, games, and stats; trigger imports; archive completed seasons; broadcast email to subscribers; toggle a playoff popup and site-wide maintenance mode; recompute aggregates. Reached at a randomized `/admin/<slug>` path and gated by passkey (WebAuthn); password + TOTP is an opt-in fallback.
 - **Head coach** - separate `/coach/<token>` portal for managing rosters and publishing per-game roster announcements via email. Distinct password and session secret from the admin portal.
 
-Box-score data is ingested manually: an admin pastes a box-score URL or uploads a file; the scraper classifies, parses, and persists `PlayerGameStat` rows; aggregates are recomputed transactionally afterwards.
+Box-score data is ingested manually: an admin pastes a box-score URL or uploads a file; the scraper classifies, parses, and persists `PlayerGameStat` rows; aggregates are recomputed transactionally afterwards. Public listing pages are statically generated (ISR) and revalidated on demand the moment an admin mutation affects them, so visitors get near-instant updates without paying for per-request rendering.
 
 ---
 
@@ -63,9 +63,13 @@ Imports may only flow downward and the rule is enforced by `import/no-restricted
 
 Node built-ins must be imported via the `node:` protocol (`import crypto from "node:crypto"`) - enforced by `no-restricted-imports`.
 
+### Rendering & caching
+
+Public listing pages (`/`, `/players`, `/games`, `/leaderboard`, `/team-stats`) use `getStaticProps` with `revalidate: 3600` (ISR), falling back to a 60s window if the database is unreachable at build time (e.g. in CI). Admin mutations that affect a public page (game/player/season/roster/popup changes) call into `src/server/services/cache-invalidation.ts`, which fans out on-demand `res.revalidate()` calls to the specific affected paths so changes go live immediately instead of waiting for the hourly refresh. `scripts/check-isr-pages.mjs` is a post-build CI guard that asserts the expected pages were actually pre-rendered and that no admin page leaked into the static output.
+
 ### Data model
 
-PostgreSQL via Prisma. Core entities: `Season`, `League`, `SeasonLeague`, `Player`, `RosterEntry`, `Game`, `PlayerGameStat`, `PlayerSeasonAggregate`, `UpcomingGame`, `GameRosterAnnouncement`, `GameRosterPlayer`, `GameImportJob`, `PasskeyCredential`, `Subscriber`, `Setting`, `LoginAttempt`. Aggregates store both averages (`ptsAvg`, `rebAvg`, ...) and totals (`ptsTotal`, `rebTotal`, ...) computed from raw stat sums.
+PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end archiving), `League`, `SeasonLeague`, `Player`, `RosterEntry`, `Game`, `PlayerGameStat`, `PlayerSeasonAggregate`, `UpcomingGame`, `GameRosterAnnouncement`, `GameRosterPlayer`, `BroadcastLog`, `PasskeyCredential`, `WebAuthnChallenge`, `Subscriber`, `Setting`, `LoginAttempt`, `CronRun`, `AuditLog`. Aggregates store both averages (`ptsAvg`, `rebAvg`, ...) and totals (`ptsTotal`, `rebTotal`, ...) computed from raw stat sums. `Setting` is a generic key/value store used for feature toggles that don't warrant their own table (maintenance mode, playoff-popup state).
 
 ---
 
@@ -73,12 +77,12 @@ PostgreSQL via Prisma. Core entities: `Season`, `League`, `SeasonLeague`, `Playe
 
 **Runtime & framework**
 - Node.js ≥ 24.14
-- Next.js 16 (Pages Router)
+- Next.js 16 (Pages Router), ISR for public pages with on-demand revalidation
 - React 19
 - TypeScript 5
 
 **Database & ORM**
-- PostgreSQL (Neon-hosted in production)
+- PostgreSQL (Neon-hosted in production, via pooled `DATABASE_URL` + direct `DIRECT_URL` for migrations)
 - Prisma 7 (`@prisma/client`, `@prisma/adapter-pg`, `pg`)
 
 **Styling & UI**
@@ -89,21 +93,22 @@ PostgreSQL via Prisma. Core entities: `Season`, `League`, `SeasonLeague`, `Playe
 - Zod 4 (request/response, scrape outputs, schedule rows)
 
 **Auth & security**
-- `@simplewebauthn/server` + `@simplewebauthn/browser` (passkeys / WebAuthn)
+- `@simplewebauthn/server` + `@simplewebauthn/browser` (passkeys / WebAuthn; challenges persisted in `WebAuthnChallenge`, not in-process memory)
 - `bcryptjs` (password hashing)
 - `otpauth` (TOTP; password+TOTP fallback path)
-- Cloudflare Turnstile (subscribe-form CAPTCHA)
+- Cloudflare Turnstile (subscribe-form and login CAPTCHA)
 - Custom session cookies (signed with `SESSION_SECRET` / `COACH_SESSION_SECRET`)
-- CSP with per-request nonce, SSRF allow-list, audit log
+- Build-time, hash-based CSP (no per-request nonce - see [§5 Security baseline](#5-features)) + SSRF allow-list + DB-persisted audit log
 
 **Integrations**
-- Nodemailer + Brevo SMTP (transactional email)
+- Nodemailer + Brevo SMTP (transactional email + admin broadcasts)
 - Cheerio + `pdf-parse` (box-score scraping)
+- Cloudinary (player-photo hosting; URLs are pasted directly by admins and resized client-side via a URL-transform helper, no SDK)
 - Vercel Analytics & Speed Insights
 
 **Tooling**
 - ESLint 9 (with `eslint-plugin-security`, `eslint-plugin-no-unsanitized`, `eslint-config-next`)
-- Vitest 4 (unit / integration)
+- Vitest 4 (unit / integration / build-output tests)
 - Playwright (E2E)
 - `tsx` (script runner)
 
@@ -115,9 +120,10 @@ PostgreSQL via Prisma. Core entities: `Season`, `League`, `SeasonLeague`, `Playe
 |-------------------------|----------------------------------------------------------|
 | **Vercel**              | Hosting, Edge middleware, cron, deployment               |
 | **Neon (PostgreSQL)**   | Primary database                                         |
-| **Brevo (SMTP/Nodemailer)** | Transactional email (subscribe confirm, roster, admin) |
-| **Cloudflare Turnstile**| CAPTCHA on the public subscribe form                     |
-| **GitHub Actions**      | CI (lint, build, tests), nightly secret scans                                     |
+| **Brevo (SMTP/Nodemailer)** | Transactional email (subscribe confirm, roster, admin broadcasts) |
+| **Cloudflare Turnstile**| CAPTCHA on the public subscribe form and admin/coach login |
+| **Cloudinary**          | Player photo hosting; allow-listed in CSP `img-src`, no server-side SDK |
+| **GitHub Actions**      | CI (lint, typecheck, test, build), scheduled security/dependency audits |
 | **Box-score sources**   | League listing pages and per-game box-score URLs scraped via Cheerio / `pdf-parse` |
 
 External HTTP fetches that originate from user-supplied URLs are routed through the SSRF guard in `src/server/security/node/ssrf.ts`, which rejects private/loopback ranges via `node:dns` resolution.
@@ -127,25 +133,28 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 ## 5. Features
 
 ### Public site
-- **Home** (`/`) - record, win %, MVP card, recent results, scoring-trend chart (configurable range), top scorers chart, upcoming games with featured roster panel (player avatars via Cloudinary, starter/bench split, coach callout), efficiency leader, email subscribe form.
+- **Home** (`/`) - record, win %, MVP card, recent results, scoring-trend chart (configurable range), top scorers chart, upcoming games with featured roster panel (player avatars via Cloudinary, starter/bench split, coach callout, add-to-calendar / "Add to Google Calendar" buttons), efficiency leader, email subscribe form, an archived-season banner once a season is closed out, and a dismissible playoff popup (semifinal/final messaging, version-gated so re-enabling it resurfaces for visitors who already dismissed it).
 - **Players** (`/players`) - full roster with per-player season averages and totals; player cards link to individual stat pages (`/players/[slug]`).
-- **Games** (`/games`) - chronological game list; completed games link to box-score pages (`/games/[id]`) with playoff round badges (QF / SF / Final); upcoming games open a details modal.
-- **Leaderboard** (`/leaderboard`) - sortable, multi-stat leaderboard with season-phase filter (All Season / Regular Season / Playoffs).
+- **Games** (`/games`) - chronological game list; completed games link to box-score pages (`/games/[id]`) with playoff round badges (QF / SF / Final); upcoming games open a details modal with calendar export.
+- **Leaderboard** (`/leaderboard`) - sortable, multi-stat leaderboard with season-phase filter (All Season / Regular Season / Playoffs) and, once a season has games, a top-3 awards podium (MVP, Top Scorer, Rebounds, Assists, TS%) with a shooting-formula tooltip.
 - **Team stats** (`/team-stats`) - aggregated team-level metrics with season-phase filter.
+- **Calendar export** (`/api/calendar/ics`) - generates a real `.ics` file (with proper Europe/Athens DST rules) for an upcoming game; linked from roster-announcement/game-imported emails and from the upcoming-game UI alongside a "Add to Google Calendar" link.
 - **Subscribe / unsubscribe** - double-opt-in email flow with token-based unsubscribe (`/unsubscribe`) and confirmation (`/api/confirm`).
-- **Privacy policy** (`/privacy`).
-- **Sitemap** (`/sitemap.xml`).
+- **Maintenance page** (`/maintenance`) - shown to visitors when site-wide maintenance mode is on; admins with an active session bypass it transparently (enforced in `proxy.ts`, fails open on error).
+- **Privacy policy** (`/privacy`), **sitemap** (`/sitemap.xml`), **humans.txt** (`/api/humans-txt`), **security.txt** (`/.well-known/security.txt`, RFC 9116).
 
 ### Admin portal (`/admin/<slug>`)
 - Passkey (WebAuthn) login with per-IP login-attempt rate limiting and CSRF tokens; password + TOTP retained as opt-in fallback (gated by `PASSKEY_FALLBACK_TOKEN`).
 - Dashboard with totals, recent activity, and season-phase selector (Regular Season / Playoffs).
-- **Maintenance** page for global maintenance-mode toggle and operational controls.
+- **Maintenance** page for the global maintenance-mode toggle and the playoff-popup control (enable/disable, semifinal/final round).
 - CRUD for **seasons**, **leagues**, **season-leagues**, **players**, **schedule** (`UpcomingGame`), **games** (with round field for playoff tagging), and **per-game stat lines**.
-- **Roster** management (active/inactive, per-season-league entries).
+- **Seasons** page - archive/unarchive a season (marks it complete for the public archived-season banner; purely presentational, doesn't lock stats), and a season-level roster panel: checking a player in/out syncs their `RosterEntry` across every league in that season in one save, instead of enrolling them per-league.
+- **Roster** pages - manage the org-wide player roster (add/edit/retire players, photos), separate from the per-season enrollment above.
 - **Stats import** (paste box-score URL or upload); scraper classifies, parses, and persists results.
 - **Aggregate recompute** endpoint for backfills.
 - **Roster announcements** - pick the upcoming game, pick the active roster, write a note; the system emails confirmed subscribers via Brevo.
-- **Subscriber management** with cleanup endpoints.
+- **Broadcast** - compose a Markdown email to all confirmed subscribers or a chosen subset, preview the rendered HTML and send a test to yourself first, then send with rate limits (1 per 2 min, 5/day) and a persisted send history (`BroadcastLog`). A separate, narrower endpoint emails subscribers about one specific finished game's result (idempotent, won't double-send).
+- **Subscriber management** with CSV export and cleanup endpoints.
 
 ### Coach portal (`/coach/<token>`)
 - Separate password and session secret from admin.
@@ -158,7 +167,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 
 ### Cron / scheduled jobs
 
-All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECRET}`, compared in constant time with `node:crypto.timingSafeEqual` and a length-guard.
+All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECRET}`, compared in constant time with `node:crypto.timingSafeEqual` and a length-guard. Each run is recorded in `CronRun` (start/finish time, ok/error, summary) for observability.
 
 - `/api/cron/purge-subscribers` - daily at 03:00 UTC (Vercel cron). Drops unconfirmed subscribers older than 1 day and confirmed subscribers idle for over a year.
 - `/api/cron/purge-upcoming-games` - daily at 04:30 UTC (Vercel cron). Deletes `UpcomingGame` rows whose `scheduledFor` is past and whose `sourceUrl` has been set (admin-imported). Rows still pending review are left untouched; the imported `Game` is preserved (`importedGameId` uses `onDelete: SetNull`).
@@ -166,10 +175,11 @@ All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECR
 - `/api/admin/cleanup` - daily at 02:00 UTC (Vercel cron). Purges expired `LoginAttempt` rows.
 
 ### Security baseline
-- Strict CSP with per-request nonce (Edge middleware).
+- **Build-time, hash-based CSP** (Edge middleware) - `src/server/security/edge/csp-hashes.ts` holds a committed allow-list of SHA-256 hashes for every inline `<script>`/`<style>` in the pre-rendered HTML, regenerated via `npm run regenerate-csp-hashes` and verified against the built output in CI (`scripts/check-isr-pages.mjs`). There is no per-request nonce - ISR-cached pages can't vary per request, so the hash approach replaced it.
 - HTTPS-only, `Strict-Transport-Security`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` lockdown.
 - SSRF allow-list for outbound fetches.
-- Audit log via structured stdout (`[AUDIT]`) with `console.warn` alerts (`[AUDIT_ALERT]`) on high-signal events.
+- Audit log written to structured stdout (`[AUDIT]`) and persisted to the `AuditLog` table (client IPs are SHA-256 hashed before storage), with `console.warn` alerts (`[AUDIT_ALERT]`) on high-signal events (locked accounts, blocked CSRF, broadcast abuse); purged after 90 days.
+- `security.txt` (RFC 9116) at `/.well-known/security.txt` points to [`SECURITY.md`](SECURITY.md) for vulnerability disclosure.
 - ESLint security plugins + `no-unsanitized` + `node:` protocol enforcement + Semgrep + Gitleaks workflows.
 
 ---
@@ -180,34 +190,48 @@ All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECR
 armani-katehano/
 ├── pages/                          Next.js Pages Router entry points
 │   ├── index.tsx, players.tsx, games.tsx, leaderboard.tsx,
-│   │   team-stats.tsx, privacy.tsx, sitemap.xml.tsx, unsubscribe.tsx
+│   │   team-stats.tsx, privacy.tsx, sitemap.xml.tsx, unsubscribe.tsx,
+│   │   maintenance.tsx
 │   ├── players/[slug].tsx          Individual player stats page
 │   ├── games/[id].tsx              Individual game box-score page
 │   ├── coming-soon.tsx             Pre-launch gate page
 │   ├── admin/[slug]/               Admin portal pages (slug-randomized)
+│   │   ├── seasons.tsx             Season CRUD, archive/unarchive, season-level roster enrollment
+│   │   ├── roster/                 Org-wide player roster (index + [id] detail)
+│   │   ├── schedule/               Upcoming-game schedule (index + [id] detail)
+│   │   ├── games/                  Game CRUD (index + [id] detail)
+│   │   ├── import.tsx              Box-score import (URL / file upload)
+│   │   ├── broadcast.tsx           Subscriber email broadcast composer
+│   │   ├── subscribers.tsx         Subscriber list, export, cleanup
 │   │   ├── passkeys.tsx            Passkey credential management
-│   │   └── maintenance.tsx         Maintenance-mode and operational controls
+│   │   └── maintenance.tsx         Maintenance-mode toggle + playoff-popup control
 │   ├── coach/[token].tsx           Coach portal page (token-routed)
 │   └── api/                        API routes
 │       ├── auth.ts, subscribe.ts, confirm.ts
-│       ├── admin/                  Admin endpoints (CRUD, recalc, import, cleanup)
+│       ├── auth/passkey/           WebAuthn register/auth options + verify
+│       ├── calendar/ics.ts         Public .ics calendar export for a game
+│       ├── humans-txt.ts, .well-known/security.txt.ts
+│       ├── admin/                  Admin endpoints (CRUD, recalc, import, broadcast, popup-config, cleanup)
+│       │   └── seasons/[id]/       archive.ts, unarchive.ts
 │       ├── coach/                  Coach auth + endpoints
 │       ├── cron/                   Scheduled jobs (purge-subscribers, purge-upcoming-games, purge-audit-log)
-│       ├── games/[id].ts           Public box score
-│       └── public/data.ts          Public data feed
+│       ├── public/                 Public data feed, maintenance-flag read, upcoming-games
+│       └── games/[id].ts           Public box score
 │
 ├── src/
 │   ├── client/                     Page-scoped client components & hooks
-│   │   ├── home/                   home page components + defer-dynamic.ts
+│   │   ├── home/                   home page components (incl. final-four-popup, calendar-utils)
 │   │   ├── players/, games/, leaderboard/, team-stats/,
-│   │   │   admin/, coach/
-│   ├── components/                 Shared UI primitives (Layout, StatTile, ErrorBoundary)
+│   │   │   admin/ (incl. import/, shell/), coach/, shared/
+│   ├── components/                 Shared UI primitives (Layout, StatTile, ErrorBoundary, SeasonAwards)
 │   ├── domain/                     Pure logic - no I/O, no React, no Prisma
+│   │   ├── awards.ts               Season MVP / leader award computation
 │   │   ├── roster.ts               isStarter helper
 │   │   ├── games/score.ts, games/phase.ts
 │   │   ├── players/format.ts (fmt, initials, slugify), players/positions.ts,
-│   │   │   stats/{aggregate,allTime,efficiency,fromLog}.ts, calendar/
-│   │   └── shared/                 calendar.ts, cloudinary.ts (cloudinaryThumb),
+│   │   │   stats/{aggregate,allTime,efficiency,fromLog}.ts
+│   │   ├── calendar/greek-date.ts  Greek-language date/slug parsing (scraper helper)
+│   │   └── shared/                 calendar.ts (.ics builder), cloudinary.ts (cloudinaryThumb),
 │   │                               constants.ts, format.ts, sanitize.ts, venues.ts
 │   ├── features/                   Reserved for cross-cutting page features
 │   ├── schemas/                    Zod schemas (player, game, league, season,
@@ -222,10 +246,10 @@ armani-katehano/
 │   │   │   ├── email/              Nodemailer/Brevo client + templates
 │   │   │   └── scraper/            boxscore scraper
 │   │   ├── security/
-│   │   │   ├── edge/               CSP, headers (portable across runtimes)
+│   │   │   ├── edge/               CSP (hash-based) + csp-hashes.ts, headers
 │   │   │   └── node/               SSRF, audit log, client IP (Node-only)
 │   │   └── services/               audit-log-purge, broadcast-import,
-│   │                                cache-invalidation, import-classifier,
+│   │                                cache-invalidation, cron-run, import-classifier,
 │   │                                import-game, maintenance-flag,
 │   │                                scrape-game, stats-recalc, subscriber
 │   ├── theme/                      Tailwind theme tokens
@@ -242,17 +266,17 @@ armani-katehano/
 │
 ├── scripts/
 │   ├── check-middleware-bundle.mjs Post-build assertion: no Node built-ins in Edge bundle
+│   ├── check-isr-pages.mjs         Post-build assertion: expected pages pre-rendered, CSP hashes match
 │   ├── check-postcss-override.mjs  Scan postcss config for overridden entries and report lowest
+│   ├── regenerate-csp-hashes.mjs   Recomputes and writes the committed CSP script/style hash allow-list
 │   ├── strip-next-polyfills.mjs    Prebuild: stubs out Next.js polyfill-module for Turbopack
-│   ├── preview-confirmation-email.ts  Local preview for subscriber confirmation email
-│   ├── preview-game-imported-email.ts Local preview for game-import notification email
-│   ├── preview-roster-email.ts     Local preview for roster announcement template
-│   └── ci/                         CI helper scripts
+│   └── ci/                         CI helper scripts (weekly-security-report.sh, ...)
 │
 ├── tests/
 │   ├── unit/                       Vitest unit tests
-│   └── integration/                Vitest integration tests
-├── e2e/                            Playwright specs (admin, public, csp, modals, unsubscribe)
+│   ├── integration/                Vitest integration tests
+│   └── build/                      Vitest checks against build output (CSP hashes, ISR page set)
+├── e2e/                            Playwright specs (admin, public, csp, modals, unsubscribe, season roster)
 │
 ├── docs/
 │   ├── architecture.md             Source of truth for layer + runtime rules
@@ -262,7 +286,7 @@ armani-katehano/
 │
 ├── public/                         Static assets
 ├── styles/                         Global styles
-├── proxy.ts                        Edge middleware: coming-soon gate, CSP nonce + headers
+├── proxy.ts                        Edge middleware: coming-soon gate, maintenance-mode redirect, CSP + headers
 ├── next.config.mjs
 ├── tailwind.config.ts
 ├── eslint.config.mjs
@@ -304,13 +328,12 @@ npm run dev                        # http://localhost:3000
 | Start the production build        | `npm start`                                              |
 | Lint                              | `npm run lint`                                           |
 | Unit / integration tests          | `npm test`                                               |
+| Build-output tests (CSP/ISR)      | `npm run test:build` (run against a fresh `npm run build`) |
 | End-to-end tests (headless)       | `npm run test:e2e`                                       |
 | End-to-end tests (Playwright UI)  | `npm run test:e2e:ui`                                    |
+| Regenerate CSP hash allow-list    | `npm run regenerate-csp-hashes` (after changing inline script/style content on a static page) |
 | Apply a new migration             | `npx prisma migrate dev --name <slug>`                   |
 | Open Prisma Studio                | `npx prisma studio`                                      |
-| Preview the roster email template | `npx tsx scripts/preview-roster-email.ts`                |
-| Preview the confirmation email    | `npx tsx scripts/preview-confirmation-email.ts`          |
-| Preview the game-imported email   | `npx tsx scripts/preview-game-imported-email.ts`         |
 
 ### Logging in
 
@@ -326,8 +349,9 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 ### Required
 
 | Variable                          | Used by                | Purpose                                                    |
-|-----------------------------------|------------------------|------------------------------------------------------------|
-| `DATABASE_URL`                    | Prisma                 | Postgres connection string                                 |
+|-----------------------------------|------------------------|--------------------------------------------------------------|
+| `DATABASE_URL`                    | Prisma                 | Pooled Postgres connection string (runtime queries)         |
+| `DIRECT_URL`                      | Prisma                 | Direct (unpooled) Postgres connection string, used for migrations |
 | `NEXT_PUBLIC_APP_URL`             | Client                 | Public base URL used in emails and OG tags                 |
 | `NEXT_PUBLIC_BASE_URL`            | Client / SEO           | Public base URL used by sitemap, layout, and `security.txt` |
 | `SESSION_SECRET`                  | Admin auth             | HMAC key for the admin session cookie                      |
@@ -348,7 +372,7 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 ### Optional / environment-specific
 
 | Variable                                  | Purpose                                                         |
-|-------------------------------------------|-----------------------------------------------------------------|
+|-------------------------------------------|-------------------------------------------------------------------|
 | `PASSKEY_FALLBACK_TOKEN`                  | Enables the password + TOTP fallback login path; if unset, passkey is the only admin auth method |
 | `E2E_ADMIN_USERNAME`                      | Admin username used by Playwright global setup                  |
 | `E2E_ADMIN_PASSWORD`                      | Plain admin password used by Playwright global setup            |
@@ -364,12 +388,13 @@ These variables are set by the build/runtime environment automatically. Do not s
 | `NODE_ENV` | Node.js runtime |
 | `NEXT_RUNTIME` | Next.js (`"nodejs"` or `"edge"`) |
 | `VERCEL_ENV` | Vercel (`"production"`, `"preview"`, `"development"`) |
+| `VERCEL_URL` | Vercel (deployment URL, set at build time) |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | Configured per-project in the Vercel dashboard |
 
 ### Secret hygiene
 
 - Rotation playbook: [`docs/key-rotation-runbook.md`](docs/key-rotation-runbook.md).
-- All commits scanned by Gitleaks via the `.gitleaks.toml` rules (CI workflow `secret-scan.yml`).
+- All commits scanned by Gitleaks via the `.gitleaks.toml` rules (CI workflows `secret-scan.yml` and the non-blocking weekly `secret-scan-audit.yml`).
 - Vulnerability reports: see [`SECURITY.md`](SECURITY.md).
 
 ---
@@ -378,15 +403,17 @@ These variables are set by the build/runtime environment automatically. Do not s
 
 ### npm scripts (`package.json`)
 
-| Script              | What it does                                                        |
-|---------------------|---------------------------------------------------------------------|
-| `dev`               | `next dev` - local dev server                                       |
-| `build`             | prebuild polyfill stub -> `prisma generate` -> `next build`         |
-| `start`             | `next start` - serve the production build                           |
-| `lint`              | `eslint .` - flat-config lint over the whole repo                   |
-| `test`              | `vitest run` - unit + integration tests                             |
-| `test:e2e`          | `playwright test` - headless browser tests                          |
-| `test:e2e:ui`       | `playwright test --ui` - Playwright UI mode                         |
+| Script                   | What it does                                                        |
+|--------------------------|-----------------------------------------------------------------------|
+| `dev`                    | `next dev` - local dev server                                       |
+| `build`                  | prebuild polyfill stub -> `prisma generate` -> `next build`         |
+| `start`                  | `next start` - serve the production build                           |
+| `lint`                   | `eslint .` - flat-config lint over the whole repo                   |
+| `test`                   | `vitest run` - unit + integration tests                             |
+| `test:build`             | `vitest run tests/build` - asserts CSP hashes and ISR page set match a fresh build |
+| `test:e2e`               | `playwright test` - headless browser tests                          |
+| `test:e2e:ui`            | `playwright test --ui` - Playwright UI mode                         |
+| `regenerate-csp-hashes`  | `node scripts/regenerate-csp-hashes.mjs` - recomputes the committed CSP hash allow-list from a fresh build |
 
 ### Standalone scripts (`scripts/`)
 
@@ -394,24 +421,26 @@ These variables are set by the build/runtime environment automatically. Do not s
 |-----------------------------------|------------------------------------------------------------------------|
 | `strip-next-polyfills.mjs`        | Prebuild: stubs out Next.js polyfill-module so Turbopack doesn't bundle it |
 | `check-middleware-bundle.mjs`     | Post-build CI guard: greps `.next/server/middleware.js` for Node built-ins |
+| `check-isr-pages.mjs`             | Post-build CI guard: confirms expected pages were statically pre-rendered, no admin page leaked into static output, and committed CSP hashes appear in the built bundle |
+| `regenerate-csp-hashes.mjs`       | Walks pre-rendered HTML, SHA-256-hashes inline `<script>`/`<style>` bodies, writes `src/server/security/edge/csp-hashes.ts` |
 | `check-postcss-override.mjs`      | Scans postcss config for nested entries and reports the lowest override |
-| `preview-roster-email.ts`         | Renders the roster-announcement email template to disk for review       |
-| `preview-confirmation-email.ts`   | Renders the subscriber confirmation email template to disk for review   |
-| `preview-game-imported-email.ts`  | Renders the game-imported admin notification email to disk for review   |
+| `ci/weekly-security-report.sh`    | Generates the weekly `npm audit` report and opens/labels a GitHub Issue |
+
+Local-only email-preview scripts (`preview-roster-email.ts`, `preview-confirmation-email.ts`, `preview-game-imported-email.ts`) live outside the public tree and are not committed here.
 
 ### CI workflows (`.github/workflows/`)
 
-All workflows run on a self-hosted runner (zero GitHub Actions minutes). See `actions-runner/` for the registered runner installation.
+All workflows run on GitHub-hosted `ubuntu-latest` runners.
 
 | Workflow                   | Trigger                          | Purpose                                                        |
-|----------------------------|----------------------------------|----------------------------------------------------------------|
-| `ci.yml`                   | push / PR                        | Single job: lint -> typecheck -> test -> build + middleware guard |
+|----------------------------|-----------------------------------|------------------------------------------------------------------|
+| `ci.yml`                   | push / PR to `main`              | lint -> prisma generate -> typecheck -> test -> build, then ISR-page check + middleware-bundle guard |
 | `e2e.yml`                  | Vercel `deployment_status`       | Playwright suite against the preview URL                       |
-| `secret-scan.yml`          | push / PR                        | Gitleaks (scoped to public refs)                               |
-| `semgrep.yml`              | push / PR / Monday               | SAST via Semgrep (pip)                                         |
-| `deps-audit.yml`           | push / PR (lock file) / Monday   | `npm audit` prod + dev; weekly GitHub Issue report             |
-| `docs-link-check.yml`      | PR (docs), Monday, manual        | Lychee dead-link check                                         |
-| `internal-config-scan.yml` | PR                               | Blocks proprietary local config from entering main             |
+| `secret-scan.yml`          | push / PR                        | Gitleaks scoped to the push/PR delta; fails the build on a hit  |
+| `secret-scan-audit.yml`    | Monday cron, manual dispatch     | Report-only Gitleaks audit of full `origin/main` history (SARIF artifact, non-blocking) |
+| `semgrep.yml`              | push / PR / Monday               | SAST via Semgrep (`p/typescript`, `p/nodejs`, `p/secrets`)      |
+| `deps-audit.yml`           | push / PR (lock file) / Monday   | `npm audit` prod + dev; scheduled run opens a weekly GitHub Issue |
+| `docs-link-check.yml`      | PR (docs), Monday, manual        | Lychee dead-link check over README / SECURITY.md / docs        |
 | `release-readiness.yml`    | push / PR                        | Asserts LICENSE and `.env.example` are present                 |
 
 ### Linting
@@ -430,18 +459,22 @@ The app is deployed to **Vercel**. Production data is in **Neon Postgres**.
 
 ### Vercel configuration
 
-- **Build command** - `npm run build` (runs the prebuild polyfill stub, `prisma generate`, `next build`, and the post-build middleware-bundle guard).
+- **Build command** - `npm run build` (runs the prebuild polyfill stub, `prisma generate`, `next build`, and the post-build middleware-bundle / ISR-page guards).
 - **Node version** - pinned via `.nvmrc` (≥ 24.14).
 - **Crons** - declared in [`vercel.json`](vercel.json):
   - `0 2 * * *` -> `/api/admin/cleanup`
   - `0 3 * * *` -> `/api/cron/purge-subscribers`
   - `30 4 * * *` -> `/api/cron/purge-upcoming-games`
   - `0 6 * * *` -> `/api/cron/purge-audit-log`
-- **Environment variables** - set in the Vercel dashboard (Production, Preview, Development scopes).
+- **Environment variables** - set in the Vercel dashboard (Production, Preview, Development scopes), including the pooled `DATABASE_URL` and direct `DIRECT_URL`.
 
 ### Database migrations
 
-Run `npx prisma migrate deploy` against the production database during release; the build step only runs `prisma generate`.
+Run `npx prisma migrate deploy` against the production database during release, using `DIRECT_URL`; the build step only runs `prisma generate`.
+
+### CSP hash maintenance
+
+Whenever inline script/style content on a statically-rendered page changes, run `npm run regenerate-csp-hashes` against a fresh build and commit the updated `csp-hashes.ts` - CI (`check-isr-pages.mjs`) fails the build if the committed hashes don't match what actually shipped.
 
 ### Runbooks
 
@@ -458,7 +491,10 @@ Operational procedures live in `docs/`:
 
 - **Pages Router, not App Router.** The runtime marker (`src/server/_internal/node-only.ts`) is custom because the npm `server-only` package is gated on the `react-server` export condition, which only resolves inside App Router server components. If the codebase migrates to App Router, swap it for `import "server-only";`.
 - **No top-level barrel under `src/server/security/`.** Importers must declare `edge` or `node` explicitly; this is what stopped a regression where `proxy.ts` dragged `node:dns` into the Edge bundle via a transitive barrel re-export.
+- **Hash-based CSP, not per-request nonce.** ISR-cached pages are served identically to every visitor, so a per-request nonce can't be embedded in them; the CSP allow-list is instead a committed, build-time list of script/style hashes, kept honest by `check-isr-pages.mjs` in CI.
 - **Totals are stored, not derived.** `PlayerSeasonAggregate` keeps both `*Avg` and `*Total` columns; totals must come from raw `PlayerGameStat` sums (`stats-recalc.ts`), never approximated from `avg × gp`.
+- **Season archiving is presentational.** Marking a `Season.archivedAt` only drives the public "season complete" banner and admin UI state; it doesn't lock stats or prevent further edits.
+- **Feature toggles live in a generic `Setting` key/value table** (maintenance mode, playoff-popup enabled/version/round) rather than dedicated columns - simple for a handful of booleans, but not meant to scale into a general config system.
 - **Validation at the boundary.** Every API route and external scrape parses inputs through Zod schemas in `src/schemas/` before they reach business logic; `z.string().cuid()` is used directly (no custom wrappers).
 
 ### Limitations
