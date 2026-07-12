@@ -95,10 +95,12 @@ test.describe("Season Rosters panel › rendering", () => {
       let node;
       while (node = walker.nextNode()) {
         const text = node.textContent?.trim();
+        // eslint-disable-next-line security/detect-object-injection -- text is gated by the `in` check against the fixed refs keys
         if (!(text in refs) || refs[text]) continue;
         const el = node.parentElement;
         // Only match first element-child of a section (the Panel label div)
         if (el?.parentElement?.tagName === "SECTION" && el.parentElement.firstElementChild === el) {
+          // eslint-disable-next-line security/detect-object-injection -- text is gated by the `in` check against the fixed refs keys
           refs[text] = el;
         }
       }
