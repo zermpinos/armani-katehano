@@ -30,8 +30,13 @@ import handler from "../../../../pages/api/auth";
 import { mockRes, mockReq } from "./__support__/auth-mocks";
 import { auditLog } from "@/server/security/node";
 
+const ADMIN_SLUG     = "test-admin-slug";
+const FALLBACK_TOKEN = "test-fallback-token";
+
 beforeEach(() => {
   vi.clearAllMocks();
+  process.env.ADMIN_SLUG             = ADMIN_SLUG;
+  process.env.PASSKEY_FALLBACK_TOKEN = FALLBACK_TOKEN;
   isLockedOut.mockResolvedValue(false);
   atomicRecordAndCheck.mockResolvedValue({ locked: false, count: 1 });
   getFailureCount.mockResolvedValue(0);
@@ -39,6 +44,78 @@ beforeEach(() => {
   getAdminUser.mockReturnValue(null);
   verifyTotp.mockReturnValue(true);
   verifyCaptcha.mockResolvedValue(true);
+});
+
+function loginReq(body: Record<string, unknown>) {
+  return mockReq({
+    method:  "POST",
+    headers: { host: "example.com", origin: "https://example.com" },
+    body,
+  });
+}
+
+describe("POST /api/auth (fallback gate)", () => {
+  it("returns 404 with valid credentials when PASSKEY_FALLBACK_TOKEN is unset", async () => {
+    delete process.env.PASSKEY_FALLBACK_TOKEN;
+    verifyCredentials.mockResolvedValue(true);
+    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$..." });
+    const req = loginReq({ username: "admin", password: "correct", slug: ADMIN_SLUG });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(404);
+    expect(verifyCredentials).not.toHaveBeenCalled();
+    expect(res._headers["Set-Cookie"]).toBeUndefined();
+  });
+
+  it("returns 404 with valid credentials when PASSKEY_FALLBACK_TOKEN is empty", async () => {
+    process.env.PASSKEY_FALLBACK_TOKEN = "";
+    verifyCredentials.mockResolvedValue(true);
+    const req = loginReq({ username: "admin", password: "correct", slug: ADMIN_SLUG });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(404);
+    expect(verifyCredentials).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/auth (slug validation)", () => {
+  it("returns 404 when the slug does not match ADMIN_SLUG", async () => {
+    verifyCredentials.mockResolvedValue(true);
+    const req = loginReq({ username: "admin", password: "correct", slug: "wrong-slug" });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(404);
+    expect(verifyCredentials).not.toHaveBeenCalled();
+    expect(res._headers["Set-Cookie"]).toBeUndefined();
+  });
+
+  it("returns 404 when the slug is missing", async () => {
+    verifyCredentials.mockResolvedValue(true);
+    const req = loginReq({ username: "admin", password: "correct" });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(404);
+    expect(verifyCredentials).not.toHaveBeenCalled();
+  });
+
+  it("rejects a wrong slug before recording a lockout attempt", async () => {
+    const req = loginReq({ username: "admin", password: "correct", slug: "wrong-slug" });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(404);
+    expect(isLockedOut).not.toHaveBeenCalled();
+    expect(atomicRecordAndCheck).not.toHaveBeenCalled();
+  });
+
+  it("logs the real slug result on success rather than a hardcoded true", async () => {
+    verifyCredentials.mockResolvedValue(true);
+    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$..." });
+    const req = loginReq({ username: "admin", password: "correct", slug: ADMIN_SLUG });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(200);
+    expect(auditLog).toHaveBeenCalledWith("login_success", expect.objectContaining({ slugValid: true, username: "admin" }));
+  });
 });
 
 describe("POST /api/auth (login)", () => {
@@ -98,7 +175,7 @@ describe("POST /api/auth (login)", () => {
         origin:            "https://example.com",
         "x-forwarded-for": "5.6.7.8",
       },
-      body: { username: "admin", password: "any" },
+      body: { username: "admin", password: "any", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);
@@ -111,7 +188,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "any" },
+      body:    { username: "admin", password: "any", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);
@@ -124,7 +201,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "wrong" },
+      body:    { username: "admin", password: "wrong", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);
@@ -139,7 +216,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "correct" },
+      body:    { username: "admin", password: "correct", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);
@@ -158,7 +235,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "correct" }, // no totpToken
+      body:    { username: "admin", password: "correct", slug: ADMIN_SLUG }, // no totpToken
     });
     const res = mockRes();
     await handler(req, res);
@@ -173,7 +250,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "correct", totpToken: "000000" },
+      body:    { username: "admin", password: "correct", totpToken: "000000", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);
@@ -188,7 +265,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "correct", totpToken: "123456" },
+      body:    { username: "admin", password: "correct", totpToken: "123456", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);
@@ -202,7 +279,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "any" },
+      body:    { username: "admin", password: "any", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);
@@ -217,7 +294,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "any", captchaToken: "bad-token" },
+      body:    { username: "admin", password: "any", captchaToken: "bad-token", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);
@@ -234,7 +311,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "wrong", captchaToken: "valid-token" },
+      body:    { username: "admin", password: "wrong", captchaToken: "valid-token", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);
@@ -252,7 +329,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "wrong" },
+      body:    { username: "admin", password: "wrong", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);
@@ -271,7 +348,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "wrong" },
+      body:    { username: "admin", password: "wrong", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);
@@ -289,7 +366,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "correct", totpToken: "000000" },
+      body:    { username: "admin", password: "correct", totpToken: "000000", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);
@@ -302,7 +379,7 @@ describe("POST /api/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "wrong" },
+      body:    { username: "admin", password: "wrong", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);

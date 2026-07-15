@@ -11,7 +11,7 @@
  */
 
 import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount } from "@/server/auth";
-import { getSessionToken, verifyPayload, verifyCredentials, getAdminUser, verifyTotp, buildSessionCookie, clearSessionCookie, generateCsrfToken, buildCsrfCookie, clearCsrfCookie, csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha } from "@/server/auth";
+import { getSessionToken, verifyPayload, verifyCredentials, getAdminUser, verifyTotp, buildSessionCookie, clearSessionCookie, generateCsrfToken, buildCsrfCookie, clearCsrfCookie, csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha, validateAdminSlug, SESSION_TTL_S } from "@/server/auth";
 import { securityHeaders } from "@/server/security/edge";
 import { auditLog, getClientIp } from "@/server/security/node";
 
@@ -39,9 +39,20 @@ export default async function handler(req: any, res: any) {
   // ── GET: check existing session ───────────────────────────────────────────
   if (req.method === "GET") {
     const token   = getSessionToken(req);
-    const payload = verifyPayload(token);
-    if (payload) return res.status(200).json({ ok: true });
-    return res.status(401).json({ error: "Not authenticated" });
+    const payload = token ? verifyPayload(token) : null;
+    if (!payload) return res.status(401).json({ error: "Not authenticated" });
+
+    let parsed;
+    try { parsed = JSON.parse(payload); } catch {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    if (!parsed?.ts || Date.now() - parsed.ts > SESSION_TTL_S * 1000) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    if (parsed?.role !== "admin") {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    return res.status(200).json({ ok: true });
   }
 
   // ── DELETE: logout ────────────────────────────────────────────────────────
@@ -62,12 +73,24 @@ export default async function handler(req: any, res: any) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
+    if (!process.env.PASSKEY_FALLBACK_TOKEN) {
+      auditLog("login_fallback_disabled", { ip });
+      return res.status(404).json({ error: "Not found" });
+    }
+
     const { username, password, totpToken, slug } = req.body ?? {};
     if (!username || typeof username !== "string") {
       return res.status(400).json({ error: "Username is required" });
     }
     if (!password || typeof password !== "string") {
       return res.status(400).json({ error: "Password is required" });
+    }
+
+    // Checked before lockouts are recorded so a slug-less attacker cannot lock out the admin account.
+    const slugValid = await validateAdminSlug(slug);
+    if (!slugValid) {
+      auditLog("login_invalid_slug", { ip, username });
+      return res.status(404).json({ error: "Not found" });
     }
 
     // Brute-force lockout - per-IP
@@ -124,7 +147,7 @@ export default async function handler(req: any, res: any) {
     await Promise.all([clearAttempts(ip), clearAttempts(ACCOUNT_KEY)]);
     const payload = JSON.stringify({ ts: Date.now(), role: "admin", user: username });
     res.setHeader("Set-Cookie", [buildSessionCookie(payload), buildCsrfCookie(generateCsrfToken())]);
-    auditLog("login_success", { ip, slugValid: true, username });
+    auditLog("login_success", { ip, slugValid, username });
     return res.status(200).json({ ok: true });
   }
 
