@@ -2,22 +2,30 @@ import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 
 vi.mock("@/server/auth", () => ({
   requireAuth: (handler: any) => handler,
+  rlKeyBigInt: () => BigInt("7391805827675811235"),
 }));
 
-vi.mock("@/server/db/client", () => ({
-  default: {
-    broadcastLog: {
-      findFirst: vi.fn(),
-      count:     vi.fn(),
-      create:    vi.fn(),
-      findMany:  vi.fn(),
+// The transaction hands back the same broadcastLog mock as the client, so a test
+// stubbing prisma.broadcastLog.* also stubs what the guard sees inside the claim.
+vi.mock("@/server/db/client", () => {
+  const broadcastLog = {
+    findFirst: vi.fn(),
+    count:     vi.fn(),
+    create:    vi.fn(),
+    update:    vi.fn(),
+    findMany:  vi.fn(),
+  };
+  return {
+    default: {
+      $transaction: vi.fn(async (fn: any) => fn({ $executeRaw: vi.fn(), broadcastLog })),
+      broadcastLog,
+      subscriber: {
+        findMany:   vi.fn(),
+        updateMany: vi.fn(),
+      },
     },
-    subscriber: {
-      findMany:   vi.fn(),
-      updateMany: vi.fn(),
-    },
-  },
-}));
+  };
+});
 
 vi.mock("@/server/security/node/audit-log", () => ({ auditLog: vi.fn() }));
 vi.mock("@/server/security/node/client-ip",  () => ({ getClientIp: () => "127.0.0.1" }));
@@ -52,7 +60,11 @@ function makeRes(): any {
   return res;
 }
 
-beforeEach(() => { vi.clearAllMocks(); });
+beforeEach(() => {
+  vi.clearAllMocks();
+  (prisma.broadcastLog.create as any).mockResolvedValue({ id: "log-1" });
+  (prisma.broadcastLog.update as any).mockResolvedValue({});
+});
 
 describe("GET /api/admin/broadcast", () => {
   it("returns broadcast history", async () => {
@@ -99,6 +111,11 @@ describe("POST mode=resolve", () => {
 });
 
 describe("POST mode=send - double-send guard", () => {
+  beforeEach(() => {
+    (prisma.subscriber.findMany as any).mockResolvedValue([
+      { id: "s1", email: "ok@example.com", token: "tok1" },
+    ]);
+  });
   it("returns 429 if a send happened within the last 120 seconds", async () => {
     (prisma.broadcastLog.findFirst as any).mockResolvedValue({ id: "recent" });
     const req = makeReq("POST", { mode: "send", subject: "Hi", body: "Hello" });
@@ -106,9 +123,21 @@ describe("POST mode=send - double-send guard", () => {
     await handler(req, res);
     expect(res._status).toBe(429);
   });
+  it("claims no slot when the cooldown rejects the send", async () => {
+    (prisma.broadcastLog.findFirst as any).mockResolvedValue({ id: "recent" });
+    const req = makeReq("POST", { mode: "send", subject: "Hi", body: "Hello" });
+    await handler(req, makeRes());
+    expect(prisma.broadcastLog.create).not.toHaveBeenCalled();
+    expect(mockSendMail).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST mode=send - daily cap", () => {
+  beforeEach(() => {
+    (prisma.subscriber.findMany as any).mockResolvedValue([
+      { id: "s1", email: "ok@example.com", token: "tok1" },
+    ]);
+  });
   it("returns 429 if 5 or more sends happened in the last 24 hours", async () => {
     (prisma.broadcastLog.findFirst as any).mockResolvedValue(null);
     (prisma.broadcastLog.count as any).mockResolvedValue(5);
