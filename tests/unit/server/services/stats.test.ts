@@ -246,7 +246,9 @@ const { mockPrismaRecalc } = vi.hoisted(() => {
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     $executeRaw: vi.fn().mockResolvedValue(0),
+    $transaction: vi.fn(),
   };
+  mp.$transaction.mockImplementation(async (fn) => fn(mp));
   return { mockPrismaRecalc: mp };
 });
 
@@ -281,5 +283,17 @@ describe("recalcAggregates - player-scoped query", () => {
   it("when playerIds is empty array, is a no-op (game.findMany not called)", async () => {
     await recalcAggregates("season-1", undefined, []);
     expect(mockPrismaRecalc.game.findMany).not.toHaveBeenCalled();
+    expect(mockPrismaRecalc.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("opens its own transaction when no caller transaction is passed", async () => {
+    await recalcAggregates("season-1");
+    expect(mockPrismaRecalc.$transaction).toHaveBeenCalledOnce();
+  });
+
+  it("reuses a caller transaction instead of opening a nested one", async () => {
+    await recalcAggregates("season-1", mockPrismaRecalc);
+    expect(mockPrismaRecalc.$transaction).not.toHaveBeenCalled();
+    expect(mockPrismaRecalc.game.findMany).toHaveBeenCalledOnce();
   });
 });

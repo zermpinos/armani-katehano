@@ -165,6 +165,10 @@ export async function importGame(
   if (boxSum !== akScore)
     throw new ImportError(`Box score points (${boxSum}) do not match teamScore (${akScore}). Diff: ${boxSum - akScore}`, 422);
 
+  const affectedPlayerIds = [...new Set<string>(
+    validatedBoxScore.map((row: any) => row.playerId as string)
+  )];
+
   let gameId: string;
 
   try {
@@ -195,6 +199,8 @@ export async function importGame(
           data: validatedBoxScore.map((row: any) => ({ ...row, gameId: g.id })),
         });
       }
+
+      await recalcAggregates(seasonLeagueId, tx, affectedPlayerIds);
     });
   } catch (err) {
     if ((err as any).message === "DUPLICATE") {
@@ -202,16 +208,6 @@ export async function importGame(
       throw Object.assign(new ImportError("This game has already been imported.", 409), { gameId: dupGameId });
     }
     throw err;
-  }
-
-  const affectedPlayerIds = [...new Set<string>(
-    validatedBoxScore.map((row: any) => row.playerId as string)
-  )];
-
-  try {
-    await recalcAggregates(seasonLeagueId, undefined, affectedPlayerIds);
-  } catch (err) {
-    console.error("[importGame] recalcAggregates failed after commit - aggregates may be stale:", err);
   }
 
   const affectedPlayerSlugs = affectedPlayerIds.length

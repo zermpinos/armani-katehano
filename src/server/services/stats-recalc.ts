@@ -72,11 +72,22 @@ export function computePlayerAggregates(rows: any[]): Record<string, any> | null
 
 export async function recalcAggregates(
   seasonLeagueId: string,
-  tx: any = prisma,
+  tx?: any,
   playerIds?: string[],
 ) {
   if (playerIds !== undefined && playerIds.length === 0) return;
+  if (tx) return recalcWithin(seasonLeagueId, tx, playerIds);
 
+  // Without a caller transaction the delete and the upsert would commit separately,
+  // leaving a window where dropped players are gone and survivors are still stale.
+  return prisma.$transaction((inner: any) => recalcWithin(seasonLeagueId, inner, playerIds));
+}
+
+async function recalcWithin(
+  seasonLeagueId: string,
+  tx: any,
+  playerIds?: string[],
+) {
   const where: Prisma.GameWhereInput = {
     seasonLeagueId,
     ...(playerIds && playerIds.length > 0 && {
