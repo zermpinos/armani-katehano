@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { buildCsp } from "@/server/security/edge/csp";
+import { hasValidAdminSession } from "@/server/security/edge/session";
 
 const ADMIN_SESSION_COOKIE = "__Host-ak_session";
 const FLAG_TTL_MS = 10_000;
@@ -35,9 +36,8 @@ function passThroughWithCsp(request: NextRequest) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isMaintenancePage    = pathname.startsWith("/maintenance");
-  const isAdminPath          = pathname.startsWith("/admin");
-  const isMaintenanceFlagApi = pathname === "/api/public/maintenance";
+  const isMaintenancePage = pathname.startsWith("/maintenance");
+  const isAdminPath       = pathname.startsWith("/admin");
   const isNextAsset =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
@@ -45,13 +45,15 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/sitemap.xml") ||
     STATIC_ASSET.test(pathname);
 
-  if (isMaintenancePage || isAdminPath || isMaintenanceFlagApi || isNextAsset) {
+  if (isMaintenancePage || isAdminPath || isNextAsset) {
     return passThroughWithCsp(request);
   }
 
-  const hasAdminSession = Boolean(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
+  if (!(await isMaintenanceOn(request))) {
+    return passThroughWithCsp(request);
+  }
 
-  if (hasAdminSession || !(await isMaintenanceOn(request))) {
+  if (await hasValidAdminSession(request.cookies.get(ADMIN_SESSION_COOKIE)?.value)) {
     return passThroughWithCsp(request);
   }
 
