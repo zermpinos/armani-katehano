@@ -23,10 +23,10 @@ import crypto from "node:crypto";
 import { purgeUnconfirmedSubscribers } from "@/server/services/subscriber";
 
 
-// Rows older than this window are safe to delete.
-// Must match LOCKOUT_TTL_S in lib/loginAttempts.js so we never prune
-// rows that are still within an active lockout window.
-const LOCKOUT_TTL_MS = 15 * 60 * 1000; // 15 minutes in milliseconds
+// Every guard sharing LoginAttempt reads back over its own window: 15 min IP
+// lockout, 1 h account lockout, 1 h subscribe and blast limits, 24 h per-email
+// cooldown. Purging at anything shorter than the longest silently disarms it.
+const RETENTION_MS = 24 * 60 * 60 * 1000;
 
 export default async function handler(req: any, res: any) {
   // Only allow DELETE (or GET - Vercel cron uses GET by default)
@@ -61,7 +61,7 @@ export default async function handler(req: any, res: any) {
 
   // ── Purge expired rows ───────────────────────────────────────────────────
   try {
-    const cutoff = new Date(Date.now() - LOCKOUT_TTL_MS);
+    const cutoff = new Date(Date.now() - RETENTION_MS);
 
     const [loginResult, unconfirmedCount, challengeResult] = await Promise.all([
       prisma.loginAttempt.deleteMany({ where: { attemptedAt: { lt: cutoff } } }),

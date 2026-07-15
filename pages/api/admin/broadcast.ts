@@ -1,4 +1,4 @@
-import { requireAuth }     from "@/server/auth";
+import { requireAuth, rlKeyBigInt } from "@/server/auth";
 import prisma              from "@/server/db/client";
 import { auditLog }        from "@/server/security/node/audit-log";
 import { prodError }       from "@/domain/shared/format";
@@ -13,6 +13,12 @@ import nodemailer from "nodemailer";
 const FROM          = "Armani Katehano <noreply@armani-katehano.com>";
 const LIMIT_DEFAULT = 20;
 const LIMIT_MAX     = 50;
+
+const SEND_COOLDOWN_MS = 120_000;
+const DAILY_WINDOW_MS  = 86_400_000;
+const DAILY_LIMIT      = 5;
+// Sends are capped globally, not per caller, so every send contends one key.
+const SEND_LOCK_KEY    = rlKeyBigInt("broadcast_send");
 
 function createTransport(): nodemailer.Transporter | null {
   const user = process.env.BREVO_SMTP_USER;
@@ -98,21 +104,6 @@ async function handler(req: any, res: any) {
     }
 
     if (data.mode === "send") {
-      const recentSend = await prisma.broadcastLog.findFirst({
-        where:   { sentAt: { gt: new Date(Date.now() - 120_000) } },
-        orderBy: { sentAt: "desc" },
-      });
-      if (recentSend) {
-        return res.status(429).json({ error: "A broadcast was sent recently. Please wait before sending again." });
-      }
-
-      const dailyCount = await prisma.broadcastLog.count({
-        where: { sentAt: { gt: new Date(Date.now() - 86_400_000) } },
-      });
-      if (dailyCount >= 5) {
-        return res.status(429).json({ error: "Daily broadcast limit reached." });
-      }
-
       const subscriberWhere: any = { confirmedAt: { not: null } };
       if (data.targetEmails && data.targetEmails.length > 0) {
         subscriberWhere.email = { in: data.targetEmails };
@@ -131,6 +122,46 @@ async function handler(req: any, res: any) {
 
       const renderedHtml = renderMarkdown(body);
       const resolvedIds  = subscribers.map(s => s.id);
+      const sentToAll    = !data.targetEmails || data.targetEmails.length === 0;
+
+      const claim = await prisma.$transaction(async (tx) => {
+        // $executeRaw, not $queryRaw: pg_advisory_xact_lock() returns void, which
+        // @prisma/adapter-neon refuses to deserialize (P2010).
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${SEND_LOCK_KEY}::bigint)`;
+
+        const recentSend = await tx.broadcastLog.findFirst({
+          where:   { sentAt: { gt: new Date(Date.now() - SEND_COOLDOWN_MS) } },
+          orderBy: { sentAt: "desc" },
+        });
+        if (recentSend) return { ok: false as const, reason: "cooldown" as const };
+
+        const dailyCount = await tx.broadcastLog.count({
+          where: { sentAt: { gt: new Date(Date.now() - DAILY_WINDOW_MS) } },
+        });
+        if (dailyCount >= DAILY_LIMIT) return { ok: false as const, reason: "daily" as const };
+
+        // The log row is the claim. It commits while the lock is still held, so
+        // the next caller's check sees it and cannot pass the same window.
+        const log = await tx.broadcastLog.create({
+          data: {
+            subject,
+            bodyMarkdown:   body,
+            recipientCount: subscribers.length,
+            failedIds:      [],
+            sentToAll,
+            targetIds:      sentToAll ? [] : resolvedIds,
+          },
+        });
+        return { ok: true as const, log };
+      });
+
+      if (!claim.ok) {
+        return res.status(429).json({
+          error: claim.reason === "cooldown"
+            ? "A broadcast was sent recently. Please wait before sending again."
+            : "Daily broadcast limit reached.",
+        });
+      }
 
       const results = await Promise.allSettled(
         subscribers.map(sub => {
@@ -150,17 +181,9 @@ async function handler(req: any, res: any) {
       const failedRejected = results.filter(r => r.status === "rejected").length;
       const failedCount    = failedIds.length + failedRejected;
 
-      await prisma.broadcastLog.create({
-        data: {
-          subject,
-          bodyMarkdown:   body,
-          recipientCount: subscribers.length,
-          deliveredCount: delivered,
-          failedCount,
-          failedIds,
-          sentToAll:  !data.targetEmails || data.targetEmails.length === 0,
-          targetIds:  data.targetEmails && data.targetEmails.length > 0 ? resolvedIds : [],
-        },
+      await prisma.broadcastLog.update({
+        where: { id: claim.log.id },
+        data:  { deliveredCount: delivered, failedCount, failedIds },
       });
 
       const deliveredIds = results
@@ -174,7 +197,7 @@ async function handler(req: any, res: any) {
       }
 
       auditLog("broadcast_sent", {
-        sentToAll:      !data.targetEmails || data.targetEmails.length === 0,
+        sentToAll,
         targetIds:      resolvedIds,
         recipientCount: subscribers.length,
         deliveredCount: delivered,
