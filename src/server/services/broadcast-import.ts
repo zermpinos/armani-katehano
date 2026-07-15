@@ -162,7 +162,18 @@ export async function claimAndBroadcastByGameId(gameId: string): Promise<ClaimRe
   ]);
 
   const gameImported = toGameImported(game);
-  await sendGameImportedBroadcast({ game: gameImported, topPerformers, ctx, subscribers });
+  try {
+    await sendGameImportedBroadcast({ game: gameImported, topPerformers, ctx, subscribers });
+  } catch (err) {
+    // Unguarded reset is safe: no other caller can claim while broadcastedAt is set.
+    await prisma.$executeRaw`
+      UPDATE "Game"
+      SET "broadcastedAt" = NULL
+      WHERE id = ${gameId}
+    `;
+    auditLog("broadcast_send_failed", { gameId });
+    throw err;
+  }
 
   auditLog("broadcast_sent_by_game_id", { gameId, recipientCount: subscribers.length });
   return { ok: true, state: "broadcasted", recipientCount: subscribers.length };
