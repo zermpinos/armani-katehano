@@ -32,7 +32,7 @@ export async function invalidateForRecalc(opts: { revalidate?: RevalidateFn }) {
 }
 
 export async function invalidateForSeasonMutation(opts: { revalidate?: RevalidateFn }) {
-  await fanout(opts.revalidate, LISTINGS_STATS);
+  await fanout(opts.revalidate, LISTINGS_STATS_AND_HOME);
 }
 
 export async function invalidateForLeagueMutation(opts: { revalidate?: RevalidateFn }) {

@@ -81,10 +81,16 @@ describe("cache-invalidation", () => {
   });
 
   describe("invalidateForSeasonMutation", () => {
-    it("hits stats listings but not home", async () => {
+    it("hits stats listings and home", async () => {
       const { fn, calls } = recorder();
       await invalidateForSeasonMutation({ revalidate: fn });
-      expect(calls.sort()).toEqual(["/games", "/leaderboard", "/players", "/team-stats"]);
+      expect(calls.sort()).toEqual(["/", "/games", "/leaderboard", "/players", "/sitemap.xml", "/team-stats"]);
+    });
+
+    it("revalidates home, which renders the archived banner and current-season content", async () => {
+      const { fn, calls } = recorder();
+      await invalidateForSeasonMutation({ revalidate: fn });
+      expect(calls).toContain("/");
     });
   });
 
