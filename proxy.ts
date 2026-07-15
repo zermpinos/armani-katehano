@@ -16,7 +16,14 @@ async function isMaintenanceOn(request: NextRequest): Promise<boolean> {
   }
   try {
     const url = new URL("/api/public/maintenance", request.url);
-    const res = await fetch(url, { cache: "no-store" });
+    // A protected preview answers this sub-request with a login redirect
+    // unless the caller's bypass travels with it, which would leave the gate
+    // permanently open there. The header is absent in production.
+    const bypass = request.headers.get("x-vercel-protection-bypass");
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: bypass ? { "x-vercel-protection-bypass": bypass } : undefined,
+    });
     if (!res.ok) return false;
     const json = (await res.json()) as { enabled?: boolean };
     const value = json.enabled === true;
