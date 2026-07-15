@@ -72,6 +72,7 @@ async function putEntries(req: NextApiRequest, res: NextApiResponse) {
         select: { id: true },
       });
 
+      // Iterations are leagues in this one season, not roster size; the per-player writes below are already batched.
       for (const { id: seasonLeagueId } of seasonLeagues) {
         await tx.rosterEntry.deleteMany({
           where: {

@@ -2,13 +2,13 @@
 /**
  * tests/statsEngine.test.js
  * Tests for the stats engine in lib/stats:
- *   calcEff, mergeAggregates, aggregatesToStatsMap, buildStatsMap
+ *   calcEff, mergeAggregates, aggregatesToStatsMap, computeTeamAverages
  *
  * Previously stats.test.js inlined a copy of computeAggregates instead of
  * importing the real functions. These tests import directly from the source.
  */
 import { describe, it, expect } from "vitest";
-import { calcEff, mergeAggregates, aggregatesToStatsMap, buildStatsMap, computeTeamAverages } from "@/domain/stats";
+import { calcEff, mergeAggregates, aggregatesToStatsMap, computeTeamAverages } from "@/domain/stats";
 
 // ─── calcEff ──────────────────────────────────────────────────────────────────
 
@@ -153,68 +153,6 @@ describe("aggregatesToStatsMap", () => {
                         "fgm","fga","fg2m","fg2a","fg3m","fg3a","ftm","fta"]) {
       expect(entry, `missing key: ${key}`).toHaveProperty(key);
     }
-  });
-});
-
-// ─── buildStatsMap ────────────────────────────────────────────────────────────
-
-function boxRow(pid, overrides = {}) {
-  return {
-    pid, min:20, pts:10, reb:3, orb:1, drb:2, ast:2,
-    stl:0, blk:0, tov:1, pf:1, fgm:4, fga:8,
-    fg2m:3, fg2a:5, fg3m:1, fg3a:3, ftm:1, fta:2, eff:8,
-    ...overrides,
-  };
-}
-
-describe("buildStatsMap", () => {
-  it("returns zeroed stats for player with no box score appearances", () => {
-    const players = [{ id: "p1" }];
-    const games   = [{ id: "g1", boxScore: [boxRow("p2")] }];
-    const map = buildStatsMap(players, games);
-    expect(map["p1"].gp).toBe(0);
-    expect(map["p1"].ppg).toBe(0);
-    expect(map["p1"].gameLog).toEqual([]);
-  });
-
-  it("excludes DNP entries (min=0) from averages", () => {
-    const players = [{ id: "p1" }];
-    const games = [
-      { id: "g1", boxScore: [boxRow("p1", { min:20, pts:10 })] },
-      { id: "g2", boxScore: [boxRow("p1", { min:0,  pts:0  })] },
-    ];
-    const map = buildStatsMap(players, games);
-    expect(map["p1"].gp).toBe(1);
-    expect(map["p1"].ppg).toBe(10);
-  });
-
-  it("handles game with null boxScore gracefully", () => {
-    const players = [{ id: "p1" }];
-    const games   = [{ id: "g1", boxScore: null }];
-    const map = buildStatsMap(players, games);
-    expect(map["p1"].gp).toBe(0);
-  });
-
-  it("averages stats across multiple games", () => {
-    const players = [{ id: "p1" }];
-    const games = [
-      { id: "g1", boxScore: [boxRow("p1", { pts:20, min:30 })] },
-      { id: "g2", boxScore: [boxRow("p1", { pts:10, min:20 })] },
-    ];
-    const map = buildStatsMap(players, games);
-    expect(map["p1"].gp).toBe(2);
-    expect(map["p1"].ppg).toBe(15);
-  });
-
-  it("builds gameLog entries only for games the player appeared in", () => {
-    const players = [{ id: "p1" }];
-    const games = [
-      { id: "g1", date:"2025-01-01", opponent:"TeamA", league:"bc6", boxScore: [boxRow("p1")] },
-      { id: "g2", date:"2025-01-02", opponent:"TeamB", league:"bc6", boxScore: [boxRow("p2")] },
-    ];
-    const map = buildStatsMap(players, games);
-    expect(map["p1"].gameLog).toHaveLength(1);
-    expect(map["p1"].gameLog[0].gameId).toBe("g1");
   });
 });
 
