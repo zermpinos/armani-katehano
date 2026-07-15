@@ -14,7 +14,7 @@
  *   ✓ Mixed record
  *   ✓ Win streak, loss streak, streak direction flip
  *   ✓ League filter (correct isolation)
- *   ✓ Score parsing - en-dash (DB format) and regular hyphen (fallback)
+ *   ✓ Score parsing - hyphen separator, malformed and missing input
  *   ✓ Malformed score does not throw
  *   ✓ ppg / oppPpg averages
  *   ✓ gp count
@@ -33,11 +33,11 @@ function g({ result, home, score, league = "rookie", date = "2025-01-01" }) {
   return { result, home, score, league, date };
 }
 
-// Canonical game fixtures using en-dash score format (matches DB storage)
-const W_HOME  = g({ result: "W", home: true,  score: "85-72" }); // 85-72
-const W_AWAY  = g({ result: "W", home: false, score: "72-85" }); // 72-85 (away win: our score first)
-const L_HOME  = g({ result: "L", home: true,  score: "70-80" }); // 70-80
-const L_AWAY  = g({ result: "L", home: false, score: "65-78" }); // 65-78
+// Score strings mirror the repository view model: `${teamScore}-${opponentScore}`
+const W_HOME  = g({ result: "W", home: true,  score: "85-72" });
+const W_AWAY  = g({ result: "W", home: false, score: "72-85" }); // away game: our score is still first
+const L_HOME  = g({ result: "L", home: true,  score: "70-80" });
+const L_AWAY  = g({ result: "L", home: false, score: "65-78" });
 
 // ─── Empty input ──────────────────────────────────────────────────────────────
 
@@ -180,14 +180,7 @@ describe("computeRecord - league filter", () => {
 // ─── Score parsing ────────────────────────────────────────────────────────────
 
 describe("computeRecord - score parsing", () => {
-  it("correctly parses en-dash scores (DB format, U+2013)", () => {
-    const game = g({ result: "W", home: true, score: "90-70" }); // 90-70
-    const rec = computeRecord([game], "rookie");
-    expect(rec.ppg).toBe(90);
-    expect(rec.oppPpg).toBe(70);
-  });
-
-  it("correctly parses regular hyphen scores (fallback format)", () => {
+  it("parses the hyphen-separated score string built by the repository", () => {
     const game = g({ result: "W", home: true, score: "85-72" });
     const rec = computeRecord([game], "rookie");
     expect(rec.ppg).toBe(85);

@@ -1,12 +1,11 @@
 // @ts-nocheck
 /**
  * tests/utils.test.js
- * Tests for lib/utils - fmt, parseScore, fmtDate, slugify.
+ * Tests for lib/utils - fmt, slugify, resolveImportUrl, fmtDate.
  */
 import { describe, it, expect } from "vitest";
 import { fmt, slugify } from "@/domain/players/format";
 import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
-import { parseScore } from "@/domain/games/score";
 
 // ─── fmt ──────────────────────────────────────────────────────────────────────
 
@@ -37,38 +36,6 @@ describe("fmt", () => {
 
   it("handles three-word name - uses last word as surname", () => {
     expect(fmt("Maria Anna Papadopoulou")).toBe("Papadopoulou M.");
-  });
-});
-
-// ─── parseScore ───────────────────────────────────────────────────────────────
-
-describe("parseScore", () => {
-  it("returns null for null", () => {
-    expect(parseScore(null)).toBeNull();
-  });
-
-  it("returns null for empty string", () => {
-    expect(parseScore("")).toBeNull();
-  });
-
-  it("parses en-dash format", () => {
-    expect(parseScore("85-72")).toEqual({ ak: 85, opp: 72 });
-  });
-
-  it("parses hyphen format", () => {
-    expect(parseScore("85-72")).toEqual({ ak: 85, opp: 72 });
-  });
-
-  it("returns null for non-numeric parts", () => {
-    expect(parseScore("N/A")).toBeNull();
-  });
-
-  it("returns null for three-part score", () => {
-    expect(parseScore("85-72-60")).toBeNull();
-  });
-
-  it("returns null for single number (no separator)", () => {
-    expect(parseScore("85")).toBeNull();
   });
 });
 

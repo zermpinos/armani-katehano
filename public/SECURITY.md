@@ -30,12 +30,13 @@ You will receive an acknowledgement within **48 hours** and a status update with
 In scope:
 - Next.js application (armani-katehano)
 - Neon PostgreSQL database (data exposure, injection)
-- Authentication flows (NextAuth / session handling)
+- Authentication flows (signed session cookie, password, TOTP, passkey)
 - API routes under `/api/`
+- Bypass of rate limiting or account lockout
 
 Out of scope:
 - Third-party services (Vercel infrastructure, Neon platform)
-- Denial-of-service attacks
+- Volumetric denial-of-service and load testing
 
 ## Contact
 

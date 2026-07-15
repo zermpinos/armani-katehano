@@ -1,13 +1,3 @@
-export function parseScore(scoreStr: string | null | undefined) {
-  if (!scoreStr) return null;
-  const parts = scoreStr.split(/[-\-]/);
-  if (parts.length !== 2) return null;
-  const ak  = parseInt(parts[0], 10);
-  const opp = parseInt(parts[1], 10);
-  if (isNaN(ak) || isNaN(opp)) return null;
-  return { ak, opp };
-}
-
 export function computeRecord(games: any[], leagueFilter: string | null = null) {
   const filtered = leagueFilter
     ? games.filter(g => (g.league || "") === leagueFilter)
@@ -35,8 +25,7 @@ export function computeRecord(games: any[], leagueFilter: string | null = null) 
     if (g.home) { if (isW) homeWins++; else homeLosses++; }
     else        { if (isW) awayWins++; else awayLosses++; }
 
-    // Handles en-dash or regular hyphen
-    const parts = (g.score || "").split(/[-\-]/);
+    const parts = (g.score || "").split("-");
     if (parts.length === 2) {
       totalPts    += parseInt(parts[0], 10) || 0;
       totalOppPts += parseInt(parts[1], 10) || 0;

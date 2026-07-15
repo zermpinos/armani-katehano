@@ -101,7 +101,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
       .slice(0, rangeGames)
       .reverse()
       .map((g: any, i: number) => {
-        const parts = (g.score || "0-0").split(/[--]/);
+        const parts = (g.score || "0-0").split("-");
         return {
           idx:    i,
           game:   g.home ? `vs ${g.opponent || `G${i + 1}`}` : `@ ${g.opponent || `G${i + 1}`}`,
