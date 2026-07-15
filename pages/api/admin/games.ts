@@ -191,13 +191,10 @@ async function createGame(req: any, res: any) {
         console.error("[games] failed to remove matching upcoming game:", err);
       }
 
+      await recalcAggregates(seasonLeagueId, tx);
+
       return g;
     });
-    try {
-      await recalcAggregates(seasonLeagueId);
-    } catch (err) {
-      console.error("[games/create] recalcAggregates failed after commit:", err);
-    }
     auditLog("game_created", { ip, gameId: game.id, opponent });
     await invalidateForGameMutation({
       revalidate: (p) => res.revalidate?.(p),
@@ -240,9 +237,7 @@ async function updateGame(req: any, res: any) {
     }
   }
 
-  let existingSeasonLeagueId: string;
   let previousPlayerIds: string[] = [];
-  let leagueChanged = false;
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -250,8 +245,7 @@ async function updateGame(req: any, res: any) {
         where: { id: gameId },
         select: { seasonLeagueId: true },
       });
-      existingSeasonLeagueId = existing.seasonLeagueId;
-      leagueChanged =
+      const leagueChanged =
         newLeagueId !== undefined && newLeagueId !== existing.seasonLeagueId;
       previousPlayerIds = (
         await tx.playerGameStat.findMany({ where: { gameId }, select: { playerId: true } })
@@ -278,16 +272,12 @@ async function updateGame(req: any, res: any) {
           data: boxScore.map((r) => toDbRow(r, gameId)),
         });
       }
-    });
-    try {
-      // safe: assigned inside tx callback; if tx throws, this block is unreachable
-      await recalcAggregates(existingSeasonLeagueId!);
+
+      await recalcAggregates(existing.seasonLeagueId, tx);
       if (leagueChanged) {
-        await recalcAggregates(newLeagueId!);
+        await recalcAggregates(newLeagueId!, tx);
       }
-    } catch (err) {
-      console.error("[games/update] recalcAggregates failed after commit:", err);
-    }
+    });
     auditLog("game_updated", { ip, gameId, opponent });
     const newPlayerIds = boxScore?.map(r => r.playerId) ?? [];
     await invalidateForGameMutation({
@@ -308,7 +298,6 @@ async function deleteGame(req: any, res: any) {
   if (!data) return;
   const { gameId } = data;
 
-  let deletedSeasonLeagueId: string;
   let deletedPlayerIds: string[] = [];
 
   try {
@@ -317,18 +306,13 @@ async function deleteGame(req: any, res: any) {
         where: { id: gameId },
         select: { seasonLeagueId: true },
       });
-      deletedSeasonLeagueId = existing.seasonLeagueId;
       deletedPlayerIds = (
         await tx.playerGameStat.findMany({ where: { gameId }, select: { playerId: true } })
       ).map(r => r.playerId);
       await tx.game.delete({ where: { id: gameId } });
+
+      await recalcAggregates(existing.seasonLeagueId, tx);
     });
-    try {
-      // safe: assigned inside tx callback; if tx throws, this block is unreachable
-      await recalcAggregates(deletedSeasonLeagueId!);
-    } catch (err) {
-      console.error("[games/delete] recalcAggregates failed after commit:", err);
-    }
     auditLog("game_deleted", { ip, gameId });
     await invalidateForGameMutation({
       revalidate: (p) => res.revalidate?.(p),

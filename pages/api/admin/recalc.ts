@@ -13,6 +13,8 @@ import { requireAuth }       from '@/server/auth';
 import prisma                from "@/server/db/client";
 import { recalcAggregates }  from "@/server/services/stats-recalc";
 import { invalidateForRecalc } from "@/server/services/cache-invalidation";
+import { handleError }       from "@/server/http/handle-error";
+import { prodError }         from "@/domain/shared/format";
 
 async function handler(req: any, res: any) {
   if (req.method !== "POST") {
@@ -35,7 +37,8 @@ async function handler(req: any, res: any) {
         await recalcAggregates(sl.id);
         results.push({ label, status: "ok" });
       } catch (err) {
-        results.push({ label, status: "error", message: (err as any).message });
+        console.error(`[admin/recalc] ${label} failed:`, err);
+        results.push({ label, status: "error", message: prodError(err) });
       }
     }
 
@@ -43,13 +46,16 @@ async function handler(req: any, res: any) {
 
     await invalidateForRecalc({ revalidate: (p) => res.revalidate(p) });
 
-    return res.status(200).json({
+    return res.status(failed.length > 0 ? 500 : 200).json({
+      ...(failed.length > 0 && {
+        error: `${failed.length} of ${results.length} season leagues failed to recalculate`,
+      }),
       recalculated: results.length,
       failed:       failed.length,
       results,
     });
   } catch (err) {
-    return res.status(500).json({ error: (err as any).message });
+    return handleError(res, err);
   }
 }
 
