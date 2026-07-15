@@ -99,24 +99,31 @@ const eslintConfig = [
               message:
                 "domain/* must be pure - no server, component, or feature imports.",
             },
-            // Edge runtime boundary: proxy.ts and anything under
-            // ./middleware/** runs on Vercel's Edge runtime, which has no
-            // Node built-ins. Anything that touches Node primitives (dns,
-            // crypto, fs, prisma) MUST stay in src/server/**
-            // and out of the Edge bundle. Edge code may only import from
-            // src/server/security/edge/** (CSP nonce, header builders) and
-            // from pure domain code.
+            // Proxy weight boundary: proxy.ts and anything under
+            // ./middleware/** runs on every matched request. The runtime no
+            // longer forbids any of this (see docs/architecture.md §2), so
+            // the rule is about cold-start weight and keeping the database
+            // off the request path.
             {
               target: ["./proxy.ts", "./middleware/**"],
               from: [
                 "./src/server/security/node/**",
                 "./src/server/db/**",
-                "./src/server/auth/**",
                 "./src/server/services/**",
                 "./src/server/integrations/**",
               ],
               message:
-                "middleware runs on the Edge runtime - import only from src/server/security/edge or pure domain code.",
+                "the proxy runs on every request - import only from src/server/security/edge, src/server/auth/session, or pure domain code.",
+            },
+            // The proxy verifies the admin session cookie, so it needs the
+            // signer. Only that module: the barrel re-exports ./passkey,
+            // which drags @simplewebauthn/server and prisma in with it.
+            {
+              target: ["./proxy.ts", "./middleware/**"],
+              from: "./src/server/auth",
+              except: ["./session.ts"],
+              message:
+                "the proxy may import src/server/auth/session only, never the barrel - it re-exports passkey, which pulls @simplewebauthn/server and prisma onto every request.",
             },
           ],
         },
