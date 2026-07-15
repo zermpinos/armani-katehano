@@ -38,15 +38,24 @@ If a client component needs server data, it goes through an API route in
 
 ---
 
-## 2. Runtime split: Edge vs Node
+## 2. Runtime split: proxy vs the rest
 
-`proxy.ts` runs on the Vercel **Edge runtime**, which is V8-isolate-
-based and has **no Node built-ins** (`dns`, `crypto`, `fs`, `net`, ...).
-The rest of the app runs on the **Node runtime**.
+`proxy.ts` runs on the **Node runtime**, and so does the rest of the
+app. Next 16 renamed middleware to proxy and moved it to Node; there
+is no Edge option to opt back into, and `runtime: "edge"` is rejected
+at build time with *"Proxy always runs on Node.js runtime"*. Section 4
+asserts the runtime on every build so that a future upgrade moving it
+again is caught rather than absorbed.
 
-This boundary is non-negotiable: pulling a Node module into the Edge
-bundle either fails the build or - worse - silently ships a broken
-worker. Three layers of defense keep them apart.
+Earlier revisions of this document described the proxy as Edge-bound
+and treated Node built-ins there as fatal. That was true of the Vercel
+Edge runtime and is not true now: nothing about the runtime stops
+`proxy.ts` importing `node:crypto`.
+
+The separation below is therefore a **deliberate constraint, not a
+runtime one**. The proxy sits on every matched request, so it stays
+small and does not reach the database directly. Enforcement is the
+ESLint zone (2.3) and the post-build check (4).
 
 ### 2.1 Structural - `src/server/security/{edge,node}/`
 
@@ -94,27 +103,44 @@ this codebase is on the Pages Router. The marker module
 (`src/server/_internal/node-only.ts`) throws at module load time if
 it ever gets bundled into the browser (`typeof window !== "undefined"`)
 or the Vercel Edge runtime (`typeof EdgeRuntime !== "undefined"`).
-Any forbidden import chain therefore crashes on first request, with
-a clear error pointing the developer at the rule.
+An import chain that reaches the client bundle therefore crashes on
+first request, with a clear error pointing the developer at the rule.
+
+The `EdgeRuntime` half is now inert. It was written when the proxy ran
+on Edge; on the Node runtime that global is never defined, so the check
+passes and the module loads. It is kept because it costs nothing and
+still describes a real constraint if any of this is ever deployed to an
+Edge target again.
 
 The runtime guard complements the build-time defenses:
 
 | Layer | Time | Catches |
 |-------|------|---------|
-| 2.2 - runtime poison pill | First request after a bad deploy | Anything that bypassed Layers 2.1, 3, and 4 |
-| 2.3 - ESLint zone (Layer 3 below)        | Editor / pre-merge        | Any direct import from middleware to Node-only |
-| 4   - CI bundle scan                      | Build / pre-merge          | Any indirect import that ended up in the Edge bundle |
+| 2.2 - runtime poison pill | First request after a bad deploy | A Node-only module reaching the **browser** bundle |
+| 2.3 - ESLint zone (Layer 3 below)        | Editor / pre-merge        | Any direct import from the proxy to Node-only |
+| 4   - CI runtime and bundle check         | Build / pre-merge          | A runtime change, or a forbidden dependency reaching the proxy |
+
+Note the poison pill no longer guards the proxy. Its `EdgeRuntime`
+branch is dead: the proxy runs on Node, so the global is never defined
+and the module loads without complaint. Only its `window` branch, which
+covers the client bundle, still fires. For the proxy, 2.3 and 4 are the
+enforcement.
 
 If/when the codebase migrates to the App Router, swap the custom
 marker import for `import "server-only";` to gain App-Router-aware
 bundler enforcement.
 
-### 2.3 ESLint zone - Edge import boundary
+### 2.3 ESLint zone - proxy import boundary
 
 `eslint.config.mjs` declares an `import/no-restricted-paths` zone that
 forbids `proxy.ts` (and any future `middleware/**`) from
 importing any of the Node-only directories listed above. This catches
 mistakes in the editor before the developer ever runs `next build`.
+
+Since the runtime no longer enforces anything here, this zone is now the
+first line rather than a convenience. Note it restricts paths only: a
+bare `import "node:crypto"` in `proxy.ts` is not caught by it, and
+section 3 actively requires that spelling.
 
 ---
 
@@ -139,14 +165,32 @@ confusion attacks targeting well-known module names. Enforced by
 
 ---
 
-## 4. CI assertion on the middleware bundle
+## 4. CI assertion on the proxy bundle
 
-`scripts/check-middleware-bundle.mjs` runs after `next build` and
-greps the produced `.next/server/middleware.js` for known Node
-built-in identifiers. If any are present, the build is failed. This
-is the audit-grade backstop in case Next.js, Webpack, or a future
-refactor introduces a new code path that bypasses the three layers
-above.
+`scripts/check-proxy-bundle.mjs` runs after `next build` and asserts two
+things, failing the build on either.
+
+**The runtime.** `.next/server/functions-config-manifest.json` must report
+`"/_middleware"` on the `nodejs` runtime. This is the assumption sections
+2 and 3 are written against, and it has moved once already without anyone
+noticing.
+
+**The dependencies.** The proxy must not pull in Prisma, the Neon driver,
+`@simplewebauthn/server`, `bcryptjs`, or `nodemailer`. It runs on every
+matched request, so it stays small and talks to the database only through
+an API route.
+
+Two details matter, because getting either wrong makes this check pass
+while proving nothing:
+
+- `.next/server/middleware.js` is a Turbopack **loader stub** of a few
+  hundred bytes. The code lives in the chunks it names, so the script
+  resolves that graph rather than pattern-matching file paths, and refuses
+  to report success if the graph does not resolve.
+- Package names are matched by prefix and cross-checked against
+  `middleware.js.nft.json`, the build's own dependency trace. An exact
+  string match is not enough: Prisma 7 is emitted under a hash-suffixed
+  name such as `@prisma/client-2c3a283f134fdcb6`.
 
 Wired into CI via the `build` job in `.github/workflows/ci.yml`.
 

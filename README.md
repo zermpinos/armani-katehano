@@ -36,7 +36,7 @@ Box-score data is ingested manually: an admin pastes a box-score URL or uploads 
 
 ## 2. Architecture Summary
 
-The codebase is a Next.js (Pages Router) monolith with a strict layered architecture and a hard runtime boundary between Edge and Node. The full source-of-truth document lives at [`docs/architecture.md`](docs/architecture.md); a summary follows.
+The codebase is a Next.js (Pages Router) monolith with a strict layered architecture and a deliberate boundary around what the proxy is allowed to import. The full source-of-truth document lives at [`docs/architecture.md`](docs/architecture.md); a summary follows.
 
 ### Layer boundaries
 
@@ -53,13 +53,13 @@ pages, proxy        ← entry points
 
 Imports may only flow downward and the rule is enforced by `import/no-restricted-paths` in `eslint.config.mjs`. Client components reach server data only through `pages/api/**` routes.
 
-### Edge vs Node runtime split
+### Proxy runtime and import boundary
 
-`proxy.ts` runs on the Vercel **Edge runtime** (V8 isolate, no Node built-ins); the rest of the app runs on the **Node runtime**. Three layers of defense keep them apart:
+`proxy.ts` runs on the **Node runtime**, and so does the rest of the app: Next 16 renamed middleware to proxy and moved it to Node, and there is no Edge option to opt back into. The proxy still sits on every matched request, so it is kept small and is not allowed to reach the database directly. That is a deliberate constraint rather than a runtime one, and three layers hold it:
 
 1. **Structural** -- `src/server/security/` is split into `edge/` (CSP, headers, portable across runtimes) and `node/` (SSRF guard, audit log, client-IP). There is no top-level barrel; importers must declare a zone.
-2. **Runtime marker** -- every Node-only file begins with `import "@/server/_internal/node-only";`, a custom marker that throws at module load if it is ever bundled into the browser or Edge runtime.
-3. **CI bundle scan** - `scripts/check-middleware-bundle.mjs` runs after `next build` and greps the produced `middleware.js` for known Node built-in identifiers, failing the build if any are present.
+2. **Runtime marker** -- every Node-only file begins with `import "@/server/_internal/node-only";`, a custom marker that throws at module load if it is ever bundled into the browser.
+3. **CI runtime and bundle check** - `scripts/check-proxy-bundle.mjs` runs after `next build`. It asserts the proxy is still on the `nodejs` runtime, resolves the real chunk graph behind the Turbopack loader stub, and fails if Prisma, the Neon driver, `@simplewebauthn/server`, `bcryptjs`, or `nodemailer` reach it.
 
 Node built-ins must be imported via the `node:` protocol (`import crypto from "node:crypto"`) - enforced by `no-restricted-imports`.
 
@@ -265,7 +265,7 @@ armani-katehano/
 │   └── empty-polyfill-module.js    Webpack stub for Next.js polyfill alias
 │
 ├── scripts/
-│   ├── check-middleware-bundle.mjs Post-build assertion: no Node built-ins in Edge bundle
+│   ├── check-proxy-bundle.mjs     Post-build assertion: proxy runtime + dependencies
 │   ├── check-isr-pages.mjs         Post-build assertion: expected pages pre-rendered, CSP hashes match
 │   ├── check-postcss-override.mjs  Scan postcss config for overridden entries and report lowest
 │   ├── regenerate-csp-hashes.mjs   Recomputes and writes the committed CSP script/style hash allow-list
@@ -420,7 +420,7 @@ These variables are set by the build/runtime environment automatically. Do not s
 | File                              | Purpose                                                                |
 |-----------------------------------|------------------------------------------------------------------------|
 | `strip-next-polyfills.mjs`        | Prebuild: stubs out Next.js polyfill-module so Turbopack doesn't bundle it |
-| `check-middleware-bundle.mjs`     | Post-build CI guard: greps `.next/server/middleware.js` for Node built-ins |
+| `check-proxy-bundle.mjs`          | Post-build CI guard: asserts the proxy runtime and scans its real chunk graph |
 | `check-isr-pages.mjs`             | Post-build CI guard: confirms expected pages were statically pre-rendered, no admin page leaked into static output, and committed CSP hashes appear in the built bundle |
 | `regenerate-csp-hashes.mjs`       | Walks pre-rendered HTML, SHA-256-hashes inline `<script>`/`<style>` bodies, writes `src/server/security/edge/csp-hashes.ts` |
 | `check-postcss-override.mjs`      | Scans postcss config for nested entries and reports the lowest override |
@@ -490,7 +490,7 @@ Operational procedures live in `docs/`:
 ### Design decisions worth knowing
 
 - **Pages Router, not App Router.** The runtime marker (`src/server/_internal/node-only.ts`) is custom because the npm `server-only` package is gated on the `react-server` export condition, which only resolves inside App Router server components. If the codebase migrates to App Router, swap it for `import "server-only";`.
-- **No top-level barrel under `src/server/security/`.** Importers must declare `edge` or `node` explicitly; this is what stopped a regression where `proxy.ts` dragged `node:dns` into the Edge bundle via a transitive barrel re-export.
+- **No top-level barrel under `src/server/security/`.** Importers must declare `edge` or `node` explicitly; this is what stopped a regression where `proxy.ts` dragged `node:dns` into the proxy bundle via a transitive barrel re-export. That mattered more when the proxy ran on Edge and the import was fatal; it still matters, because the proxy is on every request.
 - **Hash-based CSP, not per-request nonce.** ISR-cached pages are served identically to every visitor, so a per-request nonce can't be embedded in them; the CSP allow-list is instead a committed, build-time list of script/style hashes, kept honest by `check-isr-pages.mjs` in CI.
 - **Totals are stored, not derived.** `PlayerSeasonAggregate` keeps both `*Avg` and `*Total` columns; totals must come from raw `PlayerGameStat` sums (`stats-recalc.ts`), never approximated from `avg × gp`.
 - **Season archiving is presentational.** Marking a `Season.archivedAt` only drives the public "season complete" banner and admin UI state; it doesn't lock stats or prevent further edits.

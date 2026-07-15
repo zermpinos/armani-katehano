@@ -52,10 +52,10 @@ jobs:
         env:
           SESSION_SECRET: ci-placeholder-secret
 
-      # Audit backstop: verify the produced middleware bundle pulls in no
-      # Node built-ins. ESLint zones + `server-only` markers should already
-      # keep these out at source - this catches the case where any of those
-      # were bypassed. See docs/architecture.md §4.
-      - name: Verify middleware bundle has no Node built-ins
+      # Audit backstop: verify the built proxy still runs on the runtime the
+      # codebase is written against, and pulls in nothing we keep off the
+      # request path. ESLint zones should already catch this at source; this
+      # covers the case where they were bypassed. See docs/architecture.md §4.
+      - name: Verify proxy runtime and bundle
         if: github.actor != 'dependabot[bot]'
-        run: node scripts/check-middleware-bundle.mjs
+        run: node scripts/check-proxy-bundle.mjs
