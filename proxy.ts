@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { buildCsp } from "@/server/security/edge/csp";
+import { hasValidAdminSession } from "@/server/security/edge/session";
 
 const ADMIN_SESSION_COOKIE = "__Host-ak_session";
 const FLAG_TTL_MS = 10_000;
@@ -15,7 +16,14 @@ async function isMaintenanceOn(request: NextRequest): Promise<boolean> {
   }
   try {
     const url = new URL("/api/public/maintenance", request.url);
-    const res = await fetch(url, { cache: "no-store" });
+    // A protected preview answers this sub-request with a login redirect
+    // unless the caller's bypass travels with it, which would leave the gate
+    // permanently open there. The header is absent in production.
+    const bypass = request.headers.get("x-vercel-protection-bypass");
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: bypass ? { "x-vercel-protection-bypass": bypass } : undefined,
+    });
     if (!res.ok) return false;
     const json = (await res.json()) as { enabled?: boolean };
     const value = json.enabled === true;
@@ -35,9 +43,8 @@ function passThroughWithCsp(request: NextRequest) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isMaintenancePage    = pathname.startsWith("/maintenance");
-  const isAdminPath          = pathname.startsWith("/admin");
-  const isMaintenanceFlagApi = pathname === "/api/public/maintenance";
+  const isMaintenancePage = pathname.startsWith("/maintenance");
+  const isAdminPath       = pathname.startsWith("/admin");
   const isNextAsset =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
@@ -45,13 +52,15 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/sitemap.xml") ||
     STATIC_ASSET.test(pathname);
 
-  if (isMaintenancePage || isAdminPath || isMaintenanceFlagApi || isNextAsset) {
+  if (isMaintenancePage || isAdminPath || isNextAsset) {
     return passThroughWithCsp(request);
   }
 
-  const hasAdminSession = Boolean(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
+  if (!(await isMaintenanceOn(request))) {
+    return passThroughWithCsp(request);
+  }
 
-  if (hasAdminSession || !(await isMaintenanceOn(request))) {
+  if (await hasValidAdminSession(request.cookies.get(ADMIN_SESSION_COOKIE)?.value)) {
     return passThroughWithCsp(request);
   }
 
