@@ -31,7 +31,7 @@ import { recalcAggregates } from "@/server/services/stats-recalc";
 import handler from "../../../../pages/api/admin/games";
 import {
   mockRes, authedReq,
-  MOCK_GAME, VALID_GAME_BODY, setupMocks,
+  MOCK_GAME, VALID_GAME_BODY, VALID_SEASON_LEAGUE, setupMocks,
 } from "./__support__/games-admin-mocks";
 
 beforeEach(() => setupMocks(mockPrisma, recalcAggregates));
@@ -69,6 +69,7 @@ describe("POST /api/admin/games", () => {
     await handler(req, res);
     expect(mockPrisma.$transaction).toHaveBeenCalledOnce();
     expect(recalcAggregates).toHaveBeenCalledOnce();
+    expect(recalcAggregates).toHaveBeenCalledWith(VALID_SEASON_LEAGUE, mockPrisma);
   });
 
   it("returns 500 when the transaction throws", async () => {

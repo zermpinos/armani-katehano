@@ -86,7 +86,7 @@ describe("DELETE /api/admin/games", () => {
     expect(res.statusCode).toBe(200);
     expect(res._body.ok).toBe(true);
     expect(mockPrisma.game.delete).toHaveBeenCalledWith({ where: { id: VALID_CUID } });
-    expect(recalcAggregates).toHaveBeenCalledWith(VALID_SEASON_LEAGUE);
+    expect(recalcAggregates).toHaveBeenCalledWith(VALID_SEASON_LEAGUE, mockPrisma);
   });
 });
 
