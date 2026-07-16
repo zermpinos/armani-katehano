@@ -97,9 +97,18 @@ test.describe("maintenance gate", () => {
     const setupPage = await adminCtx.newPage();
     await setupPage.goto(BASE_URL + "/");
 
-    await setMaintenance(setupPage, authHeaders, true);
+    const enableRes = await setMaintenance(setupPage, authHeaders, true);
+    if (enableRes.status() === 401 || enableRes.status() === 403) {
+      test.skip(true, `Auth rejected by preview (status ${enableRes.status()}). Ensure SESSION_SECRET matches in Vercel preview env.`);
+      return;
+    }
+    expect(enableRes.ok()).toBeTruthy();
 
     try {
+      // Landing on / only means anything once the gate is turning others away.
+      // Without this the assertion below passes whenever maintenance is off.
+      expect(await waitForGate(browser, true), "gate never went live; the bypass proves nothing").toBe(true);
+
       // Admin page carries a signed __Host-ak_session, so the gate verifies it
       // and lets the request through.
       const page = await adminCtx.newPage();

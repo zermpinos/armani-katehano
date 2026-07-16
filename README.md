@@ -57,7 +57,7 @@ Imports may only flow downward and the rule is enforced by `import/no-restricted
 
 `proxy.ts` runs on the **Node runtime**, and so does the rest of the app: Next 16 renamed middleware to proxy and moved it to Node, and there is no Edge option to opt back into. The proxy still sits on every matched request, so it is kept small and is not allowed to reach the database directly. That is a deliberate constraint rather than a runtime one, and three layers hold it:
 
-1. **Structural** -- `src/server/security/` is split into `edge/` (CSP, headers, portable across runtimes) and `node/` (SSRF guard, audit log, client-IP). There is no top-level barrel; importers must declare a zone.
+1. **Structural** -- `src/server/security/` is split into `edge/` (CSP, headers, cheap enough for the proxy) and `node/` (SSRF guard, audit log, client-IP). There is no top-level barrel; importers must declare a zone. `src/server/auth/session` is the one module outside that tree the proxy may import, by path and never via the `@/server/auth` barrel, which re-exports passkeys.
 2. **Runtime marker** -- every Node-only file begins with `import "@/server/_internal/node-only";`, a custom marker that throws at module load if it is ever bundled into the browser.
 3. **CI runtime and bundle check** - `scripts/check-proxy-bundle.mjs` runs after `next build`. It asserts the proxy is still on the `nodejs` runtime, resolves the real chunk graph behind the Turbopack loader stub, and fails if Prisma, the Neon driver, `@simplewebauthn/server`, `bcryptjs`, or `nodemailer` reach it.
 
@@ -118,7 +118,7 @@ PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end
 
 | Service                 | Purpose                                                  |
 |-------------------------|----------------------------------------------------------|
-| **Vercel**              | Hosting, Edge middleware, cron, deployment               |
+| **Vercel**              | Hosting, proxy, cron, deployment                         |
 | **Neon (PostgreSQL)**   | Primary database                                         |
 | **Brevo (SMTP/Nodemailer)** | Transactional email (subscribe confirm, roster, admin broadcasts) |
 | **Cloudflare Turnstile**| CAPTCHA on the public subscribe form and admin/coach login |
@@ -175,7 +175,7 @@ All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECR
 - `/api/admin/cleanup` - daily at 02:00 UTC (Vercel cron). Purges expired `LoginAttempt` rows.
 
 ### Security baseline
-- **Build-time, hash-based CSP** (Edge middleware) - `src/server/security/edge/csp-hashes.ts` holds a committed allow-list of SHA-256 hashes for every inline `<script>`/`<style>` in the pre-rendered HTML, regenerated via `npm run regenerate-csp-hashes` and verified against the built output in CI (`scripts/check-isr-pages.mjs`). There is no per-request nonce - ISR-cached pages can't vary per request, so the hash approach replaced it.
+- **Build-time, hash-based CSP** (set by the proxy) - `src/server/security/edge/csp-hashes.ts` holds a committed allow-list of SHA-256 hashes for every inline `<script>`/`<style>` in the pre-rendered HTML, regenerated via `npm run regenerate-csp-hashes` and verified against the built output in CI (`scripts/check-isr-pages.mjs`). There is no per-request nonce - ISR-cached pages can't vary per request, so the hash approach replaced it.
 - HTTPS-only, `Strict-Transport-Security`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` lockdown.
 - SSRF allow-list for outbound fetches.
 - Audit log written to structured stdout (`[AUDIT]`) and persisted to the `AuditLog` table (client IPs are SHA-256 hashed before storage), with `console.warn` alerts (`[AUDIT_ALERT]`) on high-signal events (locked accounts, blocked CSRF, broadcast abuse); purged after 90 days.
@@ -286,7 +286,7 @@ armani-katehano/
 │
 ├── public/                         Static assets
 ├── styles/                         Global styles
-├── proxy.ts                        Edge middleware: coming-soon gate, maintenance-mode redirect, CSP + headers
+├── proxy.ts                        Request proxy: maintenance-mode gate, CSP + headers
 ├── next.config.mjs
 ├── tailwind.config.ts
 ├── eslint.config.mjs
