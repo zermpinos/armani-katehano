@@ -4,24 +4,20 @@
  *
  * Key implementation notes:
  * - Login form tests: test the unauthenticated UI; no credentials required.
- * - Authenticated dashboard tests: /api/auth is mocked so they work regardless
- *   of the actual admin password configured in the environment.
+ * - Authenticated dashboard tests: seed a real HMAC-signed session cookie
+ *   (SESSION_SECRET) so the real GET /api/auth returns 200 with no login flow.
  * - Passkey test: injects a real HMAC-signed session + CSRF cookie pair (using
  *   SESSION_SECRET, the same key the server uses) directly into the browser
  *   context so passkey-registration APIs pass requireAuth without a real login.
  * - Do NOT use waitForLoadState("networkidle") - Next.js dev mode keeps a
  *   WebSocket open for HMR which prevents networkidle from ever firing.
  * - The passkey button text is "SIGN IN WITH PASSKEY".
- * - The password fallback form button text is "SIGN IN".
- * - The password fallback form is only shown when the URL contains
- *   ?fallback=<PASSKEY_FALLBACK_TOKEN>.
  */
 import { test, expect } from "@playwright/test";
 import { createHmac, randomBytes } from "node:crypto";
 
 const BASE_URL              = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 const ADMIN_SLUG            = process.env.ADMIN_SLUG            ?? null;
-const PASSKEY_FALLBACK_TOKEN = process.env.PASSKEY_FALLBACK_TOKEN ?? null;
 const SESSION_SECRET        = process.env.SESSION_SECRET        ?? "";
 
 // Resolve the test admin username: prefer explicit env var, then fall back to
@@ -89,59 +85,6 @@ async function setCsrfCookie(page, csrfToken) {
   }, csrfToken);
 }
 
-// ── Auth mock helper ────────────────────────────────────────────────────────
-
-/**
- * Mount a page-level mock for /api/auth that tracks login state in memory.
- * - GET  → 200 when logged in, 401 otherwise
- * - POST → always 200, records loggedIn = true
- * - DELETE → always 200, records loggedIn = false
- *
- * This lets the authenticated-dashboard tests work without knowing the real
- * admin password configured in the environment.
- */
-async function mockAuth(page) {
-  let loggedIn = false;
-  await page.route("**/api/auth", async route => {
-    const method = route.request().method();
-    if (method === "POST") {
-      loggedIn = true;
-      return route.fulfill({
-        status:      200,
-        contentType: "application/json",
-        body:        JSON.stringify({ ok: true }),
-      });
-    }
-    if (method === "DELETE") {
-      loggedIn = false;
-      return route.fulfill({
-        status:      200,
-        contentType: "application/json",
-        body:        JSON.stringify({ ok: true }),
-      });
-    }
-    return route.fulfill({
-      status:      loggedIn ? 200 : 401,
-      contentType: "application/json",
-      body:        JSON.stringify(loggedIn ? { ok: true } : { error: "Not authenticated" }),
-    });
-  });
-}
-
-/**
- * Navigate to the admin login page via the password fallback path and sign in.
- * The /api/auth endpoint is mocked so the test works regardless of the actual
- * admin password configured in the environment.
- */
-async function loginViaFallback(page, slug, token, username, password) {
-  await mockAuth(page);
-  await page.goto(`/admin/${slug}/?fallback=${token}`);
-  await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
-  await page.getByPlaceholder("Enter username").fill(username);
-  await page.locator("input[type='password']").fill(password);
-  await page.getByRole("button", { name: "SIGN IN" }).click();
-}
-
 // ── Login form structure ───────────────────────────────────────────────────
 
 test.describe("Admin panel › Login form", () => {
@@ -196,51 +139,55 @@ test.describe("Admin panel › Login form", () => {
   });
 });
 
-// ── Authenticated dashboard (auth mocked; no real credentials needed) ──────
+// Authenticated dashboard: seed a real signed session, no login flow needed.
 
 test.describe("Admin panel › Authenticated dashboard", () => {
-  test("logs in and shows the admin nav bar", async ({ page }) => {
-    test.skip(!ADMIN_SLUG || !PASSKEY_FALLBACK_TOKEN,
-      "ADMIN_SLUG or PASSKEY_FALLBACK_TOKEN not configured");
-
-    await loginViaFallback(page, ADMIN_SLUG, PASSKEY_FALLBACK_TOKEN, ADMIN_USERNAME, "mock-password");
-
-    // After successful login, the admin nav bar renders with "AK Admin" branding
-    await expect(page.getByText("AK Admin").first()).toBeVisible({ timeout: 10_000 });
-    // Login form should be gone
-    await expect(page.getByText("Admin Access")).not.toBeVisible();
+  const adminContext = (browser) => browser.newContext({
+    baseURL:      BASE_URL,
+    storageState: makeAdminStorageState(ADMIN_USERNAME),
   });
 
-  test("can navigate to the Games admin section after login", async ({ page }) => {
-    test.skip(!ADMIN_SLUG || !PASSKEY_FALLBACK_TOKEN,
-      "ADMIN_SLUG or PASSKEY_FALLBACK_TOKEN not configured");
-
-    await loginViaFallback(page, ADMIN_SLUG, PASSKEY_FALLBACK_TOKEN, ADMIN_USERNAME, "mock-password");
-    await expect(page.getByText("AK Admin").first()).toBeVisible({ timeout: 10_000 });
-
-    // Navigate to the Games admin section via URL
-    await page.goto(`/admin/${ADMIN_SLUG}/games`);
-    await page.waitForLoadState("load");
-
-    // The login form should NOT reappear - the mock keeps the session alive
-    await expect(page.getByText("Admin Access")).not.toBeVisible({ timeout: 5_000 });
-    // The nav bar should still be visible
-    await expect(page.getByText("AK Admin").first()).toBeVisible();
+  test("a valid session shows the admin nav bar", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await page.goto(`/admin/${ADMIN_SLUG}/`);
+      await expect(page.getByText("AK Admin").first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText("Admin Access")).not.toBeVisible();
+    } finally {
+      await context.close();
+    }
   });
 
-  test("logout via DELETE /api/auth makes the login form reappear", async ({ page }) => {
-    test.skip(!ADMIN_SLUG || !PASSKEY_FALLBACK_TOKEN,
-      "ADMIN_SLUG or PASSKEY_FALLBACK_TOKEN not configured");
+  test("a valid session reaches the Games admin section", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await page.goto(`/admin/${ADMIN_SLUG}/games`);
+      await page.waitForLoadState("load");
+      await expect(page.getByText("Admin Access")).not.toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText("AK Admin").first()).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  });
 
-    await loginViaFallback(page, ADMIN_SLUG, PASSKEY_FALLBACK_TOKEN, ADMIN_USERNAME, "mock-password");
-    await expect(page.getByText("AK Admin").first()).toBeVisible({ timeout: 10_000 });
-
-    // Call the logout endpoint (mock handles DELETE → loggedIn=false)
-    await page.evaluate(() => fetch("/api/auth", { method: "DELETE" }));
-
-    // Reload - mock now returns 401, passkey login form should reappear
-    await page.reload();
-    await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
+  test("logout via DELETE /api/auth brings the login form back", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await page.goto(`/admin/${ADMIN_SLUG}/`);
+      await expect(page.getByText("AK Admin").first()).toBeVisible({ timeout: 10_000 });
+      // DELETE takes no CSRF; it clears the session cookie directly.
+      await page.evaluate(() => fetch("/api/auth", { method: "DELETE" }));
+      await page.reload();
+      await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
+    } finally {
+      await context.close();
+    }
   });
 });
 

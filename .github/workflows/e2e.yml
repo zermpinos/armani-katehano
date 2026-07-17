@@ -46,9 +46,6 @@ jobs:
           ADMIN_SLUG: ${{ secrets.ADMIN_SLUG }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          # Playwright reads this to build the ?fallback= url; the preview must
-          # carry the same value so its server-side timing-safe compare matches.
-          PASSKEY_FALLBACK_TOKEN: ${{ secrets.PASSKEY_FALLBACK_TOKEN }}
 
       - name: Upload Playwright report
         if: failure()
