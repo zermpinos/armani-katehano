@@ -1,13 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { makeAdminAuth } from "./helpers/admin-auth.js";
+import { isWritableTarget } from "./helpers/db-guard.js";
 
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const BASE_URL       = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
-
-// This test creates a real game through the live admin API, so the write lands
-// in whatever database backs BASE_URL, not in the runner's DATABASE_URL. Only
-// the caller knows whether that database is disposable, so it must say so.
-const WRITABLE_TARGET = process.env.E2E_WRITABLE_TARGET === "1";
 
 async function pollFor(page, url, condition, { timeout = 30_000, interval = 1_000 } = {}) {
   const deadline = Date.now() + timeout;
@@ -22,7 +18,7 @@ async function pollFor(page, url, condition, { timeout = 30_000, interval = 1_00
 
 test.describe("ISR freshness after admin write", () => {
   test.skip(!SESSION_SECRET, "SESSION_SECRET not configured; skipping ISR freshness test");
-  test.skip(!WRITABLE_TARGET, "E2E_WRITABLE_TARGET is not set; this test writes a real game to the database behind BASE_URL and only runs against a disposable one");
+  test.skip(!isWritableTarget(), "E2E_WRITABLE_TARGET is not set; this test writes a real game to the database behind BASE_URL and only runs against a disposable one");
 
   test("new game appears on /games within 30 s of POST", async ({ page }) => {
     const { cookies, authHeaders } = makeAdminAuth();

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { makeAdminAuth } from "./helpers/admin-auth.js";
+import { isWritableTarget } from "./helpers/db-guard.js";
 
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const BASE_URL       = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
@@ -61,6 +62,10 @@ test.describe.configure({ mode: "serial" });
 
 test.describe("maintenance gate", () => {
   test.skip(!SESSION_SECRET, "SESSION_SECRET not configured; skipping maintenance gate tests");
+  // The flag is a row in the database behind BASE_URL, and every test here turns
+  // it on. Against a database that also serves the live site, a run that dies
+  // before its cleanup leaves the public site redirecting to /maintenance.
+  test.skip(!isWritableTarget(), "E2E_WRITABLE_TARGET is not set; these tests toggle the global maintenance flag and only run against a disposable database");
 
   test("public visitor is redirected to /maintenance when mode is on", async ({ browser }) => {
     const { cookies, authHeaders } = makeAdminAuth();
