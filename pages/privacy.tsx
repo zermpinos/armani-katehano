@@ -84,7 +84,7 @@ export default function PrivacyPage() {
 
           <Section title="Analytics">
             <p>
-              This site uses <strong className="text-ak-text">Vercel Analytics</strong>, a privacy-friendly analytics tool. It collects aggregated page view counts with no cookies, no cross-site tracking, and no personally identifiable information. We use it solely to understand which pages are visited.
+              This site does not use a third-party analytics service. It records anonymous <strong className="text-ak-text">Web Vitals</strong>, aggregate page-performance measurements such as load and responsiveness timings, on its own infrastructure. No cookies are set, nothing is shared with a third party, and no personally identifiable information is collected.
             </p>
           </Section>
 
@@ -93,7 +93,7 @@ export default function PrivacyPage() {
             <div className="rounded-xl overflow-hidden border border-ak-border divide-y divide-ak-border mt-3">
               <Row label="Neon (database)" value="Stores subscriber records. Hosted on AWS eu-central-1 (Frankfurt, EU)." />
               <Row label="Brevo (email)" value="Delivers confirmation and game emails. Brevo SAS (Sendinblue), Paris, France. EU-based, subject to GDPR." />
-              <Row label="Vercel (hosting & analytics)" value="Serves the web application and provides aggregated analytics. Vercel Inc., United States. Transfer based on Vercel's Standard Contractual Clauses." />
+              <Row label="Vercel (hosting)" value="Serves the web application. Vercel Inc., United States. Transfer based on Vercel's Standard Contractual Clauses." />
             </div>
           </Section>
 
