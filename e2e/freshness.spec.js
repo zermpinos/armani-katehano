@@ -4,6 +4,11 @@ import { makeAdminAuth } from "./helpers/admin-auth.js";
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const BASE_URL       = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 
+// This test creates a real game through the live admin API, so the write lands
+// in whatever database backs BASE_URL, not in the runner's DATABASE_URL. Only
+// the caller knows whether that database is disposable, so it must say so.
+const WRITABLE_TARGET = process.env.E2E_WRITABLE_TARGET === "1";
+
 async function pollFor(page, url, condition, { timeout = 30_000, interval = 1_000 } = {}) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
@@ -17,6 +22,7 @@ async function pollFor(page, url, condition, { timeout = 30_000, interval = 1_00
 
 test.describe("ISR freshness after admin write", () => {
   test.skip(!SESSION_SECRET, "SESSION_SECRET not configured; skipping ISR freshness test");
+  test.skip(!WRITABLE_TARGET, "E2E_WRITABLE_TARGET is not set; this test writes a real game to the database behind BASE_URL and only runs against a disposable one");
 
   test("new game appears on /games within 30 s of POST", async ({ page }) => {
     const { cookies, authHeaders } = makeAdminAuth();
@@ -55,16 +61,26 @@ test.describe("ISR freshness after admin write", () => {
     expect(create.ok()).toBeTruthy();
     const { gameId } = await create.json();
 
-    await pollFor(page, "/games",             body => body.includes(gameId));
-    await pollFor(page, `/games/${gameId}`,   body => body.includes(gameId));
-    await pollFor(page, "/sitemap.xml",       body => body.includes(gameId));
-
-    const del = await page.request.delete(`${BASE_URL}/api/admin/games`, {
+    const removeGame = () => page.request.delete(`${BASE_URL}/api/admin/games`, {
       headers: authHeaders,
       data: { gameId },
     });
-    expect(del.ok()).toBeTruthy();
 
-    await pollFor(page, "/games", body => !body.includes(gameId));
+    let removed = false;
+    try {
+      await pollFor(page, "/games",           body => body.includes(gameId));
+      await pollFor(page, `/games/${gameId}`, body => body.includes(gameId));
+      await pollFor(page, "/sitemap.xml",     body => body.includes(gameId));
+
+      const del = await removeGame();
+      expect(del.ok()).toBeTruthy();
+      removed = true;
+
+      await pollFor(page, "/games", body => !body.includes(gameId));
+    } finally {
+      // A throw above (a poll timing out) would otherwise strand the game in the
+      // database, where it shows up as a real fixture on the site.
+      if (!removed) await removeGame().catch(() => {});
+    }
   });
 });

@@ -1,9 +1,13 @@
-/**
- * Runs once before all E2E tests.
- * Skipped when PLAYWRIGHT_BASE_URL is set (CI against a Vercel preview).
- */
+// Runs once before all E2E tests. Skipped when targeting a remote URL, where
+// the fixtures below would land in that deployment's database.
+import { assertLocalDatabase } from "./helpers/db-guard.js";
+
 export default async function globalSetup() {
   if (process.env.PLAYWRIGHT_BASE_URL) return;
+
+  // Fail loudly rather than skip: roster-panel.spec.js depends on the fixture
+  // created below, so a silent skip would surface as unrelated test failures.
+  assertLocalDatabase();
 
   const { default: prisma } = await import("../src/server/db/client.ts");
 
