@@ -267,8 +267,10 @@ test.describe("passkey login", () => {
   // a real password login, then tests the full passkey register → sign-out →
   // sign-in flow end-to-end.
   test("admin can register and authenticate with a passkey", async ({ browser }) => {
-    test.skip(!ADMIN_SLUG || !PASSKEY_FALLBACK_TOKEN || !SESSION_SECRET,
-      "ADMIN_SLUG, PASSKEY_FALLBACK_TOKEN or SESSION_SECRET not configured");
+    test.skip(!!process.env.PLAYWRIGHT_BASE_URL,
+      "WebAuthn rpID must equal the page origin; an ephemeral preview host cannot match the rpID derived from NEXT_PUBLIC_APP_URL, so this runs locally only");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET,
+      "ADMIN_SLUG or SESSION_SECRET not configured");
 
     const context = await browser.newContext({
       baseURL:      BASE_URL,
