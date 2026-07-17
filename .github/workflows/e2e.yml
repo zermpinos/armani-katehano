@@ -18,7 +18,12 @@ jobs:
     name: Playwright E2E
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event.deployment_status.state == 'success'
+    # deployment_status fires for production deployments too. Without the
+    # environment check this suite runs against the live site, where
+    # maintenance-gate.spec.js toggles the real maintenance flag.
+    if: |
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment_status.environment == 'Preview'
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
