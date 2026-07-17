@@ -1,5 +1,13 @@
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0"]);
 
+// Specs that mutate state behind BASE_URL (a game, the maintenance flag) write
+// through the live API, so the write lands in that deployment's database rather
+// than the runner's. Nothing observable from here tells us whether that database
+// is disposable, so the caller has to declare it.
+export function isWritableTarget() {
+  return process.env.E2E_WRITABLE_TARGET === "1";
+}
+
 // Local, preview and production currently share one database, so "not remote"
 // is no guarantee the target is disposable. Only the host tells us that.
 export function isLocalDatabase(url = process.env.DATABASE_URL) {
