@@ -51,7 +51,7 @@
     "react-dom": "19.2.7",
     "recharts": "^3.9.2",
     "undici": "^7.28.0",
-    "ws": "^8.21.0",
+    "ws": "^8.21.1",
     "zod": "^4.4.3"
   },
   "overrides": {
@@ -71,7 +71,7 @@
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "@prisma/adapter-pg": "^7.8.0",
-    "@tailwindcss/postcss": "^4.3.2",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/nodemailer": "^8.0.1",
     "@types/ws": "^8.18.1",
     "dotenv": "^17.4.2",
