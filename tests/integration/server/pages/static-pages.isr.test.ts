@@ -35,7 +35,7 @@ vi.mock("@/server/db/repositories", () => ({
 
 vi.mock("@/domain/stats", () => ({ buildAllTimeStatsMap: vi.fn().mockReturnValue({}) }));
 
-describe("static public pages — getStaticProps revalidate values", () => {
+describe("static public pages: getStaticProps revalidate values", () => {
   it("/games returns revalidate: 3600", async () => {
     const { getStaticProps } = await import("../../../../pages/games");
     const result = await getStaticProps();

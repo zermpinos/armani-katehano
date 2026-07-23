@@ -9,7 +9,7 @@
  * session as valid. All data APIs are also mocked so tests are fully
  * self-contained (no live DB required).
  *
- * Do NOT use waitForLoadState("networkidle") — Next.js dev HMR keeps a
+ * Do NOT use waitForLoadState("networkidle"). Next.js dev HMR keeps a
  * WebSocket open that prevents networkidle from ever firing.
  */
 import { test, expect } from "@playwright/test";
@@ -68,7 +68,7 @@ async function mockSeasonsApis(page, { putResponse } = {}) {
 
 async function goToSeasons(page, slug) {
   await page.goto(`/admin/${slug}/seasons`);
-  // Wait for the panel label — CSS renders it uppercase but the text content is mixed case
+  // Wait for the panel label. CSS renders it uppercase but the text content is mixed case
   await expect(page.getByText("Season Rosters")).toBeVisible({ timeout: 10_000 });
 }
 
@@ -81,12 +81,12 @@ test.describe("Season Rosters panel › rendering", () => {
     await goToSeasons(page, ADMIN_SLUG);
 
     // Wait for all three panel labels to be in the DOM before checking order.
-    const panelLabel = (text) => page.locator("section").filter({
-      has: page.locator(":scope > div").filter({ hasText: new RegExp(`^${text}$`) }),
+    const panelLabel = (label) => page.locator("section").filter({
+      has: page.locator(":scope > div").filter({ hasText: label }),
     });
-    await expect(panelLabel("Active links")).toBeVisible();
-    await expect(panelLabel("Season Rosters")).toBeVisible();
-    await expect(panelLabel("Seasons")).toBeVisible();
+    await expect(panelLabel(/^Active links$/)).toBeVisible();
+    await expect(panelLabel(/^Season Rosters$/)).toBeVisible();
+    await expect(panelLabel(/^Seasons$/)).toBeVisible();
 
     // compareDocumentPosition: bit 4 = DOCUMENT_POSITION_FOLLOWING (comes after)
     const inOrder = await page.evaluate(() => {
@@ -117,7 +117,7 @@ test.describe("Season Rosters panel › rendering", () => {
     await goToSeasons(page, ADMIN_SLUG);
 
     for (const s of SEASONS) {
-      await expect(page.getByRole("button", { name: new RegExp(s.name) })).toBeVisible();
+      await expect(page.getByRole("button", { name: s.name })).toBeVisible();
     }
   });
 
@@ -156,7 +156,7 @@ test.describe("Season Rosters panel › checklist", () => {
     await page.getByRole("button", { name: /2025-26/ }).click();
 
     for (const p of PLAYERS) {
-      await expect(page.getByLabel(new RegExp(`#${p.number}`))).toBeVisible();
+      await expect(page.getByLabel(`#${p.number}`)).toBeVisible();
     }
   });
 
@@ -241,7 +241,7 @@ test.describe("Season Rosters panel › save", () => {
     await page.getByRole("button", { name: /2025-26/ }).click();
     await page.getByLabel(/#23/).click();
 
-    // Capture the PUT before clicking — waitForRequest fires on dispatch, before routing
+    // Capture the PUT before clicking. waitForRequest fires on dispatch, before routing
     const putPromise = page.waitForRequest(req =>
       req.method() === "PUT" && req.url().includes("roster-entries")
     );

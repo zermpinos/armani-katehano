@@ -11,7 +11,7 @@ export function makeSessionCookieValue(username = "admin") {
 }
 
 /**
- * Returns { cookies, csrfToken } — inject cookies into the browser context
+ * Returns { cookies, csrfToken }. Inject cookies into the browser context
  * via context.addCookies(cookies), then pass csrfToken as x-csrf-token header
  * and origin: BASE_URL on every mutating request so csrfCheck passes.
  */

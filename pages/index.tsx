@@ -133,9 +133,10 @@ export default function HomePage({ players, games, stats, upcomingGames, current
       <ConfirmToast />
 
       {/* Hero */}
-      <div className="relative rounded-2xl overflow-hidden py-10 px-8 border border-ak-border bg-ak-surface mb-6">
-        <div className="absolute inset-0 opacity-[0.18] ak-hero-texture" />
-        <div className="absolute top-0 right-0 w-[280px] h-[280px] rounded-full bg-[#8b1a1a18] translate-x-[35%] -translate-y-[35%]" />
+      <div className="ak-hero relative rounded-2xl overflow-hidden py-10 px-8 border border-ak-border bg-ak-surface mb-6">
+        {/* Overscanned by 4 whole 20px tiles: keeps the pattern phase, stops the drift baring the top edge. */}
+        <div className="ak-parallax-slow absolute inset-x-0 -inset-y-20 opacity-[0.18] ak-hero-texture" />
+        <div className="ak-parallax-fast absolute top-0 right-0 w-[280px] h-[280px] rounded-full bg-[#8b1a1a18] translate-x-[35%] -translate-y-[35%]" />
         <div className="relative">
           <div className="text-[11px] font-black tracking-[0.18em] uppercase text-ak-red-text mb-2">
             {currentSeason.replace(/-/g, "-")} · {phaseLabel(seasonPhase)}
@@ -152,7 +153,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
       <ArchivedBanner archived={archivedSeasonNames.includes(currentSeason)} seasonName={currentSeason} />
 
       {/* Record tiles */}
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3 mb-6">
+      <div className="ak-tilt grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3 mb-6">
         <StatTile label="Record"  value={`${record.wins}-${record.losses}`} sub={`${winPct}% win rate`} highlight />
         <StatTile label="Streak"  value={record.streak.count > 0 ? `${record.streak.count}${record.streak.type}` : "-"} sub="current streak" highlight={record.streak.type === "W" && record.streak.count > 0} />
         <StatTile label="PPG"     value={record.ppg    || "-"} sub="points per game" />
@@ -170,12 +171,12 @@ export default function HomePage({ players, games, stats, upcomingGames, current
       <ErrorBoundary label="Stats failed to load">
         {hasData && (
           <div className="grid grid-cols-1 gap-5">
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-5">
+            <div className="ak-reveal grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-5">
               <ScoringTrendChart trend={trend} onShowMore={() => setShowTrendModal(true)} />
               <RecentResultsCard recentGames={recentGames} />
             </div>
 
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-5">
+            <div className="ak-reveal grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-5">
               <TopScorersChart topScorers={topScorers} />
               <EfficiencyLeaderCard mvp={mvp} />
             </div>
@@ -191,7 +192,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
         </div>
       )}
 
-      <div className="mt-5">
+      <div className="ak-reveal mt-5">
         <SubscribeForm />
       </div>
 

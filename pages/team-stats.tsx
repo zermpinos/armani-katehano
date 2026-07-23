@@ -170,7 +170,7 @@ export default function TeamPage({ players, gamesBySeason, seasons, currentSeaso
                 <div className="w-[3px] self-stretch rounded-sm bg-ak-red-bright min-h-[16px]" />
                 <div className="text-[11px] font-black tracking-[0.15em] text-ak-red-text uppercase">Scoring</div>
               </div>
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+              <div className="ak-tilt grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
                 <StatTile label="PPG"     value={rec.ppg}     sub="points per game"  highlight />
                 <StatTile label="OPP PPG" value={rec.oppPpg}  sub="allowed per game" />
               </div>
@@ -181,7 +181,7 @@ export default function TeamPage({ players, gamesBySeason, seasons, currentSeaso
                 <div className="w-[3px] self-stretch rounded-sm bg-ak-red-bright min-h-[16px]" />
                 <div className="text-[11px] font-black tracking-[0.15em] text-ak-red-text uppercase">Defence &amp; Ball Control</div>
               </div>
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+              <div className="ak-tilt grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
                 <StatTile label="RPG"        value={teamAvg.rpg}     sub="rebounds" />
                 <StatTile label="SPG"        value={teamAvg.spg}     sub="steals" />
                 <StatTile label="BPG"        value={teamAvg.bpg}     sub="blocks" />
@@ -194,7 +194,7 @@ export default function TeamPage({ players, gamesBySeason, seasons, currentSeaso
                 <div className="w-[3px] self-stretch rounded-sm bg-ak-red-bright min-h-[16px]" />
                 <div className="text-[11px] font-black tracking-[0.15em] text-ak-red-text uppercase">Playmaking &amp; Efficiency</div>
               </div>
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+              <div className="ak-tilt grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
                 <StatTile label="APG"         value={teamAvg.apg}          sub="assists" />
                 <StatTile label="AST/TOV"     value={teamAvg.atRatio}      sub="ratio" />
                 <StatTile label="OFF RTG"     value={offRtgAvg ?? "-"}     sub="offensive rating" />
@@ -207,7 +207,7 @@ export default function TeamPage({ players, gamesBySeason, seasons, currentSeaso
                 <div className="w-[3px] self-stretch rounded-sm bg-ak-red-bright min-h-[16px]" />
                 <div className="text-[11px] font-black tracking-[0.15em] text-ak-red-text uppercase">Shooting</div>
               </div>
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+              <div className="ak-tilt grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
                 <StatTile label="FG%"  value={`${teamAvg.fgPct}%`}  sub="field goal %" />
                 <StatTile label="3P%"  value={`${teamAvg.fg3Pct}%`} sub="three-point %" />
                 <StatTile label="FT%"  value={`${teamAvg.ftPct}%`}  sub="free throw %" />
@@ -269,7 +269,7 @@ export async function getStaticProps() {
     // Load full game data (with box scores) for every known season so the
     // client-side season selector can switch without a round-trip.
     // getStaticProps cannot read query params, so window.location navigation
-    // would silently show stale data — client state is the correct approach.
+    // would silently show stale data, so client state is the correct approach.
     const gamesBySeason = Object.fromEntries(
       await Promise.all(seasons.map(async s => [s, await getGames(s)]))
     );
