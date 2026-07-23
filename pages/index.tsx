@@ -47,15 +47,15 @@ const UpcomingGamesSection = dynamic(
 // requestIdleCallback so the mount lands after first paint, outside the TBT
 // window measured by Lighthouse.
 const ScoringTrendChart = dynamic(
-  deferDynamic(() => import("@/client/home/scoring-trend-chart").then(m => ({ default: m.ScoringTrendChart }))),
+  deferDynamic(() => import("@/client/home/charts").then(m => ({ default: m.ScoringTrendChart }))),
   { ssr: false }
 );
 const TopScorersChart = dynamic(
-  deferDynamic(() => import("@/client/home/top-scorers-chart").then(m => ({ default: m.TopScorersChart }))),
+  deferDynamic(() => import("@/client/home/charts").then(m => ({ default: m.TopScorersChart }))),
   { ssr: false }
 );
 const ScoringTrendModal = dynamic(
-  () => import("@/client/home/scoring-trend-modal").then(m => ({ default: m.ScoringTrendModal })),
+  deferDynamic(() => import("@/client/home/charts").then(m => ({ default: m.ScoringTrendModal }))),
   { ssr: false }
 );
 const FinalFourPopup = dynamic(

@@ -18,21 +18,21 @@ function read(rel: string): string {
 }
 
 describe("player standalone page recharts isolation", () => {
-  it("pages/players/[slug].tsx loads SkillRadar via dynamic() (not a static import)", () => {
+  it("pages/players/[slug].tsx loads SkillRadar via dynamic() through the charts barrel (not a static import)", () => {
     const src = read("pages/players/[slug].tsx");
     expect(src).not.toMatch(
-      /^\s*import\s*\{\s*SkillRadar\s*\}\s*from\s*["']@\/client\/players\/SkillRadar["']/m
+      /^\s*import\s*\{[^}]*\bSkillRadar\b[^}]*\}\s*from\s*["']@\/client\/players\/(SkillRadar|charts)["']/m
     );
     expect(src).toMatch(/dynamic\(/);
-    expect(src).toMatch(/import\(["']@\/client\/players\/SkillRadar["']\)/);
+    expect(src).toMatch(/import\(["']@\/client\/players\/charts["']\)[^]*SkillRadar/);
   });
 
-  it("pages/players/[slug].tsx loads GameLogPanel via dynamic() (not a static import)", () => {
+  it("pages/players/[slug].tsx loads GameLogPanel via dynamic() through the charts barrel (not a static import)", () => {
     const src = read("pages/players/[slug].tsx");
     expect(src).not.toMatch(
-      /^\s*import\s*\{\s*GameLogPanel\s*\}\s*from\s*["']@\/client\/players\/GameLogPanel["']/m
+      /^\s*import\s*\{[^}]*\bGameLogPanel\b[^}]*\}\s*from\s*["']@\/client\/players\/(GameLogPanel|charts)["']/m
     );
     expect(src).toMatch(/dynamic\(/);
-    expect(src).toMatch(/import\(["']@\/client\/players\/GameLogPanel["']\)/);
+    expect(src).toMatch(/import\(["']@\/client\/players\/charts["']\)[^]*GameLogPanel/);
   });
 });
