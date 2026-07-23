@@ -52,9 +52,9 @@ export function ScoringTrendModal({ show, onClose, extendedTrend, trendRange, se
             All Games
           </button>
         </div>
-        <div className="h-[clamp(250px,50vh,500px)] overflow-x-auto overflow-y-hidden -mr-2 pr-2">
-          <div className="min-w-[500px] h-full">
-            <TrendLineChart data={extendedTrend} gradientId="trendFillModal" height="100%" />
+        <div className="overflow-x-auto overflow-y-hidden -mr-2 pr-2">
+          <div className="min-w-[500px]">
+            <TrendLineChart data={extendedTrend} height={360} />
           </div>
         </div>
       </div>

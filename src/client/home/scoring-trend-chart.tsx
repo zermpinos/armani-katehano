@@ -25,7 +25,7 @@ export function ScoringTrendChart({ trend, onShowMore }: Props) {
         </div>
         <ShowMoreButton className="show-more-btn" onClick={onShowMore}>Show More →</ShowMoreButton>
       </div>
-      <TrendLineChart data={trend} gradientId="trendFill" height={260} />
+      <TrendLineChart data={trend} height={260} />
     </div>
   );
 }

@@ -11,7 +11,6 @@ import { ConfirmToast } from "@/client/home/confirm-toast";
 import { SubscribeForm } from "@/client/home/subscribe-form";
 import { RecentResultsCard } from "@/client/home/recent-results-card";
 import { EfficiencyLeaderCard } from "@/client/home/efficiency-leader-card";
-import { deferDynamic } from "@/client/home/defer-dynamic";
 import { phaseLabel } from "@/domain/games/phase";
 
 function UpcomingGamesSkeleton() {
@@ -42,20 +41,16 @@ const UpcomingGamesSection = dynamic(
   () => import("@/client/home/upcoming-games-section").then(m => ({ default: m.UpcomingGamesSection })),
   { ssr: false, loading: () => <UpcomingGamesSkeleton /> }
 );
-// recharts' ResponsiveContainer reads parent geometry on mount, triggering a
-// ~100ms forced reflow. deferDynamic schedules the dynamic import via
-// requestIdleCallback so the mount lands after first paint, outside the TBT
-// window measured by Lighthouse.
 const ScoringTrendChart = dynamic(
-  deferDynamic(() => import("@/client/home/charts").then(m => ({ default: m.ScoringTrendChart }))),
+  () => import("@/client/home/scoring-trend-chart").then(m => ({ default: m.ScoringTrendChart })),
   { ssr: false }
 );
 const TopScorersChart = dynamic(
-  deferDynamic(() => import("@/client/home/charts").then(m => ({ default: m.TopScorersChart }))),
+  () => import("@/client/home/top-scorers-chart").then(m => ({ default: m.TopScorersChart })),
   { ssr: false }
 );
 const ScoringTrendModal = dynamic(
-  deferDynamic(() => import("@/client/home/charts").then(m => ({ default: m.ScoringTrendModal }))),
+  () => import("@/client/home/scoring-trend-modal").then(m => ({ default: m.ScoringTrendModal })),
   { ssr: false }
 );
 const FinalFourPopup = dynamic(

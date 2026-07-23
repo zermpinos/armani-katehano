@@ -1,8 +1,8 @@
 import { useState } from "react";
 import Link from "next/link";
-import { C, chartTooltipStyle } from "@/theme/tokens";
+import { C } from "@/theme/tokens";
 import { fmtMinutes } from "@/domain/shared/format";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { NativeLineChart } from "@/client/charts/native-line-chart";
 
 const STAT_OPTIONS = [
   { key:"pts", label:"PTS", color:C.redBright, activeClass:"border-[#c0392b80] bg-[#c0392b20] text-[#c0392b]" },
@@ -97,29 +97,22 @@ export function GameLogPanel({ gameLog }: any) {
               No games match this filter
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={filtered} margin={{ top:8, right:4, left:-24, bottom:0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-                <XAxis dataKey="label" tick={{ fill:C.textDim, fontSize:10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill:C.textDim, fontSize:10 }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  {...chartTooltipStyle}
-                  formatter={(val) => [val, activeStat?.label]}
-                  labelFormatter={(label, payload) => {
-                    const g = payload?.[0]?.payload;
-                    return g ? `${label} vs ${g.opponent}` : label;
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey={selStat}
-                  stroke={activeStat?.color || C.redBright}
-                  strokeWidth={2}
-                  dot={{ fill: activeStat?.color || C.redBright, r:3 }}
-                  name={activeStat?.label}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <NativeLineChart
+              data={filtered}
+              series={[{ key: selStat, color: activeStat?.color || C.redBright, label: activeStat?.label || "" }]}
+              height={200}
+              xLabelKey="label"
+              tooltip={(row) => {
+                // eslint-disable-next-line security/detect-object-injection
+                const val = row[selStat];
+                return (
+                  <div className="bg-ak-surface2 border border-ak-border2 rounded-lg px-2.5 py-1.5 text-xs text-ak-text shadow-lg whitespace-nowrap">
+                    <div className="text-[10px] text-ak-red-text font-bold mb-0.5">{row.label} vs {row.opponent}</div>
+                    <div>{activeStat?.label}: {val}</div>
+                  </div>
+                );
+              }}
+            />
           )}
         </div>
       ) : (

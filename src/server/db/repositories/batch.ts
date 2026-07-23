@@ -8,6 +8,10 @@ import { getUpcomingGames } from "./upcoming-games";
 import { getAwardsForArchivedSeasons, getArchivedSeasonNames } from "./awards";
 
 export async function getAllPublicData(seasonName: string | null = null) {
+  // No DATABASE_URL (e.g. CI build): reject immediately. Otherwise the Neon
+  // WebSocket connect hangs to its ~60s TCP timeout, which exceeds the
+  // per-page static-build limit and fails the build.
+  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
   // Sequential probe so a missing DB rejects on one connection instead of
   // leaking 5 parallel WebSocket attempts for their full TCP timeout (~60s).
   const config = await getConfig();
