@@ -131,7 +131,14 @@ export async function getStaticProps() {
       getAllPlayerGameLogs(),
     ]);
     const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
-    return { props: { players, statsMap: stats, statsBySeason: allSeasonsStats, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs, archivedSeasonNames, awardsBySeasonName }, revalidate: 3600 };
+    // Client reads only season/round + box stats; drop identity fields to shrink page-data.
+    const slimLogs = Object.fromEntries(
+      Object.entries(allPlayerGameLogs).map(([id, log]: [string, any]) => [
+        id,
+        log.map(({ gameId, date, opponent, league, ...rest }: any) => rest),
+      ]),
+    );
+    return { props: { players, statsMap: stats, statsBySeason: allSeasonsStats, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs: slimLogs, archivedSeasonNames, awardsBySeasonName }, revalidate: 3600 };
   } catch {
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
     return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, allPlayerGameLogs: [], archivedSeasonNames: [], awardsBySeasonName: {} }, revalidate: 60 };

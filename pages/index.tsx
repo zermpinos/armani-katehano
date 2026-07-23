@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { StatTile, SectionHeading } from "@/components/ui";
-import { getAllPublicData, getAllPlayerGameLogs, getUpcomingGamesWithAnnouncements, getNextPlayoffGame } from "@/server/db/repositories";
+import { getAllPublicData, getUpcomingGamesWithAnnouncements, getNextPlayoffGame } from "@/server/db/repositories";
 import { computeRecord } from "@/domain/games/score";
 import { fmt } from "@/domain/players/format";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
@@ -63,7 +63,7 @@ const FinalFourPopup = dynamic(
   { ssr: false }
 );
 
-export default function HomePage({ players, games, stats, upcomingGames, currentSeason, seasonPhase, allPlayerGameLogs, nextPlayoffGame, popupEnabled, popupVersion, popupRound, archivedSeasonNames }: any) {
+export default function HomePage({ players, games, stats, upcomingGames, currentSeason, seasonPhase, nextPlayoffGame, popupEnabled, popupVersion, popupRound, archivedSeasonNames }: any) {
   const [trendRange, setTrendRange] = useState(10);
   const [showTrendModal, setShowTrendModal] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
@@ -80,8 +80,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 
   const playersWithStats = players.map((p: any) => ({
     ...p,
-    stats:   stats[p.id] ?? { ppg: 0, rpg: 0, apg: 0, fgPct: 0, eff: 0, mpg: 0, gp: 0 },
-    gameLog: allPlayerGameLogs[p.id] ?? [],
+    stats: stats[p.id] ?? { ppg: 0, rpg: 0, apg: 0, fgPct: 0, eff: 0, mpg: 0, gp: 0 },
   }));
 
   const record = computeRecord(games);
@@ -213,17 +212,18 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 export async function getStaticProps() {
   try {
     const { players, games, stats, currentSeason, config, archivedSeasonNames } = await getAllPublicData();
-    const [upcomingGames, allPlayerGameLogs, nextPlayoffGame] = await Promise.all([
+    const [upcomingGames, nextPlayoffGame] = await Promise.all([
       getUpcomingGamesWithAnnouncements(),
-      getAllPlayerGameLogs(),
       getNextPlayoffGame(),
     ]);
+    // Home page never reads boxScore; strip it to keep page-data under the ISR size threshold.
+    const slimGames = games.map(({ boxScore, ...g }: any) => g);
     return {
-      props: { players, games, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, allPlayerGameLogs, nextPlayoffGame, popupEnabled: config.popupEnabled, popupVersion: config.popupVersion, popupRound: config.popupRound, archivedSeasonNames },
+      props: { players, games: slimGames, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, nextPlayoffGame, popupEnabled: config.popupEnabled, popupVersion: config.popupVersion, popupRound: config.popupRound, archivedSeasonNames },
       revalidate: 3600,
     };
   } catch {
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
-    return { props: { players: [], games: [], stats: {}, upcomingGames: [], currentSeason: "", seasonPhase: null, allPlayerGameLogs: [], nextPlayoffGame: null, popupEnabled: false, popupVersion: 0, popupRound: null, archivedSeasonNames: [] }, revalidate: 60 };
+    return { props: { players: [], games: [], stats: {}, upcomingGames: [], currentSeason: "", seasonPhase: null, nextPlayoffGame: null, popupEnabled: false, popupVersion: 0, popupRound: null, archivedSeasonNames: [] }, revalidate: 60 };
   }
 }
