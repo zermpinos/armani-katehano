@@ -147,7 +147,7 @@ describe("cache-invalidation", () => {
     });
   });
 
-  describe("invalidateForGameMutation — sitemap included", () => {
+  describe("invalidateForGameMutation: sitemap included", () => {
     it("includes /sitemap.xml in the fan-out", async () => {
       const { fn, calls } = recorder();
       await invalidateForGameMutation({ revalidate: fn, gameId: "g1" });
@@ -155,7 +155,7 @@ describe("cache-invalidation", () => {
     });
   });
 
-  describe("invalidateForScheduleMutation — sitemap included", () => {
+  describe("invalidateForScheduleMutation: sitemap included", () => {
     it("includes /sitemap.xml in the fan-out", async () => {
       const { fn, calls } = recorder();
       await invalidateForScheduleMutation({ revalidate: fn });

@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 const PAGES = ["/", "/players", "/games", "/leaderboard", "/team-stats"];
 
 for (const path of PAGES) {
-  test(`CSP hydration — ${path} — no violations, React hydrates`, async ({ page }) => {
+  test(`CSP hydration: ${path}, no violations, React hydrates`, async ({ page }) => {
     const errors = [];
     page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
     page.on("pageerror", e => errors.push(e.message));

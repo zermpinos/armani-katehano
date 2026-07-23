@@ -23,7 +23,7 @@ const seasonBtns = (page) =>
 
 // ─── /games ───────────────────────────────────────────────────────────────────
 
-test.describe("Games page — interactive controls", () => {
+test.describe("Games page: interactive controls", () => {
   test.beforeEach(async ({ page }) => {
     await loadPage(page, "/games");
   });
@@ -43,14 +43,14 @@ test.describe("Games page — interactive controls", () => {
 
     // At least one of the pair is present (only rendered when seasons exist)
     const listCount = await listBtn.count();
-    test.skip(listCount === 0, "No seasons in DB — view toggle not rendered");
+    test.skip(listCount === 0, "No seasons in DB, view toggle not rendered");
 
     await expect(listBtn).toBeVisible();
     await expect(calendarBtn).toBeVisible();
 
     // Switch to calendar
     await calendarBtn.click();
-    // Calendar view shows month/week grid — check list view is gone
+    // Calendar view shows month/week grid, check list view is gone
     await expect(listBtn).toBeVisible(); // toggle still there
     // Switch back to list
     await listBtn.click();
@@ -95,7 +95,7 @@ test.describe("Games page — interactive controls", () => {
   test("season selector: clicking each tab fires without JS error", async ({ page }) => {
     const btns = seasonBtns(page);
     const count = await btns.count();
-    test.skip(count < 2, "Fewer than 2 seasons — selector not interactive");
+    test.skip(count < 2, "Fewer than 2 seasons, selector not interactive");
 
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
@@ -110,7 +110,7 @@ test.describe("Games page — interactive controls", () => {
   test("switching season resets league and result filters", async ({ page }) => {
     const btns = seasonBtns(page);
     const count = await btns.count();
-    test.skip(count < 2, "Only one season — skipping filter-reset test");
+    test.skip(count < 2, "Only one season, skipping filter-reset test");
 
     // Set a non-default result filter
     const winsBtn = page.getByRole("button", { name: /^wins$/i });
@@ -121,14 +121,14 @@ test.describe("Games page — interactive controls", () => {
     const targetIdx = (await btns.nth(0).getAttribute("class"))?.includes("ak-red") ? 1 : 0;
     await btns.nth(targetIdx).click();
 
-    // Filters should be reset — Clear Filters should disappear
+    // Filters should be reset, Clear Filters should disappear
     await expect(page.getByRole("button", { name: /clear filters/i })).not.toBeVisible();
   });
 });
 
 // ─── /leaderboard ─────────────────────────────────────────────────────────────
 
-test.describe("Leaderboard page — interactive controls", () => {
+test.describe("Leaderboard page: interactive controls", () => {
   test.beforeEach(async ({ page }) => {
     await loadPage(page, "/leaderboard");
   });
@@ -146,7 +146,7 @@ test.describe("Leaderboard page — interactive controls", () => {
     const totBtn = page.getByRole("button", { name: /^tot$/i });
 
     const count = await avgBtn.count();
-    test.skip(count === 0, "No seasons — AVG/TOT toggle not rendered");
+    test.skip(count === 0, "No seasons, AVG/TOT toggle not rendered");
 
     await expect(avgBtn).toBeVisible();
     await expect(totBtn).toBeVisible();
@@ -193,7 +193,7 @@ test.describe("Leaderboard page — interactive controls", () => {
   test("season selector: switching season resets phase filter to All Season", async ({ page }) => {
     const btns = seasonBtns(page);
     const count = await btns.count();
-    test.skip(count < 2, "Fewer than 2 seasons — skipping");
+    test.skip(count < 2, "Fewer than 2 seasons, skipping");
 
     const regularBtn = page.getByRole("button", { name: /regular season/i });
     const allBtn     = page.getByRole("button", { name: /all season/i });
@@ -214,7 +214,7 @@ test.describe("Leaderboard page — interactive controls", () => {
     test.skip(count === 0, "No table headers visible");
     await ppgHeader.click();
     await ppgHeader.click(); // second click reverses sort
-    // No JS error is the main assertion here — visual sort arrow is enough
+    // No JS error is the main assertion here, visual sort arrow is enough
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
     expect(errors).toHaveLength(0);
@@ -223,7 +223,7 @@ test.describe("Leaderboard page — interactive controls", () => {
 
 // ─── /players ─────────────────────────────────────────────────────────────────
 
-test.describe("Players page — interactive controls", () => {
+test.describe("Players page: interactive controls", () => {
   test.beforeEach(async ({ page }) => {
     await loadPage(page, "/players");
   });
@@ -280,7 +280,7 @@ test.describe("Players page — interactive controls", () => {
   test("season selector: switching season clears search", async ({ page }) => {
     const btns = seasonBtns(page);
     const count = await btns.count();
-    test.skip(count < 2, "Fewer than 2 seasons — skipping");
+    test.skip(count < 2, "Fewer than 2 seasons, skipping");
 
     const input = page.getByPlaceholder(/search players/i);
     await input.fill("test query");
@@ -294,7 +294,7 @@ test.describe("Players page — interactive controls", () => {
 
 // ─── /team-stats ──────────────────────────────────────────────────────────────
 
-test.describe("Team Stats page — interactive controls", () => {
+test.describe("Team Stats page: interactive controls", () => {
   test.beforeEach(async ({ page }) => {
     await loadPage(page, "/team-stats");
   });
@@ -314,7 +314,7 @@ test.describe("Team Stats page — interactive controls", () => {
 
     // Only rendered when games exist
     const hasPhaseFilters = (await allBtn.count()) > 0;
-    test.skip(!hasPhaseFilters, "No games — phase filters not rendered");
+    test.skip(!hasPhaseFilters, "No games, phase filters not rendered");
 
     await expect(allBtn).toBeVisible();
     await expect(regularBtn).toBeVisible();
@@ -334,7 +334,7 @@ test.describe("Team Stats page — interactive controls", () => {
     // "All Games" tab is always first when leagues exist
     const allGamesBtn = page.getByRole("button", { name: /all games/i });
     const count = await allGamesBtn.count();
-    test.skip(count === 0, "No games — league tabs not rendered");
+    test.skip(count === 0, "No games, league tabs not rendered");
 
     await expect(allGamesBtn).toBeVisible();
     await allGamesBtn.click();
@@ -344,14 +344,14 @@ test.describe("Team Stats page — interactive controls", () => {
   test("season selector: clicking a past season switches data client-side without navigation", async ({ page }) => {
     const btns = seasonBtns(page);
     const count = await btns.count();
-    test.skip(count < 2, "Fewer than 2 seasons — selector not interactive");
+    test.skip(count < 2, "Fewer than 2 seasons, selector not interactive");
 
     const urlBefore = page.url();
     const targetIdx = (await btns.nth(0).getAttribute("class"))?.includes("ak-red") ? 1 : 0;
 
     await btns.nth(targetIdx).click();
 
-    // Must NOT navigate away — pure client-side switch via useState
+    // Must NOT navigate away, pure client-side switch via useState
     expect(page.url()).toBe(urlBefore);
     // Clicked button becomes active
     await expect(btns.nth(targetIdx)).toHaveClass(/ak-red-text/);

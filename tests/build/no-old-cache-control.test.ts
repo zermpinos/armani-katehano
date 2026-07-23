@@ -31,7 +31,7 @@ describe("no legacy Cache-Control in public pages", () => {
     if (violations.length > 0) {
       throw new Error(
         `Legacy Cache-Control header found in:\n${violations.join("\n")}\n` +
-        `Remove res.setHeader("Cache-Control", ...) from getStaticProps — ISR sets its own headers.`
+        `Remove res.setHeader("Cache-Control", ...) from getStaticProps. ISR sets its own headers.`
       );
     }
   });

@@ -9,7 +9,7 @@
  * session as valid. All data APIs are also mocked so tests are fully
  * self-contained (no live DB required).
  *
- * Do NOT use waitForLoadState("networkidle") — Next.js dev HMR keeps a
+ * Do NOT use waitForLoadState("networkidle"). Next.js dev HMR keeps a
  * WebSocket open that prevents networkidle from ever firing.
  */
 import { test, expect } from "@playwright/test";
@@ -68,7 +68,7 @@ async function mockSeasonsApis(page, { putResponse } = {}) {
 
 async function goToSeasons(page, slug) {
   await page.goto(`/admin/${slug}/seasons`);
-  // Wait for the panel label — CSS renders it uppercase but the text content is mixed case
+  // Wait for the panel label. CSS renders it uppercase but the text content is mixed case
   await expect(page.getByText("Season Rosters")).toBeVisible({ timeout: 10_000 });
 }
 
@@ -241,7 +241,7 @@ test.describe("Season Rosters panel › save", () => {
     await page.getByRole("button", { name: /2025-26/ }).click();
     await page.getByLabel(/#23/).click();
 
-    // Capture the PUT before clicking — waitForRequest fires on dispatch, before routing
+    // Capture the PUT before clicking. waitForRequest fires on dispatch, before routing
     const putPromise = page.waitForRequest(req =>
       req.method() === "PUT" && req.url().includes("roster-entries")
     );
