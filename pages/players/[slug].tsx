@@ -10,8 +10,8 @@ import { PlayerHero } from "@/client/players/PlayerHero";
 import { getAllPublicData, getAllSeasonsStats, getPlayerGameLog } from "@/server/db/repositories";
 import { buildAllTimeStatsMap, computeStatsFromLog } from "@/domain/stats";
 
-const SkillRadar   = dynamic(() => import("@/client/players/SkillRadar").then(m => ({ default: m.SkillRadar })),     { ssr: false });
-const GameLogPanel = dynamic(() => import("@/client/players/GameLogPanel").then(m => ({ default: m.GameLogPanel })), { ssr: false });
+const SkillRadar   = dynamic(() => import("@/client/players/charts").then(m => ({ default: m.SkillRadar })),   { ssr: false });
+const GameLogPanel = dynamic(() => import("@/client/players/charts").then(m => ({ default: m.GameLogPanel })), { ssr: false });
 
 type PhaseFilter = "all" | "regular" | "playoffs";
 const PLAYOFF_ROUNDS = ["quarterfinal", "semifinal", "final"];
