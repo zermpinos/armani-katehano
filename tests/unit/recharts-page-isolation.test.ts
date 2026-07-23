@@ -10,23 +10,12 @@ import { resolve } from "node:path";
 // unused JavaScript" in Lighthouse on the homepage audit.
 //
 // The fix is to lazy-load every chart-bearing component via `dynamic()`.
-// MinutesChart on /team-stats does the same.
+// (team-stats/minutes-chart is exempt: it renders native bars, no recharts.)
 const ROOT = resolve(__dirname, "..", "..");
 
 function read(rel: string): string {
   return readFileSync(resolve(ROOT, rel), "utf8"); // eslint-disable-line security/detect-non-literal-fs-filename
 }
-
-describe("page-level isolation of recharts via dynamic imports", () => {
-  it("pages/team-stats.tsx loads MinutesChart via dynamic()", () => {
-    const src = read("pages/team-stats.tsx");
-    expect(src).not.toMatch(
-      /^\s*import\s*\{\s*MinutesChart\s*\}\s*from\s*["']@\/client\/team-stats\/minutes-chart["']/m
-    );
-    expect(src).toMatch(/dynamic\(/);
-    expect(src).toMatch(/import\(["']@\/client\/team-stats\/minutes-chart["']\)/);
-  });
-});
 
 describe("player standalone page recharts isolation", () => {
   it("pages/players/[slug].tsx loads SkillRadar via dynamic() (not a static import)", () => {
