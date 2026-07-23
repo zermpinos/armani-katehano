@@ -83,5 +83,73 @@ a { color: inherit; text-decoration: none; }
   background-size: 20px 20px;
 }
 
+/* ── Depth layer ──
+   Keyframes declare only the far end. The near end is the element's own style,
+   so an inactive timeline, an unsupported browser and reduced motion all land
+   on visible and undisplaced rather than blank. */
+
+@keyframes ak-reveal     { from { opacity: 0; transform: translateY(28px); } }
+@keyframes ak-drift-slow { to   { transform: translateY(40px); } }
+@keyframes ak-drift-fast { to   { transform: translateY(72px); } }
+
+/* Wraps rather than overrides: the reduce block below sets animation-duration
+   to 0.01ms, which on a scroll-driven animation pins it at its 0% keyframe. */
+@media (prefers-reduced-motion: no-preference) {
+  /* Without this, a browser lacking animation-timeline still applies the
+     shorthand and fires every reveal at once on the document timeline. */
+  @supports (animation-timeline: view()) {
+    .ak-reveal {
+      animation: ak-reveal linear both; /* precedes animation-timeline: the shorthand resets it */
+      animation-timeline: view();
+      /* Not 100%: an element near the page bottom never completes its entry
+         range and would sit permanently half-faded. */
+      animation-range: entry 0% entry 55%;
+    }
+
+    /* Named, because the texture layer is oversized and on an anonymous view()
+       would enter its exit range 80px early and drift on page load. */
+    .ak-hero { view-timeline: --ak-hero block; }
+
+    .ak-parallax-slow,
+    .ak-parallax-fast {
+      animation-timeline: --ak-hero;
+      animation-range: exit; /* 0% is the hero top meeting the viewport top, so it rests untouched on load */
+      animation-fill-mode: both;
+      animation-timing-function: linear;
+    }
+    .ak-parallax-slow { animation-name: ak-drift-slow; }
+    .ak-parallax-fast { animation-name: ak-drift-fast; }
+  }
+
+  /* Kept off the chart cards: a tilted plane fights the recharts tooltip. */
+  @media (hover: hover) and (pointer: fine) {
+    .ak-tilt > * {
+      transition: transform 0.28s cubic-bezier(0.2,0.8,0.3,1),
+                  box-shadow 0.28s cubic-bezier(0.2,0.8,0.3,1);
+    }
+    .ak-tilt > *:hover {
+      transform: perspective(900px) translateY(-4px) rotateX(4deg);
+      box-shadow: 0 16px 34px -14px rgba(0,0,0,0.6);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto !important; }
+  /* The reset above would strand this infinite shimmer on an arbitrary gradient
+     stop, which can land on near-white text. */
+  .ak-shimmer-text {
+    animation: none !important;
+    background: none;
+    -webkit-text-fill-color: #ec6666;
+    color: #ec6666;
+  }
+}
+
 /* ── Utility ── */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
