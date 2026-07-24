@@ -11,14 +11,18 @@ export function renderMarkdown(body: string): MarkedOutput {
 }
 
 function htmlToText(html: string): string {
-  return html
-    .replace(/<a\s[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, "$2 ($1)")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&amp;/g, "&")
+  let text = html.replace(/<a\s[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, "$2 ($1)");
+  let prev;
+  do {
+    prev = text;
+    text = text.replace(/<[^>]+>/g, "");
+  } while (text !== prev);
+  return text
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

@@ -133,7 +133,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
         <div className="ak-parallax-fast absolute top-0 right-0 w-[280px] h-[280px] rounded-full bg-[#8b1a1a18] translate-x-[35%] -translate-y-[35%]" />
         <div className="relative">
           <div className="text-[11px] font-black tracking-[0.18em] uppercase text-ak-red-text mb-2">
-            {currentSeason.replace(/-/g, "-")} · {phaseLabel(seasonPhase)}
+            {currentSeason} · {phaseLabel(seasonPhase)}
           </div>
           <h1 className="text-[clamp(36px,6vw,64px)] font-black leading-none tracking-[-0.02em] uppercase text-ak-text">
             Armani<br /><span className="text-ak-red-bright">Katehano</span>

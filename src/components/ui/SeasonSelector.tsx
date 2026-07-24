@@ -19,7 +19,7 @@ export default function SeasonSelector({ seasons, currentSeason, onChange, showA
 
   const label = (sid: string) => {
     if (sid === "all-time") return "All Time";
-    return sid.replace(/-/g, "-");
+    return sid;
   };
 
   return (

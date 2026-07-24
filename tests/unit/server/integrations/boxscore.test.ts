@@ -182,7 +182,7 @@ describe("scrapeGame - loadDoc injection", () => {
   it("injects quarter table payload from loadDoc call into the target div", () => {
     // The real sportstats page delivers quarter tables via loadDoc() JS calls
     // that the scraper resolves before parsing with cheerio.
-    const tableHtml = PER_QUARTER_TABLE.replace(/"/g, '\\"');
+    const tableHtml = PER_QUARTER_TABLE.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     const html = `
       ${gameHeader({ homeScore: 39, awayScore: 45 })}
       <script>loadDoc("${tableHtml}", "scores1")</script>
@@ -195,8 +195,8 @@ describe("scrapeGame - loadDoc injection", () => {
   });
 
   it("resolves multiple loadDoc calls (per-quarter + cumulative both injected)", () => {
-    const perQ    = PER_QUARTER_TABLE.replace(/"/g, '\\"');
-    const cumul   = CUMULATIVE_TABLE.replace(/"/g, '\\"');
+    const perQ    = PER_QUARTER_TABLE.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    const cumul   = CUMULATIVE_TABLE.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     const html = `
       ${gameHeader({ homeScore: 39, awayScore: 45 })}
       <script>loadDoc("${perQ}",  "scores1")</script>

@@ -18,7 +18,7 @@ export default function GamePage({ game }: { game: any }) {
         ← Games
       </Link>
       <SectionHeading
-        label={`${game.season.replace(/-/g, "-")} · ${game.leagueName}`}
+        label={`${game.season} · ${game.leagueName}`}
         title={`${game.home ? "vs" : "@"} ${game.opponent}`}
         right={game.date}
       />
