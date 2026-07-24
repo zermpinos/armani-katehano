@@ -27,7 +27,7 @@ function sha256(s: string) {
 }
 
 function extractScripts(html: string): string[] {
-  const re = /<script([^>]*)>([\s\S]*?)<\/script>/gi;
+  const re = /<script([^>]*)>([\s\S]*?)<\/script\s*>/gi;
   const out: string[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(html)) !== null) {
@@ -41,7 +41,7 @@ function extractScripts(html: string): string[] {
 }
 
 function extractStyles(html: string): string[] {
-  const re = /<style(?:\s[^>]*)?>([^<]+)<\/style>/gi;
+  const re = /<style(?:\s[^>]*)?>([^<]+)<\/style\s*>/gi;
   const out: string[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(html)) !== null) {

@@ -8,7 +8,7 @@ const BUILD_DIR = join(ROOT, ".next/server/pages");
 const hasBuild  = existsSync(BUILD_DIR) && existsSync(join(BUILD_DIR, "index.html"));
 
 function extractScripts(html: string) {
-  const re = /<script([^>]*)>([\s\S]*?)<\/script>/gi;
+  const re = /<script([^>]*)>([\s\S]*?)<\/script\s*>/gi;
   const exec: string[] = [];
   const json: string[] = [];
   let m: RegExpExecArray | null;

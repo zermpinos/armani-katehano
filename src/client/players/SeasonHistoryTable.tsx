@@ -32,7 +32,7 @@ export function SeasonHistoryTable({ player, activeSeason }: any) {
               .sort((a, b) => b[0].localeCompare(a[0]))
               .map(([sid, ss], i) => (
                 <tr key={sid} className={i % 2 === 0 ? "bg-ak-surface" : "bg-ak-base"}>
-                  <td className="py-[6px] px-[10px] font-bold text-ak-text-sub">{sid.replace(/-/g,"-")}</td>
+                  <td className="py-[6px] px-[10px] font-bold text-ak-text-sub">{sid}</td>
                   <td className="py-[6px] px-[10px] text-center text-ak-text-dim">{ss.gp}</td>
                   <td className="py-[6px] px-[10px] text-center font-black text-ak-red-text">{ss.ppg}</td>
                   <td className="py-[6px] px-[10px] text-center text-ak-text">{ss.rpg}</td>

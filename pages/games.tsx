@@ -62,8 +62,8 @@ export default function GamesPage({ allGames, seasons, currentSeason, seasonPhas
       <SectionHeading
         label={
           selectedSeason === currentSeason
-            ? `${selectedSeason.replace(/-/g, "-")} · ${phaseLabel(seasonPhase)}`
-            : `${selectedSeason.replace(/-/g, "-")} · Season`
+            ? `${selectedSeason} · ${phaseLabel(seasonPhase)}`
+            : `${selectedSeason} · Season`
         }
         title="Games"
       />

@@ -25,7 +25,7 @@ function walk(dir) {
 }
 
 function scripts(html) {
-  const re = /<script([^>]*)>([\s\S]*?)<\/script>/gi;
+  const re = /<script([^>]*)>([\s\S]*?)<\/script\s*>/gi;
   const out = [];
   let m;
   while ((m = re.exec(html))) {
@@ -39,7 +39,7 @@ function scripts(html) {
 }
 
 function styles(html) {
-  const re = /<style(?:\s[^>]*)?>([^<]+)<\/style>/gi;
+  const re = /<style(?:\s[^>]*)?>([^<]+)<\/style\s*>/gi;
   const out = [];
   let m;
   while ((m = re.exec(html))) {
