@@ -35,8 +35,8 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
-    "@prisma/adapter-neon": "^7.8.0",
-    "@prisma/client": "^7.8.0",
+    "@prisma/adapter-neon": "^7.9.0",
+    "@prisma/client": "^7.9.0",
     "@simplewebauthn/browser": "13.3.0",
     "@simplewebauthn/server": "13.3.2",
     "bcryptjs": "^3.0.3",
@@ -54,10 +54,9 @@
     "zod": "^4.4.3"
   },
   "overrides": {
-    "hono": ">=4.12.27",
-    "@hono/node-server": ">=2.0.5",
     "sharp": ">=0.35.0",
     "fast-uri": ">=3.1.4",
+    "find-my-way": ">=9.7.0",
     "postcss": "^8.5.10",
     "encoding-sniffer": "^1.0.2",
     "@babel/core": ">=7.29.7",
@@ -68,7 +67,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/adapter-pg": "^7.9.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/nodemailer": "^8.0.1",
     "@types/ws": "^8.18.1",
@@ -78,7 +77,7 @@
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-no-unsanitized": "^4.1.5",
     "eslint-plugin-security": "^4.0.1",
-    "prisma": "^7.8.0",
+    "prisma": "^7.9.0",
     "tailwindcss": "^4.3.0",
     "tsx": "^4.23.1",
     "typescript": "^6.0.3",
