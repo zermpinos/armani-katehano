@@ -76,18 +76,18 @@ PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end
 ## 3. Tech Stack
 
 **Runtime & framework**
-- Node.js ≥ 24.14
+- Node.js ≥ 24.15 (`< 25`; pinned by `.nvmrc` and `engines`)
 - Next.js 16 (Pages Router), ISR for public pages with on-demand revalidation
 - React 19
-- TypeScript 5
+- TypeScript 6
 
 **Database & ORM**
 - PostgreSQL (Neon-hosted in production, via pooled `DATABASE_URL` + direct `DIRECT_URL` for migrations)
-- Prisma 7 (`@prisma/client`, `@prisma/adapter-pg`, `pg`)
+- Prisma 7 (`@prisma/client` with `@prisma/adapter-neon` over `@neondatabase/serverless`; `@prisma/adapter-pg` is used only in tests)
 
 **Styling & UI**
-- Tailwind CSS 3 + PostCSS + Autoprefixer
-- Recharts 3 (charts)
+- Tailwind CSS 4 (via `@tailwindcss/postcss`)
+- Charts are native inline SVG + CSS (`src/client/charts/`), server-rendered where possible - no charting dependency
 
 **Validation & schemas**
 - Zod 4 (request/response, scrape outputs, schedule rows)
@@ -104,7 +104,7 @@ PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end
 - Nodemailer + Brevo SMTP (transactional email + admin broadcasts)
 - Cheerio + `pdf-parse` (box-score scraping)
 - Cloudinary (player-photo hosting; URLs are pasted directly by admins and resized client-side via a URL-transform helper, no SDK)
-- Vercel Analytics & Speed Insights
+- Self-hosted monitoring: a dependency-free `/api/health` liveness endpoint plus anonymous Web Vitals beaconed to `/api/vitals` (no vendor, no cookies, no PII)
 
 **Tooling**
 - ESLint 9 (with `eslint-plugin-security`, `eslint-plugin-no-unsanitized`, `eslint-config-next`)
@@ -142,6 +142,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - **Subscribe / unsubscribe** - double-opt-in email flow with token-based unsubscribe (`/unsubscribe`) and confirmation (`/api/confirm`).
 - **Maintenance page** (`/maintenance`) - shown to visitors when site-wide maintenance mode is on; admins with an active session bypass it transparently (enforced in `proxy.ts`, fails open on error).
 - **Privacy policy** (`/privacy`), **sitemap** (`/sitemap.xml`), **humans.txt** (`/api/humans-txt`), **security.txt** (`/.well-known/security.txt`, RFC 9116).
+- **Motion & depth** - scroll-driven hero parallax, a reveal on the homepage chart rows, and a hover tilt on stat tiles; built with native CSS scroll-driven animations (no JS, no dependency), gated on `@supports (animation-timeline: view())` and turned off under `prefers-reduced-motion`.
 
 ### Admin portal (`/admin/<slug>`)
 - Passkey (WebAuthn) login with per-IP login-attempt rate limiting and CSRF tokens; password + TOTP retained as opt-in fallback (gated by `PASSKEY_FALLBACK_TOKEN`).
@@ -181,6 +182,7 @@ All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECR
 - Audit log written to structured stdout (`[AUDIT]`) and persisted to the `AuditLog` table (client IPs are SHA-256 hashed before storage), with `console.warn` alerts (`[AUDIT_ALERT]`) on high-signal events (locked accounts, blocked CSRF, broadcast abuse); purged after 90 days.
 - `security.txt` (RFC 9116) at `/.well-known/security.txt` points to [`SECURITY.md`](SECURITY.md) for vulnerability disclosure.
 - ESLint security plugins + `no-unsanitized` + `node:` protocol enforcement + Semgrep + Gitleaks workflows.
+- **Monitoring** - `/api/health` is a dependency-free liveness probe (it does not touch the database, so uptime pings add no Neon load); the client beacons anonymous Web Vitals to `/api/vitals`, which validates the metric name, drops anything unknown, and stores no IP or identifier.
 
 ---
 
@@ -211,6 +213,7 @@ armani-katehano/
 │       ├── auth/passkey/           WebAuthn register/auth options + verify
 │       ├── calendar/ics.ts         Public .ics calendar export for a game
 │       ├── humans-txt.ts, .well-known/security.txt.ts
+│       ├── health.ts, vitals.ts       Liveness probe + anonymous Web Vitals sink
 │       ├── admin/                  Admin endpoints (CRUD, recalc, import, broadcast, popup-config, cleanup)
 │       │   └── seasons/[id]/       archive.ts, unarchive.ts
 │       ├── coach/                  Coach auth + endpoints
@@ -220,6 +223,7 @@ armani-katehano/
 │
 ├── src/
 │   ├── client/                     Page-scoped client components & hooks
+│   │   ├── charts/                 Native SVG/CSS chart primitives - no chart lib
 │   │   ├── home/                   home page components (incl. final-four-popup, calendar-utils)
 │   │   ├── players/, games/, leaderboard/, team-stats/,
 │   │   │   admin/ (incl. import/, shell/), coach/, shared/
@@ -304,7 +308,7 @@ armani-katehano/
 ## 7. Usage
 
 ### Prerequisites
-- Node.js ≥ 24.14 (`.nvmrc` pins the version)
+- Node.js ≥ 24.15 (`.nvmrc` pins `24.15.0`; `engines` requires `>=24.15.0 <25`)
 - A PostgreSQL database (locally or via Neon)
 - Brevo SMTP credentials (optional in development; required for email flows)
 
@@ -460,7 +464,7 @@ The app is deployed to **Vercel**. Production data is in **Neon Postgres**.
 ### Vercel configuration
 
 - **Build command** - `npm run build` (runs the prebuild polyfill stub, `prisma generate`, `next build`, and the post-build middleware-bundle / ISR-page guards).
-- **Node version** - pinned via `.nvmrc` (≥ 24.14).
+- **Node version** - pinned via `.nvmrc` (`24.15.0`; `engines` requires `>=24.15.0 <25`).
 - **Crons** - declared in [`vercel.json`](vercel.json):
   - `0 2 * * *` -> `/api/admin/cleanup`
   - `0 3 * * *` -> `/api/cron/purge-subscribers`
@@ -495,6 +499,7 @@ Operational procedures live in `docs/`:
 - **Totals are stored, not derived.** `PlayerSeasonAggregate` keeps both `*Avg` and `*Total` columns; totals must come from raw `PlayerGameStat` sums (`stats-recalc.ts`), never approximated from `avg × gp`.
 - **Season archiving is presentational.** Marking a `Season.archivedAt` only drives the public "season complete" banner and admin UI state; it doesn't lock stats or prevent further edits.
 - **Feature toggles live in a generic `Setting` key/value table** (maintenance mode, playoff-popup enabled/version/round) rather than dedicated columns - simple for a handful of booleans, but not meant to scale into a general config system.
+- **No charting dependency.** Charts are hand-built inline SVG + CSS, rendered server-side where the data allows, which dropped Recharts and its client bundle entirely. The motion/depth effects are likewise pure CSS scroll-driven animations, gated behind `@supports` and `prefers-reduced-motion`.
 - **Validation at the boundary.** Every API route and external scrape parses inputs through Zod schemas in `src/schemas/` before they reach business logic; `z.string().cuid()` is used directly (no custom wrappers).
 
 ### Limitations
