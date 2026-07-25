@@ -203,6 +203,15 @@ async function createGame(req: any, res: any) {
     });
     return res.status(201).json({ ok: true, gameId: game.id });
   } catch (err) {
+    // A re-import of an already-saved sourceUrl trips the partial unique index
+    // (P2002). Return 409 with the existing game id instead of a generic 500.
+    if ((err as any)?.code === "P2002" && sourceUrl) {
+      const existing = await prisma.game.findFirst({ where: { sourceUrl } });
+      if (existing) {
+        auditLog("game_create_duplicate", { ip, gameId: existing.id, sourceUrl });
+        return res.status(409).json({ error: "A game with this source URL already exists.", gameId: existing.id });
+      }
+    }
     auditLog("game_create_error", { ip, error: (err as any).message });
     return handleError(res, err);
   }
