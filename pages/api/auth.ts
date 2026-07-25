@@ -133,15 +133,21 @@ export default async function handler(req: any, res: any) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // TOTP check - required if the user has a totpSecret configured
+    // TOTP is mandatory on this fallback path. A resolved user with no
+    // totpSecret would otherwise pass on password + slug alone, silently making
+    // the break-glass login single factor. Fail closed instead of skipping.
     const userRecord = getAdminUser(username);
-    if (userRecord?.totpSecret) {
-      if (!totpToken || typeof totpToken !== "string" || !verifyTotp(userRecord.totpSecret, totpToken)) {
-        const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY, username);
-        if (locked) return res.status(locked.status).json(locked.body);
-        auditLog("login_totp_failed", { ip, username });
-        return res.status(401).json({ error: "Invalid authenticator code" });
-      }
+    if (!userRecord?.totpSecret) {
+      const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY, username);
+      if (locked) return res.status(locked.status).json(locked.body);
+      auditLog("login_totp_not_configured", { ip, username });
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+    if (!totpToken || typeof totpToken !== "string" || !verifyTotp(userRecord.totpSecret, totpToken)) {
+      const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY, username);
+      if (locked) return res.status(locked.status).json(locked.body);
+      auditLog("login_totp_failed", { ip, username });
+      return res.status(401).json({ error: "Invalid authenticator code" });
     }
 
     await Promise.all([clearAttempts(ip), clearAttempts(ACCOUNT_KEY)]);
