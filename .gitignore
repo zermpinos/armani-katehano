@@ -23,3 +23,6 @@ test-results/
 
 # Self-hosted Actions runner installation
 actions-runner/
+
+# throwaway analysis scripts, never committed
+scripts/tmp/

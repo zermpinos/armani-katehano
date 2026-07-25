@@ -3,14 +3,11 @@
 # Add a comment above every entry: what it is, why it is tolerated, and the
 # date of the mitigating action (rotation, deletion, etc.). Anything without
 # a clear rationale should be investigated, not allowlisted.
-
-# Historical occurrence of TEST_PASSWORD in test-login.js. The file was
-# removed from the worktree in commit 0c54393, but the literal remains in
-# the blob at b4c67d8. The credential was rotated manually on 2026-06-01,
-# so the literal in history is inert. Server-side refs/pull/* on GitHub
-# also reference this blob and can only be removed via a GitHub Support
-# "remove sensitive data" request.
-b4c67d8b8c754a3343932a5ce86cd99176fcdb3e:test-login.js:generic-api-key:5
+#
+# Path-based allowlists (for example the historical test-login.js blob) live
+# in .gitleaks.toml, which keeps holding when a file moves. Fingerprints below
+# pin one commit and line and are used only where a path rule would be too
+# broad.
 
 # Playwright E2E test-only password for the player-auth happy path. The
 # literal is a fixed test input (must be >= 12 chars to satisfy the login
