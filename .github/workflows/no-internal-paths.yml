@@ -1,0 +1,32 @@
+name: No Internal Paths
+
+# Enforcement layer for the public/private boundary. .gitignore is advisory:
+# `git add -f` and `git clean -xdf` both defeat it. This job inspects what is
+# actually TRACKED and fails if any private path is committed, so the boundary
+# cannot be bypassed by a local `--no-verify` or a forced add.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Fail on tracked private paths
+        run: |
+          matches=$(git ls-files | grep -E '(^|/)(internal|scripts/tmp)/' || true)
+          if [ -n "$matches" ]; then
+            echo "Private paths are tracked in this PUBLIC repo:"
+            echo "$matches"
+            echo
+            echo "These directories hold internal-only material and must never"
+            echo "be committed. Remove them with 'git rm --cached' and keep the"
+            echo "content in the separate private repository."
+            exit 1
+          fi
