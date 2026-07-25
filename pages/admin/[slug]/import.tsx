@@ -1,10 +1,10 @@
-import { useState, useMemo, type ReactNode } from "react";
+import { useState, useMemo, useRef, type ReactNode } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch } from "@/client/admin";
 import type { ScheduledGame } from "@/client/admin";
 import { getAdminPasskeyLoginProps } from "@/server/auth";
 import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
-import { buildDraft } from "@/client/admin/import/build-draft";
+import { buildDraft, diffDraft } from "@/client/admin/import/build-draft";
 import type { ImportDraft } from "@/client/admin/import/build-draft";
 import { useImportData } from "@/client/admin/import/use-import-data";
 import { IdleForm } from "@/client/admin/import/IdleForm";
@@ -28,10 +28,14 @@ export default function ImportPage({
   const [draft,      setDraft]      = useState<ImportDraft | null>(null);
   const [highlights, setHighlights] = useState<Record<string, boolean>>({});
   const [warnings,   setWarnings]   = useState<string[]>([]);
+  const [unresolved, setUnresolved] = useState<string[]>([]);
   const [error,      setError]      = useState("");
   const [gameState,  setGameState]  = useState<{ state: string; reason: string } | null>(null);
   const [offRating,  setOffRating]  = useState<number | null>(null);
   const [defRating,  setDefRating]  = useState<number | null>(null);
+  // Snapshot of the resolver's draft, before any review-form edits, for the
+  // resolve-vs-saved diff. Edits are immutable, so this reference stays intact.
+  const resolvedRef = useRef<ImportDraft | null>(null);
 
   const linkedUpcoming = useMemo<ScheduledGame | null>(
     () => upcomingGameId ? schedule.find(g => g.id === upcomingGameId) ?? null : null,
@@ -54,9 +58,10 @@ export default function ImportPage({
       const body = await res.json();
       if (!res.ok) { setError(body.error || "Scrape failed"); return; }
 
-      const { draft: d, highlights: hl, warnings: w, offRating: off, defRating: def } =
+      const { draft: d, highlights: hl, warnings: w, unresolved: un, offRating: off, defRating: def } =
         buildDraft(body.data, players, seasonLeagues);
-      setDraft(d); setHighlights(hl); setWarnings(w);
+      setDraft(d); setHighlights(hl); setWarnings(w); setUnresolved(un);
+      resolvedRef.current = d;
       setOffRating(off ?? null); setDefRating(def ?? null);
       setGameState(body.gameState ?? null);
       setPhase("review");
@@ -98,6 +103,10 @@ export default function ImportPage({
 
   const save = async () => {
     if (!draft) return;
+    if (unresolved.length) {
+      showToast("Cannot save while roster issues are unresolved.", "error");
+      return;
+    }
     setPhase("saving");
     const boxScore = draft.boxScore.map(r => {
       const fg2m = r.fg2m || 0, fg2a = r.fg2a || 0;
@@ -111,6 +120,8 @@ export default function ImportPage({
         ftm: r.ftm || 0, fta: r.fta || 0,
       };
     });
+
+    const importDiff = resolvedRef.current ? diffDraft(resolvedRef.current, draft) : [];
 
     const res = await apiFetch("/api/admin/games", {
       method:  "POST",
@@ -126,6 +137,7 @@ export default function ImportPage({
         sourceUrl:      draft.sourceUrl ?? null,
         youtubeUrl:     youtubeUrl.trim() || null,
         boxScore,
+        importDiff,
       }),
     });
 
@@ -142,7 +154,7 @@ export default function ImportPage({
     setPhase("idle");
     setDraft(null);
     setGameUrl(""); setYoutubeUrl("");
-    setHighlights({}); setWarnings([]);
+    setHighlights({}); setWarnings([]); setUnresolved([]);
     setGameState(null); setOffRating(null); setDefRating(null);
 
     // Refresh schedule so the just-imported entry now shows as Imported.
@@ -157,6 +169,7 @@ export default function ImportPage({
 
   const handleBack = () => {
     setPhase("idle"); setDraft(null);
+    setWarnings([]); setUnresolved([]);
     setGameState(null); setOffRating(null); setDefRating(null);
   };
 
@@ -230,6 +243,7 @@ export default function ImportPage({
               phase={phase}
               gameState={gameState}
               warnings={warnings}
+              unresolved={unresolved}
               offRating={offRating}
               defRating={defRating}
               youtubeUrl={youtubeUrl}

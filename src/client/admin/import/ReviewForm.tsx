@@ -7,6 +7,7 @@ type Props = {
   phase: string;
   gameState: { state: string; reason: string } | null;
   warnings: string[];
+  unresolved: string[];
   offRating: number | null;
   defRating: number | null;
   youtubeUrl: string;
@@ -23,11 +24,15 @@ type Props = {
 const urlInputCls = "w-full py-[10px] px-3 text-[13px] font-sans rounded-lg border border-ak-border2 bg-ak-base text-ak-text outline-none";
 
 export function ReviewForm({
-  draft, phase, gameState, warnings, offRating, defRating,
+  draft, phase, gameState, warnings, unresolved, offRating, defRating,
   youtubeUrl, setYoutubeUrl, players, highlights, seasonLeagues,
   updDraft, updBox, onSave, onBack,
 }: Props) {
-  const leagueOptions = seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName }));
+  const leagueMissing = !draft.seasonLeagueId;
+  const leagueOptions = [
+    ...(leagueMissing ? [{ value: "", label: "Select a league" }] : []),
+    ...seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName })),
+  ];
 
   return (
     <div className="flex flex-col gap-4">
@@ -42,6 +47,14 @@ export function ReviewForm({
             {gameState.state === "scheduled" ? "Game not yet played" : "Game may still be in progress"}
           </div>
           <div>{gameState.reason}</div>
+        </div>
+      )}
+
+      {(unresolved.length > 0 || leagueMissing) && (
+        <div className="py-[10px] px-[14px] rounded-lg bg-[#8b1a1a30] border border-[#8b1a1a] text-xs text-ak-red-text">
+          <div className="font-black mb-1">Blocked - fix before saving:</div>
+          {unresolved.map((u, i) => <div key={i}>• {u}</div>)}
+          {leagueMissing && <div>• No league matched the source URL. Pick one under Game info.</div>}
         </div>
       )}
 
@@ -103,7 +116,7 @@ export function ReviewForm({
         <Btn
           onClick={onSave}
           variant="green"
-          disabled={phase === "saving" || gameState?.state === "scheduled"}
+          disabled={phase === "saving" || gameState?.state === "scheduled" || unresolved.length > 0 || leagueMissing}
         >
           {phase === "saving" ? "SAVING..." : "SAVE GAME"}
         </Btn>

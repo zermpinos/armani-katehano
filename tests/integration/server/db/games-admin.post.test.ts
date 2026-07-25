@@ -79,4 +79,20 @@ describe("POST /api/admin/games", () => {
     await handler(req, res);
     expect(res.statusCode).toBe(500);
   });
+
+  it("returns 409 with the existing gameId on a duplicate sourceUrl", async () => {
+    const dup = Object.assign(new Error("Unique constraint failed"), {
+      code: "P2002", meta: { target: ["sourceUrl"] },
+    });
+    mockPrisma.$transaction.mockRejectedValueOnce(dup);
+    mockPrisma.game.findFirst = vi.fn().mockResolvedValue({ id: "existing-game-id" });
+    const req = authedReq({
+      method: "POST",
+      body:   { ...VALID_GAME_BODY, sourceUrl: "https://basketcity.sportstats.gr/men/game/1" },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(409);
+    expect(res._body.gameId).toBe("existing-game-id");
+  });
 });
