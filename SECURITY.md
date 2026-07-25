@@ -38,6 +38,10 @@ Out of scope:
 - Third-party services (Vercel infrastructure, Neon platform)
 - Volumetric denial-of-service and load testing
 
+## Repository boundary
+
+This repository is public. Operational runbooks, incident procedures, and internal analysis are kept in a separate private repository and are never committed here. If you find internal-only material committed to this public repository (for example, files under an `internal/` path, or operational runbooks), please report it via the security contact below - it is a disclosure issue, not an intended artifact.
+
 ## Contact
 
 Security contact: webmaster@armani-katehano.com
