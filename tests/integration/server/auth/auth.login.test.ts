@@ -109,8 +109,9 @@ describe("POST /api/auth (slug validation)", () => {
 
   it("logs the real slug result on success rather than a hardcoded true", async () => {
     verifyCredentials.mockResolvedValue(true);
-    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$..." });
-    const req = loginReq({ username: "admin", password: "correct", slug: ADMIN_SLUG });
+    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$...", totpSecret: "BASE32SECRET" });
+    verifyTotp.mockReturnValue(true);
+    const req = loginReq({ username: "admin", password: "correct", totpToken: "123456", slug: ADMIN_SLUG });
     const res = mockRes();
     await handler(req, res);
     expect(res.statusCode).toBe(200);
@@ -210,9 +211,9 @@ describe("POST /api/auth (login)", () => {
     expect(clearAttempts).not.toHaveBeenCalled();
   });
 
-  it("returns 200 and sets session cookie on correct credentials (no TOTP configured)", async () => {
+  it("returns 401 and no session when the fallback is enabled but the user has no totpSecret", async () => {
     verifyCredentials.mockResolvedValue(true);
-    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$..." });
+    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$..." }); // no totpSecret
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
@@ -220,13 +221,11 @@ describe("POST /api/auth (login)", () => {
     });
     const res = mockRes();
     await handler(req, res);
-    expect(res.statusCode).toBe(200);
-    expect(res._body).toEqual({ ok: true });
-    const loginCookies = [res._headers["Set-Cookie"]].flat().join(" ");
-    expect(loginCookies).toContain("__Host-ak_session=");
-    expect(loginCookies).toContain("HttpOnly");
-    expect(clearAttempts).toHaveBeenCalledTimes(2);
-    expect(atomicRecordAndCheck).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(401);
+    expect(res._headers["Set-Cookie"]).toBeUndefined();
+    expect(clearAttempts).not.toHaveBeenCalled();
+    expect(atomicRecordAndCheck).toHaveBeenCalledTimes(2);
+    expect(auditLog).toHaveBeenCalledWith("login_totp_not_configured", expect.objectContaining({ username: "admin" }));
   });
 
   it("returns 401 when TOTP is configured but code is missing", async () => {
