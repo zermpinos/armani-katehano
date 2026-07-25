@@ -28,6 +28,7 @@ export default function ImportPage({
   const [draft,      setDraft]      = useState<ImportDraft | null>(null);
   const [highlights, setHighlights] = useState<Record<string, boolean>>({});
   const [warnings,   setWarnings]   = useState<string[]>([]);
+  const [unresolved, setUnresolved] = useState<string[]>([]);
   const [error,      setError]      = useState("");
   const [gameState,  setGameState]  = useState<{ state: string; reason: string } | null>(null);
   const [offRating,  setOffRating]  = useState<number | null>(null);
@@ -54,9 +55,9 @@ export default function ImportPage({
       const body = await res.json();
       if (!res.ok) { setError(body.error || "Scrape failed"); return; }
 
-      const { draft: d, highlights: hl, warnings: w, offRating: off, defRating: def } =
+      const { draft: d, highlights: hl, warnings: w, unresolved: un, offRating: off, defRating: def } =
         buildDraft(body.data, players, seasonLeagues);
-      setDraft(d); setHighlights(hl); setWarnings(w);
+      setDraft(d); setHighlights(hl); setWarnings(w); setUnresolved(un);
       setOffRating(off ?? null); setDefRating(def ?? null);
       setGameState(body.gameState ?? null);
       setPhase("review");
@@ -98,6 +99,10 @@ export default function ImportPage({
 
   const save = async () => {
     if (!draft) return;
+    if (unresolved.length) {
+      showToast("Cannot save while roster issues are unresolved.", "error");
+      return;
+    }
     setPhase("saving");
     const boxScore = draft.boxScore.map(r => {
       const fg2m = r.fg2m || 0, fg2a = r.fg2a || 0;
@@ -142,7 +147,7 @@ export default function ImportPage({
     setPhase("idle");
     setDraft(null);
     setGameUrl(""); setYoutubeUrl("");
-    setHighlights({}); setWarnings([]);
+    setHighlights({}); setWarnings([]); setUnresolved([]);
     setGameState(null); setOffRating(null); setDefRating(null);
 
     // Refresh schedule so the just-imported entry now shows as Imported.
@@ -157,6 +162,7 @@ export default function ImportPage({
 
   const handleBack = () => {
     setPhase("idle"); setDraft(null);
+    setWarnings([]); setUnresolved([]);
     setGameState(null); setOffRating(null); setDefRating(null);
   };
 
@@ -230,6 +236,7 @@ export default function ImportPage({
               phase={phase}
               gameState={gameState}
               warnings={warnings}
+              unresolved={unresolved}
               offRating={offRating}
               defRating={defRating}
               youtubeUrl={youtubeUrl}

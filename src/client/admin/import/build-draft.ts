@@ -1,4 +1,4 @@
-import { byJersey } from "@/client/admin";
+import { byJersey } from "@/client/admin/shared";
 import type { Player, SeasonLeague, BoxScoreRow } from "@/client/admin";
 import { parseGreekDate, parseMinutes, detectLeagueSlug } from "@/domain/calendar/greek-date";
 
@@ -18,6 +18,7 @@ export type DraftResult = {
   draft: ImportDraft;
   highlights: Record<string, boolean>;
   warnings: string[];
+  unresolved: string[];
   offRating: number | null;
   defRating: number | null;
 };
@@ -111,6 +112,17 @@ export function buildDraft(
         warns.push(`#${p["#"]} ${p.Players}: pts=${p.PTS}, expected ${expPts}`);
     });
 
+  // Blocking: a scraped player with minutes who has no roster match would be
+  // silently dropped from the box score. Collect these so the save is blocked
+  // until the player is added to the roster.
+  const unresolved: string[] = [];
+  akTeam.players
+    .filter((p: Record<string, unknown>) => parseMinutes(p.MIN as string) > 0)
+    .forEach((p: Record<string, unknown>) => {
+      if (!players.some(pl => Number(pl.number) === p["#"]))
+        unresolved.push(`#${p["#"]} ${p.Players} played but is not on the roster; add them before importing.`);
+    });
+
   return {
     draft: {
       date,
@@ -125,6 +137,7 @@ export function buildDraft(
     } satisfies ImportDraft,
     highlights: hl,
     warnings:   warns,
+    unresolved,
     offRating:  game.offRating ?? null,
     defRating:  game.defRating ?? null,
   };
