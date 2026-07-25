@@ -61,4 +61,13 @@ describe("buildDraft roster guard", () => {
     );
     expect(unresolved).toHaveLength(0);
   });
+
+  it("leaves seasonLeagueId empty when no league matches, with no silent fallback", () => {
+    const { draft } = buildDraft(
+      scrapedData([{ "#": 4, Players: "On Roster", MIN: "20:00", PTS: 10 }]),
+      players,
+      [{ id: "slX", leagueSlug: "bc6", leagueName: "BC6" }],
+    );
+    expect(draft.seasonLeagueId).toBe("");
+  });
 });

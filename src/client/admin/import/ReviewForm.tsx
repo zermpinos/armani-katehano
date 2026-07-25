@@ -28,7 +28,11 @@ export function ReviewForm({
   youtubeUrl, setYoutubeUrl, players, highlights, seasonLeagues,
   updDraft, updBox, onSave, onBack,
 }: Props) {
-  const leagueOptions = seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName }));
+  const leagueMissing = !draft.seasonLeagueId;
+  const leagueOptions = [
+    ...(leagueMissing ? [{ value: "", label: "Select a league" }] : []),
+    ...seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName })),
+  ];
 
   return (
     <div className="flex flex-col gap-4">
@@ -46,10 +50,11 @@ export function ReviewForm({
         </div>
       )}
 
-      {unresolved.length > 0 && (
+      {(unresolved.length > 0 || leagueMissing) && (
         <div className="py-[10px] px-[14px] rounded-lg bg-[#8b1a1a30] border border-[#8b1a1a] text-xs text-ak-red-text">
           <div className="font-black mb-1">Blocked - fix before saving:</div>
           {unresolved.map((u, i) => <div key={i}>• {u}</div>)}
+          {leagueMissing && <div>• No league matched the source URL. Pick one under Game info.</div>}
         </div>
       )}
 
@@ -111,7 +116,7 @@ export function ReviewForm({
         <Btn
           onClick={onSave}
           variant="green"
-          disabled={phase === "saving" || gameState?.state === "scheduled" || unresolved.length > 0}
+          disabled={phase === "saving" || gameState?.state === "scheduled" || unresolved.length > 0 || leagueMissing}
         >
           {phase === "saving" ? "SAVING..." : "SAVE GAME"}
         </Btn>

@@ -50,8 +50,9 @@ export function buildDraft(
   const date        = parsedDate ? parsedDate.toISOString().slice(0, 10) : "";
   const leagueSlug  = detectLeagueSlug(sourceUrl);
 
-  const matchedSL = seasonLeagues.find(sl => sl.leagueSlug === leagueSlug)
-                 ?? seasonLeagues[0];
+  // No silent fallback to seasonLeagues[0]: an unmatched league leaves the id
+  // empty so the review form must resolve it before the save is allowed.
+  const matchedSL = seasonLeagues.find(sl => sl.leagueSlug === leagueSlug);
 
   const boxScore: BoxScoreRow[] = [...players].sort(byJersey).map(dbPlayer => {
     const scraped = akTeam.players.find((p: Record<string, unknown>) => p["#"] === Number(dbPlayer.number));
