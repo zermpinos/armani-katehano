@@ -34,6 +34,13 @@ export const GameWriteSchema = z.object({
   }),
   round:          z.enum(["regular", "quarterfinal", "semifinal", "final"]).default("regular"),
   boxScore:       z.array(BoxScoreRowSchema).max(20).optional(),
+  // Audit-only: resolver-vs-saved field diff, recorded on the game_created
+  // audit line. Bounded so it cannot be used to bloat the audit log.
+  importDiff:     z.array(z.object({
+    path: z.string().max(120),
+    from: z.union([z.string().max(200), z.number(), z.boolean(), z.null()]),
+    to:   z.union([z.string().max(200), z.number(), z.boolean(), z.null()]),
+  })).max(400).optional(),
 });
 
 export const GameUpdateSchema = GameWriteSchema.omit({ seasonLeagueId: true }).extend({

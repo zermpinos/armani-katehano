@@ -1,0 +1,22 @@
+# Gitleaks configuration for a PUBLIC repository.
+#
+# Extends the bundled default ruleset (do not narrow it) and adds a small,
+# path-based allowlist for historical test-only paths whose credentials were
+# rotated or are inert. Prefer path allowlisting here over per-commit
+# fingerprints in .gitleaksignore: a fingerprint pins one commit and one line
+# and silently stops matching if the file or line moves, which would hide a
+# real future leak. A path rule keeps holding.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Historical test-only paths (rotated or inert credentials)"
+paths = [
+  # test-login.js was removed from the worktree in commit 0c54393. A
+  # TEST_PASSWORD literal survives in the historical blob b4c67d8; the
+  # credential was rotated on 2026-06-01, so the literal is inert. This
+  # entry stops the full-history audit re-flagging the dead file without
+  # widening scope for any live path.
+  '''test-login\.js''',
+]

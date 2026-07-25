@@ -1,4 +1,4 @@
-import { byJersey } from "@/client/admin";
+import { byJersey } from "@/client/admin/shared";
 import type { Player, SeasonLeague, BoxScoreRow } from "@/client/admin";
 import { parseGreekDate, parseMinutes, detectLeagueSlug } from "@/domain/calendar/greek-date";
 
@@ -18,6 +18,7 @@ export type DraftResult = {
   draft: ImportDraft;
   highlights: Record<string, boolean>;
   warnings: string[];
+  unresolved: string[];
   offRating: number | null;
   defRating: number | null;
 };
@@ -49,8 +50,9 @@ export function buildDraft(
   const date        = parsedDate ? parsedDate.toISOString().slice(0, 10) : "";
   const leagueSlug  = detectLeagueSlug(sourceUrl);
 
-  const matchedSL = seasonLeagues.find(sl => sl.leagueSlug === leagueSlug)
-                 ?? seasonLeagues[0];
+  // No silent fallback to seasonLeagues[0]: an unmatched league leaves the id
+  // empty so the review form must resolve it before the save is allowed.
+  const matchedSL = seasonLeagues.find(sl => sl.leagueSlug === leagueSlug);
 
   const boxScore: BoxScoreRow[] = [...players].sort(byJersey).map(dbPlayer => {
     const scraped = akTeam.players.find((p: Record<string, unknown>) => p["#"] === Number(dbPlayer.number));
@@ -111,6 +113,17 @@ export function buildDraft(
         warns.push(`#${p["#"]} ${p.Players}: pts=${p.PTS}, expected ${expPts}`);
     });
 
+  // Blocking: a scraped player with minutes who has no roster match would be
+  // silently dropped from the box score. Collect these so the save is blocked
+  // until the player is added to the roster.
+  const unresolved: string[] = [];
+  akTeam.players
+    .filter((p: Record<string, unknown>) => parseMinutes(p.MIN as string) > 0)
+    .forEach((p: Record<string, unknown>) => {
+      if (!players.some(pl => Number(pl.number) === p["#"]))
+        unresolved.push(`#${p["#"]} ${p.Players} played but is not on the roster; add them before importing.`);
+    });
+
   return {
     draft: {
       date,
@@ -125,7 +138,35 @@ export function buildDraft(
     } satisfies ImportDraft,
     highlights: hl,
     warnings:   warns,
+    unresolved,
     offRating:  game.offRating ?? null,
     defRating:  game.defRating ?? null,
   };
+}
+
+export type FieldDiff = { path: string; from: unknown; to: unknown };
+
+// Field-level diff between the resolver's draft and the admin-edited draft, so
+// the audit log records exactly what a human changed before saving.
+export function diffDraft(resolved: ImportDraft, final: ImportDraft): FieldDiff[] {
+  const diffs: FieldDiff[] = [];
+  const topKeys = [
+    "date", "opponent", "home", "result",
+    "teamScore", "opponentScore", "seasonLeagueId", "sourceUrl",
+  ] as const;
+  for (const k of topKeys) {
+    const from = Reflect.get(resolved, k), to = Reflect.get(final, k);
+    if (from !== to) diffs.push({ path: k, from, to });
+  }
+  const before = new Map(resolved.boxScore.map(r => [r.playerId, r as unknown as Record<string, unknown>]));
+  for (const row of final.boxScore as unknown as Record<string, unknown>[]) {
+    const prev = before.get(row.playerId as string);
+    if (!prev) { diffs.push({ path: `box.${row.playerId}`, from: null, to: "added" }); continue; }
+    for (const key of Object.keys(row)) {
+      if (key === "playerId") continue;
+      const from = Reflect.get(prev, key), to = Reflect.get(row, key);
+      if (from !== to) diffs.push({ path: `box.${row.playerId}.${key}`, from, to });
+    }
+  }
+  return diffs;
 }
