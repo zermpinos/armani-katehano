@@ -283,10 +283,7 @@ armani-katehano/
 ├── e2e/                            Playwright specs (admin, public, csp, modals, unsubscribe, season roster)
 │
 ├── docs/
-│   ├── architecture.md             Source of truth for layer + runtime rules
-│   ├── backup-recovery-runbook.md
-│   ├── incident-response-runbook.md
-│   └── key-rotation-runbook.md
+│   └── architecture.md             Source of truth for layer + runtime rules
 │
 ├── public/                         Static assets
 ├── styles/                         Global styles
@@ -397,8 +394,8 @@ These variables are set by the build/runtime environment automatically. Do not s
 
 ### Secret hygiene
 
-- Rotation playbook: [`docs/key-rotation-runbook.md`](docs/key-rotation-runbook.md).
-- All commits scanned by Gitleaks via the `.gitleaks.toml` rules (CI workflows `secret-scan.yml` and the non-blocking weekly `secret-scan-audit.yml`).
+- Rotation procedures are maintained privately by the maintainers.
+- All commits scanned by Gitleaks via the `.gitleaks.toml` rules (CI workflows `secret-scan.yml` per push, and the weekly `secret-scan-audit.yml`, which fails on any historical finding).
 - Vulnerability reports: see [`SECURITY.md`](SECURITY.md).
 
 ---
@@ -479,13 +476,6 @@ Run `npx prisma migrate deploy` against the production database during release, 
 ### CSP hash maintenance
 
 Whenever inline script/style content on a statically-rendered page changes, run `npm run regenerate-csp-hashes` against a fresh build and commit the updated `csp-hashes.ts` - CI (`check-isr-pages.mjs`) fails the build if the committed hashes don't match what actually shipped.
-
-### Runbooks
-
-Operational procedures live in `docs/`:
-- [`backup-recovery-runbook.md`](docs/backup-recovery-runbook.md)
-- [`incident-response-runbook.md`](docs/incident-response-runbook.md)
-- [`key-rotation-runbook.md`](docs/key-rotation-runbook.md)
 
 ---
 
