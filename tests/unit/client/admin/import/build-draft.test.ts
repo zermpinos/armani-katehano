@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { describe, it, expect } from "vitest";
-import { buildDraft } from "@/client/admin/import/build-draft";
+import { buildDraft, diffDraft } from "@/client/admin/import/build-draft";
 
 const players = [
   { id: "p1", number: 4, name: "On Roster" },
@@ -69,5 +69,31 @@ describe("buildDraft roster guard", () => {
       [{ id: "slX", leagueSlug: "bc6", leagueName: "BC6" }],
     );
     expect(draft.seasonLeagueId).toBe("");
+  });
+});
+
+describe("diffDraft", () => {
+  const base = {
+    date: "2026-01-01", opponent: "A", home: true, result: "W",
+    teamScore: 60, opponentScore: 55, seasonLeagueId: "sl1", sourceUrl: null,
+    boxScore: [{ playerId: "p1", pts: 10 }, { playerId: "p2", pts: 5 }],
+  };
+
+  it("reports changed top-level and box fields, ignores unchanged ones", () => {
+    const final = {
+      ...base,
+      opponent: "B",
+      boxScore: [{ playerId: "p1", pts: 12 }, { playerId: "p2", pts: 5 }],
+    };
+    const paths = diffDraft(base, final).map(d => d.path);
+    expect(paths).toContain("opponent");
+    expect(paths).toContain("box.p1.pts");
+    expect(paths).not.toContain("box.p2.pts");
+    expect(paths).not.toContain("teamScore");
+  });
+
+  it("returns empty when nothing changed", () => {
+    const clone = { ...base, boxScore: base.boxScore.map(r => ({ ...r })) };
+    expect(diffDraft(base, clone)).toHaveLength(0);
   });
 });

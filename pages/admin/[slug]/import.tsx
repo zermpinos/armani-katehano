@@ -1,10 +1,10 @@
-import { useState, useMemo, type ReactNode } from "react";
+import { useState, useMemo, useRef, type ReactNode } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch } from "@/client/admin";
 import type { ScheduledGame } from "@/client/admin";
 import { getAdminPasskeyLoginProps } from "@/server/auth";
 import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
-import { buildDraft } from "@/client/admin/import/build-draft";
+import { buildDraft, diffDraft } from "@/client/admin/import/build-draft";
 import type { ImportDraft } from "@/client/admin/import/build-draft";
 import { useImportData } from "@/client/admin/import/use-import-data";
 import { IdleForm } from "@/client/admin/import/IdleForm";
@@ -33,6 +33,9 @@ export default function ImportPage({
   const [gameState,  setGameState]  = useState<{ state: string; reason: string } | null>(null);
   const [offRating,  setOffRating]  = useState<number | null>(null);
   const [defRating,  setDefRating]  = useState<number | null>(null);
+  // Snapshot of the resolver's draft, before any review-form edits, for the
+  // resolve-vs-saved diff. Edits are immutable, so this reference stays intact.
+  const resolvedRef = useRef<ImportDraft | null>(null);
 
   const linkedUpcoming = useMemo<ScheduledGame | null>(
     () => upcomingGameId ? schedule.find(g => g.id === upcomingGameId) ?? null : null,
@@ -58,6 +61,7 @@ export default function ImportPage({
       const { draft: d, highlights: hl, warnings: w, unresolved: un, offRating: off, defRating: def } =
         buildDraft(body.data, players, seasonLeagues);
       setDraft(d); setHighlights(hl); setWarnings(w); setUnresolved(un);
+      resolvedRef.current = d;
       setOffRating(off ?? null); setDefRating(def ?? null);
       setGameState(body.gameState ?? null);
       setPhase("review");
@@ -117,6 +121,8 @@ export default function ImportPage({
       };
     });
 
+    const importDiff = resolvedRef.current ? diffDraft(resolvedRef.current, draft) : [];
+
     const res = await apiFetch("/api/admin/games", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
@@ -131,6 +137,7 @@ export default function ImportPage({
         sourceUrl:      draft.sourceUrl ?? null,
         youtubeUrl:     youtubeUrl.trim() || null,
         boxScore,
+        importDiff,
       }),
     });
 

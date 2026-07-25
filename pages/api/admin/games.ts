@@ -142,6 +142,7 @@ async function createGame(req: any, res: any) {
     youtubeUrl,
     round,
     boxScore,
+    importDiff,
   } = data;
 
   if (boxScore?.length) {
@@ -195,7 +196,7 @@ async function createGame(req: any, res: any) {
 
       return g;
     });
-    auditLog("game_created", { ip, gameId: game.id, opponent });
+    auditLog("game_created", { ip, gameId: game.id, opponent, ...(importDiff?.length ? { importDiff } : {}) });
     await invalidateForGameMutation({
       revalidate: (p) => res.revalidate?.(p),
       gameId: game.id,

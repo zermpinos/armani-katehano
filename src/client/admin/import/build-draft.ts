@@ -143,3 +143,30 @@ export function buildDraft(
     defRating:  game.defRating ?? null,
   };
 }
+
+export type FieldDiff = { path: string; from: unknown; to: unknown };
+
+// Field-level diff between the resolver's draft and the admin-edited draft, so
+// the audit log records exactly what a human changed before saving.
+export function diffDraft(resolved: ImportDraft, final: ImportDraft): FieldDiff[] {
+  const diffs: FieldDiff[] = [];
+  const topKeys = [
+    "date", "opponent", "home", "result",
+    "teamScore", "opponentScore", "seasonLeagueId", "sourceUrl",
+  ] as const;
+  for (const k of topKeys) {
+    const from = Reflect.get(resolved, k), to = Reflect.get(final, k);
+    if (from !== to) diffs.push({ path: k, from, to });
+  }
+  const before = new Map(resolved.boxScore.map(r => [r.playerId, r as unknown as Record<string, unknown>]));
+  for (const row of final.boxScore as unknown as Record<string, unknown>[]) {
+    const prev = before.get(row.playerId as string);
+    if (!prev) { diffs.push({ path: `box.${row.playerId}`, from: null, to: "added" }); continue; }
+    for (const key of Object.keys(row)) {
+      if (key === "playerId") continue;
+      const from = Reflect.get(prev, key), to = Reflect.get(row, key);
+      if (from !== to) diffs.push({ path: `box.${row.playerId}.${key}`, from, to });
+    }
+  }
+  return diffs;
+}
