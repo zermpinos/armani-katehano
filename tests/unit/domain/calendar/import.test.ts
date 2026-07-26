@@ -39,6 +39,16 @@ describe("parseGreekDate", () => {
     }
   });
 
+  // The source site writes Μαίου. Every May game failed to parse until it was
+  // accepted, which gated five real games out of the import.
+  it("parses the source's spelling of May alongside the correct one", () => {
+    for (const input of ["Σάββατο, 30 Μαίου 2026", "Σάββατο, 30 Μαΐου 2026"]) {
+      const d = parseGreekDate(input);
+      expect(d, input).not.toBeNull();
+      expect(d.toISOString().startsWith("2026-05-30"), input).toBe(true);
+    }
+  });
+
   it("parses nominative case month names", () => {
     const d = parseGreekDate("15 Ιανουάριος 2025");
     expect(d).not.toBeNull();
