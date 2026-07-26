@@ -41,12 +41,6 @@ export const GameWriteSchema = z.object({
     from: z.union([z.string().max(200), z.number(), z.boolean(), z.null()]),
     to:   z.union([z.string().max(200), z.number(), z.boolean(), z.null()]),
   })).max(400).optional(),
-  // Audit-only: gate checks the operator saved over. Not re-derivable from the
-  // raw scrape, which records what the gate said, not that a human overrode it.
-  gateFailures:   z.array(z.object({
-    check:  z.string().max(40),
-    detail: z.string().max(300),
-  })).max(50).optional(),
 });
 
 export const GameUpdateSchema = GameWriteSchema.omit({ seasonLeagueId: true }).extend({
