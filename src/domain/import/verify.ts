@@ -70,6 +70,15 @@ export function verify(raw: Record<string, unknown>): GateResult {
       continue;
     }
 
+    // A fixture the organisers published without a result renders as four zero
+    // quarters and an empty box score. That is internally consistent with a 0-0
+    // final and passes every check below by giving them nothing to check, so
+    // without this the gate calls an unplayed game clean.
+    if (!team.players?.length) {
+      fail("empty", `${team.name || side.label}: box score has no players.`);
+      continue;
+    }
+
     for (const p of team.players) {
       const missing = REQUIRED_COLUMNS.filter(c => !(c in p));
       if (missing.length) {

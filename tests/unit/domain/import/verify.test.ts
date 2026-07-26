@@ -57,6 +57,40 @@ describe("verify", () => {
     expect(verify(payload())).toEqual({ ok: true, failures: [] });
   });
 
+  // Shape taken from a real fixture the organisers published without a result:
+  // four zero quarters, a 0-0 final, and no players on either side. Everything
+  // agrees with everything, which is exactly why it used to pass.
+  it("fails a resultless fixture that is internally consistent about nothing", () => {
+    const raw = payload({
+      game: {
+        homeTeam: "ARMANI KATEHANO",
+        awayTeam: "Rivals",
+        date: GREEK_DATE,
+        finalScore: { home: 0, away: 0 },
+        quarterScores: [1, 2, 3, 4].map(n => ({ quarter: `Q${n}`, home: 0, away: 0 })),
+      },
+      teams: [
+        { name: "ARMANI KATEHANO", players: [] },
+        { name: "Rivals",          players: [] },
+      ],
+    });
+    const result = verify(raw);
+    expect(result.ok).toBe(false);
+    expect(checks(result)).toEqual(["empty", "empty"]);
+  });
+
+  it("fails when only one side has an empty box score", () => {
+    const raw = payload();
+    raw.teams[1].players = [];
+    expect(checks(verify(raw))).toContain("empty");
+  });
+
+  it("reports an empty side once, not once per missing check", () => {
+    const raw = payload();
+    raw.teams[1].players = [];
+    expect(checks(verify(raw)).filter(c => c === "empty")).toHaveLength(1);
+  });
+
   it("fails when the scrape does not classify as final", () => {
     const raw = payload();
     raw.game.quarterScores.pop();
