@@ -119,15 +119,15 @@ describe("poll-imports auth", () => {
 });
 
 describe("poll-imports candidate selection", () => {
-  // 36h, not 24h: the window has to outlast the daily interval or a game that
-  // was still live at last night's run never gets a second attempt.
-  it("takes at most 3 games that tipped off between 36h and 90min ago", async () => {
+  // A week, not a day: a game blocked on someone adding a player has to still
+  // be a candidate once they have.
+  it("takes at most 3 games that tipped off between 7 days and 90min ago", async () => {
     await handler(mockReq(), mockRes());
     const args = mockPrisma.upcomingGame.findMany.mock.calls[0][0];
     expect(args.take).toBe(3);
     expect(args.where.sourceUrl).toEqual({ not: null });
     expect(args.where.scheduledFor).toEqual({
-      gte: new Date(NOW.getTime() - 36 * 60 * 60 * 1000),
+      gte: new Date(NOW.getTime() - 7 * 24 * 60 * 60 * 1000),
       lte: new Date(NOW.getTime() - 90 * 60 * 1000),
     });
   });

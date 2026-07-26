@@ -23,10 +23,10 @@ import { GameWriteSchema } from "@/schemas/game";
 // the commits. A fourth game on one night waits for tomorrow's run.
 const MAX_CANDIDATES = 3;
 const SETTLE_MS      = 90 * 60 * 1000;
-// Wider than the daily interval on purpose, so a game whose page had not
-// settled by last night's run is still a candidate tonight. At exactly 24h an
-// evening game ages out after a single attempt.
-const LOOKBACK_MS    = 36 * 60 * 60 * 1000;
+// A week, so a game that needs someone to act first (add a new player to the
+// roster, configure a season that covers the date) still imports itself once
+// they have. Anything unresolved for longer wants a person, not another scrape.
+const LOOKBACK_MS    = 7 * 24 * 60 * 60 * 1000;
 
 export const config = { maxDuration: 60 };
 

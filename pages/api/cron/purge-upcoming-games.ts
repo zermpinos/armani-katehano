@@ -1,12 +1,16 @@
 /**
  * pages/api/cron/purge-upcoming-games.ts
  *
- * GET - daily cron. Deletes UpcomingGame rows whose scheduledFor is in the
- * past AND whose sourceUrl is set (meaning the admin has manually imported
- * the game result and the upcoming entry is no longer needed).
+ * GET - daily cron. Deletes past UpcomingGame rows whose sourceUrl belongs to
+ * a game that was actually imported.
  *
- * Past rows with no sourceUrl are left in place so the admin can still see
- * which games were not imported.
+ * A set sourceUrl is not evidence of an import. The poll needs the URL on the
+ * fixture before the game so it has something to scrape, so deleting on the
+ * field alone destroys the rows it retries against, and the admin's
+ * quick-import list with them.
+ *
+ * Past rows with no sourceUrl, or with one no game was created from, stay put
+ * so the game can still be imported.
  *
  * Cascade: deleting an UpcomingGame cascades to GameRosterAnnouncement.
  */
@@ -34,12 +38,23 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { count } = await prisma.upcomingGame.deleteMany({
-      where: {
-        scheduledFor: { lt: new Date() },
-        sourceUrl:    { not: null },
-      },
+    const past = await prisma.upcomingGame.findMany({
+      where:  { scheduledFor: { lt: new Date() }, sourceUrl: { not: null } },
+      select: { id: true, sourceUrl: true },
     });
+
+    let count = 0;
+    if (past.length) {
+      const imported = new Set(
+        (await prisma.game.findMany({
+          where:  { sourceUrl: { in: past.map(p => p.sourceUrl as string) } },
+          select: { sourceUrl: true },
+        })).map(g => g.sourceUrl),
+      );
+      const ids = past.filter(p => imported.has(p.sourceUrl)).map(p => p.id);
+      if (ids.length)
+        ({ count } = await prisma.upcomingGame.deleteMany({ where: { id: { in: ids } } }));
+    }
 
     auditLog("cron_purge_upcoming_games", { deleted: count });
     return res.status(200).json({ ok: true, deleted: count });
