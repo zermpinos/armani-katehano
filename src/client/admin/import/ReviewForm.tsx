@@ -1,7 +1,7 @@
 import { BoxScoreTable, F, Sel, Btn } from "@/client/admin";
 import type { Player, SeasonLeague } from "@/client/admin";
 import { teamRatingsFromBox } from "@/domain/stats";
-import type { ImportDraft } from "./build-draft";
+import type { ImportDraft } from "@/domain/import/resolve";
 
 type Props = {
   draft: ImportDraft;

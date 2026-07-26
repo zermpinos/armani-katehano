@@ -4,8 +4,8 @@ import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch } from "
 import type { ScheduledGame } from "@/client/admin";
 import { getAdminPasskeyLoginProps } from "@/server/auth";
 import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
-import { buildDraft, diffDraft } from "@/client/admin/import/build-draft";
-import type { ImportDraft } from "@/client/admin/import/build-draft";
+import { diffDraft } from "@/domain/import/resolve";
+import type { ImportDraft } from "@/domain/import/resolve";
 import { useImportData } from "@/client/admin/import/use-import-data";
 import { IdleForm } from "@/client/admin/import/IdleForm";
 import { ReviewForm } from "@/client/admin/import/ReviewForm";
@@ -56,10 +56,11 @@ export default function ImportPage({
       const body = await res.json();
       if (!res.ok) { setError(body.error || "Scrape failed"); return; }
 
-      const { draft: d, highlights: hl, warnings: w, unresolved: un } =
-        buildDraft(body.data, players, seasonLeagues);
-      setDraft(d); setHighlights(hl); setWarnings(w); setUnresolved(un);
-      resolvedRef.current = d;
+      setDraft(body.draft);
+      setHighlights(body.highlights ?? {});
+      setWarnings(body.warnings ?? []);
+      setUnresolved(body.unresolved ?? []);
+      resolvedRef.current = body.draft;
       setGameState(body.gameState ?? null);
       setPhase("review");
     } catch (err) {
@@ -120,7 +121,7 @@ export default function ImportPage({
 
     const importDiff = resolvedRef.current ? diffDraft(resolvedRef.current, draft) : [];
 
-    const res = await apiFetch("/api/admin/games", {
+    const res = await apiFetch("/api/admin/import", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
