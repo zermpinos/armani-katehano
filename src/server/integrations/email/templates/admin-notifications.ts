@@ -23,3 +23,38 @@ export function buildImportSuccess(p: {
   const text = `[AK] Game Imported\n\nMatch: ${vsAt} ${p.opponent}\nScheduled: ${p.scheduledFor}\nImported at: ${p.importedAt.toISOString()}`;
   return { subject, html, text };
 }
+
+const CELL = "margin-top:10px;padding:10px 12px;background:#fef2f2;border-left:3px solid #c92a2a;border-radius:0 6px 6px 0;font-size:12px;color:#7f1d1d;word-break:break-all;";
+
+export function buildImportStalled(p: {
+  entries: { sourceUrl: string; reason: string }[];
+  error?:  string | null;
+}): ImportNotificationResult {
+  const n       = p.entries.length;
+  const subject = p.error
+    ? "[AK] Import poll failed"
+    : `[AK] Import poll stuck on ${n} game${n === 1 ? "" : "s"}`;
+
+  const list = p.entries
+    .map(e => `<div style="${CELL}">${esc(e.sourceUrl.slice(0, 300))}<br/><strong>${esc(e.reason.slice(0, 200))}</strong></div>`)
+    .join("");
+  const errorNote = p.error
+    ? `<div style="${CELL}font-family:monospace;">${esc(p.error.slice(0, 300))}</div>`
+    : "";
+
+  const html = adminHtml({
+    title:       p.error ? "Import Poll Failed" : "Import Poll Stuck",
+    accentColor: "#c92a2a",
+    rows: p.error
+      ? [{ label: "Outcome", value: "The run threw before it finished" }]
+      : [{ label: "Games waiting", value: String(n) }],
+    extra: list + errorNote,
+  });
+
+  const lines = p.entries.map(e => `- ${e.sourceUrl}\n  ${e.reason}`).join("\n");
+  const text = p.error
+    ? `[AK] Import Poll Failed\n\nThe run threw before it finished.\n${p.error}`
+    : `[AK] Import Poll Stuck\n\n${n} game(s) did not import:\n\n${lines}`;
+
+  return { subject, html, text };
+}
