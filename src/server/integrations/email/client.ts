@@ -5,7 +5,7 @@ import { auditLog } from "@/server/security/node/audit-log";
 import prisma       from "@/server/db/client";
 import { buildHtml, buildText } from "./templates/roster-announcement";
 import type { SendRosterAnnouncementParams, Game, PlayerSlot } from "./templates/shared";
-import { buildImportSuccess, buildImportFailure } from "./templates/admin-notifications";
+import { buildImportSuccess } from "./templates/admin-notifications";
 import {
   buildGameImportedHtml,
   buildGameImportedText,
@@ -16,8 +16,7 @@ import {
 import { buildConfirmationEmailHtml, buildConfirmationEmailText } from "./templates/confirmation";
 
 export type ImportNotificationPayload =
-  | { kind: "success"; opponent: string; location: string; scheduledFor: string; importedAt: Date }
-  | { kind: "failure"; opponent: string; location: string; scheduledFor: string; attempts: number; lastError: string | null; matchReason?: string | null };
+  { kind: "success"; opponent: string; location: string; scheduledFor: string; importedAt: Date };
 
 const FROM = "Armani Katehano <noreply@armani-katehano.com>";
 
@@ -181,7 +180,7 @@ export async function sendImportNotification(payload: ImportNotificationPayload)
   }
   const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
 
-  const result = payload.kind === "success" ? buildImportSuccess(payload) : buildImportFailure(payload);
+  const result = buildImportSuccess(payload);
 
   try {
     await transport.sendMail({ from: FROM, to, subject: result.subject, html: result.html, text: result.text });

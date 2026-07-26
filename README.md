@@ -163,7 +163,8 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - Forced password change flow.
 
 ### Imports & scraping
-- `scrape-game.ts` (fetch + parse) + `domain/import/classify.ts` (game state: scheduled/live/final) + `domain/import/verify.ts` (checks the scrape against itself before review) + `domain/import/resolve.ts` (pure draft resolution) + `import-commit.ts` (persist idempotently, 409 on a re-imported source URL).
+- `scrape-game.ts` (fetch + parse) + `domain/import/classify.ts` (game state: scheduled/live/final) + `domain/import/verify.ts` (checks the scrape against itself before review) + `domain/import/resolve.ts` (pure draft resolution) + `import-commit.ts` (persist idempotently, 409 on a re-imported source URL). `import-pipeline.ts` chains URL to reviewable draft and is the single path both the admin's scrape route and the poll go through.
+- A game whose scrape classifies as `final`, passes every `verify()` check and resolves with nothing unresolved is committed unattended by the nightly poll, since a review of it could only agree. Everything else waits for the admin, who sees it in the quick-import list as before. The source URL comes from the schedule row, so a wrong URL there imports a real game against the wrong fixture: the poll does not match the scraped opponent against the scheduled one.
 - Every scrape captures its raw payload and a SHA-256 of the fetched bytes into `ImportDraft`, keyed by source URL. The capture is overwritten while it is uncommitted and frozen once a commit stamps its `gameId`, so the bytes behind a saved game cannot be replaced by a later re-scrape. Unlike `AuditLog`, this table has no retention cron: it is the replay corpus for running a rewritten parser against old captures.
 - `stats-recalc.ts` - transactional aggregate recompute (totals from raw DB sums, never approximated from averages).
 
@@ -174,6 +175,7 @@ All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECR
 - `/api/cron/purge-subscribers` - daily at 03:00 UTC (Vercel cron). Drops unconfirmed subscribers older than 1 day and confirmed subscribers idle for over a year.
 - `/api/cron/purge-upcoming-games` - daily at 04:30 UTC (Vercel cron). Deletes `UpcomingGame` rows whose `scheduledFor` is past and whose `sourceUrl` has been set (admin-imported). Rows still pending review are left untouched; the imported `Game` is preserved (`importedGameId` uses `onDelete: SetNull`).
 - `/api/cron/purge-audit-log` - daily at 06:00 UTC (Vercel cron). Deletes `AuditLog` rows older than 90 days.
+- `/api/cron/poll-imports` - daily at 21:00 UTC (Vercel cron). Scrapes the source URL of up to 3 scheduled games that tipped off between 36 hours and 90 minutes ago, and commits the ones that come back complete and internally consistent. Anything else is skipped and stays in the admin's quick-import list. The window deliberately outlasts the daily interval, so a game whose source page had not settled by one run gets a second attempt at the next. Each run records its per-URL outcome in `CronRun.summary`.
 - `/api/admin/cleanup` - daily at 02:00 UTC (Vercel cron). Purges expired `LoginAttempt` rows.
 
 ### Security baseline

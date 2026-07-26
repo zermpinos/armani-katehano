@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildImportSuccess, buildImportFailure } from "@/server/integrations/email/templates/admin-notifications";
+import { buildImportSuccess } from "@/server/integrations/email/templates/admin-notifications";
 
 const base = {
   opponent:     "Olympiacos B",
@@ -15,18 +15,5 @@ describe("buildImportSuccess", () => {
     expect(html).toContain("vs Olympiacos B");
     expect(text).toContain("vs Olympiacos B");
     expect(text).toContain(base.importedAt.toISOString());
-  });
-});
-
-describe("buildImportFailure", () => {
-  it("includes attempt count and last error", () => {
-    const { subject, html, text } = buildImportFailure({
-      ...base,
-      attempts:  2,
-      lastError: "timeout fetching upstream",
-    });
-    expect(subject).toContain("Import failed");
-    expect(html).toContain("timeout fetching upstream");
-    expect(text).toContain("Attempts: 2");
   });
 });

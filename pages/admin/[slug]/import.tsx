@@ -4,7 +4,7 @@ import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch, byJerse
 import type { Player, ScheduledGame } from "@/client/admin";
 import { getAdminPasskeyLoginProps } from "@/server/auth";
 import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
-import { diffDraft } from "@/domain/import/resolve";
+import { diffDraft, toCommitInput } from "@/domain/import/resolve";
 import type { ImportDraft, UnresolvedPlayer } from "@/domain/import/resolve";
 import type { GateResult } from "@/domain/import/verify";
 import { useImportData } from "@/client/admin/import/use-import-data";
@@ -118,35 +118,14 @@ export default function ImportPage({
       return;
     }
     setPhase("saving");
-    const boxScore = draft.boxScore.map(r => {
-      const fg2m = r.fg2m || 0, fg2a = r.fg2a || 0;
-      const fg3m = r.fg3m || 0, fg3a = r.fg3a || 0;
-      return {
-        playerId: r.playerId,
-        minutes:  r.min || 0,
-        pts: r.pts || 0, reb: r.reb || 0, orb: r.orb || 0, drb: r.drb || 0,
-        ast: r.ast || 0, stl: r.stl || 0, blk: r.blk || 0, tov: r.tov || 0,
-        pf: r.pf || 0, fg2m, fg2a, fg3m, fg3a, fgm: fg2m + fg3m, fga: fg2a + fg3a,
-        ftm: r.ftm || 0, fta: r.fta || 0,
-      };
-    });
-
     const importDiff = resolvedRef.current ? diffDraft(resolvedRef.current, draft) : [];
 
     const res = await apiFetch("/api/admin/import", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        seasonLeagueId: draft.seasonLeagueId,
-        opponent:       draft.opponent,
-        location:       draft.home ? "home" : "away",
-        teamScore:      Number(draft.teamScore) || 0,
-        opponentScore:  Number(draft.opponentScore) || 0,
-        result:         draft.result,
-        playedOn:       draft.date,
-        sourceUrl:      draft.sourceUrl ?? null,
-        youtubeUrl:     youtubeUrl.trim() || null,
-        boxScore,
+        ...toCommitInput(draft),
+        youtubeUrl: youtubeUrl.trim() || null,
         importDiff,
       }),
     });

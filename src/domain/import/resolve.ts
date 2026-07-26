@@ -204,6 +204,55 @@ export function resolve(
   };
 }
 
+export interface CommitRow {
+  playerId: string;
+  minutes:  number;
+  pts: number; reb: number; orb: number; drb: number;
+  ast: number; stl: number; blk: number; tov: number; pf: number;
+  fgm: number; fga: number; fg2m: number; fg2a: number; fg3m: number; fg3a: number;
+  ftm: number; fta: number;
+}
+
+export interface CommitDraft {
+  seasonLeagueId: string;
+  opponent:       string;
+  location:       "home" | "away";
+  teamScore:      number;
+  opponentScore:  number;
+  result:         "W" | "L" | "T";
+  playedOn:       string;
+  sourceUrl:      string | null;
+  boxScore:       CommitRow[];
+}
+
+// fgm/fga are summed here rather than carried from the resolver, because the
+// review form edits the 2PT and 3PT splits independently. eff has no column on
+// PlayerGameStat, so it is dropped.
+export function toCommitInput(draft: ImportDraft): CommitDraft {
+  return {
+    seasonLeagueId: draft.seasonLeagueId,
+    opponent:       draft.opponent,
+    location:       draft.home ? "home" : "away",
+    teamScore:      Number(draft.teamScore) || 0,
+    opponentScore:  Number(draft.opponentScore) || 0,
+    result:         draft.result,
+    playedOn:       draft.date,
+    sourceUrl:      draft.sourceUrl ?? null,
+    boxScore: draft.boxScore.map(r => {
+      const fg2m = r.fg2m || 0, fg2a = r.fg2a || 0;
+      const fg3m = r.fg3m || 0, fg3a = r.fg3a || 0;
+      return {
+        playerId: r.playerId,
+        minutes:  r.min || 0,
+        pts: r.pts || 0, reb: r.reb || 0, orb: r.orb || 0, drb: r.drb || 0,
+        ast: r.ast || 0, stl: r.stl || 0, blk: r.blk || 0, tov: r.tov || 0,
+        pf: r.pf || 0, fg2m, fg2a, fg3m, fg3a, fgm: fg2m + fg3m, fga: fg2a + fg3a,
+        ftm: r.ftm || 0, fta: r.fta || 0,
+      };
+    }),
+  };
+}
+
 export type FieldDiff = { path: string; from: unknown; to: unknown };
 
 // Field-level diff between the resolver's draft and the admin-edited draft, so
