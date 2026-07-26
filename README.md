@@ -69,7 +69,7 @@ Public listing pages (`/`, `/players`, `/games`, `/leaderboard`, `/team-stats`) 
 
 ### Data model
 
-PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end archiving), `League`, `SeasonLeague`, `Player`, `RosterEntry`, `Game`, `PlayerGameStat`, `PlayerSeasonAggregate`, `UpcomingGame`, `GameRosterAnnouncement`, `GameRosterPlayer`, `BroadcastLog`, `PasskeyCredential`, `WebAuthnChallenge`, `Subscriber`, `Setting`, `LoginAttempt`, `CronRun`, `AuditLog`. Aggregates store both averages (`ptsAvg`, `rebAvg`, ...) and totals (`ptsTotal`, `rebTotal`, ...) computed from raw stat sums. `Setting` is a generic key/value store used for feature toggles that don't warrant their own table (maintenance mode, playoff-popup state).
+PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end archiving), `League`, `SeasonLeague`, `Player`, `RosterEntry`, `Game`, `PlayerGameStat`, `PlayerSeasonAggregate`, `UpcomingGame`, `GameRosterAnnouncement`, `GameRosterPlayer`, `BroadcastLog`, `PasskeyCredential`, `WebAuthnChallenge`, `Subscriber`, `Setting`, `LoginAttempt`, `CronRun`, `AuditLog`, `ImportDraft`. Aggregates store both averages (`ptsAvg`, `rebAvg`, ...) and totals (`ptsTotal`, `rebTotal`, ...) computed from raw stat sums. `Setting` is a generic key/value store used for feature toggles that don't warrant their own table (maintenance mode, playoff-popup state).
 
 ---
 
@@ -164,6 +164,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 
 ### Imports & scraping
 - `scrape-game.ts` (fetch + parse) + `domain/import/classify.ts` (game state: scheduled/live/final) + `domain/import/verify.ts` (checks the scrape against itself before review) + `domain/import/resolve.ts` (pure draft resolution) + `import-commit.ts` (persist idempotently, 409 on a re-imported source URL).
+- Every scrape captures its raw payload and a SHA-256 of the fetched bytes into `ImportDraft`, keyed by source URL. The capture is overwritten while it is uncommitted and frozen once a commit stamps its `gameId`, so the bytes behind a saved game cannot be replaced by a later re-scrape. Unlike `AuditLog`, this table has no retention cron: it is the replay corpus for running a rewritten parser against old captures.
 - `stats-recalc.ts` - transactional aggregate recompute (totals from raw DB sums, never approximated from averages).
 
 ### Cron / scheduled jobs

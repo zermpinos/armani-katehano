@@ -2,6 +2,7 @@ import { requireAuth }  from "@/server/auth";
 import { ScrapeSchema } from "@/schemas/scrape";
 import prisma from "@/server/db/client";
 import { scrapeGameFromUrl, ScrapeError } from "@/server/services/scrape-game";
+import { captureImportDraft } from "@/server/services/import-commit";
 import { resolve } from "@/domain/import/resolve";
 import { verify } from "@/domain/import/verify";
 import type { SeasonLeagueRef } from "@/domain/import/resolve";
@@ -36,8 +37,10 @@ export default requireAuth(async function handler(req: any, res: any) {
     return res.status(400).json({ error: "Invalid URL" });
 
   try {
-    const { data, gameState } = await scrapeGameFromUrl(parsed.data.url);
+    const { data, gameState, bytesHash } = await scrapeGameFromUrl(parsed.data.url);
     const { roster, seasonLeagues } = await resolverInputs();
+
+    await captureImportDraft(parsed.data.url, data, bytesHash);
 
     let resolved;
     try {

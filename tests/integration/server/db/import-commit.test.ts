@@ -12,6 +12,7 @@ const { mockPrisma } = vi.hoisted(() => {
     playerGameStat: { createMany: vi.fn() },
     upcomingGame:   { deleteMany: vi.fn() },
     auditLog:       { create: vi.fn() },
+    importDraft:    { updateMany: vi.fn(), create: vi.fn() },
     $transaction:   vi.fn(),
   };
   return { mockPrisma: mp };
@@ -29,7 +30,7 @@ vi.mock("@/server/integrations/email/client", () => ({
 import { recalcAggregates } from "@/server/services/stats-recalc";
 import { invalidateForGameMutation } from "@/server/services/cache-invalidation";
 import { sendImportNotification } from "@/server/integrations/email/client";
-import { commitImport, CommitError } from "@/server/services/import-commit";
+import { commitImport, captureImportDraft, CommitError } from "@/server/services/import-commit";
 
 const SEASON_LEAGUE_ID = "clseasonleaguexxxxxxxxxx";
 const PLAYER_ID        = "clplayerxxxxxxxxxxxxxxxx";
@@ -83,6 +84,8 @@ beforeEach(() => {
   mockPrisma.upcomingGame.deleteMany.mockResolvedValue({ count: 0 });
   mockPrisma.player.findMany.mockResolvedValue([{ slug: "test-player" }]);
   mockPrisma.auditLog.create.mockResolvedValue({});
+  mockPrisma.importDraft.updateMany.mockResolvedValue({ count: 1 });
+  mockPrisma.importDraft.create.mockResolvedValue({});
   recalcAggregates.mockResolvedValue(undefined);
   invalidateForGameMutation.mockResolvedValue(undefined);
   sendImportNotification.mockResolvedValue(undefined);
@@ -174,5 +177,57 @@ describe("commitImport notification", () => {
     sendImportNotification.mockRejectedValue(new Error("smtp down"));
     const { gameId } = await commitImport(commitData());
     expect(gameId).toBe(CREATED_GAME_ID);
+  });
+});
+
+describe("import draft capture", () => {
+  const RAW  = { game: { homeTeam: "A" }, teams: [] };
+  const HASH = "a".repeat(64);
+
+  it("overwrites an uncommitted capture in place", async () => {
+    await captureImportDraft(SOURCE_URL, RAW, HASH);
+    expect(mockPrisma.importDraft.updateMany).toHaveBeenCalledWith({
+      where: { sourceUrl: SOURCE_URL, gameId: null },
+      data:  { rawPayload: RAW, bytesHash: HASH, sourceKind: "sportstats-html" },
+    });
+    expect(mockPrisma.importDraft.create).not.toHaveBeenCalled();
+  });
+
+  it("creates the row on a first scrape", async () => {
+    mockPrisma.importDraft.updateMany.mockResolvedValue({ count: 0 });
+    await captureImportDraft(SOURCE_URL, RAW, HASH);
+    expect(mockPrisma.importDraft.create).toHaveBeenCalledOnce();
+  });
+
+  it("leaves a committed capture untouched rather than replacing its bytes", async () => {
+    mockPrisma.importDraft.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.importDraft.create.mockRejectedValue(Object.assign(new Error("unique"), { code: "P2002" }));
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(captureImportDraft(SOURCE_URL, RAW, HASH)).resolves.toBeUndefined();
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("never lets a capture failure reach the caller", async () => {
+    mockPrisma.importDraft.updateMany.mockRejectedValue(new Error("db down"));
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(captureImportDraft(SOURCE_URL, RAW, HASH)).resolves.toBeUndefined();
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it("freezes the capture inside the commit transaction", async () => {
+    await commitImport(commitData());
+    expect(mockPrisma.importDraft.updateMany).toHaveBeenCalledWith({
+      where: { sourceUrl: SOURCE_URL, gameId: null },
+      data:  { gameId: CREATED_GAME_ID },
+    });
+  });
+
+  it("skips the freeze when the game has no source URL", async () => {
+    await commitImport(commitData({ sourceUrl: null }));
+    expect(mockPrisma.importDraft.updateMany).not.toHaveBeenCalled();
   });
 });

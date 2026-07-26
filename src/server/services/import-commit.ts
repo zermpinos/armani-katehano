@@ -7,6 +7,33 @@ import { invalidateForGameMutation } from "@/server/services/cache-invalidation"
 import { sendImportNotification } from "@/server/integrations/email/client";
 import { auditLog } from "@/server/security/node";
 
+const SOURCE_KIND = "sportstats-html";
+
+// Overwrites only while the capture is uncommitted. Once commitImport stamps a
+// gameId the row is frozen, so a later re-scrape cannot replace the bytes that
+// produced the saved game. Never throws: losing a capture must not block an import.
+export async function captureImportDraft(
+  sourceUrl: string,
+  rawPayload: unknown,
+  bytesHash: string,
+): Promise<void> {
+  try {
+    const { count } = await prisma.importDraft.updateMany({
+      where: { sourceUrl, gameId: null },
+      data:  { rawPayload: rawPayload as object, bytesHash, sourceKind: SOURCE_KIND },
+    });
+    if (count === 0) {
+      await prisma.importDraft.create({
+        data: { sourceUrl, rawPayload: rawPayload as object, bytesHash, sourceKind: SOURCE_KIND },
+      });
+    }
+  } catch (err) {
+    // P2002 means the row exists and was not updatable, so it is already frozen.
+    if ((err as { code?: string }).code !== "P2002")
+      console.error("[import-commit] failed to capture raw payload:", err);
+  }
+}
+
 export class CommitError extends Error {
   constructor(
     message: string,
@@ -67,6 +94,13 @@ export async function commitImport(data: CommitInput, opts: CommitOptions = {}):
     if (rows.length) {
       await tx.playerGameStat.createMany({
         data: rows.map(r => ({ ...r, gameId: g.id, plusMinus: 0 })),
+      });
+    }
+
+    if (sourceUrl) {
+      await tx.importDraft.updateMany({
+        where: { sourceUrl, gameId: null },
+        data:  { gameId: g.id },
       });
     }
 

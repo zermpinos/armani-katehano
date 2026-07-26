@@ -1,4 +1,5 @@
 import "@/server/_internal/node-only";
+import { createHash } from "node:crypto";
 import type { Agent } from "undici";
 import { scrapeGame } from "@/server/integrations/scraper/boxscore";
 import { ScrapedGameSchema } from "@/schemas/box-score";
@@ -23,6 +24,7 @@ export class ScrapeError extends Error {
 export interface ScrapeResult {
   data: any;
   gameState: ClassifyResult;
+  bytesHash: string;
 }
 
 export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
@@ -73,5 +75,5 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
 
   const gameState = classifyScrapedGame(data);
 
-  return { data, gameState };
+  return { data, gameState, bytesHash: createHash("sha256").update(html).digest("hex") };
 }
