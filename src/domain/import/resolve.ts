@@ -38,7 +38,6 @@ export interface ImportDraft {
 export interface ResolveResult {
   draft: ImportDraft;
   highlights: Record<string, boolean>;
-  warnings: string[];
   unresolved: string[];
 }
 
@@ -174,14 +173,9 @@ export function resolve(
     });
 
   const highlights: Record<string, boolean> = {};
-  const warnings: string[] = [];
   for (const p of played) {
     const rosterPlayer = roster.find(r => Number(r.number) === p["#"]);
     if (rosterPlayer) highlights[rosterPlayer.id] = true;
-
-    const expected = shot(p["2PTS"]).made * 2 + shot(p["3PTS"]).made * 3 + shot(p.FT).made;
-    if (num(p.PTS) !== expected)
-      warnings.push(`#${p["#"]} ${p.Players}: pts=${p.PTS}, expected ${expected}`);
   }
 
   return {
@@ -197,7 +191,6 @@ export function resolve(
       boxScore,
     },
     highlights,
-    warnings,
     unresolved,
   };
 }

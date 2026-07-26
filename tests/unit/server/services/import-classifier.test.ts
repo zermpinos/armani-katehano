@@ -94,7 +94,7 @@ describe("classifyScrapedGame", () => {
     expect(result.state).toBe("final");
   });
 
-  it("returns final even when AK team is not in teams (import-game handles that error)", () => {
+  it("returns final even when AK team is not in teams (resolve handles that error)", () => {
     const result = classifyScrapedGame(makePayload({
       teams: [
         { name: "TEAM A", players: [] },

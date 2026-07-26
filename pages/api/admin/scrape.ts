@@ -3,6 +3,7 @@ import { ScrapeSchema } from "@/schemas/scrape";
 import prisma from "@/server/db/client";
 import { scrapeGameFromUrl, ScrapeError } from "@/server/services/scrape-game";
 import { resolve } from "@/domain/import/resolve";
+import { verify } from "@/domain/import/verify";
 import type { SeasonLeagueRef } from "@/domain/import/resolve";
 
 async function resolverInputs(): Promise<{ roster: { id: string; number: number }[]; seasonLeagues: SeasonLeagueRef[] }> {
@@ -46,7 +47,9 @@ export default requireAuth(async function handler(req: any, res: any) {
       return res.status(422).json({ error: (err as Error).message });
     }
 
-    return res.status(200).json({ ok: true, data, gameState, ...resolved });
+    const gate = verify(data, gameState.state);
+
+    return res.status(200).json({ ok: true, data, gameState, gate, ...resolved });
   } catch (err) {
     if (err instanceof ScrapeError)
       return res.status(err.status).json({ error: err.message });

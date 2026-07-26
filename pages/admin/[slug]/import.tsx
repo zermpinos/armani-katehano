@@ -6,6 +6,7 @@ import { getAdminPasskeyLoginProps } from "@/server/auth";
 import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
 import { diffDraft } from "@/domain/import/resolve";
 import type { ImportDraft } from "@/domain/import/resolve";
+import type { GateResult } from "@/domain/import/verify";
 import { useImportData } from "@/client/admin/import/use-import-data";
 import { IdleForm } from "@/client/admin/import/IdleForm";
 import { ReviewForm } from "@/client/admin/import/ReviewForm";
@@ -27,7 +28,7 @@ export default function ImportPage({
   const [phase,      setPhase]      = useState("idle");
   const [draft,      setDraft]      = useState<ImportDraft | null>(null);
   const [highlights, setHighlights] = useState<Record<string, boolean>>({});
-  const [warnings,   setWarnings]   = useState<string[]>([]);
+  const [gate,       setGate]       = useState<GateResult | null>(null);
   const [unresolved, setUnresolved] = useState<string[]>([]);
   const [error,      setError]      = useState("");
   const [gameState,  setGameState]  = useState<{ state: string; reason: string } | null>(null);
@@ -58,7 +59,7 @@ export default function ImportPage({
 
       setDraft(body.draft);
       setHighlights(body.highlights ?? {});
-      setWarnings(body.warnings ?? []);
+      setGate(body.gate ?? null);
       setUnresolved(body.unresolved ?? []);
       resolvedRef.current = body.draft;
       setGameState(body.gameState ?? null);
@@ -152,7 +153,7 @@ export default function ImportPage({
     setPhase("idle");
     setDraft(null);
     setGameUrl(""); setYoutubeUrl("");
-    setHighlights({}); setWarnings([]); setUnresolved([]);
+    setHighlights({}); setGate(null); setUnresolved([]);
     setGameState(null);
 
     // Refresh schedule so the just-imported entry now shows as Imported.
@@ -167,7 +168,7 @@ export default function ImportPage({
 
   const handleBack = () => {
     setPhase("idle"); setDraft(null);
-    setWarnings([]); setUnresolved([]);
+    setGate(null); setUnresolved([]);
     setGameState(null);
   };
 
@@ -186,8 +187,8 @@ export default function ImportPage({
       <header className="mb-5 max-w-[900px]">
         <h1 className="text-[22px] md:text-[28px] font-black text-ak-text">Import game</h1>
         <div className="text-[12px] text-ak-text-dim mt-1 leading-relaxed">
-          Paste the official stats URL. The server scrapes it, you review the box score and any
-          warnings, then save.
+          Paste the official stats URL. The server scrapes it and verifies it against itself, you
+          review the box score and any failed checks, then save.
         </div>
       </header>
 
@@ -240,7 +241,7 @@ export default function ImportPage({
               draft={draft}
               phase={phase}
               gameState={gameState}
-              warnings={warnings}
+              gate={gate}
               unresolved={unresolved}
               youtubeUrl={youtubeUrl}
               setYoutubeUrl={setYoutubeUrl}
