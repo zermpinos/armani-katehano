@@ -1,0 +1,178 @@
+// @ts-nocheck
+import { vi, describe, it, expect, beforeEach } from "vitest";
+
+vi.hoisted(() => {
+  process.env.SESSION_SECRET = "test-secret-import-commit";
+});
+
+const { mockPrisma } = vi.hoisted(() => {
+  const mp = {
+    player:         { findMany: vi.fn() },
+    game:           { findUnique: vi.fn(), create: vi.fn() },
+    playerGameStat: { createMany: vi.fn() },
+    upcomingGame:   { deleteMany: vi.fn() },
+    auditLog:       { create: vi.fn() },
+    $transaction:   vi.fn(),
+  };
+  return { mockPrisma: mp };
+});
+
+vi.mock("@/server/db/client", () => ({ default: mockPrisma, prisma: mockPrisma }));
+vi.mock("@/server/services/stats-recalc", () => ({ recalcAggregates: vi.fn() }));
+vi.mock("@/server/services/cache-invalidation", () => ({
+  invalidateForGameMutation: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/server/integrations/email/client", () => ({
+  sendImportNotification: vi.fn().mockResolvedValue(undefined),
+}));
+
+import { recalcAggregates } from "@/server/services/stats-recalc";
+import { invalidateForGameMutation } from "@/server/services/cache-invalidation";
+import { sendImportNotification } from "@/server/integrations/email/client";
+import { commitImport, CommitError } from "@/server/services/import-commit";
+
+const SEASON_LEAGUE_ID = "clseasonleaguexxxxxxxxxx";
+const PLAYER_ID        = "clplayerxxxxxxxxxxxxxxxx";
+const CREATED_GAME_ID  = "clgamexxxxxxxxxxxxxxxxxx";
+const SOURCE_URL       = "https://example.com/men/game/4711";
+
+function boxRow(overrides = {}) {
+  return {
+    playerId: PLAYER_ID,
+    minutes: 20, pts: 10, reb: 4, orb: 1, drb: 3,
+    ast: 2, stl: 1, blk: 0, tov: 1, pf: 2,
+    fgm: 5, fga: 10, fg2m: 5, fg2a: 8, fg3m: 0, fg3a: 2,
+    ftm: 0, fta: 0,
+    ...overrides,
+  };
+}
+
+function commitData({ teamScore = 10, sourceUrl = SOURCE_URL } = {}) {
+  return {
+    seasonLeagueId: SEASON_LEAGUE_ID,
+    opponent: "Rivals BC",
+    location: "home",
+    teamScore,
+    opponentScore: 8,
+    result: "W",
+    playedOn: "2026-03-28",
+    sourceUrl,
+    round: "regular",
+    boxScore: [boxRow()],
+  };
+}
+
+let insideTx = false;
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  insideTx = false;
+
+  mockPrisma.$transaction.mockImplementation(async (fn) => {
+    insideTx = true;
+    try {
+      return await fn(mockPrisma);
+    } finally {
+      insideTx = false;
+    }
+  });
+
+  mockPrisma.game.findUnique.mockResolvedValue(null);
+  mockPrisma.game.create.mockResolvedValue({ id: CREATED_GAME_ID });
+  mockPrisma.playerGameStat.createMany.mockResolvedValue({ count: 1 });
+  mockPrisma.upcomingGame.deleteMany.mockResolvedValue({ count: 0 });
+  mockPrisma.player.findMany.mockResolvedValue([{ slug: "test-player" }]);
+  mockPrisma.auditLog.create.mockResolvedValue({});
+  recalcAggregates.mockResolvedValue(undefined);
+  invalidateForGameMutation.mockResolvedValue(undefined);
+  sendImportNotification.mockResolvedValue(undefined);
+});
+
+describe("commitImport guards", () => {
+  it("commits a well-formed draft", async () => {
+    const { gameId } = await commitImport(commitData());
+    expect(gameId).toBe(CREATED_GAME_ID);
+    expect(mockPrisma.playerGameStat.createMany).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a duplicate sourceUrl with 409 and echoes the existing gameId", async () => {
+    const existingId = "cldupegamexxxxxxxxxxxxxx";
+    mockPrisma.game.findUnique.mockResolvedValue({ id: existingId });
+
+    const err = await commitImport(commitData()).catch(e => e);
+
+    expect(err).toBeInstanceOf(CommitError);
+    expect(err.status).toBe(409);
+    expect(err.gameId).toBe(existingId);
+    expect(mockPrisma.game.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects a box-score sum that disagrees with teamScore with 422", async () => {
+    const err = await commitImport(commitData({ teamScore: 99 })).catch(e => e);
+
+    expect(err).toBeInstanceOf(CommitError);
+    expect(err.status).toBe(422);
+    expect(err.message).toMatch(/Box score points \(10\).*teamScore \(99\)/);
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("skips the duplicate pre-check when there is no sourceUrl", async () => {
+    await commitImport(commitData({ sourceUrl: null }));
+    expect(mockPrisma.game.findUnique).not.toHaveBeenCalled();
+    expect(mockPrisma.game.create).toHaveBeenCalledOnce();
+  });
+});
+
+describe("commitImport transactionality", () => {
+  it("recalculates aggregates inside the game-write transaction", async () => {
+    let recalcSawOpenTx = false;
+    recalcAggregates.mockImplementation(async () => { recalcSawOpenTx = insideTx; });
+
+    await commitImport(commitData());
+
+    expect(recalcAggregates).toHaveBeenCalledOnce();
+    expect(recalcSawOpenTx).toBe(true);
+  });
+
+  it("passes the transaction client and affected players through to recalcAggregates", async () => {
+    await commitImport(commitData());
+    expect(recalcAggregates).toHaveBeenCalledWith(SEASON_LEAGUE_ID, mockPrisma, [PLAYER_ID]);
+  });
+
+  it("propagates a recalc failure instead of resolving with a clean result", async () => {
+    recalcAggregates.mockRejectedValue(new Error("recalc exploded"));
+    const err = await commitImport(commitData()).catch(e => e);
+    expect(err.message).toBe("recalc exploded");
+  });
+
+  it("does not revalidate caches or notify when recalc fails", async () => {
+    recalcAggregates.mockRejectedValue(new Error("recalc exploded"));
+
+    await commitImport(commitData()).catch(() => {});
+
+    expect(invalidateForGameMutation).not.toHaveBeenCalled();
+    expect(sendImportNotification).not.toHaveBeenCalled();
+  });
+});
+
+describe("commitImport notification", () => {
+  it("sends the admin alert once on a committed game", async () => {
+    await commitImport(commitData());
+    expect(sendImportNotification).toHaveBeenCalledOnce();
+    expect(sendImportNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "success", opponent: "Rivals BC", location: "home" }),
+    );
+  });
+
+  it("does not send the alert on a duplicate", async () => {
+    mockPrisma.game.findUnique.mockResolvedValue({ id: "cldupegamexxxxxxxxxxxxxx" });
+    await commitImport(commitData()).catch(() => {});
+    expect(sendImportNotification).not.toHaveBeenCalled();
+  });
+
+  it("still resolves when the alert fails to send", async () => {
+    sendImportNotification.mockRejectedValue(new Error("smtp down"));
+    const { gameId } = await commitImport(commitData());
+    expect(gameId).toBe(CREATED_GAME_ID);
+  });
+});
