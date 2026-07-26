@@ -105,6 +105,7 @@ export default async function handler(req: any, res: any) {
         if (!result.gate.ok)                    { skip("failed verification");                   continue; }
         if (result.unresolved.length)           { skip("league unresolved");                     continue; }
         if (result.unresolvedPlayers.length)    { skip("player not on roster");                  continue; }
+        if (result.unknownOpponent)             { skip(`unknown opponent "${result.unknownOpponent}"`); continue; }
 
         // Same validation the admin's save goes through. The draft is derived
         // server-side, but the URL behind it is admin-entered.

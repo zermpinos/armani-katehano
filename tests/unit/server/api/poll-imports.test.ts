@@ -198,6 +198,13 @@ describe("poll-imports commit gate", () => {
     expect(summary().skipped[0].reason).toBe("league unresolved");
   });
 
+  it("skips an opponent with no known name rather than publishing the source spelling", async () => {
+    mockScrapeAndResolve.mockResolvedValue(pipelineResult({ unknownOpponent: "BRAND NEW TEAM" }));
+    await handler(mockReq(), mockRes());
+    expect(mockCommitImport).not.toHaveBeenCalled();
+    expect(summary().skipped[0].reason).toBe('unknown opponent "BRAND NEW TEAM"');
+  });
+
   it("skips when a jersey that played is not on the roster", async () => {
     mockScrapeAndResolve.mockResolvedValue(pipelineResult({ unresolvedPlayers: [{ number: 99, name: "New Guy" }] }));
     await handler(mockReq(), mockRes());

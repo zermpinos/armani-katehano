@@ -154,6 +154,39 @@ describe("resolve game fields", () => {
   });
 });
 
+describe("resolve opponent naming", () => {
+  function against(name) {
+    const data = scrapedData([onRoster]);
+    data.game.awayTeam = name;
+    data.teams[1].name = name;
+    return resolve(data, roster, [ROOKIE]);
+  }
+
+  it("renames a known opponent the way the site shows it", () => {
+    const { draft, unknownOpponent } = against("ΓΕΡΟΛΥΚΟΙ B.C.");
+    expect(draft.opponent).toBe("Gerolykoi");
+    expect(unknownOpponent).toBeUndefined();
+  });
+
+  // No mechanical rule gets here, which is why the map is explicit.
+  it("handles names that are not a case transformation", () => {
+    expect(against("S.H.A.W.").draft.opponent).toBe("Shaw");
+    expect(against("TAZ BOYS").draft.opponent).toBe("Taz Boyz");
+  });
+
+  it("ignores spacing and case differences in the source", () => {
+    expect(against("  cappuccino   knights ").draft.opponent).toBe("Cappuccino Knights");
+  });
+
+  // The form shows the raw name and lets a person fix it; the poll reads
+  // unknownOpponent and stops rather than publishing the source's spelling.
+  it("keeps the source spelling and flags an unmapped opponent", () => {
+    const { draft, unknownOpponent } = against("BRAND NEW TEAM");
+    expect(draft.opponent).toBe("BRAND NEW TEAM");
+    expect(unknownOpponent).toBe("BRAND NEW TEAM");
+  });
+});
+
 describe("toCommitInput", () => {
   const draft = {
     date: "2026-01-01", opponent: "A", home: false, result: "L",

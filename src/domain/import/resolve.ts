@@ -1,5 +1,6 @@
 import { parseGreekDate, parseMinutes, detectLeagueSlug } from "@/domain/calendar/greek-date";
 import { isUsTeam } from "./identity";
+import { displayOpponent } from "./opponents";
 
 export interface RosterPlayer {
   id: string;
@@ -46,6 +47,10 @@ export interface ResolveResult {
   // Blockers the form cannot act on beyond reading them.
   unresolved: string[];
   unresolvedPlayers: UnresolvedPlayer[];
+  // The source's spelling, when it maps to no known team. The draft carries it
+  // verbatim so a person can correct it in the form; an unattended caller has
+  // nothing to correct it with and should stop.
+  unknownOpponent?: string;
 }
 
 type ScrapedPlayer = Record<string, unknown>;
@@ -134,6 +139,7 @@ export function resolve(
   const oppTeamName = isHome ? game.awayTeam        : game.homeTeam;
   const result      = akScore > oppScore ? "W" : akScore < oppScore ? "L" : "T";
   const playedOn    = parseGreekDate(game.date);
+  const mappedOpp   = displayOpponent(oppTeamName);
 
   const unresolved: string[] = [];
   const seasonLeagueId = resolveLeague(sourceUrl ?? null, playedOn, seasonLeagues, unresolved);
@@ -189,7 +195,7 @@ export function resolve(
   return {
     draft: {
       date:           playedOn ? playedOn.toISOString().slice(0, 10) : "",
-      opponent:       oppTeamName,
+      opponent:       mappedOpp ?? oppTeamName,
       home:           isHome,
       result,
       teamScore:      akScore,
@@ -201,6 +207,7 @@ export function resolve(
     highlights,
     unresolved,
     unresolvedPlayers,
+    ...(mappedOpp ? {} : { unknownOpponent: oppTeamName }),
   };
 }
 
