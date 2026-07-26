@@ -54,11 +54,14 @@ export function parseTeamSchedule(html: string, pageUrl: string): ListedGame[] {
     const gameId = href.split("/id/")[1]?.trim();
     if (!gameId) return;
 
-    const url   = new URL(href, origin).toString();
-    const parts = ($el.find(".title").html() ?? "")
-      .split(/<br\s*\/?>/i)
-      .map(p => labelKey(p.replace(/<[^>]*>/g, "")))
-      .filter(Boolean);
+    const url = new URL(href, origin).toString();
+
+    // The title joins competition and round with <br>. Turning those into a
+    // delimiter inside the parsed tree, rather than stripping tags out of the
+    // raw html, keeps this off the string-sanitisation path entirely.
+    const title = $el.find(".title").first().clone();
+    title.find("br").replaceWith("\n");
+    const parts = title.text().split("\n").map(labelKey).filter(Boolean);
 
     const urlSlug    = detectLeagueSlug(url);
     const leagueSlug = urlSlug === "men"
