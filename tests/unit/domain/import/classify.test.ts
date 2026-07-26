@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { classifyScrapedGame } from "@/server/services/import-classifier";
+import { classifyScrapedGame } from "@/domain/import/classify";
 
 const Q = (home: number | null, away: number | null) => ({ home, away });
 
@@ -94,7 +94,7 @@ describe("classifyScrapedGame", () => {
     expect(result.state).toBe("final");
   });
 
-  it("returns final even when AK team is not in teams (import-game handles that error)", () => {
+  it("returns final even when AK team is not in teams (resolve handles that error)", () => {
     const result = classifyScrapedGame(makePayload({
       teams: [
         { name: "TEAM A", players: [] },

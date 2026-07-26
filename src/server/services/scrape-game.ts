@@ -3,7 +3,7 @@ import type { Agent } from "undici";
 import { scrapeGame } from "@/server/integrations/scraper/boxscore";
 import { ScrapedGameSchema } from "@/schemas/box-score";
 import { assertSsrfSafe, makeLockedDispatcher } from "@/server/security/node/ssrf";
-import { classifyScrapedGame, type ClassifyResult } from "@/server/services/import-classifier";
+import { classifyScrapedGame, type ClassifyResult } from "@/domain/import/classify";
 
 // Node.js's native fetch (undici-backed) accepts a non-standard `dispatcher` option
 // that pins the connection to an already-resolved IP, closing the TOCTOU gap.

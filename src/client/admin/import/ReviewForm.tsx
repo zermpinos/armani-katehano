@@ -2,12 +2,13 @@ import { BoxScoreTable, F, Sel, Btn } from "@/client/admin";
 import type { Player, SeasonLeague } from "@/client/admin";
 import { teamRatingsFromBox } from "@/domain/stats";
 import type { ImportDraft } from "@/domain/import/resolve";
+import type { GateResult } from "@/domain/import/verify";
 
 type Props = {
   draft: ImportDraft;
   phase: string;
   gameState: { state: string; reason: string } | null;
-  warnings: string[];
+  gate: GateResult | null;
   unresolved: string[];
   youtubeUrl: string;
   setYoutubeUrl: (v: string) => void;
@@ -23,11 +24,17 @@ type Props = {
 const urlInputCls = "w-full py-[10px] px-3 text-[13px] font-sans rounded-lg border border-ak-border2 bg-ak-base text-ak-text outline-none";
 
 export function ReviewForm({
-  draft, phase, gameState, warnings, unresolved,
+  draft, phase, gameState, gate, unresolved,
   youtubeUrl, setYoutubeUrl, players, highlights, seasonLeagues,
   updDraft, updBox, onSave, onBack,
 }: Props) {
   const leagueMissing = !draft.seasonLeagueId;
+  // The state check has its own banner above.
+  const gateFailures = (gate?.failures ?? []).filter(f => f.check !== "state");
+  // A dropped column reaches the form as a plausible-looking zero, so it is the
+  // one failure review cannot catch. The rest show up as numbers that misadd.
+  const drift    = gateFailures.filter(f => f.check === "columns");
+  const advisory = gateFailures.filter(f => f.check !== "columns");
 
   // Derived from the box currently in the form, so edits move the ratings.
   const rtg = teamRatingsFromBox(
@@ -56,18 +63,19 @@ export function ReviewForm({
         </div>
       )}
 
-      {(unresolved.length > 0 || leagueMissing) && (
+      {(unresolved.length > 0 || leagueMissing || drift.length > 0) && (
         <div className="py-[10px] px-[14px] rounded-lg bg-[#8b1a1a30] border border-[#8b1a1a] text-xs text-ak-red-text">
           <div className="font-black mb-1">Blocked - fix before saving:</div>
           {unresolved.map((u, i) => <div key={i}>• {u}</div>)}
           {leagueMissing && <div>• No league matched the source URL. Pick one under Game info.</div>}
+          {drift.map((f, i) => <div key={i}>• {f.detail} Stats for it would save as zero.</div>)}
         </div>
       )}
 
-      {warnings.length > 0 && (
+      {advisory.length > 0 && (
         <div className="py-[10px] px-[14px] rounded-lg bg-[#8b1a1a18] border border-[#8b1a1a40] text-xs text-ak-red-text">
-          <div className="font-black mb-1">⚠ Warnings - review before saving:</div>
-          {warnings.map((w, i) => <div key={i}>• {w}</div>)}
+          <div className="font-black mb-1">⚠ Source data failed verification - check these before saving:</div>
+          {advisory.map((f, i) => <div key={i}>• {f.detail}</div>)}
         </div>
       )}
 
@@ -126,7 +134,7 @@ export function ReviewForm({
         <Btn
           onClick={onSave}
           variant="green"
-          disabled={phase === "saving" || gameState?.state === "scheduled" || unresolved.length > 0 || leagueMissing}
+          disabled={phase === "saving" || gameState?.state === "scheduled" || unresolved.length > 0 || leagueMissing || drift.length > 0}
         >
           {phase === "saving" ? "SAVING..." : "SAVE GAME"}
         </Btn>

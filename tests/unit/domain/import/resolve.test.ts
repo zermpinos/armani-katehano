@@ -140,16 +140,6 @@ describe("resolve game fields", () => {
     expect(draft.teamScore).toBe(60);
     expect(draft.opponentScore).toBe(55);
   });
-
-  it("warns when a player's points do not match their made shots", () => {
-    const { warnings } = resolve(
-      scrapedData([{ ...onRoster, PTS: 10, "2PTS": { made: 2, attempted: 4 }, "3PTS": { made: 1, attempted: 2 } }]),
-      roster,
-      [ROOKIE],
-    );
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain("expected 7");
-  });
 });
 
 describe("diffDraft", () => {
