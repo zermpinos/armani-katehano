@@ -67,9 +67,6 @@ export async function importGame(
   const result      = akScore > oppScore ? "W" : akScore < oppScore ? "L" : "T";
   const playedOn    = parseGreekDate(game.date) as Date;
 
-  const offRating = Number.isFinite(Number(game.offRating)) ? Number(game.offRating) : null;
-  const defRating = Number.isFinite(Number(game.defRating)) ? Number(game.defRating) : null;
-
   const leagueKey = detectLeagueSlug(sourceUrl);
   if (!leagueKey)
     throw new ImportError("Could not detect a league from the source URL - import aborted", 422);
@@ -188,8 +185,6 @@ export async function importGame(
           result,
           playedOn,
           sourceUrl:     sourceUrl ?? null,
-          offRating:     offRating ?? null,
-          defRating:     defRating ?? null,
         },
       });
       gameId = g.id;

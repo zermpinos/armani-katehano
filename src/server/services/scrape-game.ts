@@ -1,34 +1,14 @@
 import "@/server/_internal/node-only";
-import dns        from "node:dns";
 import type { Agent } from "undici";
 import { scrapeGame } from "@/server/integrations/scraper/boxscore";
 import { ScrapedGameSchema } from "@/schemas/box-score";
-import { assertSsrfSafe, isAllowedHostname, isPrivateIp, makeLockedDispatcher } from "@/server/security/node/ssrf";
+import { assertSsrfSafe, makeLockedDispatcher } from "@/server/security/node/ssrf";
 import { classifyScrapedGame, type ClassifyResult } from "@/server/services/import-classifier";
 
 // Node.js's native fetch (undici-backed) accepts a non-standard `dispatcher` option
 // that pins the connection to an already-resolved IP, closing the TOCTOU gap.
 // Derived from fetch's own signature to avoid referencing RequestInit as a bare global.
 type NodeRequestInit = NonNullable<Parameters<typeof fetch>[1]> & { dispatcher: Agent };
-
-const AK_IDENTIFIERS = ["ARMANI", "KATEHANO"];
-
-function parsePdfEfficiency(text: string): { offRating: number | null; defRating: number | null } {
-  // Accept commas or periods as decimal separator; case-insensitive for team name check.
-  const effRegex = /Off\.?\s*\/\s*Def\.?\s+Efficiency:\s*([\d.,]+)\s*\/\s*([\d.,]+)/gi;
-  const upper = text.toUpperCase();
-  let m: RegExpExecArray | null;
-  while ((m = effRegex.exec(text)) !== null) {
-    const beforeMatch = upper.slice(0, m.index);
-    if (AK_IDENTIFIERS.some(id => beforeMatch.includes(id))) {
-      return {
-        offRating: parseFloat(m[1].replace(",", ".")),
-        defRating: parseFloat(m[2].replace(",", ".")),
-      };
-    }
-  }
-  return { offRating: null, defRating: null };
-}
 
 export class ScrapeError extends Error {
   constructor(
@@ -82,45 +62,6 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
     data = scrapeGame(html, url);
   } catch (err) {
     throw new ScrapeError((err as Error).message, 422);
-  }
-
-  const pdfUrl = typeof data.game?.pdfUrl === "string" ? data.game.pdfUrl : null;
-  if (pdfUrl) {
-    try {
-      const pdfUrlObj = new URL(pdfUrl);
-      if (!isAllowedHostname(pdfUrlObj.hostname)) throw new Error("PDF host not allowed");
-
-      const { address: pdfIp } = await dns.promises.lookup(pdfUrlObj.hostname);
-      if (isPrivateIp(pdfIp)) throw new Error("PDF host resolves to private IP");
-
-      // Pin the PDF fetch to the validated IP, same TOCTOU fix as the main fetch.
-      const pdfDispatcher = makeLockedDispatcher(pdfIp);
-      let pdfBuffer: Buffer | null = null;
-      try {
-        const pdfResponse = await fetch(pdfUrl, {
-          redirect: "manual",
-          headers: { "User-Agent": "BoxScoreScraper/1.0" },
-          dispatcher: pdfDispatcher,
-        } as NodeRequestInit);
-
-        if (pdfResponse.ok)
-          pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
-      } finally {
-        await pdfDispatcher.destroy().catch(() => {});
-      }
-
-      if (pdfBuffer !== null) {
-        const { PDFParse } = await import("pdf-parse");
-        const parser = new PDFParse({ data: pdfBuffer });
-        const { text } = await parser.getText();
-        const { offRating, defRating } = parsePdfEfficiency(text);
-        if (offRating !== null) data.game.offRating = offRating;
-        if (defRating !== null) data.game.defRating = defRating;
-      }
-    } catch (pdfErr) {
-      // Non-fatal - ratings will be omitted, but log so it's diagnosable
-      console.warn("[scrape-game] PDF rating parse failed:", (pdfErr as Error).message);
-    }
   }
 
   const validation = ScrapedGameSchema.safeParse(data);

@@ -79,8 +79,6 @@ model Game {
   sourceUrl      String?          @unique(where: raw("(\"sourceUrl\" IS NOT NULL)"))
   youtubeUrl     String?
   round          String           @default("regular")
-  offRating      Float?
-  defRating      Float?
   broadcastedAt  DateTime?
   seasonLeague   SeasonLeague     @relation(fields: [seasonLeagueId], references: [id], onDelete: Cascade)
   playerStats    PlayerGameStat[]
