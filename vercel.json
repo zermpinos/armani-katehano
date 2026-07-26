@@ -3,6 +3,7 @@
     { "path": "/api/cron/purge-subscribers", "schedule": "0 3 * * *" },
     { "path": "/api/cron/purge-upcoming-games", "schedule": "30 4 * * *" },
     { "path": "/api/cron/purge-audit-log", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/poll-imports", "schedule": "0 21 * * *" },
     { "path": "/api/admin/cleanup", "schedule": "0 2 * * *" }
   ]
 }

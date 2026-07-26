@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { describe, it, expect } from "vitest";
-import { resolve, diffDraft } from "@/domain/import/resolve";
+import { resolve, diffDraft, toCommitInput } from "@/domain/import/resolve";
 
 const roster = [
   { id: "p1", number: 4 },
@@ -151,6 +151,37 @@ describe("resolve game fields", () => {
     expect(draft.result).toBe("W");
     expect(draft.teamScore).toBe(60);
     expect(draft.opponentScore).toBe(55);
+  });
+});
+
+describe("toCommitInput", () => {
+  const draft = {
+    date: "2026-01-01", opponent: "A", home: false, result: "L",
+    teamScore: 55, opponentScore: 60, seasonLeagueId: "sl1", sourceUrl: "https://x/men/1",
+    boxScore: [{
+      playerId: "p1", min: 21.5, pts: 11, reb: 4, orb: 1, drb: 3,
+      ast: 2, stl: 1, blk: 0, tov: 2, pf: 3,
+      fgm: 99, fga: 99, fg2m: 3, fg2a: 5, fg3m: 1, fg3a: 2,
+      ftm: 2, fta: 2, eff: 12,
+    }],
+  };
+
+  it("re-derives fgm and fga from the 2PT and 3PT splits the form edits", () => {
+    const [row] = toCommitInput(draft).boxScore;
+    expect(row.fgm).toBe(4);
+    expect(row.fga).toBe(7);
+  });
+
+  it("renames min to minutes and drops eff, which has no stat column", () => {
+    const [row] = toCommitInput(draft).boxScore;
+    expect(row.minutes).toBe(21.5);
+    expect(row).not.toHaveProperty("min");
+    expect(row).not.toHaveProperty("eff");
+  });
+
+  it("maps home to the location the write schema expects", () => {
+    expect(toCommitInput(draft).location).toBe("away");
+    expect(toCommitInput({ ...draft, home: true }).location).toBe("home");
   });
 });
 

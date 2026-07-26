@@ -11,6 +11,10 @@ import { classifyScrapedGame, type ClassifyResult } from "@/domain/import/classi
 // Derived from fetch's own signature to avoid referencing RequestInit as a bare global.
 type NodeRequestInit = NonNullable<Parameters<typeof fetch>[1]> & { dispatcher: Agent };
 
+// Bounds the poll, which scrapes several URLs inside one function budget. An
+// interactive scrape has a human to close the tab; a cron job does not.
+const FETCH_TIMEOUT_MS = 8_000;
+
 export class ScrapeError extends Error {
   constructor(
     message: string,
@@ -43,6 +47,7 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
         "Accept":     "text/html,application/xhtml+xml",
       },
       dispatcher,
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     } as NodeRequestInit);
 
     if (response.status >= 300 && response.status < 400)
