@@ -47,9 +47,7 @@ export default requireAuth(async function handler(req: any, res: any) {
       return res.status(422).json({ error: (err as Error).message });
     }
 
-    const gate = verify(data, gameState.state);
-
-    return res.status(200).json({ ok: true, data, gameState, gate, ...resolved });
+    return res.status(200).json({ ok: true, data, gameState, gate: verify(data), ...resolved });
   } catch (err) {
     if (err instanceof ScrapeError)
       return res.status(err.status).json({ error: err.message });

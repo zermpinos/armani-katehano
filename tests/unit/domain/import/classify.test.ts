@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { classifyScrapedGame } from "@/server/services/import-classifier";
+import { classifyScrapedGame } from "@/domain/import/classify";
 
 const Q = (home: number | null, away: number | null) => ({ home, away });
 

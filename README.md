@@ -163,7 +163,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - Forced password change flow.
 
 ### Imports & scraping
-- `scrape-game.ts` (fetch + parse) + `import-classifier.ts` (game state: scheduled/live/final) + `domain/import/resolve.ts` (pure draft resolution) + `import-commit.ts` (persist idempotently, 409 on a re-imported source URL).
+- `scrape-game.ts` (fetch + parse) + `domain/import/classify.ts` (game state: scheduled/live/final) + `domain/import/verify.ts` (checks the scrape against itself before review) + `domain/import/resolve.ts` (pure draft resolution) + `import-commit.ts` (persist idempotently, 409 on a re-imported source URL).
 - `stats-recalc.ts` - transactional aggregate recompute (totals from raw DB sums, never approximated from averages).
 
 ### Cron / scheduled jobs
@@ -235,6 +235,8 @@ armani-katehano/
 │   │   ├── players/format.ts (fmt, initials, slugify), players/positions.ts,
 │   │   │   stats/{aggregate,allTime,efficiency,fromLog,ratings}.ts
 │   │   ├── import/                 resolve.ts (scraped payload to a draft),
+│   │   │                           verify.ts (gate over the scrape itself),
+│   │   │                           classify.ts (scheduled/live/final),
 │   │   │                           identity.ts (our-team match)
 │   │   ├── calendar/greek-date.ts  Greek-language date/slug parsing (scraper helper)
 │   │   └── shared/                 calendar.ts (.ics builder), cloudinary.ts (cloudinaryThumb),
@@ -255,7 +257,7 @@ armani-katehano/
 │   │   │   ├── edge/               CSP (hash-based) + csp-hashes.ts, headers
 │   │   │   └── node/               SSRF, audit log, client IP (Node-only)
 │   │   └── services/               audit-log-purge, broadcast-import,
-│   │                                cache-invalidation, cron-run, import-classifier,
+│   │                                cache-invalidation, cron-run,
 │   │                                import-commit, maintenance-flag,
 │   │                                scrape-game, stats-recalc, subscriber
 │   ├── theme/                      Tailwind theme tokens
@@ -497,7 +499,7 @@ Whenever inline script/style content on a statically-rendered page changes, run 
 ### Limitations
 
 - Single-team scope. The data model has seasons, leagues, and season-leagues, but the UI assumes one home team.
-- Box-score scraping targets one page shape, the source currently in use. There is no format detection: a new source means new selectors in `integrations/scraper/boxscore.ts`. (`import-classifier.ts` classifies game state, not source format.)
+- Box-score scraping targets one page shape, the source currently in use. There is no format detection: a new source means new selectors in `integrations/scraper/boxscore.ts`. (`domain/import/classify.ts` classifies game state, not source format.) `domain/import/verify.ts` catches the drift after the fact: it blocks an import when a column the resolver reads has stopped being emitted, rather than saving it as a zero.
 - Email delivery currently goes through a single Brevo SMTP account; there is no per-subscriber language selection.
 - The admin and coach portals share the same Postgres connection; there is no read-replica routing.
 

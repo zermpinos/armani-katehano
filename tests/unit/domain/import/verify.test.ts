@@ -1,6 +1,9 @@
 // @ts-nocheck
 import { describe, it, expect } from "vitest";
-import { verify } from "@/domain/import/verify";
+import { verify, REQUIRED_COLUMNS } from "@/domain/import/verify";
+import { resolve } from "@/domain/import/resolve";
+
+const GREEK_DATE = "Σάββατο, 1 Ιανουαρίου 2026";
 
 function player(over = {}) {
   return {
@@ -22,14 +25,22 @@ const rival = over => player({
   ...over,
 });
 
+const QUARTERS = [
+  { quarter: "Q1", home: 3, away: 2 },
+  { quarter: "Q2", home: 3, away: 2 },
+  { quarter: "Q3", home: 2, away: 2 },
+  { quarter: "Q4", home: 2, away: 2 },
+];
+
 function payload(over = {}) {
   return {
     url: "https://example.com/men/gamedetails/id/X",
     game: {
       homeTeam: "ARMANI KATEHANO",
       awayTeam: "Rivals",
-      date: "Σάββατο, 1 Ιανουαρίου 2026",
+      date: GREEK_DATE,
       finalScore: { home: 10, away: 8 },
+      quarterScores: QUARTERS.map(q => ({ ...q })),
     },
     teams: [
       { name: "ARMANI KATEHANO", players: [player()] },
@@ -43,23 +54,25 @@ const checks = r => r.failures.map(f => f.check);
 
 describe("verify", () => {
   it("passes a consistent final box score", () => {
-    expect(verify(payload(), "final")).toEqual({ ok: true, failures: [] });
+    expect(verify(payload())).toEqual({ ok: true, failures: [] });
   });
 
-  it("fails when the game is not final", () => {
-    expect(checks(verify(payload(), "live"))).toEqual(["state"]);
+  it("fails when the scrape does not classify as final", () => {
+    const raw = payload();
+    raw.game.quarterScores.pop();
+    expect(checks(verify(raw))).toEqual(["state"]);
   });
 
   it("fails on an unparseable date", () => {
     const raw = payload();
     raw.game.date = "yesterday";
-    expect(checks(verify(raw, "final"))).toEqual(["date"]);
+    expect(checks(verify(raw))).toEqual(["date"]);
   });
 
   it("fails on a missing date", () => {
     const raw = payload();
     raw.game.date = null;
-    expect(checks(verify(raw, "final"))).toEqual(["date"]);
+    expect(checks(verify(raw))).toEqual(["date"]);
   });
 
   it("fails when per-player points do not sum to the final score", () => {
@@ -70,7 +83,7 @@ describe("verify", () => {
       "3PTS": { made: 0, attempted: 0, pct: 0 },
       FT:     { made: 0, attempted: 0, pct: 0 },
     }));
-    const r = verify(raw, "final");
+    const r = verify(raw);
     expect(checks(r)).toEqual(["score"]);
     expect(r.failures[0].detail).toContain("sum to 12");
   });
@@ -79,7 +92,7 @@ describe("verify", () => {
     const raw = payload();
     raw.teams[0].players[0].PTS = 11;
     raw.game.finalScore.home = 11;
-    const r = verify(raw, "final");
+    const r = verify(raw);
     expect(checks(r)).toEqual(["player-points"]);
     expect(r.failures[0].detail).toContain("shots total 10");
   });
@@ -88,7 +101,7 @@ describe("verify", () => {
     const raw = payload();
     raw.teams[1].players[0].PTS = 9;
     raw.game.finalScore.away = 9;
-    const r = verify(raw, "final");
+    const r = verify(raw);
     expect(checks(r)).toEqual(["player-points"]);
     expect(r.failures[0].detail).toContain("Rivals");
   });
@@ -96,7 +109,7 @@ describe("verify", () => {
   it("fails when a column the resolver reads is absent", () => {
     const raw = payload();
     delete raw.teams[0].players[0].EF;
-    const r = verify(raw, "final");
+    const r = verify(raw);
     expect(checks(r)).toEqual(["columns"]);
     expect(r.failures[0].detail).toContain("EF");
   });
@@ -105,13 +118,13 @@ describe("verify", () => {
     const raw = payload();
     raw.teams[0].players.push(player({ "#": 7, PTS: 0, "2PTS": null, "3PTS": null, FT: null }));
     raw.teams[0].players.forEach(p => { delete p.OREB; });
-    expect(checks(verify(raw, "final"))).toEqual(["columns"]);
+    expect(checks(verify(raw))).toEqual(["columns"]);
   });
 
   it("fails when no box score section matches a team name", () => {
     const raw = payload();
     raw.teams[1].name = "Someone Else";
-    const r = verify(raw, "final");
+    const r = verify(raw);
     expect(checks(r)).toEqual(["teams"]);
     expect(r.failures[0].detail).toContain("away");
   });
@@ -119,7 +132,7 @@ describe("verify", () => {
   it("matches team names across whitespace and case differences", () => {
     const raw = payload();
     raw.teams[0].name = "  armani   katehano ";
-    expect(verify(raw, "final").ok).toBe(true);
+    expect(verify(raw).ok).toBe(true);
   });
 
   it("accepts a bench player with no shot cells", () => {
@@ -129,14 +142,38 @@ describe("verify", () => {
       REB: 0, OREB: 0, DREB: 0, AST: 0, STL: 0, BLK: 0, TO: 0, PF: 0,
       "2PTS": null, "3PTS": null, FT: null, EF: 0,
     }));
-    expect(verify(raw, "final").ok).toBe(true);
+    expect(verify(raw).ok).toBe(true);
   });
 
   it("collects every failure rather than stopping at the first", () => {
     const raw = payload();
     raw.game.date = "";
+    raw.game.quarterScores.pop();
     raw.teams[0].players[0].PTS = 99;
-    expect(checks(verify(raw, "live")).sort())
+    expect(checks(verify(raw)).sort())
       .toEqual(["date", "player-points", "score", "state"]);
+  });
+
+  // Locks REQUIRED_COLUMNS to what resolve() actually consumes: a column read
+  // there but missing here would leave its field zeroed and the canary blind.
+  it("covers every column resolve() turns into a box-score field", () => {
+    const scraped = { "#": 4, Players: "Player Four", MIN: "20:00" };
+    for (const col of REQUIRED_COLUMNS) {
+      if (col in scraped) continue;
+      Reflect.set(scraped, col, ["2PTS", "3PTS", "FT"].includes(col) ? { made: 2, attempted: 5 } : 7);
+    }
+
+    const { draft } = resolve(
+      {
+        game:  { homeTeam: "ARMANI KATEHANO", awayTeam: "Rivals", date: GREEK_DATE, finalScore: { home: 7, away: 5 } },
+        teams: [{ name: "ARMANI KATEHANO", players: [scraped] }, { name: "Rivals", players: [] }],
+        url:   "https://example.com/rookie/gamedetails/id/X",
+      },
+      [{ id: "p1", number: 4 }],
+      [{ id: "sl1", leagueSlug: "rookie", seasonStart: "2025-09-01T00:00:00.000Z", seasonEnd: null }],
+    );
+
+    for (const [field, value] of Object.entries(draft.boxScore[0]))
+      expect(value, `${field} resolved to zero, so its source column is missing from REQUIRED_COLUMNS`).not.toBe(0);
   });
 });

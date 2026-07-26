@@ -1,4 +1,5 @@
 import { parseGreekDate } from "@/domain/calendar/greek-date";
+import { classifyScrapedGame } from "./classify";
 
 export interface GateFailure {
   check: string;
@@ -16,7 +17,7 @@ type ScrapedTeam = { name: string; players: ScrapedPlayer[] };
 
 // Every column resolve() reads. The scrape schema is passthrough, so a column
 // the source stops emitting arrives as undefined and zero-fills without error.
-const REQUIRED_COLUMNS = [
+export const REQUIRED_COLUMNS = [
   "#", "Players", "MIN", "PTS", "REB", "OREB", "DREB",
   "AST", "STL", "BLK", "TO", "PF", "2PTS", "3PTS", "FT", "EF",
 ];
@@ -34,8 +35,9 @@ function norm(s: unknown): string {
 }
 
 // Asserts the scrape against itself, before any admin edit, so a check can
-// never be satisfied by editing the value it checks.
-export function verify(raw: Record<string, unknown>, state: string): GateResult {
+// never be satisfied by editing the value it checks. Classifies its own input
+// rather than taking a state, which a caller could pass from a different scrape.
+export function verify(raw: Record<string, unknown>): GateResult {
   const failures: GateFailure[] = [];
   const fail = (check: string, detail: string) => failures.push({ check, detail });
 
@@ -49,8 +51,9 @@ export function verify(raw: Record<string, unknown>, state: string): GateResult 
     teams?: ScrapedTeam[];
   };
 
+  const { state, reason } = classifyScrapedGame(raw);
   if (state !== "final")
-    fail("state", `Game state is "${state}", not final.`);
+    fail("state", `Game state is "${state}": ${reason}.`);
 
   if (!game?.date || !parseGreekDate(game.date))
     fail("date", `Game date "${game?.date ?? ""}" is missing or unparseable.`);

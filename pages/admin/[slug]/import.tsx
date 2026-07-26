@@ -137,6 +137,7 @@ export default function ImportPage({
         youtubeUrl:     youtubeUrl.trim() || null,
         boxScore,
         importDiff,
+        gateFailures: gate?.failures ?? [],
       }),
     });
 

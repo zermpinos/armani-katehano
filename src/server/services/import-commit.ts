@@ -28,7 +28,7 @@ export interface CommitOptions {
 export async function commitImport(data: CommitInput, opts: CommitOptions = {}): Promise<{ gameId: string }> {
   const {
     seasonLeagueId, opponent, location, teamScore, opponentScore,
-    result, playedOn, notes, sourceUrl, youtubeUrl, round, boxScore, importDiff,
+    result, playedOn, notes, sourceUrl, youtubeUrl, round, boxScore, importDiff, gateFailures,
   } = data;
 
   const rows = boxScore ?? [];
@@ -93,6 +93,7 @@ export async function commitImport(data: CommitInput, opts: CommitOptions = {}):
     gameId: game.id,
     opponent,
     ...(importDiff?.length ? { importDiff } : {}),
+    ...(gateFailures?.length ? { gateFailures } : {}),
   });
 
   const affectedPlayerSlugs = affectedPlayerIds.length
