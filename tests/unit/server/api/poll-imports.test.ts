@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const { mockPrisma, mockScrapeAndResolve, mockCommitImport, MockCommitError, mockFinishCronRun } = vi.hoisted(() => {
+const { mockPrisma, mockScrapeAndResolve, mockCommitImport, MockCommitError, mockFinishCronRun, mockNotify } = vi.hoisted(() => {
   class MockCommitError extends Error {
     constructor(message, status) { super(message); this.status = status; }
   }
@@ -14,6 +14,7 @@ const { mockPrisma, mockScrapeAndResolve, mockCommitImport, MockCommitError, moc
     mockCommitImport:     vi.fn(),
     MockCommitError,
     mockFinishCronRun:    vi.fn(),
+    mockNotify:           vi.fn(),
   };
 });
 
@@ -29,6 +30,7 @@ vi.mock("@/server/services/import-commit", () => ({
   commitImport: mockCommitImport,
   CommitError:  MockCommitError,
 }));
+vi.mock("@/server/integrations/email/client", () => ({ sendImportNotification: mockNotify }));
 
 import handler from "../../../../pages/api/cron/poll-imports";
 
@@ -84,15 +86,23 @@ function mockRes() {
 
 const summary = () => mockFinishCronRun.mock.calls[0][1].summary;
 
+// Three hours after tip-off: inside the window, with days of runs still to come.
+const PLAYED_TONIGHT = new Date(NOW.getTime() - 3 * 60 * 60 * 1000);
+// Past LAST_RUN_MS, so tonight is the final run that will see this game.
+const PLAYED_LAST_WEEK = new Date(NOW.getTime() - 6.5 * 24 * 60 * 60 * 1000);
+
+const candidate = (over = {}) => ({ sourceUrl: SOURCE_URL, scheduledFor: PLAYED_TONIGHT, ...over });
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
   process.env.CRON_SECRET = "test-secret";
-  mockPrisma.upcomingGame.findMany.mockResolvedValue([{ sourceUrl: SOURCE_URL }]);
+  mockPrisma.upcomingGame.findMany.mockResolvedValue([candidate()]);
   mockPrisma.game.findMany.mockResolvedValue([]);
   mockScrapeAndResolve.mockResolvedValue(pipelineResult());
   mockCommitImport.mockResolvedValue({ gameId: "clgame000000000000000001" });
+  mockNotify.mockResolvedValue(undefined);
 });
 
 describe("poll-imports auth", () => {
@@ -137,7 +147,7 @@ describe("poll-imports candidate selection", () => {
     const res = mockRes();
     await handler(mockReq(), res);
     expect(mockScrapeAndResolve).not.toHaveBeenCalled();
-    expect(summary().skipped).toEqual([{ sourceUrl: SOURCE_URL, reason: "already imported" }]);
+    expect(summary().skipped).toEqual([{ sourceUrl: SOURCE_URL, reason: "already imported", transient: true }]);
   });
 });
 
@@ -203,10 +213,65 @@ describe("poll-imports commit gate", () => {
   });
 });
 
+describe("poll-imports alerting", () => {
+  const alert = () => mockNotify.mock.calls[0][0];
+
+  it("emails when a game is stuck on something a person must fix", async () => {
+    mockScrapeAndResolve.mockResolvedValue(pipelineResult({ unresolvedPlayers: [{ number: 99, name: "New Guy" }] }));
+    await handler(mockReq(), mockRes());
+    expect(mockNotify).toHaveBeenCalledTimes(1);
+    expect(alert().kind).toBe("stalled");
+    expect(alert().entries).toEqual([{ sourceUrl: SOURCE_URL, reason: "player not on roster" }]);
+  });
+
+  it("stays quiet while a game is still settling", async () => {
+    mockScrapeAndResolve.mockResolvedValue(pipelineResult({ gameState: { state: "live", reason: "Q4 open" } }));
+    await handler(mockReq(), mockRes());
+    expect(mockNotify).not.toHaveBeenCalled();
+  });
+
+  it("stays quiet about a game that was already imported", async () => {
+    mockPrisma.game.findMany.mockResolvedValue([{ sourceUrl: SOURCE_URL }]);
+    await handler(mockReq(), mockRes());
+    expect(mockNotify).not.toHaveBeenCalled();
+  });
+
+  it("stays quiet when everything committed", async () => {
+    await handler(mockReq(), mockRes());
+    expect(mockNotify).not.toHaveBeenCalled();
+  });
+
+  // Otherwise a game that never settles drops out of the window unannounced.
+  it("emails on the last run that will see a game, even for a settling reason", async () => {
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([candidate({ scheduledFor: PLAYED_LAST_WEEK })]);
+    mockScrapeAndResolve.mockResolvedValue(pipelineResult({ gameState: { state: "live", reason: "Q4 open" } }));
+    await handler(mockReq(), mockRes());
+    expect(mockNotify).toHaveBeenCalledTimes(1);
+    expect(alert().entries[0].reason).toBe("state live");
+  });
+
+  it("emails when the run itself throws", async () => {
+    mockPrisma.upcomingGame.findMany.mockRejectedValue(new Error("boom"));
+    const res = mockRes();
+    await handler(mockReq(), res);
+    expect(res.statusCode).toBe(500);
+    expect(alert()).toEqual({ kind: "stalled", entries: [], error: "boom" });
+  });
+
+  it("still finishes the run when the alert cannot be sent", async () => {
+    mockNotify.mockRejectedValue(new Error("smtp down"));
+    mockScrapeAndResolve.mockResolvedValue(pipelineResult({ unresolved: ["Pick a league."] }));
+    const res = mockRes();
+    await handler(mockReq(), res);
+    expect(res.statusCode).toBe(200);
+    expect(mockFinishCronRun).toHaveBeenCalledWith("run1", expect.objectContaining({ ok: true }));
+  });
+});
+
 describe("poll-imports resilience", () => {
   it("keeps going after one candidate throws", async () => {
     const second = "https://basketcity.sportstats.gr/men/gamedetails/id/4712";
-    mockPrisma.upcomingGame.findMany.mockResolvedValue([{ sourceUrl: SOURCE_URL }, { sourceUrl: second }]);
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([candidate(), candidate({ sourceUrl: second })]);
     mockScrapeAndResolve
       .mockRejectedValueOnce(new Error("Upstream unreachable"))
       .mockResolvedValueOnce(pipelineResult({ draft: { ...DRAFT, sourceUrl: second } }));
@@ -216,7 +281,7 @@ describe("poll-imports resilience", () => {
 
     expect(mockCommitImport).toHaveBeenCalledTimes(1);
     expect(res.body).toEqual({ ok: true, committed: 1, skipped: 1 });
-    expect(summary().skipped[0]).toEqual({ sourceUrl: SOURCE_URL, reason: "Upstream unreachable" });
+    expect(summary().skipped[0]).toEqual({ sourceUrl: SOURCE_URL, reason: "Upstream unreachable", transient: false });
   });
 
   it("records a commit rejection as a skip rather than failing the run", async () => {
