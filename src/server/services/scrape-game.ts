@@ -31,14 +31,15 @@ export interface ScrapeResult {
   bytesHash: string;
 }
 
-export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
+// The only outbound fetch in the import path. Game pages and team listings both
+// come through here so the SSRF guard is written once.
+export async function fetchGuarded(url: string): Promise<string> {
   const { address } = await assertSsrfSafe(url).catch(() => {
     throw new ScrapeError("URL not allowed", 400);
   });
 
   // Connect directly to the pre-validated IP - no second DNS resolution at fetch time.
   const dispatcher = makeLockedDispatcher(address);
-  let html: string;
   try {
     const response = await fetch(url, {
       redirect: "manual",
@@ -56,13 +57,17 @@ export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
     if (!response.ok)
       throw new ScrapeError(`Upstream returned ${response.status}`, 502);
 
-    html = await response.text();
+    return await response.text();
   } catch (err) {
     if (err instanceof ScrapeError) throw err;
     throw new ScrapeError(`Upstream unreachable: ${(err as Error).message}`, 502);
   } finally {
     await dispatcher.destroy().catch(() => {});
   }
+}
+
+export async function scrapeGameFromUrl(url: string): Promise<ScrapeResult> {
+  const html = await fetchGuarded(url);
 
   let data: any;
   try {

@@ -1,10 +1,14 @@
 /**
  * pages/api/cron/poll-imports.ts
  *
- * GET - daily cron. Scrapes the source URL of every recently played scheduled
- * game and commits the ones that come back complete and internally consistent.
- * Every other outcome is a skip: the game stays in the admin's quick-import
- * list exactly as it does today, so the poll can only ever add work it finished.
+ * GET - daily cron. Reads the team pages for games the organisers have posted a
+ * result for, and commits the ones that come back complete and internally
+ * consistent. Every other outcome is a skip, leaving the game to be imported by
+ * hand exactly as before, so the poll can only ever add work it finished.
+ *
+ * Candidates come from the listing rather than from the schedule because the
+ * game URL is not knowable before the organisers publish the fixture, so no one
+ * can put it on an UpcomingGame row in advance.
  *
  * A skip nobody hears about is indistinguishable from a quiet week, so anything
  * that will not resolve itself on a later run is emailed to the admin.
@@ -20,16 +24,19 @@ import { startCronRun, finishCronRun } from "@/server/services/cron-run";
 import { scrapeAndResolve } from "@/server/services/import-pipeline";
 import { commitImport, CommitError } from "@/server/services/import-commit";
 import { toCommitInput } from "@/domain/import/resolve";
+import { parseGreekDate } from "@/domain/calendar/greek-date";
 import { GameWriteSchema } from "@/schemas/game";
 import { sendImportNotification } from "@/server/integrations/email/client";
+import { discoverGames } from "@/server/services/discover-games";
 
 // Three scrapes at an 8s timeout each fits the function budget with room for
-// the commits. A fourth game on one night waits for tomorrow's run.
+// the commits, on top of the two listing fetches. A fourth game on one night
+// waits for tomorrow's run.
 const MAX_CANDIDATES = 3;
-const SETTLE_MS      = 90 * 60 * 1000;
 // A week, so a game that needs someone to act first (add a new player to the
-// roster, configure a season that covers the date) still imports itself once
-// they have. Anything unresolved for longer wants a person, not another scrape.
+// roster, name an unknown opponent) still imports itself once they have.
+// Anything older is history rather than news, and stays out so a game that can
+// never import does not raise an alert every night forever.
 const LOOKBACK_MS    = 7 * 24 * 60 * 60 * 1000;
 // One daily run short of the window closing. Past this, a reason that would
 // normally sort itself out has no later run left to do it in.
@@ -61,45 +68,36 @@ export default async function handler(req: any, res: any) {
 
   try {
     const now = Date.now();
-    const candidates = await prisma.upcomingGame.findMany({
-      where: {
-        sourceUrl:    { not: null },
-        scheduledFor: { gte: new Date(now - LOOKBACK_MS), lte: new Date(now - SETTLE_MS) },
-      },
-      orderBy: { scheduledFor: "desc" },
-      take:    MAX_CANDIDATES,
-      select:  { sourceUrl: true, scheduledFor: true },
-    });
+    const { games, errors } = await discoverGames();
 
-    const urls = candidates.map(c => c.sourceUrl as string);
-
-    // purge-upcoming-games only clears imported rows once a day, so a game
-    // imported by hand this evening is still a candidate tonight. Checking here
-    // keeps the poll from spending a scrape to earn a 409.
-    const alreadyImported = new Set(
-      (await prisma.game.findMany({
-        where:  { sourceUrl: { in: urls } },
-        select: { sourceUrl: true },
-      })).map(g => g.sourceUrl),
+    // Keyed on the game id rather than the URL: the same game has been served
+    // under both /winter-cup/ and /super-winter-cup/, and one stored URL ends
+    // in a newline. Matching on the string would import either one twice.
+    const importedIds = new Set(
+      (await prisma.game.findMany({ select: { sourceUrl: true } }))
+        .map(g => (g.sourceUrl ?? "").trim().split("/id/")[1])
+        .filter(Boolean),
     );
+
+    const candidates = games
+      .filter(g => !importedIds.has(g.gameId))
+      .map(g => ({ ...g, playedOn: parseGreekDate(g.dateText) }))
+      .filter(g => g.playedOn && now - g.playedOn.getTime() < LOOKBACK_MS)
+      .sort((a, b) => b.playedOn!.getTime() - a.playedOn!.getTime())
+      .slice(0, MAX_CANDIDATES);
 
     const committed: { sourceUrl: string; gameId: string }[] = [];
     const skipped:   Skip[] = [];
+    for (const e of errors) skipped.push({ sourceUrl: "listing", reason: e, transient: false });
 
     for (const candidate of candidates) {
-      const sourceUrl  = candidate.sourceUrl as string;
-      const lastChance = now - candidate.scheduledFor.getTime() > LAST_RUN_MS;
+      const sourceUrl  = candidate.url;
+      const lastChance = now - candidate.playedOn!.getTime() > LAST_RUN_MS;
       const skip = (reason: string, transient = false) =>
         skipped.push({ sourceUrl, reason, transient: transient && !lastChance });
 
-      // Not a problem at any age: the game is in, this row just outlived it.
-      if (alreadyImported.has(sourceUrl)) {
-        skipped.push({ sourceUrl, reason: "already imported", transient: true });
-        continue;
-      }
-
       try {
-        const result = await scrapeAndResolve(sourceUrl);
+        const result = await scrapeAndResolve(sourceUrl, { leagueSlug: candidate.leagueSlug });
 
         if (result.gameState.state !== "final") { skip(`state ${result.gameState.state}`, true); continue; }
         if (!result.gate.ok)                    { skip("failed verification");                   continue; }
@@ -107,9 +105,9 @@ export default async function handler(req: any, res: any) {
         if (result.unresolvedPlayers.length)    { skip("player not on roster");                  continue; }
         if (result.unknownOpponent)             { skip(`unknown opponent "${result.unknownOpponent}"`); continue; }
 
-        // Same validation the admin's save goes through. The draft is derived
-        // server-side, but the URL behind it is admin-entered.
-        const parsed = GameWriteSchema.safeParse(toCommitInput(result.draft));
+        // Same validation the admin's save goes through. Round comes from the
+        // listing label, which is the only place a playoff game says so.
+        const parsed = GameWriteSchema.safeParse({ ...toCommitInput(result.draft), round: candidate.round });
         if (!parsed.success) { skip("draft failed schema validation"); continue; }
 
         const { gameId } = await commitImport(parsed.data, {
@@ -130,7 +128,7 @@ export default async function handler(req: any, res: any) {
       }).catch(err => console.error("[poll-imports] notify:", err));
     }
 
-    const summary = { candidates: urls.length, committed, skipped };
+    const summary = { listed: games.length, candidates: candidates.length, committed, skipped };
     await finishCronRun(runId, { ok: true, summary });
     return res.status(200).json({ ok: true, committed: committed.length, skipped: skipped.length });
   } catch (err: any) {
