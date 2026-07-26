@@ -10,7 +10,7 @@ const { mockPrisma } = vi.hoisted(() => {
     player:         { findMany: vi.fn() },
     game:           { findUnique: vi.fn(), create: vi.fn() },
     playerGameStat: { createMany: vi.fn() },
-    upcomingGame:   { deleteMany: vi.fn() },
+    upcomingGame:   { deleteMany: vi.fn(), findFirst: vi.fn() },
     auditLog:       { create: vi.fn() },
     importDraft:    { updateMany: vi.fn(), create: vi.fn(), findFirst: vi.fn() },
     $transaction:   vi.fn(),
@@ -82,6 +82,7 @@ beforeEach(() => {
   mockPrisma.game.create.mockResolvedValue({ id: CREATED_GAME_ID });
   mockPrisma.playerGameStat.createMany.mockResolvedValue({ count: 1 });
   mockPrisma.upcomingGame.deleteMany.mockResolvedValue({ count: 0 });
+  mockPrisma.upcomingGame.findFirst.mockResolvedValue(null);
   mockPrisma.player.findMany.mockResolvedValue([{ slug: "test-player" }]);
   mockPrisma.auditLog.create.mockResolvedValue({});
   mockPrisma.importDraft.updateMany.mockResolvedValue({ count: 1 });
@@ -124,6 +125,45 @@ describe("commitImport guards", () => {
     await commitImport(commitData({ sourceUrl: null }));
     expect(mockPrisma.game.findUnique).not.toHaveBeenCalled();
     expect(mockPrisma.game.create).toHaveBeenCalledOnce();
+  });
+});
+
+describe("commitImport round", () => {
+  const createdRound = () => mockPrisma.game.create.mock.calls[0][0].data.round;
+
+  it("inherits a playoff round from the fixture the game was scheduled as", async () => {
+    mockPrisma.upcomingGame.findFirst.mockResolvedValue({ round: "semifinal" });
+    await commitImport(commitData());
+    expect(createdRound()).toBe("semifinal");
+    expect(mockPrisma.upcomingGame.findFirst).toHaveBeenCalledWith({
+      where:  { sourceUrl: SOURCE_URL },
+      select: { round: true },
+    });
+  });
+
+  // Without this the poll tags every playoff game as regular season, since no
+  // import caller has ever supplied a round.
+  it("stays regular when the fixture is regular", async () => {
+    mockPrisma.upcomingGame.findFirst.mockResolvedValue({ round: "regular" });
+    await commitImport(commitData());
+    expect(createdRound()).toBe("regular");
+  });
+
+  it("stays regular when no fixture matches the source URL", async () => {
+    await commitImport(commitData());
+    expect(createdRound()).toBe("regular");
+  });
+
+  it("does not look for a fixture when the game has no source URL", async () => {
+    await commitImport(commitData({ sourceUrl: null }));
+    expect(mockPrisma.upcomingGame.findFirst).not.toHaveBeenCalled();
+    expect(createdRound()).toBe("regular");
+  });
+
+  it("keeps a caller-supplied playoff round over a regular fixture", async () => {
+    mockPrisma.upcomingGame.findFirst.mockResolvedValue({ round: "regular" });
+    await commitImport({ ...commitData(), round: "final" });
+    expect(createdRound()).toBe("final");
   });
 });
 
