@@ -308,3 +308,19 @@ model WebAuthnChallenge {
 
   @@index([expiresAt])
 }
+
+// Never purged. Every other retained table has a cleanup cron; this one is the
+// permanent replay corpus, the raw bytes behind each committed game, kept so a
+// rewritten parser can be run against old captures. No relation to Game on
+// purpose: deleting a game must not cascade the bytes away.
+model ImportDraft {
+  id         String   @id @default(cuid())
+  sourceUrl  String   @unique @db.VarChar(500)
+  sourceKind String   @db.VarChar(40)
+  rawPayload Json
+  bytesHash  String   @db.VarChar(64)
+  gameId     String?
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([createdAt])
+}
