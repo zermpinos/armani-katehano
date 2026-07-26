@@ -92,6 +92,15 @@ export async function commitImport(data: CommitInput, opts: CommitOptions = {}):
       422,
     );
 
+  // A box score cannot say whether a game was a playoff; the fixture the admin
+  // scheduled can. GameWriteSchema defaults round to "regular", so by here an
+  // unset round is indistinguishable from an explicit one. No import caller
+  // sets round at all, which is what makes deferring to the fixture safe.
+  const scheduled = sourceUrl
+    ? await prisma.upcomingGame.findFirst({ where: { sourceUrl }, select: { round: true } })
+    : null;
+  const effectiveRound = round === "regular" && scheduled?.round ? scheduled.round : round;
+
   const gameDate = new Date(playedOn);
   const affectedPlayerIds = [...new Set(rows.map(r => r.playerId))];
 
@@ -113,7 +122,7 @@ export async function commitImport(data: CommitInput, opts: CommitOptions = {}):
         notes:      notes      ?? null,
         sourceUrl:  sourceUrl  ?? null,
         youtubeUrl: youtubeUrl ?? null,
-        round,
+        round:      effectiveRound,
       },
     });
 
