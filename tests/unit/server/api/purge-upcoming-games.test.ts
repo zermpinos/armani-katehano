@@ -3,7 +3,8 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 const { mockPrisma } = vi.hoisted(() => ({
   mockPrisma: {
-    upcomingGame: { deleteMany: vi.fn() },
+    upcomingGame: { findMany: vi.fn(), deleteMany: vi.fn() },
+    game:         { findMany: vi.fn() },
   },
 }));
 
@@ -30,11 +31,16 @@ function mockRes() {
   } as any;
 }
 
+const IMPORTED   = "https://basketcity.sportstats.gr/men/gamedetails/id/imported";
+const UNIMPORTED = "https://basketcity.sportstats.gr/men/gamedetails/id/pending";
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
   process.env.CRON_SECRET = "test-secret";
+  mockPrisma.upcomingGame.findMany.mockResolvedValue([]);
+  mockPrisma.game.findMany.mockResolvedValue([]);
   mockPrisma.upcomingGame.deleteMany.mockResolvedValue({ count: 0 });
 });
 
@@ -75,30 +81,64 @@ describe("purge-upcoming-games auth", () => {
 });
 
 describe("purge-upcoming-games behavior", () => {
-  it("deletes UpcomingGame rows with scheduledFor < now and sourceUrl set", async () => {
-    mockPrisma.upcomingGame.deleteMany.mockResolvedValue({ count: 3 });
-    const res = mockRes();
-    await handler(mockReq(), res);
-    expect(res.statusCode).toBe(200);
-    expect(mockPrisma.upcomingGame.deleteMany).toHaveBeenCalledTimes(1);
-    const args = mockPrisma.upcomingGame.deleteMany.mock.calls[0][0];
+  it("considers only past rows that carry a sourceUrl", async () => {
+    await handler(mockReq(), mockRes());
+    const args = mockPrisma.upcomingGame.findMany.mock.calls[0][0];
     expect(args.where).toEqual({
       scheduledFor: { lt: NOW },
       sourceUrl:    { not: null },
     });
-    expect(res.body).toEqual({ ok: true, deleted: 3 });
   });
 
-  it("returns 0 when nothing to purge", async () => {
-    mockPrisma.upcomingGame.deleteMany.mockResolvedValue({ count: 0 });
+  it("deletes a past row whose sourceUrl has a game", async () => {
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([{ id: "u1", sourceUrl: IMPORTED }]);
+    mockPrisma.game.findMany.mockResolvedValue([{ sourceUrl: IMPORTED }]);
+    mockPrisma.upcomingGame.deleteMany.mockResolvedValue({ count: 1 });
+
     const res = mockRes();
     await handler(mockReq(), res);
-    expect(res.statusCode).toBe(200);
+
+    expect(mockPrisma.upcomingGame.deleteMany).toHaveBeenCalledWith({ where: { id: { in: ["u1"] } } });
+    expect(res.body).toEqual({ ok: true, deleted: 1 });
+  });
+
+  // The poll needs the URL on the fixture before the game is played, so a set
+  // sourceUrl no longer means the game was imported. Deleting on the field
+  // alone erased the rows the poll retries against after a single attempt.
+  it("keeps a past row whose sourceUrl has no game, so the poll can retry it", async () => {
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([{ id: "u1", sourceUrl: UNIMPORTED }]);
+    mockPrisma.game.findMany.mockResolvedValue([]);
+
+    const res = mockRes();
+    await handler(mockReq(), res);
+
+    expect(mockPrisma.upcomingGame.deleteMany).not.toHaveBeenCalled();
+    expect(res.body).toEqual({ ok: true, deleted: 0 });
+  });
+
+  it("deletes only the imported row when both kinds are past", async () => {
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([
+      { id: "u1", sourceUrl: IMPORTED },
+      { id: "u2", sourceUrl: UNIMPORTED },
+    ]);
+    mockPrisma.game.findMany.mockResolvedValue([{ sourceUrl: IMPORTED }]);
+    mockPrisma.upcomingGame.deleteMany.mockResolvedValue({ count: 1 });
+
+    await handler(mockReq(), mockRes());
+
+    expect(mockPrisma.upcomingGame.deleteMany).toHaveBeenCalledWith({ where: { id: { in: ["u1"] } } });
+  });
+
+  it("makes no game lookup when nothing is past", async () => {
+    const res = mockRes();
+    await handler(mockReq(), res);
+    expect(mockPrisma.game.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.upcomingGame.deleteMany).not.toHaveBeenCalled();
     expect(res.body).toEqual({ ok: true, deleted: 0 });
   });
 
   it("returns 500 on db error", async () => {
-    mockPrisma.upcomingGame.deleteMany.mockRejectedValue(new Error("boom"));
+    mockPrisma.upcomingGame.findMany.mockRejectedValue(new Error("boom"));
     const res = mockRes();
     await handler(mockReq(), res);
     expect(res.statusCode).toBe(500);
