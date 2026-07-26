@@ -2,6 +2,8 @@ import "@/server/_internal/node-only";
 import type { z } from "zod";
 import prisma from "@/server/db/client";
 import type { GameWriteSchema } from "@/schemas/game";
+import { verify } from "@/domain/import/verify";
+import type { GateFailure } from "@/domain/import/verify";
 import { recalcAggregates } from "@/server/services/stats-recalc";
 import { invalidateForGameMutation } from "@/server/services/cache-invalidation";
 import { sendImportNotification } from "@/server/integrations/email/client";
@@ -34,6 +36,19 @@ export async function captureImportDraft(
   }
 }
 
+// Re-derived from the stored bytes rather than trusted from the request: the
+// gate the browser ran round-trips through a client that can edit or omit it.
+// Reads only the uncommitted capture, so a URL with no live capture gates as
+// clean, the same as a manually entered game.
+async function gateCapturedScrape(sourceUrl: string): Promise<GateFailure[]> {
+  const draft = await prisma.importDraft.findFirst({
+    where:  { sourceUrl, gameId: null },
+    select: { rawPayload: true },
+  });
+  if (!draft?.rawPayload) return [];
+  return verify(draft.rawPayload as Record<string, unknown>).failures;
+}
+
 export class CommitError extends Error {
   constructor(
     message: string,
@@ -55,7 +70,7 @@ export interface CommitOptions {
 export async function commitImport(data: CommitInput, opts: CommitOptions = {}): Promise<{ gameId: string }> {
   const {
     seasonLeagueId, opponent, location, teamScore, opponentScore,
-    result, playedOn, notes, sourceUrl, youtubeUrl, round, boxScore, importDiff, gateFailures,
+    result, playedOn, notes, sourceUrl, youtubeUrl, round, boxScore, importDiff,
   } = data;
 
   const rows = boxScore ?? [];
@@ -63,6 +78,17 @@ export async function commitImport(data: CommitInput, opts: CommitOptions = {}):
   if (rows.length && boxSum !== teamScore)
     throw new CommitError(
       `Box score points (${boxSum}) do not match teamScore (${teamScore}). Diff: ${boxSum - teamScore}`,
+      422,
+    );
+
+  // Only "columns" blocks. A column the source stopped emitting arrives as a
+  // plausible zero, the one failure review structurally cannot see; the rest
+  // reach the operator next to the editable cell that fixes them.
+  const gateFailures = sourceUrl ? await gateCapturedScrape(sourceUrl) : [];
+  const blocking = gateFailures.filter(f => f.check === "columns");
+  if (blocking.length)
+    throw new CommitError(
+      `Source data failed verification. ${blocking.map(f => f.detail).join(" ")}`,
       422,
     );
 
@@ -127,7 +153,7 @@ export async function commitImport(data: CommitInput, opts: CommitOptions = {}):
     gameId: game.id,
     opponent,
     ...(importDiff?.length ? { importDiff } : {}),
-    ...(gateFailures?.length ? { gateFailures } : {}),
+    ...(gateFailures.length ? { gateFailures } : {}),
   });
 
   const affectedPlayerSlugs = affectedPlayerIds.length

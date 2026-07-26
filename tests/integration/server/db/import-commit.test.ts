@@ -12,7 +12,7 @@ const { mockPrisma } = vi.hoisted(() => {
     playerGameStat: { createMany: vi.fn() },
     upcomingGame:   { deleteMany: vi.fn() },
     auditLog:       { create: vi.fn() },
-    importDraft:    { updateMany: vi.fn(), create: vi.fn() },
+    importDraft:    { updateMany: vi.fn(), create: vi.fn(), findFirst: vi.fn() },
     $transaction:   vi.fn(),
   };
   return { mockPrisma: mp };
@@ -86,6 +86,7 @@ beforeEach(() => {
   mockPrisma.auditLog.create.mockResolvedValue({});
   mockPrisma.importDraft.updateMany.mockResolvedValue({ count: 1 });
   mockPrisma.importDraft.create.mockResolvedValue({});
+  mockPrisma.importDraft.findFirst.mockResolvedValue(null);
   recalcAggregates.mockResolvedValue(undefined);
   invalidateForGameMutation.mockResolvedValue(undefined);
   sendImportNotification.mockResolvedValue(undefined);
@@ -229,5 +230,97 @@ describe("import draft capture", () => {
   it("skips the freeze when the game has no source URL", async () => {
     await commitImport(commitData({ sourceUrl: null }));
     expect(mockPrisma.importDraft.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("server-side gate", () => {
+  function scrapedPlayer(over = {}) {
+    return {
+      "#": 4, Players: "Player Four", MIN: "20:00", PTS: 10,
+      REB: 5, OREB: 2, DREB: 3, AST: 1, STL: 0, BLK: 0, TO: 2, PF: 3,
+      "2PTS": { made: 2, attempted: 5 },
+      "3PTS": { made: 1, attempted: 3 },
+      FT:     { made: 3, attempted: 4 },
+      EF: 11,
+      ...over,
+    };
+  }
+
+  function rawPayload({ home = [scrapedPlayer()], awayScore = 8 } = {}) {
+    return {
+      game: {
+        homeTeam: "ARMANI KATEHANO",
+        awayTeam: "Rivals BC",
+        date: "Σάββατο, 28 Μαρτίου 2026",
+        finalScore: { home: 10, away: awayScore },
+        quarterScores: [
+          { quarter: "Q1", home: 3, away: 2 },
+          { quarter: "Q2", home: 3, away: 2 },
+          { quarter: "Q3", home: 2, away: 2 },
+          { quarter: "Q4", home: 2, away: 2 },
+        ],
+      },
+      teams: [
+        { name: "ARMANI KATEHANO", players: home },
+        { name: "Rivals BC", players: [scrapedPlayer({
+          "#": 9, Players: "Rival Nine", PTS: 8,
+          "2PTS": { made: 4, attempted: 9 },
+          "3PTS": { made: 0, attempted: 1 },
+          FT:     { made: 0, attempted: 0 },
+        })] },
+      ],
+    };
+  }
+
+  const auditData = () => mockPrisma.auditLog.create.mock.calls[0][0].data.data;
+
+  it("rejects a commit whose captured bytes are missing a required column", async () => {
+    const { EF, ...noEf } = scrapedPlayer();
+    mockPrisma.importDraft.findFirst.mockResolvedValue({ rawPayload: rawPayload({ home: [noEf] }) });
+
+    const err = await commitImport(commitData()).catch(e => e);
+
+    expect(err).toBeInstanceOf(CommitError);
+    expect(err.status).toBe(422);
+    expect(err.message).toMatch(/missing column\(s\) EF/);
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("commits despite a non-blocking failure and records it on the audit line", async () => {
+    mockPrisma.importDraft.findFirst.mockResolvedValue({ rawPayload: rawPayload({ awayScore: 9 }) });
+
+    const { gameId } = await commitImport(commitData());
+
+    expect(gameId).toBe(CREATED_GAME_ID);
+    expect(auditData().gateFailures).toEqual([
+      expect.objectContaining({ check: "score" }),
+    ]);
+  });
+
+  it("commits with no gate when the source URL has no live capture", async () => {
+    const { gameId } = await commitImport(commitData());
+    expect(gameId).toBe(CREATED_GAME_ID);
+    expect(auditData()).not.toHaveProperty("gateFailures");
+  });
+
+  it("reads only the uncommitted capture", async () => {
+    await commitImport(commitData());
+    expect(mockPrisma.importDraft.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { sourceUrl: SOURCE_URL, gameId: null } }),
+    );
+  });
+
+  it("does not look for a capture when the game has no source URL", async () => {
+    await commitImport(commitData({ sourceUrl: null }));
+    expect(mockPrisma.importDraft.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("ignores a gate result supplied by the caller", async () => {
+    const { EF, ...noEf } = scrapedPlayer();
+    mockPrisma.importDraft.findFirst.mockResolvedValue({ rawPayload: rawPayload({ home: [noEf] }) });
+
+    const err = await commitImport({ ...commitData(), gateFailures: [] }).catch(e => e);
+
+    expect(err.status).toBe(422);
   });
 });
