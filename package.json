@@ -46,7 +46,6 @@
     "next": "^16.2.11",
     "nodemailer": "^9.0.3",
     "otpauth": "^9.5.1",
-    "pdf-parse": "^2.4.5",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "undici": "^7.28.0",

@@ -31,8 +31,6 @@ export default function ImportPage({
   const [unresolved, setUnresolved] = useState<string[]>([]);
   const [error,      setError]      = useState("");
   const [gameState,  setGameState]  = useState<{ state: string; reason: string } | null>(null);
-  const [offRating,  setOffRating]  = useState<number | null>(null);
-  const [defRating,  setDefRating]  = useState<number | null>(null);
   // Snapshot of the resolver's draft, before any review-form edits, for the
   // resolve-vs-saved diff. Edits are immutable, so this reference stays intact.
   const resolvedRef = useRef<ImportDraft | null>(null);
@@ -58,11 +56,10 @@ export default function ImportPage({
       const body = await res.json();
       if (!res.ok) { setError(body.error || "Scrape failed"); return; }
 
-      const { draft: d, highlights: hl, warnings: w, unresolved: un, offRating: off, defRating: def } =
+      const { draft: d, highlights: hl, warnings: w, unresolved: un } =
         buildDraft(body.data, players, seasonLeagues);
       setDraft(d); setHighlights(hl); setWarnings(w); setUnresolved(un);
       resolvedRef.current = d;
-      setOffRating(off ?? null); setDefRating(def ?? null);
       setGameState(body.gameState ?? null);
       setPhase("review");
     } catch (err) {
@@ -155,7 +152,7 @@ export default function ImportPage({
     setDraft(null);
     setGameUrl(""); setYoutubeUrl("");
     setHighlights({}); setWarnings([]); setUnresolved([]);
-    setGameState(null); setOffRating(null); setDefRating(null);
+    setGameState(null);
 
     // Refresh schedule so the just-imported entry now shows as Imported.
     fetch("/api/admin/schedule").then(r => r.ok ? r.json() : null).then(d => {
@@ -170,7 +167,7 @@ export default function ImportPage({
   const handleBack = () => {
     setPhase("idle"); setDraft(null);
     setWarnings([]); setUnresolved([]);
-    setGameState(null); setOffRating(null); setDefRating(null);
+    setGameState(null);
   };
 
   if (!validSlug) return null;
@@ -244,8 +241,6 @@ export default function ImportPage({
               gameState={gameState}
               warnings={warnings}
               unresolved={unresolved}
-              offRating={offRating}
-              defRating={defRating}
               youtubeUrl={youtubeUrl}
               setYoutubeUrl={setYoutubeUrl}
               players={players}

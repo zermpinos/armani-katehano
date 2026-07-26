@@ -1,5 +1,6 @@
 import { BoxScoreTable, F, Sel, Btn } from "@/client/admin";
 import type { Player, SeasonLeague } from "@/client/admin";
+import { teamRatingsFromBox } from "@/domain/stats";
 import type { ImportDraft } from "./build-draft";
 
 type Props = {
@@ -8,8 +9,6 @@ type Props = {
   gameState: { state: string; reason: string } | null;
   warnings: string[];
   unresolved: string[];
-  offRating: number | null;
-  defRating: number | null;
   youtubeUrl: string;
   setYoutubeUrl: (v: string) => void;
   players: Player[];
@@ -24,11 +23,18 @@ type Props = {
 const urlInputCls = "w-full py-[10px] px-3 text-[13px] font-sans rounded-lg border border-ak-border2 bg-ak-base text-ak-text outline-none";
 
 export function ReviewForm({
-  draft, phase, gameState, warnings, unresolved, offRating, defRating,
+  draft, phase, gameState, warnings, unresolved,
   youtubeUrl, setYoutubeUrl, players, highlights, seasonLeagues,
   updDraft, updBox, onSave, onBack,
 }: Props) {
   const leagueMissing = !draft.seasonLeagueId;
+
+  // Derived from the box currently in the form, so edits move the ratings.
+  const rtg = teamRatingsFromBox(
+    draft.boxScore,
+    Number(draft.teamScore) || 0,
+    Number(draft.opponentScore) || 0,
+  );
   const leagueOptions = [
     ...(leagueMissing ? [{ value: "", label: "Select a league" }] : []),
     ...seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName })),
@@ -91,21 +97,25 @@ export function ReviewForm({
         />
       </div>
 
-      {(offRating !== null || defRating !== null) && (
-        <div>
-          <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[8px] uppercase">Efficiency ratings (from PDF)</div>
-          <div className="flex gap-[10px]">
-            <div className="flex-1 py-[10px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 text-center">
-              <div className="text-[9px] font-black tracking-[0.12em] text-ak-text-dim mb-[4px]">OFF RTG</div>
-              <div className="text-[18px] font-black text-ak-text">{offRating ?? "-"}</div>
-            </div>
-            <div className="flex-1 py-[10px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 text-center">
-              <div className="text-[9px] font-black tracking-[0.12em] text-ak-text-dim mb-[4px]">DEF RTG</div>
-              <div className="text-[18px] font-black text-ak-text">{defRating ?? "-"}</div>
-            </div>
+      <div>
+        <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[8px] uppercase">
+          Team ratings (derived from this box score)
+        </div>
+        <div className="flex gap-[10px]">
+          <div className="flex-1 py-[10px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 text-center">
+            <div className="text-[9px] font-black tracking-[0.12em] text-ak-text-dim mb-[4px]">OFF RTG</div>
+            <div className="text-[18px] font-black text-ak-text">{rtg ? rtg.offRating.toFixed(1) : "-"}</div>
+          </div>
+          <div className="flex-1 py-[10px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 text-center">
+            <div className="text-[9px] font-black tracking-[0.12em] text-ak-text-dim mb-[4px]">DEF RTG</div>
+            <div className="text-[18px] font-black text-ak-text">{rtg ? rtg.defRating.toFixed(1) : "-"}</div>
           </div>
         </div>
-      )}
+        <div className="text-[10px] text-ak-text-dim mt-[6px]">
+          Points per 100 possessions, poss = 0.96 * (FGA - OREB + TOV + 0.44 * FTA).
+          {!rtg && " Shown once the per-player points match our score."}
+        </div>
+      </div>
 
       <div>
         <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Box score - green rows played</div>

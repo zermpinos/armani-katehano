@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { teamRatings, type TeamRatingsInput } from "@/domain/stats/ratings";
+import { teamRatings, teamRatingsFromBox, type TeamRatingsInput } from "@/domain/stats/ratings";
 import leagueRatings from "../../../fixtures/league-ratings.json";
 
 // Oracle: the league's published Off./Def. Efficiency for every rated game,
@@ -48,5 +48,30 @@ describe("teamRatings guards degenerate inputs", () => {
 
   it("returns null when possessions are non-positive", () => {
     expect(teamRatings({ teamScore: 0, opponentScore: 0, fga: 0, orb: 0, tov: 0, fta: 0, boxPts: 0 })).toBeNull();
+  });
+});
+
+describe("teamRatingsFromBox sums the box before rating", () => {
+  const r = rows[0]; // Fonikes 2025-09-14: 34-37, fga 59, orb 9, tov 9, fta 6
+
+  it("matches the published rating when rows sum to the game totals", () => {
+    const box = [
+      { pts: 20, fga: 30, orb: 4, tov: 5, fta: 4 },
+      { pts: 14, fga: 25, orb: 5, tov: 4, fta: 2 },
+      { pts: 0,  fga: 4 },
+    ];
+    const got = teamRatingsFromBox(box, r.teamScore, r.opponentScore);
+    expect(got).not.toBeNull();
+    expect(Math.abs(got!.offRating - r.offRating)).toBeLessThanOrEqual(TOL);
+    expect(Math.abs(got!.defRating - r.defRating)).toBeLessThanOrEqual(TOL);
+  });
+
+  it("returns null when the rows do not add up to the team score", () => {
+    const box = [{ pts: 20, fga: 30, orb: 4, tov: 5, fta: 4 }];
+    expect(teamRatingsFromBox(box, r.teamScore, r.opponentScore)).toBeNull();
+  });
+
+  it("returns null for an empty box", () => {
+    expect(teamRatingsFromBox([], 0, 0)).toBeNull();
   });
 });

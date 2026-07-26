@@ -48,3 +48,28 @@ export function teamRatings(input: TeamRatingsInput): TeamRatings | null {
     possessions,
   };
 }
+
+// Optional fields: an import draft row may not carry every column yet.
+export interface TeamRatingsBoxRow {
+  pts?: number;
+  fga?: number;
+  orb?: number;
+  tov?: number;
+  fta?: number;
+}
+
+export function teamRatingsFromBox(
+  rows: TeamRatingsBoxRow[],
+  teamScore: number,
+  opponentScore: number,
+): TeamRatings | null {
+  let pts = 0, fga = 0, orb = 0, tov = 0, fta = 0;
+  for (const r of rows) {
+    pts += r.pts || 0;
+    fga += r.fga || 0;
+    orb += r.orb || 0;
+    tov += r.tov || 0;
+    fta += r.fta || 0;
+  }
+  return teamRatings({ teamScore, opponentScore, fga, orb, tov, fta, boxPts: pts });
+}

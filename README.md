@@ -102,7 +102,7 @@ PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end
 
 **Integrations**
 - Nodemailer + Brevo SMTP (transactional email + admin broadcasts)
-- Cheerio + `pdf-parse` (box-score scraping)
+- Cheerio (box-score scraping)
 - Cloudinary (player-photo hosting; URLs are pasted directly by admins and resized client-side via a URL-transform helper, no SDK)
 - Self-hosted monitoring: a dependency-free `/api/health` liveness endpoint plus anonymous Web Vitals beaconed to `/api/vitals` (no vendor, no cookies, no PII)
 
@@ -124,7 +124,7 @@ PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end
 | **Cloudflare Turnstile**| CAPTCHA on the public subscribe form and admin/coach login |
 | **Cloudinary**          | Player photo hosting; allow-listed in CSP `img-src`, no server-side SDK |
 | **GitHub Actions**      | CI (lint, typecheck, test, build), scheduled security/dependency audits |
-| **Box-score sources**   | League listing pages and per-game box-score URLs scraped via Cheerio / `pdf-parse` |
+| **Box-score sources**   | Per-game box-score URLs scraped via Cheerio |
 
 External HTTP fetches that originate from user-supplied URLs are routed through the SSRF guard in `src/server/security/node/ssrf.ts`, which rejects private/loopback ranges via `node:dns` resolution.
 

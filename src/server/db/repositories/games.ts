@@ -1,6 +1,13 @@
 import "@/server/_internal/node-only";
 import prisma from "@/server/db/client";
-import { calcEff } from "@/domain/stats";
+import { calcEff, teamRatingsFromBox, type TeamRatingsBoxRow } from "@/domain/stats";
+
+// Derived per read rather than stored, so a later box-score edit cannot leave
+// a stale rating behind. One decimal, as displayed.
+function ratingsOf(g: { teamScore: number; opponentScore: number; playerStats: TeamRatingsBoxRow[] }) {
+  const r = teamRatingsFromBox(g.playerStats, g.teamScore, g.opponentScore);
+  return r ? { offRating: +r.offRating.toFixed(1), defRating: +r.defRating.toFixed(1) } : { offRating: null, defRating: null };
+}
 
 export async function getGames(seasonName: string, leagueSlug: string | null = null) {
   const where = {
@@ -28,8 +35,7 @@ export async function getGames(seasonName: string, leagueSlug: string | null = n
     score:        `${g.teamScore}-${g.opponentScore}`,
     league:       g.seasonLeague.league.slug,
     round:        g.round,
-    offRating:    g.offRating ?? null,
-    defRating:    g.defRating ?? null,
+    ...ratingsOf(g),
     boxScore: g.playerStats.map(r => ({
       pid:  r.playerId,
       min:  r.minutes,
@@ -86,8 +92,7 @@ export async function getAllGames() {
       sourceUrl:   g.sourceUrl ?? null,
       youtubeUrl:  g.youtubeUrl ?? null,
       round:       g.round,
-      offRating:   g.offRating ?? null,
-      defRating:   g.defRating ?? null,
+      // No ratings: this query fetches only the top scorer, not the full box.
       // Pre-computed top scorer so game cards can show it without a full box score
       topScorer:   top ? { name: top.player.name, pts: top.pts } : null,
     };

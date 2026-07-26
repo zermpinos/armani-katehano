@@ -19,8 +19,6 @@ export type DraftResult = {
   highlights: Record<string, boolean>;
   warnings: string[];
   unresolved: string[];
-  offRating: number | null;
-  defRating: number | null;
 };
 
 export function buildDraft(
@@ -29,7 +27,7 @@ export function buildDraft(
   seasonLeagues: SeasonLeague[],
 ): DraftResult {
   const { game, teams, url: sourceUrl } = data as {
-    game: { homeTeam: string; awayTeam: string; date: string; finalScore: { home: number; away: number }; offRating?: number | null; defRating?: number | null };
+    game: { homeTeam: string; awayTeam: string; date: string; finalScore: { home: number; away: number } };
     teams: { name: string; players: Record<string, unknown>[] }[];
     url: string;
   };
@@ -139,8 +137,6 @@ export function buildDraft(
     highlights: hl,
     warnings:   warns,
     unresolved,
-    offRating:  game.offRating ?? null,
-    defRating:  game.defRating ?? null,
   };
 }
 
