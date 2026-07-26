@@ -326,6 +326,29 @@ describe("server-side gate", () => {
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
 
+  // A fixture published without a result: 0-0, four zero quarters, no players.
+  // The box-sum guard cannot catch it, because zero rows do sum to zero.
+  it("rejects a commit whose captured bytes have an empty box score", async () => {
+    const raw = rawPayload({ home: [] });
+    raw.game.finalScore = { home: 0, away: 0 };
+    raw.game.quarterScores = [1, 2, 3, 4].map(n => ({ quarter: `Q${n}`, home: 0, away: 0 }));
+    raw.teams[1].players = [];
+    mockPrisma.importDraft.findFirst.mockResolvedValue({ rawPayload: raw });
+
+    // What resolve() produces from an empty box score: a zero row per rostered
+    // player. Those sum to zero and the final score is zero, so the box-sum
+    // guard agrees with itself and the gate is the only thing left to object.
+    const zeroRow = Object.fromEntries(
+      Object.entries(boxRow()).map(([k, v]) => [k, typeof v === "number" ? 0 : v]),
+    );
+    const err = await commitImport({ ...commitData({ teamScore: 0 }), boxScore: [zeroRow] }).catch(e => e);
+
+    expect(err).toBeInstanceOf(CommitError);
+    expect(err.status).toBe(422);
+    expect(err.message).toMatch(/no players/);
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+
   it("commits despite a non-blocking failure and records it on the audit line", async () => {
     mockPrisma.importDraft.findFirst.mockResolvedValue({ rawPayload: rawPayload({ awayScore: 9 }) });
 

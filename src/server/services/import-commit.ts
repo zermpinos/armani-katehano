@@ -81,11 +81,12 @@ export async function commitImport(data: CommitInput, opts: CommitOptions = {}):
       422,
     );
 
-  // Only "columns" blocks. A column the source stopped emitting arrives as a
-  // plausible zero, the one failure review structurally cannot see; the rest
-  // reach the operator next to the editable cell that fixes them.
+  // Only absent data blocks. A column the source stopped emitting arrives as a
+  // plausible zero and an empty box score renders as a roster of zeros, and
+  // neither can be fixed at the editable cell the way a wrong number can. Every
+  // other failure reaches the operator next to the field that corrects it.
   const gateFailures = sourceUrl ? await gateCapturedScrape(sourceUrl) : [];
-  const blocking = gateFailures.filter(f => f.check === "columns");
+  const blocking = gateFailures.filter(f => f.check === "columns" || f.check === "empty");
   if (blocking.length)
     throw new CommitError(
       `Source data failed verification. ${blocking.map(f => f.detail).join(" ")}`,
