@@ -29,31 +29,43 @@ const onRoster = { "#": 4, Players: "On Roster", MIN: "20:00", PTS: 10 };
 
 describe("resolve roster guard", () => {
   it("flags a scraped player with minutes who is not on the roster", () => {
-    const { unresolved } = resolve(
+    const { unresolved, unresolvedPlayers } = resolve(
       scrapedData([onRoster, { "#": 99, Players: "New Guy", MIN: "15:00", PTS: 8 }]),
       roster,
       [ROOKIE],
     );
-    expect(unresolved).toHaveLength(1);
-    expect(unresolved[0]).toContain("#99");
+    // Number and name, not prose: the form offers to create the player.
+    expect(unresolvedPlayers).toEqual([{ number: 99, name: "New Guy" }]);
+    expect(unresolved).toHaveLength(0);
   });
 
   it("does not flag when every scraped player with minutes is on the roster", () => {
-    const { unresolved } = resolve(
+    const { unresolvedPlayers } = resolve(
       scrapedData([onRoster, { "#": 7, Players: "Also Roster", MIN: "18:00", PTS: 6 }]),
       roster,
       [ROOKIE],
     );
-    expect(unresolved).toHaveLength(0);
+    expect(unresolvedPlayers).toHaveLength(0);
   });
 
   it("ignores a non-roster jersey that did not play", () => {
-    const { unresolved } = resolve(
+    const { unresolvedPlayers } = resolve(
       scrapedData([onRoster, { "#": 99, Players: "Bench", MIN: "0", PTS: 0 }]),
       roster,
       [ROOKIE],
     );
-    expect(unresolved).toHaveLength(0);
+    expect(unresolvedPlayers).toHaveLength(0);
+  });
+
+  it("keeps a league blocker out of the roster list, since it is fixed in the form", () => {
+    const { unresolved, unresolvedPlayers } = resolve(
+      scrapedData([onRoster, { "#": 99, Players: "New Guy", MIN: "15:00", PTS: 8 }]),
+      roster,
+      [{ id: "slX", leagueSlug: "bc6", seasonStart: null, seasonEnd: null }],
+    );
+    expect(unresolvedPlayers).toHaveLength(1);
+    expect(unresolved).toHaveLength(1);
+    expect(unresolved[0]).toContain("rookie");
   });
 
   it("zeroes a rostered player who did not appear in the scrape", () => {

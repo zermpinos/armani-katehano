@@ -23,5 +23,5 @@ export function useImportData(authed: boolean) {
 
   useEffect(() => { if (authed) loadBase(); }, [authed]);
 
-  return { players, seasonLeagues, schedule, setSchedule, dataLoading };
+  return { players, setPlayers, seasonLeagues, schedule, setSchedule, dataLoading };
 }

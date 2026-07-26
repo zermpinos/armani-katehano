@@ -1,11 +1,11 @@
 import { useState, useMemo, useRef, type ReactNode } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch } from "@/client/admin";
-import type { ScheduledGame } from "@/client/admin";
+import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch, byJersey } from "@/client/admin";
+import type { Player, ScheduledGame } from "@/client/admin";
 import { getAdminPasskeyLoginProps } from "@/server/auth";
 import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
 import { diffDraft } from "@/domain/import/resolve";
-import type { ImportDraft } from "@/domain/import/resolve";
+import type { ImportDraft, UnresolvedPlayer } from "@/domain/import/resolve";
 import type { GateResult } from "@/domain/import/verify";
 import { useImportData } from "@/client/admin/import/use-import-data";
 import { IdleForm } from "@/client/admin/import/IdleForm";
@@ -19,7 +19,7 @@ export default function ImportPage({
   const upcomingGameId = typeof router.query.upcomingGameId === "string" ? router.query.upcomingGameId : null;
 
   const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
-  const { players, seasonLeagues, schedule, setSchedule, dataLoading } = useImportData(authed);
+  const { players, setPlayers, seasonLeagues, schedule, setSchedule, dataLoading } = useImportData(authed);
 
   const [toast,      setToast]      = useState<{ msg: string; type?: string } | null>(null);
   const [gameUrl,    setGameUrl]    = useState("");
@@ -30,6 +30,7 @@ export default function ImportPage({
   const [highlights, setHighlights] = useState<Record<string, boolean>>({});
   const [gate,       setGate]       = useState<GateResult | null>(null);
   const [unresolved, setUnresolved] = useState<string[]>([]);
+  const [unresolvedPlayers, setUnresolvedPlayers] = useState<UnresolvedPlayer[]>([]);
   const [error,      setError]      = useState("");
   const [gameState,  setGameState]  = useState<{ state: string; reason: string } | null>(null);
   // Snapshot of the resolver's draft, before any review-form edits, for the
@@ -61,6 +62,7 @@ export default function ImportPage({
       setHighlights(body.highlights ?? {});
       setGate(body.gate ?? null);
       setUnresolved(body.unresolved ?? []);
+      setUnresolvedPlayers(body.unresolvedPlayers ?? []);
       resolvedRef.current = body.draft;
       setGameState(body.gameState ?? null);
       setPhase("review");
@@ -76,6 +78,15 @@ export default function ImportPage({
     ...d,
     boxScore: d.boxScore.map(r => r.playerId === playerId ? { ...r, [k]: parseFloat(v) || 0 } : r),
   } as ImportDraft) : d);
+
+  // The box score is built from the roster, so a new player has no row until
+  // resolve() runs again, and the raw payload it needs lives on the server.
+  // Re-scraping discards form edits, which is fine: an unresolved jersey blocks
+  // the save, so there is nothing worth having edited yet.
+  const handlePlayerCreated = async (player: Player) => {
+    setPlayers(prev => [...prev, player].sort(byJersey));
+    await fetchAndReview();
+  };
 
   // After a successful save, if the import was launched from a Schedule row,
   // PATCH the matching UpcomingGame so the Imported badge appears on the list.
@@ -102,7 +113,7 @@ export default function ImportPage({
 
   const save = async () => {
     if (!draft) return;
-    if (unresolved.length) {
+    if (unresolved.length || unresolvedPlayers.length) {
       showToast("Cannot save while roster issues are unresolved.", "error");
       return;
     }
@@ -153,7 +164,7 @@ export default function ImportPage({
     setPhase("idle");
     setDraft(null);
     setGameUrl(""); setYoutubeUrl("");
-    setHighlights({}); setGate(null); setUnresolved([]);
+    setHighlights({}); setGate(null); setUnresolved([]); setUnresolvedPlayers([]);
     setGameState(null);
 
     // Refresh schedule so the just-imported entry now shows as Imported.
@@ -168,7 +179,7 @@ export default function ImportPage({
 
   const handleBack = () => {
     setPhase("idle"); setDraft(null);
-    setGate(null); setUnresolved([]);
+    setGate(null); setUnresolved([]); setUnresolvedPlayers([]);
     setGameState(null);
   };
 
@@ -243,6 +254,8 @@ export default function ImportPage({
               gameState={gameState}
               gate={gate}
               unresolved={unresolved}
+              unresolvedPlayers={unresolvedPlayers}
+              onPlayerCreated={handlePlayerCreated}
               youtubeUrl={youtubeUrl}
               setYoutubeUrl={setYoutubeUrl}
               players={players}
