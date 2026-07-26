@@ -35,10 +35,17 @@ export interface ImportDraft {
   boxScore: ResolvedRow[];
 }
 
+export interface UnresolvedPlayer {
+  number: number;
+  name: string;
+}
+
 export interface ResolveResult {
   draft: ImportDraft;
   highlights: Record<string, boolean>;
+  // Blockers the form cannot act on beyond reading them.
   unresolved: string[];
+  unresolvedPlayers: UnresolvedPlayer[];
 }
 
 type ScrapedPlayer = Record<string, unknown>;
@@ -135,9 +142,10 @@ export function resolve(
 
   // A scraped jersey with no roster match would be dropped from the box score
   // entirely, so it blocks the save instead.
+  const unresolvedPlayers: UnresolvedPlayer[] = [];
   for (const p of played) {
     if (!roster.some(r => Number(r.number) === p["#"]))
-      unresolved.push(`#${p["#"]} ${p.Players} played but is not on the roster; add them before importing.`);
+      unresolvedPlayers.push({ number: Number(p["#"]), name: String(p.Players ?? "").trim() });
   }
 
   const boxScore: ResolvedRow[] = [...roster]
@@ -192,6 +200,7 @@ export function resolve(
     },
     highlights,
     unresolved,
+    unresolvedPlayers,
   };
 }
 

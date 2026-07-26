@@ -3,6 +3,8 @@ import type { Player, SeasonLeague } from "@/client/admin";
 import { teamRatingsFromBox } from "@/domain/stats";
 import type { ImportDraft } from "@/domain/import/resolve";
 import type { GateResult } from "@/domain/import/verify";
+import type { UnresolvedPlayer } from "@/domain/import/resolve";
+import { UnresolvedPlayers } from "@/client/admin/import/UnresolvedPlayers";
 
 type Props = {
   draft: ImportDraft;
@@ -10,6 +12,8 @@ type Props = {
   gameState: { state: string; reason: string } | null;
   gate: GateResult | null;
   unresolved: string[];
+  unresolvedPlayers: UnresolvedPlayer[];
+  onPlayerCreated: (player: Player) => void;
   youtubeUrl: string;
   setYoutubeUrl: (v: string) => void;
   players: Player[];
@@ -24,7 +28,7 @@ type Props = {
 const urlInputCls = "w-full py-[10px] px-3 text-[13px] font-sans rounded-lg border border-ak-border2 bg-ak-base text-ak-text outline-none";
 
 export function ReviewForm({
-  draft, phase, gameState, gate, unresolved,
+  draft, phase, gameState, gate, unresolved, unresolvedPlayers, onPlayerCreated,
   youtubeUrl, setYoutubeUrl, players, highlights, seasonLeagues,
   updDraft, updBox, onSave, onBack,
 }: Props) {
@@ -62,6 +66,12 @@ export function ReviewForm({
           <div>{gameState.reason}</div>
         </div>
       )}
+
+      <UnresolvedPlayers
+        entries={unresolvedPlayers}
+        disabled={phase === "saving"}
+        onCreated={onPlayerCreated}
+      />
 
       {(unresolved.length > 0 || leagueMissing || drift.length > 0) && (
         <div className="py-[10px] px-[14px] rounded-lg bg-[#8b1a1a30] border border-[#8b1a1a] text-xs text-ak-red-text">
@@ -134,7 +144,7 @@ export function ReviewForm({
         <Btn
           onClick={onSave}
           variant="green"
-          disabled={phase === "saving" || gameState?.state === "scheduled" || unresolved.length > 0 || leagueMissing || drift.length > 0}
+          disabled={phase === "saving" || gameState?.state === "scheduled" || unresolved.length > 0 || unresolvedPlayers.length > 0 || leagueMissing || drift.length > 0}
         >
           {phase === "saving" ? "SAVING..." : "SAVE GAME"}
         </Btn>
