@@ -30,7 +30,7 @@ The app is a single-team basketball-stats platform built around a Postgres data 
 - **Team admins** - full CRUD over seasons, leagues, players, schedule, games, and stats; trigger imports; archive completed seasons; broadcast email to subscribers; toggle a playoff popup and site-wide maintenance mode; recompute aggregates. Reached at a randomized `/admin/<slug>` path and gated by passkey (WebAuthn); password + TOTP is an opt-in fallback.
 - **Head coach** - separate `/coach/<token>` portal for managing rosters and publishing per-game roster announcements via email. Distinct password and session secret from the admin portal.
 
-Box-score data is ingested manually: an admin pastes a box-score URL or uploads a file; the scraper classifies, parses, and persists `PlayerGameStat` rows; aggregates are recomputed transactionally afterwards. Public listing pages are statically generated (ISR) and revalidated on demand the moment an admin mutation affects them, so visitors get near-instant updates without paying for per-request rendering.
+Box-score data is ingested manually: an admin pastes a box-score URL; the server scrapes it and resolves a draft against the roster and the season leagues, blocking the save on anything it cannot resolve; the admin reviews and saves, and `PlayerGameStat` rows plus transactionally recomputed aggregates land in one write. Public listing pages are statically generated (ISR) and revalidated on demand the moment an admin mutation affects them, so visitors get near-instant updates without paying for per-request rendering.
 
 ---
 
@@ -151,7 +151,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - CRUD for **seasons**, **leagues**, **season-leagues**, **players**, **schedule** (`UpcomingGame`), **games** (with round field for playoff tagging), and **per-game stat lines**.
 - **Seasons** page - archive/unarchive a season (marks it complete for the public archived-season banner; purely presentational, doesn't lock stats), and a season-level roster panel: checking a player in/out syncs their `RosterEntry` across every league in that season in one save, instead of enrolling them per-league.
 - **Roster** pages - manage the org-wide player roster (add/edit/retire players, photos), separate from the per-season enrollment above.
-- **Stats import** (paste box-score URL or upload); scraper classifies, parses, and persists results.
+- **Stats import** (paste a box-score URL); the server scrapes and resolves the draft, the admin reviews it, and the save is blocked while anything is unresolved.
 - **Aggregate recompute** endpoint for backfills.
 - **Roster announcements** - pick the upcoming game, pick the active roster, write a note; the system emails confirmed subscribers via Brevo.
 - **Broadcast** - compose a Markdown email to all confirmed subscribers or a chosen subset, preview the rendered HTML and send a test to yourself first, then send with rate limits (1 per 2 min, 5/day) and a persisted send history (`BroadcastLog`). A separate, narrower endpoint emails subscribers about one specific finished game's result (idempotent, won't double-send).
@@ -163,7 +163,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - Forced password change flow.
 
 ### Imports & scraping
-- `scrape-game.ts` + `import-classifier.ts` + `import-game.ts` - fetch, classify, parse, and persist a box score idempotently.
+- `scrape-game.ts` (fetch + parse) + `import-classifier.ts` (game state: scheduled/live/final) + `domain/import/resolve.ts` (pure draft resolution) + `import-commit.ts` (persist idempotently, 409 on a re-imported source URL).
 - `stats-recalc.ts` - transactional aggregate recompute (totals from raw DB sums, never approximated from averages).
 
 ### Cron / scheduled jobs
@@ -202,7 +202,7 @@ armani-katehano/
 │   │   ├── roster/                 Org-wide player roster (index + [id] detail)
 │   │   ├── schedule/               Upcoming-game schedule (index + [id] detail)
 │   │   ├── games/                  Game CRUD (index + [id] detail)
-│   │   ├── import.tsx              Box-score import (URL / file upload)
+│   │   ├── import.tsx              Box-score import (paste a box-score URL)
 │   │   ├── broadcast.tsx           Subscriber email broadcast composer
 │   │   ├── subscribers.tsx         Subscriber list, export, cleanup
 │   │   ├── passkeys.tsx            Passkey credential management
@@ -233,7 +233,9 @@ armani-katehano/
 │   │   ├── roster.ts               isStarter helper
 │   │   ├── games/score.ts, games/phase.ts
 │   │   ├── players/format.ts (fmt, initials, slugify), players/positions.ts,
-│   │   │   stats/{aggregate,allTime,efficiency,fromLog}.ts
+│   │   │   stats/{aggregate,allTime,efficiency,fromLog,ratings}.ts
+│   │   ├── import/                 resolve.ts (scraped payload to a draft),
+│   │   │                           identity.ts (our-team match)
 │   │   ├── calendar/greek-date.ts  Greek-language date/slug parsing (scraper helper)
 │   │   └── shared/                 calendar.ts (.ics builder), cloudinary.ts (cloudinaryThumb),
 │   │                               constants.ts, format.ts, sanitize.ts, venues.ts
@@ -254,7 +256,7 @@ armani-katehano/
 │   │   │   └── node/               SSRF, audit log, client IP (Node-only)
 │   │   └── services/               audit-log-purge, broadcast-import,
 │   │                                cache-invalidation, cron-run, import-classifier,
-│   │                                import-game, maintenance-flag,
+│   │                                import-commit, maintenance-flag,
 │   │                                scrape-game, stats-recalc, subscriber
 │   ├── theme/                      Tailwind theme tokens
 │   └── types/                      Shared TS types
@@ -495,7 +497,7 @@ Whenever inline script/style content on a statically-rendered page changes, run 
 ### Limitations
 
 - Single-team scope. The data model has seasons, leagues, and season-leagues, but the UI assumes one home team.
-- Box-score scraping is tied to the formats of the league listing pages currently in use; new sources require a new classifier in `import-classifier.ts`.
+- Box-score scraping targets one page shape, the source currently in use. There is no format detection: a new source means new selectors in `integrations/scraper/boxscore.ts`. (`import-classifier.ts` classifies game state, not source format.)
 - Email delivery currently goes through a single Brevo SMTP account; there is no per-subscriber language selection.
 - The admin and coach portals share the same Postgres connection; there is no read-replica routing.
 
