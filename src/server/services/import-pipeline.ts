@@ -37,14 +37,17 @@ export interface PipelineResult extends ResolveResult {
 
 // Single path from URL to reviewable draft, shared by the admin's scrape route
 // and the poll, so the two can never drift into judging a scrape differently.
-export async function scrapeAndResolve(url: string): Promise<PipelineResult> {
+export async function scrapeAndResolve(
+  url: string,
+  opts: { leagueSlug?: string | null } = {},
+): Promise<PipelineResult> {
   const { data, gameState, bytesHash } = await scrapeGameFromUrl(url);
   const { roster, seasonLeagues } = await resolverInputs();
 
   await captureImportDraft(url, data, bytesHash);
 
   try {
-    return { data, gameState, gate: verify(data), ...resolve(data, roster, seasonLeagues) };
+    return { data, gameState, gate: verify(data), ...resolve(data, roster, seasonLeagues, opts) };
   } catch (err) {
     // resolve() throws only when our team is missing from the scraped teams.
     throw new ScrapeError((err as Error).message, 422);

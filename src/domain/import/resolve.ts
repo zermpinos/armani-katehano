@@ -89,8 +89,11 @@ function resolveLeague(
   playedOn: Date | null,
   seasonLeagues: SeasonLeagueRef[],
   unresolved: string[],
+  known?: string | null,
 ): string {
-  const slug = detectLeagueSlug(sourceUrl);
+  // The team listing labels each row with its league, which is the only place
+  // a /men/ game says which one it belongs to.
+  const slug = known ?? detectLeagueSlug(sourceUrl);
   if (!slug) {
     unresolved.push("No league could be detected from the source URL. Pick one under Game info.");
     return "";
@@ -120,6 +123,7 @@ export function resolve(
   raw: Record<string, unknown>,
   roster: RosterPlayer[],
   seasonLeagues: SeasonLeagueRef[],
+  opts: { leagueSlug?: string | null } = {},
 ): ResolveResult {
   const { game, teams, url: sourceUrl } = raw as {
     game: { homeTeam: string; awayTeam: string; date: string; finalScore: { home: number; away: number } };
@@ -142,7 +146,7 @@ export function resolve(
   const mappedOpp   = displayOpponent(oppTeamName);
 
   const unresolved: string[] = [];
-  const seasonLeagueId = resolveLeague(sourceUrl ?? null, playedOn, seasonLeagues, unresolved);
+  const seasonLeagueId = resolveLeague(sourceUrl ?? null, playedOn, seasonLeagues, unresolved, opts.leagueSlug);
 
   const played = akTeam.players.filter(p => parseMinutes(p.MIN as string) > 0);
 
