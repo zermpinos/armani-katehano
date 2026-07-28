@@ -3,9 +3,10 @@ import Image from "next/image";
 import Link from "next/link";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
-import { getAllPublicData, getAllSeasonsStats } from "@/server/db/repositories";
+import { getAllPublicData, getAllSeasonsStats, getRosterBySeason } from "@/server/db/repositories";
 import { buildAllTimeStatsMap } from "@/domain/stats";
 import { fmt } from "@/domain/players/format";
+import { playersForSeason } from "@/domain/players/roster";
 import SeasonSelector from "@/components/ui/SeasonSelector";
 import ArchivedBanner from "@/components/ui/ArchivedBanner";
 
@@ -55,7 +56,7 @@ function PlayerCard({ player }: any) {
   );
 }
 
-export default function PlayersPage({ players, statsMap, statsBySeason, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, archivedSeasonNames }: any) {
+export default function PlayersPage({ players, statsMap, statsBySeason, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, rosterBySeason, archivedSeasonNames }: any) {
   const [activeSeason, setActiveSeason] = useState(currentSeason);
   const [search, setSearch] = useState("");
 
@@ -66,7 +67,8 @@ export default function PlayersPage({ players, statsMap, statsBySeason, seasons,
     seasonHistory: playerSeasonHistory?.[p.id] ?? {},
   }));
 
-  const sorted    = [...playersWithStats].sort((a, b) => Number(a.number) - Number(b.number));
+  const forSeason: any[] = playersForSeason(playersWithStats, rosterBySeason, activeSeason);
+  const sorted    = [...forSeason].sort((a, b) => Number(a.number) - Number(b.number));
   const displayed = search.trim()
     ? sorted.filter(p => p.name.toLowerCase().includes(search.trim().toLowerCase()))
     : sorted;
@@ -79,7 +81,7 @@ export default function PlayersPage({ players, statsMap, statsBySeason, seasons,
         currentSeason={activeSeason}
         onChange={sid => { setActiveSeason(sid); setSearch(""); }}
         showAllTime={true}
-        right={`${players.length} Players`}
+        right={`${forSeason.length} Players`}
       />
       <ArchivedBanner archived={archivedSeasonNames.includes(activeSeason)} seasonName={activeSeason} />
       <div className="mb-4">
@@ -120,6 +122,7 @@ export async function getStaticProps() {
   try {
     const { seasons, currentSeason, players, stats, archivedSeasonNames } = await getAllPublicData(null);
     const allSeasonsStats = await getAllSeasonsStats(seasons);
+    const rosterBySeason  = await getRosterBySeason();
     const allTimeStatsMap = buildAllTimeStatsMap(allSeasonsStats, players);
 
     const playerSeasonHistory: Record<string, any> = {};
@@ -133,9 +136,9 @@ export async function getStaticProps() {
       }
     }
 
-    return { props: { players, statsMap: stats, statsBySeason: allSeasonsStats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, archivedSeasonNames }, revalidate: 3600 };
+    return { props: { players, statsMap: stats, statsBySeason: allSeasonsStats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, rosterBySeason, archivedSeasonNames }, revalidate: 3600 };
   } catch {
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
-    return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, playerSeasonHistory: {}, archivedSeasonNames: [] }, revalidate: 60 };
+    return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, playerSeasonHistory: {}, rosterBySeason: {}, archivedSeasonNames: [] }, revalidate: 60 };
   }
 }
