@@ -63,6 +63,25 @@ export async function getAllPlayerGameLogs(): Promise<Record<string, ReturnType<
   return result;
 }
 
+// Who was on the team each season, keyed by season name. The Player table is
+// org-wide and has no season, so it is the only way a listing can tell a new
+// signing from someone who left.
+export async function getRosterBySeason(): Promise<Record<string, string[]>> {
+  const rows = await prisma.rosterEntry.findMany({
+    where:  { isActive: true, player: { isActive: true } },
+    select: { playerId: true, seasonLeague: { select: { season: { select: { name: true } } } } },
+  });
+
+  const bySeason: Record<string, string[]> = {};
+  for (const r of rows) {
+    const name = r.seasonLeague.season.name;
+    const ids  = Reflect.get(bySeason, name) as string[] | undefined;
+    if (ids) { if (!ids.includes(r.playerId)) ids.push(r.playerId); }
+    else Reflect.set(bySeason, name, [r.playerId]);
+  }
+  return bySeason;
+}
+
 export async function getPlayers() {
   const players = await prisma.player.findMany({
     orderBy: { number: "asc" },

@@ -26,6 +26,7 @@ vi.mock("@/server/db/repositories", () => ({
   getConfig:                          vi.fn().mockResolvedValue(MOCK_PUBLIC_DATA.config),
   getAllUpcomingGames:                vi.fn().mockResolvedValue([]),
   getAllSeasonsStats:                 vi.fn().mockResolvedValue({}),
+  getRosterBySeason:                  vi.fn().mockResolvedValue({}),
   getAllPlayerGameLogs:               vi.fn().mockResolvedValue({}),
   getUpcomingGamesWithAnnouncements:  vi.fn().mockResolvedValue([]),
   getNextPlayoffGame:                 vi.fn().mockResolvedValue(null),
