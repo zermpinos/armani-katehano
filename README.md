@@ -149,7 +149,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - Dashboard with totals, recent activity, and season-phase selector (Regular Season / Playoffs).
 - **Maintenance** page for the global maintenance-mode toggle and the playoff-popup control (enable/disable, semifinal/final round).
 - CRUD for **seasons**, **leagues**, **season-leagues**, **players**, **schedule** (`UpcomingGame`), **games** (with round field for playoff tagging), and **per-game stat lines**.
-- **Seasons** page - archive/unarchive a season (marks it complete for the public archived-season banner; purely presentational, doesn't lock stats), and a season-level roster panel: checking a player in/out syncs their `RosterEntry` across every league in that season in one save, instead of enrolling them per-league.
+- **Seasons** page - start/end dates per season, archive/unarchive (shows the public archived-season banner and stops new imports resolving into that season; existing stats are untouched), and a season-level roster panel: checking a player in/out syncs their `RosterEntry` across every league in that season in one save, instead of enrolling them per-league.
 - **Roster** pages - manage the org-wide player roster (add/edit/retire players, photos), separate from the per-season enrollment above.
 - **Stats import** (paste a box-score URL); the server scrapes and resolves the draft, the admin reviews it, and the save is blocked while anything is unresolved.
 - **Aggregate recompute** endpoint for backfills.
@@ -167,6 +167,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - `team-schedule.ts` parses the club's two team pages (`SCRAPE_LISTING_URL_MEN`, `SCRAPE_LISTING_URL_CUP`) and `discover-games.ts` returns the games the organisers have posted a result for. This is where candidates come from: a game's URL does not exist until the fixture is published, so it cannot be recorded on an `UpcomingGame` row in advance. Games are keyed by the id in the URL, never the URL itself, since the same game has been served under both `/winter-cup/` and `/super-winter-cup/`.
 - The listing is also the only place a game states its league and round. A `/men/` URL is shared by Rookie, BC6 and BC8, so `resolve()` takes the league from the listing label when it has one and falls back to detecting it from the URL otherwise. `1ος Γύρος` is regular season, `Play Offs` is a quarterfinal, `Ημιτελική Φάση` a semifinal.
 - A game whose scrape classifies as `final`, passes every `verify()` check and resolves with nothing unresolved is committed unattended by the nightly poll, since a review of it could only agree. Everything else is skipped and imported by hand as before.
+- A season is picked by its date boundaries, so an archived season and a season whose end date has passed are both out of the running. A season with no end date covers every date, which is why the first game of a new season would otherwise land in the old one.
 - Opponent names come from `domain/import/opponents.ts`, which maps the source's spelling to the one the site shows (`ΓΕΡΟΛΥΚΟΙ B.C.` to `Gerolykoi`, `S.H.A.W.` to `Shaw`). A team that is not in the map is never guessed at: the draft keeps the source's spelling so a person can correct it in the review form, and `resolve()` returns `unknownOpponent` so the poll skips and reports it instead of publishing caps and Greek.
 - A box score cannot say whether a game was a playoff. The poll takes `round` from the listing label; a manual import instead inherits it from the matching `UpcomingGame` if one exists, so tagging a fixture `semifinal` when you schedule it still carries through. An import with neither is `regular`.
 - Every scrape captures its raw payload and a SHA-256 of the fetched bytes into `ImportDraft`, keyed by source URL. The capture is overwritten while it is uncommitted and frozen once a commit stamps its `gameId`, so the bytes behind a saved game cannot be replaced by a later re-scrape. Unlike `AuditLog`, this table has no retention cron: it is the replay corpus for running a rewritten parser against old captures.
@@ -222,7 +223,7 @@ armani-katehano/
 │       ├── humans-txt.ts, .well-known/security.txt.ts
 │       ├── health.ts, vitals.ts       Liveness probe + anonymous Web Vitals sink
 │       ├── admin/                  Admin endpoints (CRUD, recalc, import, broadcast, popup-config, cleanup)
-│       │   └── seasons/[id]/       archive.ts, unarchive.ts
+│       │   └── seasons/[id]/       index.ts (dates + league links), archive.ts, unarchive.ts
 │       ├── coach/                  Coach auth + endpoints
 │       ├── cron/                   Scheduled jobs (purge-subscribers, purge-upcoming-games, purge-audit-log)
 │       ├── public/                 Public data feed, maintenance-flag read, upcoming-games
