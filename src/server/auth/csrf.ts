@@ -1,5 +1,6 @@
 import "@/server/_internal/node-only";
 import crypto from "node:crypto";
+import { SESSION_TTL_S } from "@/server/auth/session";
 
 const CSRF_METHODS     = new Set(["POST", "PUT", "DELETE", "PATCH"]);
 const CSRF_COOKIE_NAME = "__Host-ak_csrf";
@@ -18,8 +19,19 @@ export function generateCsrfToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
+// Max-Age pairs it with the session cookie, which has one. Without it the
+// browser drops this on close and keeps the session, so the admin returns
+// authenticated but unable to pass the check below on any mutating request.
+// The cookie is issued at login and never re-issued, so there is no recovery
+// short of logging in again.
 export function buildCsrfCookie(token: string): string {
-  return [`${CSRF_COOKIE_NAME}=${token}`, "Secure", "SameSite=Strict", "Path=/"].join("; ");
+  return [
+    `${CSRF_COOKIE_NAME}=${token}`,
+    "Secure",
+    "SameSite=Strict",
+    "Path=/",
+    `Max-Age=${SESSION_TTL_S}`,
+  ].join("; ");
 }
 
 export function clearCsrfCookie(): string {
