@@ -5,7 +5,7 @@ import { auditLog } from "@/server/security/node/audit-log";
 import prisma       from "@/server/db/client";
 import { buildHtml, buildText } from "./templates/roster-announcement";
 import type { SendRosterAnnouncementParams, Game, PlayerSlot } from "./templates/shared";
-import { buildImportSuccess, buildImportStalled } from "./templates/admin-notifications";
+import { buildImportSuccess, buildImportStalled, buildImportTest } from "./templates/admin-notifications";
 import {
   buildGameImportedHtml,
   buildGameImportedText,
@@ -18,7 +18,13 @@ import { sendSlackAlert } from "@/server/integrations/slack/client";
 
 export type ImportNotificationPayload =
   | { kind: "success"; opponent: string; location: string; scheduledFor: string; importedAt: Date }
-  | { kind: "stalled"; entries: { sourceUrl: string; reason: string }[]; error?: string | null };
+  | { kind: "stalled"; entries: { sourceUrl: string; reason: string }[]; error?: string | null }
+  | { kind: "test" };
+
+// Where the alert actually landed. Returned so the admin's test can report it:
+// a misnamed webhook variable is otherwise invisible, since the fallback means
+// the alert still arrives, just somewhere else.
+export type NotificationChannel = "slack" | "email" | "none";
 
 const FROM = "Armani Katehano <noreply@armani-katehano.com>";
 
@@ -174,29 +180,34 @@ export async function sendGameImportedBroadcast({
   });
 }
 
-export async function sendImportNotification(payload: ImportNotificationPayload): Promise<void> {
-  const result = payload.kind === "success" ? buildImportSuccess(payload) : buildImportStalled(payload);
+export async function sendImportNotification(payload: ImportNotificationPayload): Promise<NotificationChannel> {
+  const result =
+    payload.kind === "success" ? buildImportSuccess(payload) :
+    payload.kind === "test"    ? buildImportTest()           :
+    buildImportStalled(payload);
 
   // Slack first when it is configured, since an unattended import is watched in
   // a channel rather than an inbox. Email stays the fallback so a webhook that
   // is unset, misconfigured or down loses nothing.
   if (await sendSlackAlert(result.text)) {
     auditLog("import_notification_sent", { kind: payload.kind, via: "slack" });
-    return;
+    return "slack";
   }
 
   const transport = createTransport();
   if (!transport) {
     console.warn("[email] BREVO_SMTP_USER/PASS not set - skipping import notification");
-    return;
+    return "none";
   }
   const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
 
   try {
     await transport.sendMail({ from: FROM, to, subject: result.subject, html: result.html, text: result.text });
     auditLog("import_notification_sent", { kind: payload.kind, via: "email" });
+    return "email";
   } catch (err: any) {
     auditLog("import_notification_failed", { kind: payload.kind, error: err.message });
+    return "none";
   }
 }
 

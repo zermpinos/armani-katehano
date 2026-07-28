@@ -44,4 +44,36 @@ describe("sendImportNotification delivery", () => {
     expect(mockSendMail).toHaveBeenCalledOnce();
     expect(mockSendMail.mock.calls[0][0].text).toMatch(/league unresolved/);
   });
+
+  it("reports which channel carried the alert", async () => {
+    mockSlack.mockResolvedValue(true);
+    expect(await sendImportNotification(STALLED)).toBe("slack");
+    mockSlack.mockResolvedValue(false);
+    expect(await sendImportNotification(STALLED)).toBe("email");
+  });
+
+  it("reports none when neither channel is available", async () => {
+    mockSlack.mockResolvedValue(false);
+    delete process.env.BREVO_SMTP_USER;
+    delete process.env.BREVO_SMTP_PASS;
+    expect(await sendImportNotification(STALLED)).toBe("none");
+    expect(mockSendMail).not.toHaveBeenCalled();
+  });
+
+  it("reports none when the mail transport throws", async () => {
+    mockSlack.mockResolvedValue(false);
+    mockSendMail.mockRejectedValue(new Error("smtp down"));
+    expect(await sendImportNotification(STALLED)).toBe("none");
+  });
+
+  // A test must not be mistakable for a real import or a real failure: one
+  // would look like a game arrived, the other would raise a false alarm.
+  it("sends the test alert as its own kind, not a fake import or stall", async () => {
+    mockSlack.mockResolvedValue(true);
+    await sendImportNotification({ kind: "test" });
+    const text = mockSlack.mock.calls[0][0];
+    expect(text).toMatch(/Alert Path Test/);
+    expect(text).toMatch(/No game was imported/);
+    expect(text).not.toMatch(/Stuck|Imported:/);
+  });
 });
