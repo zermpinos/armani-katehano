@@ -14,6 +14,7 @@ import {
   type GameEmailContext,
 } from "./templates/game-imported";
 import { buildConfirmationEmailHtml, buildConfirmationEmailText } from "./templates/confirmation";
+import { sendSlackAlert } from "@/server/integrations/slack/client";
 
 export type ImportNotificationPayload =
   | { kind: "success"; opponent: string; location: string; scheduledFor: string; importedAt: Date }
@@ -174,6 +175,16 @@ export async function sendGameImportedBroadcast({
 }
 
 export async function sendImportNotification(payload: ImportNotificationPayload): Promise<void> {
+  const result = payload.kind === "success" ? buildImportSuccess(payload) : buildImportStalled(payload);
+
+  // Slack first when it is configured, since an unattended import is watched in
+  // a channel rather than an inbox. Email stays the fallback so a webhook that
+  // is unset, misconfigured or down loses nothing.
+  if (await sendSlackAlert(result.text)) {
+    auditLog("import_notification_sent", { kind: payload.kind, via: "slack" });
+    return;
+  }
+
   const transport = createTransport();
   if (!transport) {
     console.warn("[email] BREVO_SMTP_USER/PASS not set - skipping import notification");
@@ -181,11 +192,9 @@ export async function sendImportNotification(payload: ImportNotificationPayload)
   }
   const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
 
-  const result = payload.kind === "success" ? buildImportSuccess(payload) : buildImportStalled(payload);
-
   try {
     await transport.sendMail({ from: FROM, to, subject: result.subject, html: result.html, text: result.text });
-    auditLog("import_notification_sent", { kind: payload.kind });
+    auditLog("import_notification_sent", { kind: payload.kind, via: "email" });
   } catch (err: any) {
     auditLog("import_notification_failed", { kind: payload.kind, error: err.message });
   }
