@@ -24,6 +24,8 @@ export default function SeasonsPage({
   const [players,       setPlayers]       = useState<Player[]>([]);
   const [enrolledMap,   setEnrolledMap]   = useState<Map<string, Set<string>>>(new Map());
   const [draftMap,      setDraftMap]      = useState<Map<string, Set<string>>>(new Map());
+  const [dateMap,       setDateMap]       = useState<Map<string, { start: string; end: string }>>(new Map());
+  const [busyDates,     setBusyDates]     = useState<Map<string, boolean>>(new Map());
   const [busySaving,    setBusySaving]    = useState<Record<string, boolean>>({});
   const [loading,       setLoading]       = useState(false);
   const [toast,         setToast]         = useState<{ msg: string; type?: string } | null>(null);
@@ -49,7 +51,13 @@ export default function SeasonsPage({
         fetch("/api/admin/players"),
         fetch("/api/admin/roster-entries"),
       ]);
-      if (sRes.ok)  { const d = await sRes.json();  setSeasons(d.seasons ?? []);             setLinkSeasonId(prev => prev || d.seasons?.[0]?.id || ""); }
+      if (sRes.ok)  {
+        const d = await sRes.json();
+        const list: Season[] = d.seasons ?? [];
+        setSeasons(list);
+        setLinkSeasonId(prev => prev || list[0]?.id || "");
+        setDateMap(new Map(list.map(s => [s.id, { start: s.startDate ?? "", end: s.endDate ?? "" }])));
+      }
       if (lRes.ok)  { const d = await lRes.json();  setLeagues(d.leagues ?? []);             setLinkLeagueId(prev => prev || d.leagues?.[0]?.id || ""); }
       if (slRes.ok) { const d = await slRes.json(); setSeasonLeagues(d.seasonLeagues ?? []); }
       if (pRes.ok)  { const d = await pRes.json();  setPlayers(d.players ?? []); }
@@ -118,19 +126,28 @@ export default function SeasonsPage({
     loadData();
   };
 
+  const saveDates = async (season: Season) => {
+    const draft = dateMap.get(season.id);
+    if (!draft) return;
+    setBusyDates(m => new Map(m).set(season.id, true));
+    const res = await apiFetch(`/api/admin/seasons/${season.id}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ startDate: draft.start, endDate: draft.end }),
+    });
+    setBusyDates(m => new Map(m).set(season.id, false));
+    if (!res.ok) { const d = await res.json(); showToast(d.error || "Failed", "error"); return; }
+    showToast(`${season.name} dates saved.`);
+    loadData();
+  };
+
   const linkLeague = async () => {
     if (!linkLeagueId || !linkSeasonId) return;
-    const season = seasons.find(s => s.id === linkSeasonId);
-    if (!season) return;
     setBusyLink(true);
-    const res = await apiFetch("/api/admin/seasons", {
-      method:  "POST",
+    const res = await apiFetch(`/api/admin/seasons/${linkSeasonId}`, {
+      method:  "PATCH",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
-        name:      season.name,
-        year:      season.year,
-        leagueIds: [linkLeagueId],
-      }),
+      body:    JSON.stringify({ leagueIds: [linkLeagueId] }),
     });
     setBusyLink(false);
     if (!res.ok) { const d = await res.json(); showToast(d.error || "Failed", "error"); return; }
@@ -237,7 +254,7 @@ export default function SeasonsPage({
 
           <Panel
             label="Seasons"
-            hint="Archive a completed season to show fans a 'season complete' banner with awards. Unarchive to hide it again."
+            hint="Dates decide which season an imported game belongs to, so set the end date before the next season starts. Archiving a season shows fans a 'season complete' banner and stops new imports landing in it."
           >
             {seasons.length === 0 ? (
               <div className="py-6 text-center text-[12px] text-ak-text-dim">
@@ -248,42 +265,66 @@ export default function SeasonsPage({
                 {seasons.map(s => {
                   const archived = Boolean(s.archivedAt);
                   const empty    = (s.gameCount ?? 0) === 0;
+                  const dates    = dateMap.get(s.id) ?? { start: "", end: "" };
+                  const dirty    = dates.start !== (s.startDate ?? "") || dates.end !== (s.endDate ?? "");
                   return (
                     <li
                       key={s.id}
-                      className="flex items-center gap-2 py-[10px] px-[14px] rounded-[9px] border border-ak-border bg-ak-base"
+                      className="flex flex-col gap-3 py-[10px] px-[14px] rounded-[9px] border border-ak-border bg-ak-base"
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="font-black text-[13px] text-ak-text truncate">
-                          {s.name}
-                          {archived && (
-                            <span className="ml-2 text-[10px] font-black tracking-[0.1em] uppercase text-ak-text-dim">
-                              archived
-                            </span>
-                          )}
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-black text-[13px] text-ak-text truncate">
+                            {s.name}
+                            {archived && (
+                              <span className="ml-2 text-[10px] font-black tracking-[0.1em] uppercase text-ak-text-dim">
+                                archived
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-ak-text-dim mt-0.5">
+                            {s.gameCount ?? 0} game{(s.gameCount ?? 0) === 1 ? "" : "s"}
+                          </div>
                         </div>
-                        <div className="text-[11px] text-ak-text-dim mt-0.5">
-                          {s.gameCount ?? 0} game{(s.gameCount ?? 0) === 1 ? "" : "s"}
-                        </div>
+                        {archived ? (
+                          <button
+                            type="button"
+                            onClick={() => unarchiveSeason(s)}
+                            className="text-[10px] font-black tracking-[0.1em] uppercase px-2 py-1 rounded-md border border-ak-border text-ak-text-dim hover:text-ak-text cursor-pointer"
+                          >
+                            Unarchive
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => archiveSeason(s)}
+                            disabled={empty}
+                            title={empty ? "No games in this season yet." : ""}
+                            className="text-[10px] font-black tracking-[0.1em] uppercase px-2 py-1 rounded-md border border-[#c0392b60] bg-[#8b1a1a25] text-ak-red-text disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                          >
+                            Archive
+                          </button>
+                        )}
                       </div>
-                      {archived ? (
-                        <button
-                          type="button"
-                          onClick={() => unarchiveSeason(s)}
-                          className="text-[10px] font-black tracking-[0.1em] uppercase px-2 py-1 rounded-md border border-ak-border text-ak-text-dim hover:text-ak-text cursor-pointer"
-                        >
-                          Unarchive
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => archiveSeason(s)}
-                          disabled={empty}
-                          title={empty ? "No games in this season yet." : ""}
-                          className="text-[10px] font-black tracking-[0.1em] uppercase px-2 py-1 rounded-md border border-[#c0392b60] bg-[#8b1a1a25] text-ak-red-text disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                        >
-                          Archive
-                        </button>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <F
+                          label="STARTS"
+                          type="date"
+                          value={dates.start}
+                          onChange={v => setDateMap(m => new Map(m).set(s.id, { ...dates, start: v }))}
+                        />
+                        <F
+                          label="ENDS"
+                          type="date"
+                          value={dates.end}
+                          onChange={v => setDateMap(m => new Map(m).set(s.id, { ...dates, end: v }))}
+                        />
+                      </div>
+                      {dirty && (
+                        <Btn onClick={() => saveDates(s)} disabled={busyDates.get(s.id) ?? false} size="sm">
+                          {busyDates.get(s.id) ? "SAVING..." : "SAVE DATES"}
+                        </Btn>
                       )}
                     </li>
                   );

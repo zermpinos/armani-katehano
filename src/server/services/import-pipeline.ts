@@ -15,7 +15,13 @@ async function resolverInputs(): Promise<{ roster: { id: string; number: number 
       orderBy: { number: "asc" },
       select:  { id: true, number: true },
     }),
-    prisma.seasonLeague.findMany({ include: { league: true, season: true } }),
+    // An archived season is closed, so a scrape must never resolve into it.
+    // Without this the first game of a new season lands in the old one, since
+    // a season with no end date counts as covering every date.
+    prisma.seasonLeague.findMany({
+      where:   { season: { archivedAt: null } },
+      include: { league: true, season: true },
+    }),
   ]);
 
   return {

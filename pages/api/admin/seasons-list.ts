@@ -19,6 +19,9 @@ async function handler(req: any, res: any) {
       id:         s.id,
       name:       s.name,
       year:       s.year,
+      // Trimmed to the day so the value drops straight into <input type="date">.
+      startDate:  s.startDate ? s.startDate.toISOString().slice(0, 10) : "",
+      endDate:    s.endDate   ? s.endDate.toISOString().slice(0, 10)   : "",
       archivedAt: s.archivedAt ? s.archivedAt.toISOString() : null,
       gameCount:  s.seasonLeagues.reduce((n, sl) => n + sl._count.games, 0),
     }));
