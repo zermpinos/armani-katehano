@@ -358,7 +358,7 @@ export default function SeasonsPage({
               </Btn>
             </Panel>
 
-            <Panel label="Add a league" hint="Links to the currently selected season.">
+            <Panel label="Add a league" hint="Creates a league that does not exist yet and links it to the selected season. A league that already exists goes through 'Link existing pair'.">
               <div className="flex flex-col gap-3 mb-4">
                 <F
                   label="NAME"
