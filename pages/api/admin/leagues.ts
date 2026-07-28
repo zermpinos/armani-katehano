@@ -26,10 +26,14 @@ async function handler(req: any, res: any) {
   const { name, organizer, level, seasonId } = parsed.data;
   const slug = slugify(name);
 
-  // Check slug uniqueness and return a clean 409 instead of a 500
+  // A league that returns for another year is the normal case, not a typo, and
+  // this route can only attach a league it just created. Name the tool that
+  // does link an existing one rather than dead-ending on the slug collision.
   const existing = await prisma.league.findUnique({ where: { slug } });
   if (existing) {
-    return res.status(409).json({ error: `A league with the name "${name}" already exists.` });
+    return res.status(409).json({
+      error: `A league named "${name}" already exists. To use it in another season, link it with "Link existing pair" below.`,
+    });
   }
 
   try {

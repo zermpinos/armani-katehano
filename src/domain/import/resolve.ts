@@ -71,10 +71,12 @@ function shot(cell: unknown): { made: number; attempted: number } {
   return { made: num(c?.made), attempted: num(c?.attempted) };
 }
 
-// A season with no end date is open, so it covers any date.
+// Both bounds, since the same league runs every year and the league alone
+// cannot say which one. A missing bound is open in that direction.
 function coversDate(sl: SeasonLeagueRef, playedOn: Date | null): boolean {
-  if (!playedOn || !sl.seasonEnd) return true;
-  return new Date(sl.seasonEnd) >= playedOn;
+  if (!playedOn) return true;
+  if (sl.seasonStart && new Date(sl.seasonStart) > playedOn) return false;
+  return !sl.seasonEnd || new Date(sl.seasonEnd) >= playedOn;
 }
 
 function bySeasonStartDesc(a: SeasonLeagueRef, b: SeasonLeagueRef): number {

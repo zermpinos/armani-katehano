@@ -98,6 +98,27 @@ describe("resolve league resolution", () => {
     expect(unresolved).toHaveLength(1);
   });
 
+  it("skips a season that had not started on the game date", () => {
+    const { draft, unresolved } = resolve(
+      scrapedData([onRoster]),
+      roster,
+      [{ id: "slNext", leagueSlug: "rookie", seasonStart: "2026-09-01T00:00:00.000Z", seasonEnd: "2027-07-31T00:00:00.000Z" }],
+    );
+    expect(draft.seasonLeagueId).toBe("");
+    expect(unresolved).toHaveLength(1);
+  });
+
+  // The same league runs every year, so a backfilled game matches more than one
+  // season on the league alone. Without the start bound the newest-first sort
+  // would file it under the season that had not begun yet.
+  it("files an old game under the season that was running, not the newest", () => {
+    const { draft } = resolve(scrapedData([onRoster]), roster, [
+      { id: "slPast", leagueSlug: "rookie", seasonStart: "2025-09-01T00:00:00.000Z", seasonEnd: "2026-07-31T00:00:00.000Z" },
+      { id: "slNext", leagueSlug: "rookie", seasonStart: "2026-09-01T00:00:00.000Z", seasonEnd: "2027-07-31T00:00:00.000Z" },
+    ]);
+    expect(draft.seasonLeagueId).toBe("slPast");
+  });
+
   it("picks the most recent season when a league has several", () => {
     const { draft } = resolve(scrapedData([onRoster]), roster, [
       { id: "slOld", leagueSlug: "rookie", seasonStart: "2024-09-01T00:00:00.000Z", seasonEnd: null },
