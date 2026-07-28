@@ -34,6 +34,7 @@ export default function MaintenancePage({
   const [popupBusy,       setPopupBusy]       = useState(false);
   const [roundBusy,       setRoundBusy]       = useState(false);
   const [recalcing,       setRecalcing]       = useState(false);
+  const [testingAlert,    setTestingAlert]    = useState(false);
   const [loading,         setLoading]         = useState(false);
   const [toast,           setToast]           = useState<{ type?: string; msg: string } | null>(null);
 
@@ -166,6 +167,27 @@ export default function MaintenancePage({
       setToast({ type: "error", msg: "Recalc failed" });
     } finally {
       setRecalcing(false);
+    }
+  };
+
+  const handleTestAlert = async () => {
+    setTestingAlert(true);
+    try {
+      const res  = await apiFetch("/api/admin/test-alert", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) {
+        setToast({ type: "error", msg: json.error ?? "Test alert failed" });
+      } else if (json.via === "none") {
+        // Not an error on the request, but the answer the admin needs: nothing
+        // would carry an alert if the poll raised one right now.
+        setToast({ type: "error", msg: "No alert channel is configured" });
+      } else {
+        setToast({ type: "success", msg: `Test alert delivered via ${json.via}` });
+      }
+    } catch {
+      setToast({ type: "error", msg: "Test alert failed" });
+    } finally {
+      setTestingAlert(false);
     }
   };
 
@@ -318,6 +340,22 @@ export default function MaintenancePage({
               ].join(" ")}
             >
               {recalcing ? "Recalculating..." : "⟳ Recalc stats"}
+            </button>
+          </Section>
+
+          <Section
+            label="Test the import alert"
+            hint="Sends a notification through the path the nightly import uses and reports whether it went to Slack or email. Nothing is imported and no game data changes."
+          >
+            <button
+              onClick={handleTestAlert}
+              disabled={testingAlert}
+              className={[
+                "w-full md:w-auto py-[10px] px-[18px] text-[12px] font-black tracking-[0.08em] rounded-[9px] border border-ak-border bg-ak-surface font-sans",
+                testingAlert ? "text-ak-text-dim cursor-not-allowed" : "text-ak-text cursor-pointer",
+              ].join(" ")}
+            >
+              {testingAlert ? "Sending..." : "✓ Send test alert"}
             </button>
           </Section>
         </div>

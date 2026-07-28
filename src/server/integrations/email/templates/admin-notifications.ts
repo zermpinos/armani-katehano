@@ -24,6 +24,21 @@ export function buildImportSuccess(p: {
   return { subject, html, text };
 }
 
+// Its own kind rather than a borrowed one. Dressing a test as a success posts
+// something indistinguishable from a real import, and dressing it as a stall
+// raises a false alarm; either teaches the channel to be ignored.
+export function buildImportTest(): ImportNotificationResult {
+  const subject = "[AK] Alert path test";
+  const html = adminHtml({
+    title:       "Alert Path Test",
+    accentColor: "#4caf50",
+    rows: [{ label: "Triggered", value: "By hand from the admin" }],
+    extra: "",
+  });
+  const text = "[AK] Alert Path Test\n\nSent by hand from the admin to check where import alerts arrive. No game was imported and nothing is wrong.";
+  return { subject, html, text };
+}
+
 const CELL = "margin-top:10px;padding:10px 12px;background:#fef2f2;border-left:3px solid #c92a2a;border-radius:0 6px 6px 0;font-size:12px;color:#7f1d1d;word-break:break-all;";
 
 export function buildImportStalled(p: {
