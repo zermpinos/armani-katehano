@@ -163,6 +163,7 @@ describe("computeStatsFromLog - raw totals", () => {
   it("fga is sum of fga",       () => expect(stats.fga).toBe(38));
   it("ftm is sum of ftm",       () => expect(stats.ftm).toBe(4));
   it("fta is sum of fta",       () => expect(stats.fta).toBe(6));
+  it("pf_total is sum of pf", () => expect(stats.pf_total).toBe(6)); // 2+2+2, none overridden
 });
 
 // ─── Cross-path agreement ─────────────────────────────────────────────────────
@@ -215,4 +216,5 @@ describe("computeStatsFromLog ↔ computePlayerAggregates+aggregatesToStatsMap c
   it("fg3Pct agrees",() => expect(logStats.fg3Pct).toBe(dbStats().fg3Pct));
   it("ftPct agrees", () => expect(logStats.ftPct).toBe(dbStats().ftPct));
   it("gp agrees",    () => expect(logStats.gp).toBe(dbStats().gp));
+  it("pf_total agrees", () => expect(logStats.pf_total).toBe(dbStats().pf_total));
 });

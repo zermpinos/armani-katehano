@@ -47,6 +47,7 @@ export function computeStatsFromLog(log: any[]) {
     reb_total: sum("reb"),
     ast_total: sum("ast"),
     stl_total: sum("stl"),
+    pf_total:  sum("pf"),
     gp: n,
   };
 }
