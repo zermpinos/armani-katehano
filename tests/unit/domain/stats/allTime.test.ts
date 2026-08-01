@@ -60,6 +60,7 @@ describe("buildAllTimeStatsMap - single season", () => {
 
     expect(Reflect.get(map, P1).gp).toBe(0);
     expect(Reflect.get(map, P1).ppg).toBe(0);
+    expect(Reflect.get(map, P1).tsPct).toBe(0);
   });
 });
 
@@ -139,6 +140,7 @@ describe("buildAllTimeStatsMap - player missing from some seasons", () => {
 
     expect(Reflect.get(map, P2).gp).toBe(0);
     expect(Reflect.get(map, P2).ppg).toBe(0);
+    expect(Reflect.get(map, P2).tsPct).toBe(0);
     expect(Reflect.get(map, P2).gameLog).toEqual([]);
   });
 });
@@ -231,6 +233,20 @@ describe("buildAllTimeStatsMap - percentages from summed raw shot totals", () =>
 
     expect(Reflect.get(map, P1).ftmPg).toBe(+(40 / 15).toFixed(1)); // 2.7
     expect(Reflect.get(map, P1).ftaPg).toBe(+(55 / 15).toFixed(1)); // 3.7
+  });
+
+  it("computes TS% from summed raw totals across seasons, not a weighted average of per-season pcts", () => {
+    // Season A: pts_total=100, fga=40, fta=20
+    // Season B: pts_total=150, fga=50, fta=30
+    // All-time: pts=250, fga=90, fta=50 -> 250 / (2*(90 + 0.44*50)) * 100
+    const allSeasons = {
+      "s-a": { [P1]: { ...seasonStats(10, 10), pts_total: 100, fga: 40, fta: 20 } },
+      "s-b": { [P1]: { ...seasonStats(10, 15), pts_total: 150, fga: 50, fta: 30 } },
+    };
+    const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
+
+    const expected = +(250 / (2 * (90 + 0.44 * 50)) * 100).toFixed(1);
+    expect(Reflect.get(map, P1).tsPct).toBe(expected);
   });
 });
 

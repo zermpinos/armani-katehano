@@ -129,6 +129,18 @@ describe("computeStatsFromLog - percentages from summed totals, not averaged pct
     const stats = computeStatsFromLog(rows);
     expect(stats.ftPct).toBe(+(4 / 10 * 100).toFixed(1)); // 40.0
   });
+
+  it("TS% uses summed totals: pts / (2 * (fga + 0.44 * fta))", () => {
+    const rows = [
+      logRow({ pts: 20, fgm: 8, fga: 16, ftm: 2, fta: 3, fg2m: 6, fg2a: 11, fg3m: 2, fg3a: 5 }),
+      logRow({ pts: 15, fgm: 6, fga: 12, ftm: 1, fta: 2, fg2m: 4, fg2a: 8,  fg3m: 2, fg3a: 4 }),
+    ];
+    const stats = computeStatsFromLog(rows);
+
+    // pts=35, fga=28, fta=5 -> 35 / (2*(28 + 0.44*5)) * 100
+    const expected = +(35 / (2 * (28 + 0.44 * 5)) * 100).toFixed(1);
+    expect(stats.tsPct).toBe(expected); // 57.9
+  });
 });
 
 // ─── Division by zero ─────────────────────────────────────────────────────────
@@ -215,6 +227,7 @@ describe("computeStatsFromLog ↔ computePlayerAggregates+aggregatesToStatsMap c
   it("fg2Pct agrees",() => expect(logStats.fg2Pct).toBe(dbStats().fg2Pct));
   it("fg3Pct agrees",() => expect(logStats.fg3Pct).toBe(dbStats().fg3Pct));
   it("ftPct agrees", () => expect(logStats.ftPct).toBe(dbStats().ftPct));
+  it("tsPct agrees", () => expect(logStats.tsPct).toBe(dbStats().tsPct));
   it("gp agrees",    () => expect(logStats.gp).toBe(dbStats().gp));
   it("pf_total agrees", () => expect(logStats.pf_total).toBe(dbStats().pf_total));
 });
