@@ -65,6 +65,7 @@ export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
       reb_total: sumRaw("reb_total"),
       ast_total: sumRaw("ast_total"),
       stl_total: sumRaw("stl_total"),
+      pf_total:  sumRaw("pf_total"),
       gameLog: allGameLogs,
     };
   }

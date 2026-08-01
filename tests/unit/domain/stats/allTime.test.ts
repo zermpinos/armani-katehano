@@ -29,6 +29,7 @@ function seasonStats(gp, ppg, rpg = 0, apg = 0, fgPct = 0, spg = 0) {
     reb_total: Math.round(gp * rpg),
     ast_total: Math.round(gp * apg),
     stl_total: Math.round(gp * spg),
+    pf_total: 0,
     fgm: 0, fga: 0, fg2m: 0, fg2a: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0,
     gameLog: [],
   };
@@ -248,5 +249,18 @@ describe("buildAllTimeStatsMap - eff as weighted average across seasons", () => 
 
     expect(Reflect.get(map, P1).eff).toBe(+((15 * 10 + 10 * 5) / 15).toFixed(1)); // 13.3
     expect(Reflect.get(map, P1).eff).not.toBe(12.5); // simple average would be wrong
+  });
+});
+
+// ─── pf_total summed across seasons ───────────────────────────────────────────
+
+describe("buildAllTimeStatsMap - pf_total summed like other raw totals", () => {
+  it("sums pf_total across seasons", () => {
+    const allSeasons = {
+      "s-a": { [P1]: { ...seasonStats(10, 15), pf_total: 22 } },
+      "s-b": { [P1]: { ...seasonStats(5,  10), pf_total: 11 } },
+    };
+    const map = buildAllTimeStatsMap(allSeasons, [{ id: P1 }]);
+    expect(Reflect.get(map, P1).pf_total).toBe(33);
   });
 });
