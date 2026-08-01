@@ -72,6 +72,18 @@ export function buildGroupRow(cols: { group?: string }[]) {
   return cells;
 }
 
+/**
+ * Decides whether collapsing "more stats" needs to move the active sort off
+ * a column that's about to disappear. Returns the key to switch to (the
+ * first default column), or null if the current sortKey is already a
+ * default column and nothing needs to change.
+ */
+export function nextSortKeyOnCollapse(sortKey: string, cols: { key: string; default?: boolean }[]): string | null {
+  const defaultCols = cols.filter(c => c.default);
+  if (defaultCols.some(c => c.key === sortKey)) return null;
+  return defaultCols[0]?.key ?? null;
+}
+
 interface Props {
   sorted: any[];
   activeCols: any[];
@@ -85,11 +97,21 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort 
   const visibleCols = showAll ? activeCols : activeCols.filter((c: any) => c.default);
   const groupRow = showAll ? buildGroupRow(visibleCols) : [];
 
+  const handleToggle = () => {
+    if (showAll) {
+      // Collapsing: if the table is sorted by a column that's about to be
+      // hidden, fall back to a default column so the sort stays explicable.
+      const resetKey = nextSortKeyOnCollapse(sortKey, activeCols);
+      if (resetKey) onSort(resetKey);
+    }
+    setShowAll(v => !v);
+  };
+
   return (
     <>
       <div className="flex justify-end mb-2">
         <button
-          onClick={() => setShowAll(v => !v)}
+          onClick={handleToggle}
           className={`px-[10px] py-[3px] text-[10px] font-black tracking-[0.1em] rounded-md cursor-pointer border transition-all duration-150 ${
             showAll
               ? "border-[#c0392b60] bg-[#8b1a1a25] text-ak-red-text"

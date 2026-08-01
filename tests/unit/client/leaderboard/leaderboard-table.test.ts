@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { COLS, TOTAL_COLS, buildGroupRow, LeaderboardTable } from "@/client/leaderboard/leaderboard-table";
+import { COLS, TOTAL_COLS, buildGroupRow, nextSortKeyOnCollapse, LeaderboardTable } from "@/client/leaderboard/leaderboard-table";
 
 describe("COLS / TOTAL_COLS - default/group bookkeeping", () => {
   it("every COLS entry has a unique key", () => {
@@ -17,13 +17,13 @@ describe("COLS / TOTAL_COLS - default/group bookkeeping", () => {
   it("COLS includes tsPct marked as default", () => {
     const tsPct = COLS.find(c => c.key === "tsPct");
     expect(tsPct).toBeDefined();
-    expect(tsPct.default).toBe(true);
+    expect(tsPct?.default).toBe(true);
   });
 
   it("TOTAL_COLS includes pf_total, not marked default", () => {
     const pfTotal = TOTAL_COLS.find(c => c.key === "pf_total");
     expect(pfTotal).toBeDefined();
-    expect(pfTotal.default).toBeFalsy();
+    expect(pfTotal?.default).toBeFalsy();
   });
 
   it("every non-default COLS entry has a group", () => {
@@ -94,6 +94,22 @@ describe("buildGroupRow", () => {
   it("spans sum to the input length for TOTAL_COLS", () => {
     const total = buildGroupRow(TOTAL_COLS).reduce((s, g) => s + g.span, 0);
     expect(total).toBe(TOTAL_COLS.length);
+  });
+});
+
+describe("nextSortKeyOnCollapse", () => {
+  const cols = [
+    { key: "ppg", default: true },
+    { key: "rpg", default: true },
+    { key: "fpg" },
+  ];
+
+  it("returns null when the current sortKey is already a default column", () => {
+    expect(nextSortKeyOnCollapse("rpg", cols)).toBeNull();
+  });
+
+  it("returns the first default key when the current sortKey is not a default column", () => {
+    expect(nextSortKeyOnCollapse("fpg", cols)).toBe("ppg");
   });
 });
 
