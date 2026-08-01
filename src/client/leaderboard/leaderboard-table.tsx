@@ -9,41 +9,66 @@ const MEDALS = [
 ];
 
 export const COLS = [
-  { key: "gp",     label: "GP",  title: "Games Played",           dec: 0 },
-  { key: "mpg",    label: "MPG", title: "Minutes Per Game",       dec: 1, min: true },
-  { key: "ppg",    label: "PPG", title: "Points Per Game",        dec: 1 },
-  { key: "ftPct",  label: "FT%", title: "Free Throw %",           dec: 1, pct: true, denom: "fta" },
-  { key: "fgPct",  label: "FG%", title: "Field Goal %",           dec: 1, pct: true, denom: "fga" },
-  { key: "fg2Pct", label: "2P%", title: "2-Point %",              dec: 1, pct: true, denom: "fg2a" },
-  { key: "fg3Pct", label: "3P%", title: "3-Point %",              dec: 1, pct: true, denom: "fg3a" },
-  { key: "apg",    label: "APG", title: "Assists Per Game",       dec: 1 },
-  { key: "rpg",    label: "RPG", title: "Rebounds Per Game",      dec: 1 },
-  { key: "orpg",   label: "ORB", title: "Off. Rebounds Per Game", dec: 1 },
-  { key: "drpg",   label: "DRB", title: "Def. Rebounds Per Game", dec: 1 },
-  { key: "spg",    label: "SPG", title: "Steals Per Game",        dec: 1 },
-  { key: "bpg",    label: "BPG", title: "Blocks Per Game",        dec: 1 },
-  { key: "tpg",    label: "TPG", title: "Turnovers Per Game",     dec: 1 },
-  { key: "fpg",    label: "FPG", title: "Fouls Per Game",         dec: 1 },
-  { key: "eff",    label: "EFF", title: "Efficiency Rating",      dec: 1 },
+  { key: "gp",     label: "GP",  title: "Games Played",           dec: 0, default: true },
+  { key: "ppg",    label: "PPG", title: "Points Per Game",        dec: 1, default: true },
+  { key: "rpg",    label: "RPG", title: "Rebounds Per Game",      dec: 1, default: true },
+  { key: "apg",    label: "APG", title: "Assists Per Game",       dec: 1, default: true },
+  { key: "eff",    label: "EFF", title: "Efficiency Rating",      dec: 1, default: true },
+  { key: "fgPct",  label: "FG%", title: "Field Goal %",           dec: 1, pct: true, denom: "fga", default: true },
+  { key: "tsPct",  label: "TS%", title: "True Shooting %",        dec: 1, pct: true, default: true, tooltip: true },
+  { key: "ftPct",  label: "FT%", title: "Free Throw %",           dec: 1, pct: true, denom: "fta", default: true },
+
+  { key: "mpg",    label: "MPG", title: "Minutes Per Game",       dec: 1, min: true, group: "PLAYING TIME" },
+  { key: "fg2Pct", label: "2P%", title: "2-Point %",              dec: 1, pct: true, denom: "fg2a", group: "SHOOTING" },
+  { key: "fg3Pct", label: "3P%", title: "3-Point %",              dec: 1, pct: true, denom: "fg3a", group: "SHOOTING" },
+  { key: "orpg",   label: "ORB", title: "Off. Rebounds Per Game", dec: 1, group: "REBOUNDING" },
+  { key: "drpg",   label: "DRB", title: "Def. Rebounds Per Game", dec: 1, group: "REBOUNDING" },
+  { key: "spg",    label: "SPG", title: "Steals Per Game",        dec: 1, group: "DEFENSE" },
+  { key: "bpg",    label: "BPG", title: "Blocks Per Game",        dec: 1, group: "DEFENSE" },
+  { key: "tpg",    label: "TPG", title: "Turnovers Per Game",     dec: 1, group: "DISCIPLINE" },
+  { key: "fpg",    label: "FPG", title: "Fouls Per Game",         dec: 1, group: "DISCIPLINE" },
 ];
 
 export const TOTAL_COLS = [
-  { key: "gp",        label: "GP",  title: "Games Played",         dec: 0 },
-  { key: "pts_total", label: "PTS", title: "Total Points",         dec: 0 },
-  { key: "reb_total", label: "REB", title: "Total Rebounds",       dec: 0 },
-  { key: "ast_total", label: "AST", title: "Total Assists",        dec: 0 },
-  { key: "stl_total", label: "STL", title: "Total Steals",         dec: 0 },
-  { key: "fgm",       label: "FGM", title: "Field Goals Made",     dec: 0 },
-  { key: "fga",       label: "FGA", title: "Field Goals Attempted",dec: 0 },
-  { key: "fgPct",     label: "FG%", title: "Field Goal %",         dec: 1, pct: true, denom: "fga" },
-  { key: "fg3m",      label: "3PM", title: "3-Pointers Made",      dec: 0 },
-  { key: "fg3a",      label: "3PA", title: "3-Pointers Attempted", dec: 0 },
-  { key: "fg3Pct",    label: "3P%", title: "3-Point %",            dec: 1, pct: true, denom: "fg3a" },
-  { key: "ftm",       label: "FTM", title: "Free Throws Made",     dec: 0 },
-  { key: "fta",       label: "FTA", title: "Free Throws Attempted",dec: 0 },
-  { key: "ftPct",     label: "FT%", title: "Free Throw %",         dec: 1, pct: true, denom: "fta" },
-  { key: "fg2Pct",    label: "2P%", title: "2-Point %",            dec: 1, pct: true, denom: "fg2a" },
+  { key: "gp",        label: "GP",  title: "Games Played",         dec: 0, default: true },
+  { key: "pts_total", label: "PTS", title: "Total Points",         dec: 0, default: true },
+  { key: "reb_total", label: "REB", title: "Total Rebounds",       dec: 0, default: true },
+  { key: "ast_total", label: "AST", title: "Total Assists",        dec: 0, default: true },
+  { key: "fgPct",     label: "FG%", title: "Field Goal %",         dec: 1, pct: true, denom: "fga", default: true },
+  { key: "tsPct",     label: "TS%", title: "True Shooting %",      dec: 1, pct: true, default: true, tooltip: true },
+  { key: "ftPct",     label: "FT%", title: "Free Throw %",         dec: 1, pct: true, denom: "fta", default: true },
+
+  { key: "stl_total", label: "STL", title: "Total Steals",         dec: 0, group: "OTHER" },
+  { key: "pf_total",  label: "PF",  title: "Total Fouls",          dec: 0, group: "OTHER" },
+  { key: "fgm",       label: "FGM", title: "Field Goals Made",     dec: 0, group: "SHOOTING" },
+  { key: "fga",       label: "FGA", title: "Field Goals Attempted",dec: 0, group: "SHOOTING" },
+  { key: "fg2Pct",    label: "2P%", title: "2-Point %",            dec: 1, pct: true, denom: "fg2a", group: "SHOOTING" },
+  { key: "fg3m",      label: "3PM", title: "3-Pointers Made",      dec: 0, group: "SHOOTING" },
+  { key: "fg3a",      label: "3PA", title: "3-Pointers Attempted", dec: 0, group: "SHOOTING" },
+  { key: "fg3Pct",    label: "3P%", title: "3-Point %",            dec: 1, pct: true, denom: "fg3a", group: "SHOOTING" },
+  { key: "ftm",       label: "FTM", title: "Free Throws Made",     dec: 0, group: "SHOOTING" },
+  { key: "fta",       label: "FTA", title: "Free Throws Attempted",dec: 0, group: "SHOOTING" },
 ];
+
+/**
+ * Groups a column list into contiguous same-group spans for a header row,
+ * e.g. [default,default,SHOOTING,SHOOTING,DEFENSE] -> [{null,2},{SHOOTING,2},{DEFENSE,1}].
+ * Columns without a `group` (the always-visible defaults) collapse into a
+ * single blank span rather than one cell each.
+ */
+export function buildGroupRow(cols: { group?: string }[]) {
+  const cells: { label: string | null; span: number }[] = [];
+  for (const col of cols) {
+    const label = col.group ?? null;
+    const last = cells[cells.length - 1];
+    if (last && last.label === label) {
+      last.span += 1;
+    } else {
+      cells.push({ label, span: 1 });
+    }
+  }
+  return cells;
+}
 
 interface Props {
   sorted: any[];
