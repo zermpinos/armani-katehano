@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Awards, PlayerRef, AwardCategory } from "@/domain/awards";
 import { shortName, formatAwardValue } from "@/domain/awards";
+import { TooltipHint, TS_PCT_EXPLANATION } from "@/components/ui";
 
 type Props = { awards: Awards | null };
 
@@ -9,23 +10,14 @@ const MEDALS = ["🥇", "🥈", "🥉"] as const;
 type Slot = { label: string; category: AwardCategory; players: PlayerRef[]; tooltip?: string };
 
 function AwardLabel({ label, tooltip }: { label: string; tooltip?: string }) {
-  if (!tooltip) {
-    return (
-      <span className="text-[9px] font-black tracking-[0.12em] uppercase text-ak-text-dim">
-        {label}
-      </span>
-    );
-  }
-  return (
-    <span className="relative group inline-block">
-      <span className="text-[9px] font-black tracking-[0.12em] uppercase text-ak-text-dim underline decoration-dotted cursor-help">
-        {label}
-      </span>
-      <span className="pointer-events-none absolute bottom-full left-0 z-50 mb-1.5 hidden w-52 rounded-lg border border-ak-border bg-ak-base px-2.5 py-2 text-[10px] font-normal normal-case leading-relaxed tracking-normal text-ak-text-sub shadow-lg group-hover:block">
-        {tooltip}
-      </span>
+  const labelEl = (
+    <span
+      className={`text-[9px] font-black tracking-[0.12em] uppercase text-ak-text-dim ${tooltip ? "underline decoration-dotted cursor-help" : ""}`}
+    >
+      {label}
     </span>
   );
+  return tooltip ? <TooltipHint text={tooltip}>{labelEl}</TooltipHint> : labelEl;
 }
 
 function PodiumRow({ medal, category, player }: { medal: string; category: AwardCategory; player: PlayerRef }) {
@@ -65,7 +57,7 @@ export default function SeasonAwards({ awards }: Props) {
       label:    "TS%",
       category: "shooting",
       players:  awards.shooting,
-      tooltip:  "True Shooting % measures scoring efficiency including free throws and 3-pointers. Formula: PTS / (2 x (FGA + 0.44 x FTA)) x 100. Higher than FG% for players who draw fouls.",
+      tooltip:  TS_PCT_EXPLANATION,
     },
   ];
   const visible = slots.filter((s) => s.players.length > 0);
