@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { COLS, TOTAL_COLS, buildGroupRow } from "@/client/leaderboard/leaderboard-table";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { COLS, TOTAL_COLS, buildGroupRow, LeaderboardTable } from "@/client/leaderboard/leaderboard-table";
 
 describe("COLS / TOTAL_COLS - default/group bookkeeping", () => {
   it("every COLS entry has a unique key", () => {
@@ -92,5 +94,63 @@ describe("buildGroupRow", () => {
   it("spans sum to the input length for TOTAL_COLS", () => {
     const total = buildGroupRow(TOTAL_COLS).reduce((s, g) => s + g.span, 0);
     expect(total).toBe(TOTAL_COLS.length);
+  });
+});
+
+function samplePlayer(overrides = {}) {
+  return {
+    id: "p1", slug: "p-one", name: "Test Player", number: 7, position: "G",
+    stats: {
+      gp: 10, ppg: 15.2, rpg: 5.1, apg: 3.4, eff: 12.0,
+      fgPct: 45.0, tsPct: 55.5, ftPct: 78.0,
+      mpg: 25.0, fg2Pct: 50.0, fg3Pct: 33.0, orpg: 1.0, drpg: 4.1,
+      spg: 1.2, bpg: 0.4, tpg: 2.0, fpg: 2.3,
+      fga: 100, fta: 20,
+    },
+    ...overrides,
+  };
+}
+
+const renderTable = (props = {}) =>
+  renderToStaticMarkup(
+    createElement(LeaderboardTable, {
+      sorted: [samplePlayer()],
+      activeCols: COLS,
+      sortKey: "ppg",
+      sortDir: "desc",
+      onSort: () => {},
+      ...props,
+    }),
+  );
+
+describe("LeaderboardTable - default (collapsed) render", () => {
+  const html = renderTable();
+
+  it("shows default column headers", () => {
+    expect(html).toMatch(/>PPG/);
+    expect(html).toMatch(/>TS%/);
+    expect(html).toMatch(/>FT%/);
+  });
+
+  it("hides non-default column headers", () => {
+    expect(html).not.toMatch(/>MPG/);
+    expect(html).not.toMatch(/>FPG/);
+    expect(html).not.toMatch(/>SPG/);
+  });
+
+  it("renders the TS% explanation text (present in DOM, hidden via CSS)", () => {
+    expect(html).toMatch(/True Shooting % measures scoring efficiency/);
+  });
+
+  it("marks rank and player cells sticky", () => {
+    expect(html).toMatch(/class="[^"]*sticky[^"]*left-0[^"]*"[^>]*>\s*#/s);
+  });
+
+  it("renders a more-stats toggle button", () => {
+    expect(html).toMatch(/MORE STATS/);
+  });
+
+  it("does not render a group header row when collapsed", () => {
+    expect(html).not.toMatch(/SHOOTING/);
   });
 });
