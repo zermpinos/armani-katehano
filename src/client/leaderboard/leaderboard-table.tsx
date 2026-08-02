@@ -5,9 +5,9 @@ import { TooltipHint, TS_PCT_EXPLANATION } from "@/components/ui";
 import Link from "next/link";
 
 const MEDALS = [
-  { label: "🥇", textCls: "text-ak-gold",   rowBgCls: "bg-[#c9a84c18]", borderCls: "border-[#c9a84c45]", numBgCls: "bg-[#c9a84c30]", numBorderCls: "border-[#c9a84c55]" },
-  { label: "🥈", textCls: "text-ak-silver", rowBgCls: "bg-[#9ba3af15]", borderCls: "border-[#9ba3af40]", numBgCls: "bg-[#9ba3af30]", numBorderCls: "border-[#9ba3af55]" },
-  { label: "🥉", textCls: "text-ak-bronze", rowBgCls: "bg-[#b8733315]", borderCls: "border-[#b8733340]", numBgCls: "bg-[#b8733330]", numBorderCls: "border-[#b8733355]" },
+  { label: "🥇", textCls: "text-ak-gold",   rowBgCls: "bg-[#c9a84c18]", stickyBgCls: "bg-[#2c2922]", borderCls: "border-[#c9a84c45]", numBgCls: "bg-[#c9a84c30]", numBorderCls: "border-[#c9a84c55]" },
+  { label: "🥈", textCls: "text-ak-silver", rowBgCls: "bg-[#9ba3af15]", stickyBgCls: "bg-[#26272a]", borderCls: "border-[#9ba3af40]", numBgCls: "bg-[#9ba3af30]", numBorderCls: "border-[#9ba3af55]" },
+  { label: "🥉", textCls: "text-ak-bronze", rowBgCls: "bg-[#b8733315]", stickyBgCls: "bg-[#292320]", borderCls: "border-[#b8733340]", numBgCls: "bg-[#b8733330]", numBorderCls: "border-[#b8733355]" },
 ];
 
 export const COLS = [
@@ -171,17 +171,19 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort 
               {sorted.map((p, idx) => {
                 const medal = idx < 3 ? Reflect.get(MEDALS, idx) as (typeof MEDALS)[0] : null;
                 const rowBgCls = medal ? medal.rowBgCls : idx % 2 === 0 ? "bg-ak-surface" : "bg-ak-surface2";
+                // rowBgCls is a translucent tint on medal rows; sticky cells need an opaque one.
+                const stickyBgCls = medal ? medal.stickyBgCls : rowBgCls;
                 return (
                   <tr
                     key={p.id}
                     className={`relative border-b border-ak-border transition-colors duration-100 hover:bg-[#c0392b12] ${rowBgCls}`}
                   >
-                    <td className={`sticky left-0 z-10 w-8 px-[14px] py-[10px] text-center ${rowBgCls}`}>
+                    <td className={`sticky left-0 z-10 w-8 px-[14px] py-[10px] text-center ${stickyBgCls}`}>
                       {medal
                         ? <span className="text-base">{medal.label}</span>
                         : <span className="text-[11px] font-black text-ak-text-dim">{idx + 1}</span>}
                     </td>
-                    <td className={`sticky left-[48px] z-10 px-[14px] py-[10px] ${rowBgCls}`}>
+                    <td className={`sticky left-[48px] z-10 px-[14px] py-[10px] ${stickyBgCls}`}>
                       <div className="flex items-center gap-[10px]">
                         <div className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-[10px] font-black shrink-0 ${
                           medal
