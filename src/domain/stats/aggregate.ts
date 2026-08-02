@@ -30,6 +30,7 @@ export function mergeAggregates(prev: any, agg: any) {
     rebTotal:   (prev.rebTotal  ?? 0) + (agg.rebTotal  ?? 0),
     astTotal:   (prev.astTotal  ?? 0) + (agg.astTotal  ?? 0),
     stlTotal:   (prev.stlTotal  ?? 0) + (agg.stlTotal  ?? 0),
+    pfTotal:    (prev.pfTotal   ?? 0) + (agg.pfTotal   ?? 0),
   };
 }
 
@@ -99,6 +100,7 @@ export function aggregatesToStatsMap(aggregates: any[]) {
       reb_total: agg.rebTotal ?? 0,
       ast_total: agg.astTotal ?? 0,
       stl_total: agg.stlTotal ?? 0,
+      pf_total:  agg.pfTotal ?? 0,
     };
   }
 

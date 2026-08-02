@@ -116,6 +116,22 @@ describe("computePlayerAggregates - totals", () => {
     expect(agg.astTotal).toBe(10);
   });
 
+  it("accumulates pfTotal correctly, DNPs excluded", () => {
+    const rows = [
+      { minutes:30, pts:15, reb:4, ast:3, stl:1, blk:0, tov:1, pf:3,
+        fgm:6, fga:12, fg2m:4, fg2a:7, fg3m:2, fg3a:5, ftm:1, fta:2, orb:1, drb:3 },
+      { minutes:0,  pts:0,  reb:0, ast:0, stl:0, blk:0, tov:0, pf:5,
+        fgm:0, fga:0,  fg2m:0, fg2a:0, fg3m:0, fg3a:0, ftm:0, fta:0, orb:0, drb:0 },
+      { minutes:25, pts:10, reb:3, ast:2, stl:0, blk:0, tov:2, pf:2,
+        fgm:4, fga:9,  fg2m:4, fg2a:9,  fg3m:0, fg3a:0, ftm:2, fta:4, orb:0, drb:3 },
+    ];
+    const agg = computePlayerAggregates(rows);
+
+    // DNP row (pf:5) must be excluded - only the two active rows count
+    expect(agg.pfTotal).toBe(5);   // 3+2
+    expect(agg.gp).toBe(2);
+  });
+
   it("accumulates fgmTotal / fgaTotal correctly", () => {
     const rows = [
       { minutes:30, pts:14, reb:3, ast:2, stl:1, blk:0, tov:1, pf:2,

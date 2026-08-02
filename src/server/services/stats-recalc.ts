@@ -34,6 +34,7 @@ export function computePlayerAggregates(rows: any[]): Record<string, any> | null
   const totalReb  = sum("reb");
   const totalAst  = sum("ast");
   const totalStl  = sum("stl");
+  const totalPf   = sum("pf");
 
   const effAvg = +(active.reduce((a: number, r: any) => a + calcEff(r), 0) / gp).toFixed(2);
 
@@ -58,6 +59,7 @@ export function computePlayerAggregates(rows: any[]): Record<string, any> | null
     rebTotal:  totalReb,
     astTotal:  totalAst,
     stlTotal:  totalStl,
+    pfTotal:   totalPf,
     fgmTotal:  totalFgm,
     fgaTotal:  totalFga,
     fg2mTotal: totalFg2m,
@@ -147,7 +149,7 @@ async function recalcWithin(
     "ptsAvg",      "rebAvg",         "orbAvg",    "drbAvg",    "astAvg",
     "stlAvg",      "blkAvg",         "toAvg",     "pfAvg",     "minutesAvg",
     "fgPct",       "fg2Pct",         "fg3Pct",    "ftPct",     "tsPct",
-    "ptsTotal",    "rebTotal",       "astTotal",  "stlTotal",
+    "ptsTotal",    "rebTotal",       "astTotal",  "stlTotal",  "pfTotal",
     "fgmTotal",    "fgaTotal",
     "fg2mTotal",   "fg2aTotal",
     "fg3mTotal",   "fg3aTotal",

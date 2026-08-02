@@ -10,6 +10,7 @@ export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
       statsMap[player.id] = {
         ppg:0, rpg:0, orpg:0, drpg:0, apg:0, spg:0, bpg:0,
         tpg:0, fpg:0, fgPct:0, fg2Pct:0, fg3Pct:0, ftPct:0, ftmPg:0, ftaPg:0, mpg:0, eff:0,
+        tsPct: 0,
         gp: 0,
         gameLog: [],
       };
@@ -34,6 +35,11 @@ export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
     const fta  = sumRaw("fta");
     const pct  = (m: number, a: number) => a > 0 ? +((m / a) * 100).toFixed(1) : 0;
 
+    // TS% computed from summed raw totals - statistically correct across leagues.
+    const ptsTotal = sumRaw("pts_total");
+    const tsDenom  = 2 * (fga + 0.44 * fta);
+    const tsPct    = tsDenom > 0 ? +(ptsTotal / tsDenom * 100).toFixed(1) : 0;
+
     const allGameLogs = entries
       .flatMap(e => e.gameLog || [])
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -57,14 +63,16 @@ export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
       ftaPg:  totalGp > 0 ? +(fta / totalGp).toFixed(1) : 0,
       mpg:    wavg("mpg"),
       eff:    wavg("eff"),
+      tsPct,
       gp:     totalGp,
       // Carry raw totals forward so further aggregation stays accurate
       fgm, fga, fg2m, fg2a, fg3m, fg3a, ftm, fta,
       // Season totals - summed across seasons
-      pts_total: sumRaw("pts_total"),
+      pts_total: ptsTotal,
       reb_total: sumRaw("reb_total"),
       ast_total: sumRaw("ast_total"),
       stl_total: sumRaw("stl_total"),
+      pf_total:  sumRaw("pf_total"),
       gameLog: allGameLogs,
     };
   }

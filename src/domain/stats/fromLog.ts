@@ -14,8 +14,13 @@ export function computeStatsFromLog(log: any[]) {
   const fg3aTotal = sum("fg3a");
   const ftmTotal  = sum("ftm");
   const ftaTotal  = sum("fta");
+  const ptsTotal  = sum("pts");
 
   const pct = (m: number, a: number) => a > 0 ? +((m / a) * 100).toFixed(1) : 0;
+
+  // TS% computed from summed raw totals - statistically correct across leagues.
+  const tsDenom = 2 * (fgaTotal + 0.44 * ftaTotal);
+  const tsPct   = tsDenom > 0 ? +(ptsTotal / tsDenom * 100).toFixed(1) : 0;
 
   return {
     ppg:  avg("pts"),
@@ -33,6 +38,7 @@ export function computeStatsFromLog(log: any[]) {
     fg2Pct: pct(fg2mTotal, fg2aTotal),
     fg3Pct: pct(fg3mTotal, fg3aTotal),
     ftPct:  pct(ftmTotal,  ftaTotal),
+    tsPct,
     fgm:  fgmTotal,
     fga:  fgaTotal,
     fg2m: fg2mTotal,
@@ -43,10 +49,11 @@ export function computeStatsFromLog(log: any[]) {
     fta:  ftaTotal,
     ftmPg: +(ftmTotal / n).toFixed(1),
     ftaPg: +(ftaTotal / n).toFixed(1),
-    pts_total: sum("pts"),
+    pts_total: ptsTotal,
     reb_total: sum("reb"),
     ast_total: sum("ast"),
     stl_total: sum("stl"),
+    pf_total:  sum("pf"),
     gp: n,
   };
 }

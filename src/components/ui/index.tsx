@@ -58,3 +58,32 @@ export function StatTile({ label, value, sub, highlight }: StatTileProps) {
     </div>
   );
 }
+
+// ── Tooltip hint (dotted-underline hover card) ───────────────────────────────
+
+export const TS_PCT_EXPLANATION =
+  "True Shooting % measures scoring efficiency including free throws and 3-pointers. Formula: PTS / (2 x (FGA + 0.44 x FTA)) x 100. Higher than FG% for players who draw fouls.";
+
+interface TooltipHintProps {
+  text: string;
+  children: React.ReactNode;
+  /** "top" opens above the trigger (default); "bottom" opens below it.
+   *  Use "bottom" inside horizontally-scrolling containers (overflow-x
+   *  implicitly clips overflow-y too, so a tooltip opening upward from a
+   *  <thead> at the very top of such a container gets clipped). */
+  placement?: "top" | "bottom";
+}
+
+export function TooltipHint({ text, children, placement = "top" }: TooltipHintProps) {
+  const positionCls = placement === "top" ? "bottom-full mb-1.5" : "top-full mt-1.5";
+  return (
+    <span className="relative group inline-block">
+      {children}
+      <span
+        className={`pointer-events-none absolute left-1/2 z-50 hidden w-52 -translate-x-1/2 rounded-lg border border-ak-border bg-ak-base px-2.5 py-2 text-[10px] font-normal normal-case leading-relaxed tracking-normal text-ak-text-sub shadow-lg group-hover:block ${positionCls}`}
+      >
+        {text}
+      </span>
+    </span>
+  );
+}

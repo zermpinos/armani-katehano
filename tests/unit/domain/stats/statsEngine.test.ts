@@ -51,7 +51,7 @@ function agg(gp, ptsAvg, overrides = {}) {
     toAvg:0, pfAvg:0, minutesAvg:0, effAvg:0, tsPct:0,
     fgmTotal:0, fgaTotal:0, fg2mTotal:0, fg2aTotal:0,
     fg3mTotal:0, fg3aTotal:0, ftmTotal:0, ftaTotal:0,
-    ptsTotal:0, rebTotal:0, astTotal:0,
+    ptsTotal:0, rebTotal:0, astTotal:0, pfTotal:0,
     ...overrides,
   };
 }
@@ -81,6 +81,12 @@ describe("mergeAggregates", () => {
     expect(result.ptsTotal).toBe(150);
   });
 
+  it("sums pfTotal like other raw totals", () => {
+    const a = agg(5, 10, { pfTotal: 8 });
+    const b = agg(5, 20, { pfTotal: 6 });
+    expect(mergeAggregates(a, b).pfTotal).toBe(14);
+  });
+
   it("handles null/undefined raw total fields gracefully", () => {
     const a = { ...agg(5, 10), fgmTotal: undefined };
     const b = agg(5, 10, { fgmTotal: 8 });
@@ -98,7 +104,7 @@ function mockAgg(playerId, gp, overrides = {}) {
     toAvg:0, pfAvg:0, minutesAvg:0, effAvg:0, tsPct:0,
     fgmTotal:0, fgaTotal:0, fg2mTotal:0, fg2aTotal:0,
     fg3mTotal:0, fg3aTotal:0, ftmTotal:0, ftaTotal:0,
-    ptsTotal:0, rebTotal:0, astTotal:0,
+    ptsTotal:0, rebTotal:0, astTotal:0, pfTotal:0,
     player: { id: playerId },
     ...overrides,
   };
@@ -138,6 +144,12 @@ describe("aggregatesToStatsMap", () => {
     expect(map["p1"].ftPct).toBeNull();
   });
 
+  it("exposes pf_total from pfTotal", () => {
+    const aggregates = [mockAgg("p1", 5, { pfTotal: 17 })];
+    const map = aggregatesToStatsMap(aggregates);
+    expect(map["p1"].pf_total).toBe(17);
+  });
+
   it("output has the shape the frontend relies on", () => {
     const aggregates = [
       mockAgg("p1", 5, {
@@ -150,7 +162,7 @@ describe("aggregatesToStatsMap", () => {
     const entry = aggregatesToStatsMap(aggregates)["p1"];
     for (const key of ["ppg","rpg","apg","spg","bpg","tpg","fpg","mpg",
                         "fgPct","fg2Pct","fg3Pct","ftPct","tsPct","eff","gp",
-                        "fgm","fga","fg2m","fg2a","fg3m","fg3a","ftm","fta"]) {
+                        "fgm","fga","fg2m","fg2a","fg3m","fg3a","ftm","fta","pf_total"]) {
       expect(entry, `missing key: ${key}`).toHaveProperty(key);
     }
   });
