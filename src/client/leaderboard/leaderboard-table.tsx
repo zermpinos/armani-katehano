@@ -129,8 +129,8 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort 
             <thead>
               {showAll && (
                 <tr className="bg-ak-base">
-                  <th className="sticky left-0 z-20 bg-ak-base w-8" />
-                  <th className="sticky left-[48px] z-20 bg-ak-base min-w-[160px]" />
+                  <th className="sticky left-0 z-20 bg-ak-base w-8 transform-gpu" />
+                  <th className="sticky left-[48px] z-20 bg-ak-base min-w-[160px] transform-gpu" />
                   <th className="min-w-[48px]" />
                   {groupRow.map((g, i) => (
                     g.label
@@ -140,8 +140,8 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort 
                 </tr>
               )}
               <tr className="bg-ak-base border-b border-ak-border2">
-                <th className="sticky left-0 z-20 bg-ak-base px-[14px] py-[10px] text-left text-[10px] font-black tracking-[0.12em] text-ak-text-dim w-8">#</th>
-                <th className="sticky left-[48px] z-20 bg-ak-base px-[14px] py-[10px] text-left text-[10px] font-black tracking-[0.12em] text-ak-text-dim min-w-[160px]">PLAYER</th>
+                <th className="sticky left-0 z-20 bg-ak-base px-[14px] py-[10px] text-left text-[10px] font-black tracking-[0.12em] text-ak-text-dim w-8 transform-gpu">#</th>
+                <th className="sticky left-[48px] z-20 bg-ak-base px-[14px] py-[10px] text-left text-[10px] font-black tracking-[0.12em] text-ak-text-dim min-w-[160px] transform-gpu">PLAYER</th>
                 <th className="px-2 py-[10px] text-[10px] font-black tracking-[0.12em] text-ak-text-dim min-w-[48px]">POS</th>
                 {visibleCols.map((col: any) => {
                   const labelText = (
@@ -178,12 +178,12 @@ export function LeaderboardTable({ sorted, activeCols, sortKey, sortDir, onSort 
                     key={p.id}
                     className={`relative border-b border-ak-border transition-colors duration-100 hover:bg-[#c0392b12] ${rowBgCls}`}
                   >
-                    <td className={`sticky left-0 z-10 w-8 px-[14px] py-[10px] text-center ${stickyBgCls}`}>
+                    <td className={`sticky left-0 z-10 w-8 px-[14px] py-[10px] text-center transform-gpu ${stickyBgCls}`}>
                       {medal
                         ? <span className="text-base">{medal.label}</span>
                         : <span className="text-[11px] font-black text-ak-text-dim">{idx + 1}</span>}
                     </td>
-                    <td className={`sticky left-[48px] z-10 px-[14px] py-[10px] ${stickyBgCls}`}>
+                    <td className={`sticky left-[48px] z-10 px-[14px] py-[10px] transform-gpu ${stickyBgCls}`}>
                       <div className="flex items-center gap-[10px]">
                         <div className={`w-[26px] h-[26px] rounded-md flex items-center justify-center text-[10px] font-black shrink-0 ${
                           medal
