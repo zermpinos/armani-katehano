@@ -21,6 +21,12 @@
 // top-level entry would miss the nested copy and falsely report the override as
 // removable.
 //
+// next is pinned to the version our lockfile holds, not to its declared range.
+// Resolving the range picks up whatever is newest on the registry, which may
+// bundle a newer postcss than the next we actually install - that mismatch is
+// what made the 2026-08-10 audit call the override removable when dropping it
+// reintroduced four advisories through next's nested copy.
+//
 // On success: prints the lowest resolved version (e.g. "8.4.31") to stdout, exit 0.
 // On error: prints nothing, exit non-zero - callers fall back to "unknown".
 
@@ -30,6 +36,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+const lockedNext = JSON.parse(readFileSync('package-lock.json', 'utf8'))
+  .packages?.['node_modules/next']?.version;
 
 // Build a stub package.json: keep dependencies (next is the postcss consumer)
 // and devDependencies (some pull postcss too, e.g. @tailwindcss/postcss).
@@ -38,7 +46,10 @@ const stub = {
   name: 'postcss-resolution-probe',
   version: '0.0.0',
   private: true,
-  dependencies: pkg.dependencies ?? {},
+  dependencies: {
+    ...(pkg.dependencies ?? {}),
+    ...(lockedNext ? { next: lockedNext } : {}),
+  },
   devDependencies: pkg.devDependencies ?? {},
   overrides: { ...(pkg.overrides ?? {}) },
 };
