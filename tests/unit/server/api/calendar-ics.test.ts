@@ -41,9 +41,8 @@ describe("GET /api/calendar/ics", () => {
   });
 
   it("returns 405 for non-GET methods", async () => {
-    const state = { status: 200 };
-    const req = { method: "POST", query: {} } as any;
-    const res = { status: (s: number) => { state.status = s; return res; }, end: () => res } as any;
+    const { req, res, state } = makeReqRes({});
+    (req as any).method = "POST";
     await handler(req, res);
     expect(state.status).toBe(405);
   });
@@ -54,6 +53,7 @@ describe("GET /api/calendar/ics", () => {
     expect(state.status).toBe(200);
     expect(state.headers["Content-Type"]).toBe("text/calendar; charset=utf-8");
     expect(state.headers["Cache-Control"]).toBe("no-store");
+    expect(state.headers["X-Content-Type-Options"]).toBe("nosniff");
   });
 
   it("sets Content-Disposition with sanitised opponent in filename", async () => {

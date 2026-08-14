@@ -21,6 +21,7 @@
 import prisma from "@/server/db/client";
 import crypto from "node:crypto";
 import { purgeUnconfirmedSubscribers } from "@/server/services/subscriber";
+import { securityHeaders } from "@/server/security/edge";
 
 
 // Every guard sharing LoginAttempt reads back over its own window: 15 min IP
@@ -29,6 +30,10 @@ import { purgeUnconfirmedSubscribers } from "@/server/services/subscriber";
 const RETENTION_MS = 24 * 60 * 60 * 1000;
 
 export default async function handler(req: any, res: any) {
+  // Cron-secret auth, not requireAuth, so the headers requireAuth would have
+  // set have to be applied here.
+  Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
+
   // Only allow DELETE (or GET - Vercel cron uses GET by default)
   if (req.method !== "DELETE" && req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });

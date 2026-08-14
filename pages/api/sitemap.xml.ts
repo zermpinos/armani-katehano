@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getGameIds } from "@/server/db/repositories";
+import { securityHeaders } from "@/server/security/edge";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://armani-katehano.com";
 
@@ -23,6 +24,9 @@ function buildSitemap(lastmod: string, gameIds: string[]): string {
 }
 
 export default async function handler(_req: NextApiRequest, res: NextApiResponse) {
+  const { "Cache-Control": _cc, ...baseHeaders } = securityHeaders();
+  Object.entries(baseHeaders).forEach(([k, v]) => res.setHeader(k, v));
+
   const lastmod = new Date().toISOString().split("T")[0];
   const gameIds = await getGameIds();
   const xml = buildSitemap(lastmod, gameIds);
