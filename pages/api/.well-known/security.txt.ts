@@ -1,6 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { securityHeaders } from "@/server/security/edge";
 
 export default function handler(_req: NextApiRequest, res: NextApiResponse) {
+  const { "Cache-Control": _cc, ...baseHeaders } = securityHeaders();
+  Object.entries(baseHeaders).forEach(([k, v]) => res.setHeader(k, v));
+
   const base =
     process.env.NEXT_PUBLIC_BASE_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://armani-katehano.vercel.app");

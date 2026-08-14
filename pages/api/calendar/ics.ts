@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { buildIcsContent } from "@/domain/shared/calendar";
+import { securityHeaders } from "@/server/security/edge";
 
 function sanitizeFilename(s: string): string {
   const cleaned = s.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
@@ -7,6 +8,10 @@ function sanitizeFilename(s: string): string {
 }
 
 export default function handler(req: NextApiRequest, res: NextApiResponse): void {
+  // securityHeaders() already carries Cache-Control: no-store, which is what a
+  // per-request .ics build wants.
+  Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
+
   if (req.method !== "GET") {
     res.status(405).end();
     return;
@@ -35,6 +40,5 @@ export default function handler(req: NextApiRequest, res: NextApiResponse): void
 
   res.setHeader("Content-Type", "text/calendar; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-  res.setHeader("Cache-Control", "no-store");
   res.status(200).send(icsContent);
 }
