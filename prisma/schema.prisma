@@ -93,6 +93,7 @@ model RosterEntry {
   id             String       @id @default(cuid())
   playerId       String
   seasonLeagueId String
+  number         Int?
   isActive       Boolean      @default(true)
   createdAt      DateTime     @default(now())
   player         Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
@@ -106,6 +107,7 @@ model PlayerGameStat {
   playerId  String
   gameId    String
   minutes   Float    @default(0)
+  played    Boolean  @default(false)
   pts       Int      @default(0)
   reb       Int      @default(0)
   ast       Int      @default(0)
@@ -145,12 +147,12 @@ model PlayerSeasonAggregate {
   stlAvg         Float        @default(0)
   blkAvg         Float        @default(0)
   toAvg          Float        @default(0)
-  pfAvg          Float        @default(0)
+  pfAvg          Float?
   fgPct          Float        @default(0)
   fg3Pct         Float        @default(0)
   ftPct          Float        @default(0)
   tsPct          Float        @default(0)
-  minutesAvg     Float        @default(0)
+  minutesAvg     Float?
   ptsTotal       Int          @default(0)
   rebTotal       Int          @default(0)
   astTotal       Int          @default(0)

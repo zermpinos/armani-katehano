@@ -106,6 +106,7 @@ async function main() {
         data: {
           playerId,
           gameId:    game.id,
+          played:    row.min > 0,
           minutes:   row.min,
           pts:       row.pts,
           reb:       row.reb,
@@ -146,13 +147,14 @@ async function main() {
 
       const rows = slGames
         .flatMap(g => g.playerStats)
-        .filter(r => r.playerId === playerId && r.minutes > 0);
+        .filter(r => r.playerId === playerId && r.played);
 
       const gp = rows.length;
       if (gp === 0) continue;
 
       const sum = (key: string) => rows.reduce((a, r) => a + (Reflect.get(r as object, key) as number || 0), 0);
       const avg = key => +(sum(key) / gp).toFixed(2);
+      const published = (key: string) => rows.some(r => (Reflect.get(r as object, key) as number || 0) > 0);
 
       const totalFgm  = sum("fgm");
       const totalFga  = sum("fga");
@@ -179,8 +181,8 @@ async function main() {
           stlAvg:     avg("stl"),
           blkAvg:     avg("blk"),
           toAvg:      avg("tov"),
-          pfAvg:      avg("pf"),
-          minutesAvg: avg("minutes"),
+          pfAvg:      published("pf")      ? avg("pf")      : null,
+          minutesAvg: published("minutes") ? avg("minutes") : null,
           fgPct:      pct(totalFgm,  totalFga),
           fg2Pct:     pct(sum("fg2m"), sum("fg2a")),
           fg3Pct:     pct(totalFg3m, totalFg3a),

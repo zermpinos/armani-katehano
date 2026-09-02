@@ -75,7 +75,7 @@ export default function TeamPage({ players, gamesBySeason, seasons, currentSeaso
 
   const playerPpg = players.map((p: any) => {
     const rows = filteredGames
-      .flatMap((g: any) => (g.boxScore || []).filter((r: any) => r.pid === p.id && r.min > 0));
+      .flatMap((g: any) => (g.boxScore || []).filter((r: any) => r.pid === p.id && r.played));
     const n = rows.length;
     if (n === 0) return null;
     const ppg = +(rows.reduce((a: number, r: any) => a + (r.pts || 0), 0) / n).toFixed(1);
@@ -84,7 +84,7 @@ export default function TeamPage({ players, gamesBySeason, seasons, currentSeaso
 
   const playerEff = players.map((p: any) => {
     const rows = filteredGames
-      .flatMap((g: any) => (g.boxScore || []).filter((r: any) => r.pid === p.id && r.min > 0));
+      .flatMap((g: any) => (g.boxScore || []).filter((r: any) => r.pid === p.id && r.played));
     const n = rows.length;
     if (n === 0) return null;
     const eff = +(rows.reduce((a: number, r: any) => a + (r.eff || 0), 0) / n).toFixed(1);

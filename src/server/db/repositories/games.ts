@@ -38,6 +38,7 @@ export async function getGames(seasonName: string, leagueSlug: string | null = n
     ...ratingsOf(g),
     boxScore: g.playerStats.map(r => ({
       pid:  r.playerId,
+      played: r.played,
       min:  r.minutes,
       pts:  r.pts,
       reb:  r.reb,
@@ -68,7 +69,7 @@ export async function getAllGames() {
       // Fetch only the top scorer per game (highest pts among players with minutes)
       // rather than full box scores, to keep the props payload small.
       playerStats: {
-        where:   { minutes: { gt: 0 } },
+        where:   { played: true },
         orderBy: { pts: "desc" },
         take:    1,
         include: { player: { select: { name: true } } },
@@ -122,7 +123,7 @@ export async function getBoxScore(gameId: string) {
       pgs."ftm",
       pgs."fta"
     FROM "PlayerGameStat" pgs
-    WHERE pgs."gameId" = ${gameId} AND pgs."minutes" > 0
+    WHERE pgs."gameId" = ${gameId} AND pgs."played"
     ORDER BY (SELECT "number" FROM "Player" WHERE "id" = pgs."playerId") ASC
   ` as any[];
 
@@ -158,7 +159,7 @@ export async function getGameById(id: string) {
         include: { season: true, league: true },
       },
       playerStats: {
-        where:   { minutes: { gt: 0 } },
+        where:   { played: true },
         include: {
           player: {
             select: { id: true, slug: true, name: true, number: true, position: true },

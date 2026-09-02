@@ -3,6 +3,15 @@ export function mergeAggregates(prev: any, agg: any) {
   const wavg = (a: number, b: number) =>
     totalGp > 0 ? +((a * prev.gp + b * agg.gp) / totalGp).toFixed(2) : 0;
 
+  // Null means that side's source published nothing, so it contributes neither
+  // a value nor its games. Dividing by totalGp instead would halve the average.
+  const nwavg = (a: number | null, b: number | null) => {
+    const aGp = a == null ? 0 : prev.gp;
+    const bGp = b == null ? 0 : agg.gp;
+    const gp  = aGp + bGp;
+    return gp > 0 ? +(((a ?? 0) * aGp + (b ?? 0) * bGp) / gp).toFixed(2) : null;
+  };
+
   return {
     ...prev,
     gp:         totalGp,
@@ -14,8 +23,8 @@ export function mergeAggregates(prev: any, agg: any) {
     stlAvg:     wavg(prev.stlAvg,      agg.stlAvg),
     blkAvg:     wavg(prev.blkAvg,      agg.blkAvg),
     toAvg:      wavg(prev.toAvg,       agg.toAvg),
-    pfAvg:      wavg(prev.pfAvg,       agg.pfAvg),
-    minutesAvg: wavg(prev.minutesAvg,  agg.minutesAvg),
+    pfAvg:      nwavg(prev.pfAvg,      agg.pfAvg),
+    minutesAvg: nwavg(prev.minutesAvg, agg.minutesAvg),
     effAvg:     wavg(prev.effAvg  ?? 0, agg.effAvg  ?? 0),
     tsPct:      wavg(prev.tsPct   ?? 0, agg.tsPct   ?? 0),
     fgmTotal:   (prev.fgmTotal  ?? 0) + (agg.fgmTotal  ?? 0),
@@ -74,8 +83,8 @@ export function aggregatesToStatsMap(aggregates: any[]) {
       spg:    +agg.stlAvg.toFixed(1),
       bpg:    +agg.blkAvg.toFixed(1),
       tpg:    +agg.toAvg.toFixed(1),
-      fpg:    +agg.pfAvg.toFixed(1),
-      mpg:    +agg.minutesAvg.toFixed(1),
+      fpg:    agg.pfAvg      == null ? null : +agg.pfAvg.toFixed(1),
+      mpg:    agg.minutesAvg == null ? null : +agg.minutesAvg.toFixed(1),
       // Percentages from raw totals - accurate across leagues
       fgPct:  pct(agg.fgmTotal  ?? 0, fgaTotal),
       fg2Pct: pct(agg.fg2mTotal ?? 0, fg2aTotal),
@@ -113,7 +122,7 @@ export function computeTeamAverages(games: any[]) {
     return { rpg:0, apg:0, spg:0, bpg:0, tpg:0, fgPct:0, fg3Pct:0, ftPct:0, atRatio:0 };
   }
 
-  const rows = games.flatMap((g: any) => g.boxScore || []).filter((r: any) => r.min > 0);
+  const rows = games.flatMap((g: any) => g.boxScore || []).filter((r: any) => r.played);
   // eslint-disable-next-line security/detect-object-injection
   const sum  = (key: string) => rows.reduce((a: number, r: any) => a + (r[key] || 0), 0);
   const pct  = (m: string, a: string) => {

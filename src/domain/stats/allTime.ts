@@ -18,9 +18,17 @@ export function buildAllTimeStatsMap(allSeasonsStats: any, players: any[]) {
     }
 
     const totalGp = entries.reduce((s, e) => s + e.gp, 0);
+    // A season whose source published nothing for this key contributes neither
+    // a value nor its games. Dividing by totalGp would halve the average.
     const wavg = (key: string) => {
-      const weighted = entries.reduce((s: number, e: any) => s + (Reflect.get(e, key) as number || 0) * e.gp, 0);
-      return +(weighted / totalGp).toFixed(1);
+      let weighted = 0, gp = 0;
+      for (const e of entries) {
+        const v = Reflect.get(e, key) as number | null | undefined;
+        if (v == null) continue;
+        weighted += v * e.gp;
+        gp       += e.gp;
+      }
+      return gp > 0 ? +(weighted / gp).toFixed(1) : null;
     };
 
     // Sum raw shot totals across seasons for statistically correct percentages

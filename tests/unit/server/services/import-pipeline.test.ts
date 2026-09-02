@@ -4,6 +4,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 const { mockPrisma, mockScrape } = vi.hoisted(() => ({
   mockPrisma: {
     player:       { findMany: vi.fn() },
+    rosterEntry:  { findMany: vi.fn() },
     seasonLeague: { findMany: vi.fn() },
   },
   mockScrape: vi.fn(),
@@ -58,6 +59,7 @@ function seasonLeaguesIn(rows) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockPrisma.player.findMany.mockResolvedValue([{ id: "p1", number: 4 }]);
+  mockPrisma.rosterEntry.findMany.mockResolvedValue([]);
   mockScrape.mockResolvedValue({ data: boxScore(), gameState: "final", bytesHash: "h" });
 });
 
