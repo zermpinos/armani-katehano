@@ -1,7 +1,9 @@
 /**
  * pages/api/admin/roster-entries.ts
- * GET /api/admin/roster-entries  -> active-player enrollment across all seasons
- * PUT /api/admin/roster-entries  -> full sync for one season
+ * GET   /api/admin/roster-entries              -> active-player enrollment across all seasons
+ * GET   /api/admin/roster-entries?playerId=id  -> that player's leagues and jersey overrides
+ * PUT   /api/admin/roster-entries              -> full sync for one season
+ * PATCH /api/admin/roster-entries              -> per-league jersey numbers for one player
  */
 
 import { NextApiRequest, NextApiResponse } from "next";
@@ -13,12 +15,53 @@ import { methodRouter }                    from "@/server/http/method-router";
 import { handleError }                     from "@/server/http/handle-error";
 import { parseBody }                       from "@/server/http/parse-body";
 
+// Null clears the override, so the player wears Player.number in that league.
+const JerseyNumbersSchema = z.object({
+  playerId: z.string().min(1),
+  numbers:  z.array(z.object({
+    seasonLeagueId: z.string().min(1),
+    number:         z.number().int().min(0).max(99).nullable(),
+  })).max(50),
+});
+
 const RosterSyncSchema = z.object({
   seasonId:  z.string().min(1),
   playerIds: z.array(z.string().min(1)),
 });
 
-async function getEntries(_req: NextApiRequest, res: NextApiResponse) {
+async function getPlayerLeagues(playerId: string, res: NextApiResponse) {
+  try {
+    const rows = await prisma.rosterEntry.findMany({
+      where:   { playerId },
+      orderBy: { seasonLeague: { season: { startDate: "desc" } } },
+      select: {
+        seasonLeagueId: true,
+        number:         true,
+        seasonLeague:   {
+          select: {
+            season: { select: { name: true } },
+            league: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    return res.status(200).json({
+      leagues: rows.map((r) => ({
+        seasonLeagueId: r.seasonLeagueId,
+        label:          `${r.seasonLeague.season.name} - ${r.seasonLeague.league.name}`,
+        number:         r.number,
+      })),
+    });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+async function getEntries(req: NextApiRequest, res: NextApiResponse) {
+  const playerId = typeof req.query.playerId === "string" ? req.query.playerId : null;
+  if (playerId) return getPlayerLeagues(playerId, res);
+
   try {
     const rows = await prisma.rosterEntry.findMany({
       where: { player: { isActive: true } },
@@ -112,4 +155,28 @@ async function putEntries(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-export default requireAuth(methodRouter({ GET: getEntries, PUT: putEntries }));
+// updateMany scoped to playerId + seasonLeagueId so a request can only touch
+// enrollments that already exist, never create one for an arbitrary league.
+async function patchNumbers(req: NextApiRequest, res: NextApiResponse) {
+  const ip   = getClientIp(req);
+  const data = parseBody(JerseyNumbersSchema, req.body, res, "flatten");
+  if (!data) return;
+
+  try {
+    await prisma.$transaction(
+      data.numbers.map((n) =>
+        prisma.rosterEntry.updateMany({
+          where: { playerId: data.playerId, seasonLeagueId: n.seasonLeagueId },
+          data:  { number: n.number },
+        }),
+      ),
+    );
+
+    auditLog("roster_numbers_updated", { ip, playerId: data.playerId, leagues: data.numbers.length });
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+export default requireAuth(methodRouter({ GET: getEntries, PUT: putEntries, PATCH: patchNumbers }));

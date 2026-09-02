@@ -280,3 +280,34 @@ describe("buildAllTimeStatsMap - pf_total summed like other raw totals", () => {
     expect(Reflect.get(map, P1).pf_total).toBe(33);
   });
 });
+
+// ─── A season whose source published no minutes ───────────────────────────────
+
+describe("buildAllTimeStatsMap - a season whose source published no minutes", () => {
+  // Skipping the null season but still dividing by the combined gp would halve
+  // the all-time figure, which is the same bug in a new place.
+  const withMpg    = { ...seasonStats(10, 12), mpg: 30 };
+  const withoutMpg = { ...seasonStats(10, 12), mpg: null };
+  const both       = { a: { [P1]: withMpg }, b: { [P1]: withoutMpg } };
+
+  it("keeps the average of the seasons that did publish it", () => {
+    expect(Reflect.get(buildAllTimeStatsMap(both, [{ id: P1 }]), P1).mpg).toBe(30);
+  });
+
+  it("still counts every game towards gp", () => {
+    expect(Reflect.get(buildAllTimeStatsMap(both, [{ id: P1 }]), P1).gp).toBe(20);
+  });
+
+  it("is null when no season published it", () => {
+    const neither = { a: { [P1]: withoutMpg }, b: { [P1]: withoutMpg } };
+    expect(Reflect.get(buildAllTimeStatsMap(neither, [{ id: P1 }]), P1).mpg).toBeNull();
+  });
+
+  it("still weights by games when both seasons published", () => {
+    const map = buildAllTimeStatsMap({
+      a: { [P1]: { ...seasonStats(5, 12),  mpg: 10 } },
+      b: { [P1]: { ...seasonStats(15, 12), mpg: 30 } },
+    }, [{ id: P1 }]);
+    expect(Reflect.get(map, P1).mpg).toBe(25);
+  });
+});

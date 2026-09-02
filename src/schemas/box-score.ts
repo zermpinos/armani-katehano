@@ -20,6 +20,7 @@ export const BoxScoreRowSchema = z.object({
   fg3a:      z.coerce.number().int().min(0).max(50),
   ftm:       z.coerce.number().int().min(0).max(50),
   fta:       z.coerce.number().int().min(0).max(50),
+  played:    z.boolean().optional(),
 })
   .refine(r => r.fgm  <= r.fga,              { message: "fgm cannot exceed fga" })
   .refine(r => r.fg2m <= r.fg2a,             { message: "fg2m cannot exceed fg2a" })
@@ -27,7 +28,10 @@ export const BoxScoreRowSchema = z.object({
   .refine(r => r.ftm  <= r.fta,              { message: "ftm cannot exceed fta" })
   .refine(r => r.fg2m + r.fg3m === r.fgm,    { message: "fg2m + fg3m must equal fgm" })
   .refine(r => r.fg3m <= r.fgm,              { message: "fg3m cannot exceed fgm" })
-  .refine(r => r.orb  + r.drb === r.reb,     { message: "orb+drb must equal reb" });
+  .refine(r => r.orb  + r.drb === r.reb,     { message: "orb+drb must equal reb" })
+  // Absent means a caller that predates the flag, so derive it the way the
+  // backfill did. A source publishing no minutes has to send it explicitly.
+  .transform(r => ({ ...r, played: r.played ?? r.minutes > 0 }));
 
 const ScrapedPlayerSchema = z.object({
   "#":     z.number().int().min(0).max(99),

@@ -6,6 +6,8 @@ import { organizationForUrl } from "@/domain/leagues/organizations";
 export interface RosterPlayer {
   id: string;
   number: number | string;
+  // seasonLeagueId -> jersey worn in that competition, when it differs
+  numbersByLeague?: Map<string, number>;
 }
 
 export interface SeasonLeagueRef {
@@ -160,17 +162,24 @@ export function resolve(
   const unresolved: string[] = [];
   const seasonLeagueId = resolveLeague(sourceUrl ?? null, playedOn, seasonLeagues, unresolved, opts.leagueSlug);
 
+  // A jersey is per-competition, and which competition is only known once
+  // resolveLeague has run. An unresolved league keeps Player.number.
+  const scoped: RosterPlayer[] = roster.map(r => {
+    const override = seasonLeagueId ? r.numbersByLeague?.get(seasonLeagueId) : undefined;
+    return override === undefined ? r : { ...r, number: override };
+  });
+
   const played = akTeam.players.filter(p => parseMinutes(p.MIN as string) > 0);
 
   // A scraped jersey with no roster match would be dropped from the box score
   // entirely, so it blocks the save instead.
   const unresolvedPlayers: UnresolvedPlayer[] = [];
   for (const p of played) {
-    if (!roster.some(r => Number(r.number) === p["#"]))
+    if (!scoped.some(r => Number(r.number) === p["#"]))
       unresolvedPlayers.push({ number: Number(p["#"]), name: String(p.Players ?? "").trim() });
   }
 
-  const boxScore: ResolvedRow[] = [...roster]
+  const boxScore: ResolvedRow[] = [...scoped]
     .sort((a, b) => Number(a.number) - Number(b.number))
     .map(rosterPlayer => {
       const scraped = akTeam.players.find(p => p["#"] === Number(rosterPlayer.number));
@@ -204,7 +213,7 @@ export function resolve(
 
   const highlights: Record<string, boolean> = {};
   for (const p of played) {
-    const rosterPlayer = roster.find(r => Number(r.number) === p["#"]);
+    const rosterPlayer = scoped.find(r => Number(r.number) === p["#"]);
     if (rosterPlayer) highlights[rosterPlayer.id] = true;
   }
 
@@ -229,6 +238,7 @@ export function resolve(
 
 export interface CommitRow {
   playerId: string;
+  played:   boolean;
   minutes:  number;
   pts: number; reb: number; orb: number; drb: number;
   ast: number; stl: number; blk: number; tov: number; pf: number;
@@ -266,6 +276,7 @@ export function toCommitInput(draft: ImportDraft): CommitDraft {
       const fg3m = r.fg3m || 0, fg3a = r.fg3a || 0;
       return {
         playerId: r.playerId,
+        played:   (r.min || 0) > 0,
         minutes:  r.min || 0,
         pts: r.pts || 0, reb: r.reb || 0, orb: r.orb || 0, drb: r.drb || 0,
         ast: r.ast || 0, stl: r.stl || 0, blk: r.blk || 0, tov: r.tov || 0,

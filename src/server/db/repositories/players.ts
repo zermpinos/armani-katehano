@@ -43,7 +43,7 @@ const GAME_LOG_INCLUDE = {
 
 export async function getPlayerGameLog(playerId: string) {
   const rows = await prisma.playerGameStat.findMany({
-    where: { playerId, minutes: { gt: 0 } },
+    where: { playerId, played: true },
     include: GAME_LOG_INCLUDE,
     orderBy: { game: { playedOn: "asc" } },
   });
@@ -52,7 +52,7 @@ export async function getPlayerGameLog(playerId: string) {
 
 export async function getAllPlayerGameLogs(): Promise<Record<string, ReturnType<typeof rowToGameLogEntry>[]>> {
   const rows = await prisma.playerGameStat.findMany({
-    where: { minutes: { gt: 0 } },
+    where: { played: true },
     include: GAME_LOG_INCLUDE,
     orderBy: { game: { playedOn: "asc" } },
   });
