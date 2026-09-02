@@ -7,7 +7,12 @@
  * We feed known box score rows and verify the computed aggregates.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { computePlayerAggregates, recalcAggregates } from "@/server/services/stats-recalc";
+import { computePlayerAggregates as computeRaw, recalcAggregates } from "@/server/services/stats-recalc";
+
+// These fixtures predate the played flag, which the migration backfilled as
+// minutes > 0, so deriving it here keeps them expressing the same cases.
+const computePlayerAggregates = rows =>
+  computeRaw(rows.map(r => ({ ...r, played: r.played ?? r.minutes > 0 })));
 import { aggregatesToStatsMap } from "@/domain/stats";
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
@@ -311,5 +316,28 @@ describe("recalcAggregates - player-scoped query", () => {
     await recalcAggregates("season-1", mockPrismaRecalc);
     expect(mockPrismaRecalc.$transaction).not.toHaveBeenCalled();
     expect(mockPrismaRecalc.game.findMany).toHaveBeenCalledOnce();
+  });
+});
+
+// ─── A source that publishes no minutes or fouls ──────────────────────────────
+
+describe("computePlayerAggregates - a source that publishes no minutes or fouls", () => {
+  const row = {
+    played:true, minutes:0, pts:12, reb:4, ast:2, stl:1, blk:0, tov:1, pf:0,
+    fgm:5, fga:10, fg2m:4, fg2a:7, fg3m:1, fg3a:3, ftm:1, fta:2, orb:1, drb:3,
+  };
+
+  it("counts the game from played rather than minutes", () => {
+    expect(computePlayerAggregates([row]).gp).toBe(1);
+  });
+
+  it("records minutesAvg and pfAvg as null rather than a fabricated 0", () => {
+    const agg = computePlayerAggregates([row]);
+    expect(agg.minutesAvg).toBeNull();
+    expect(agg.pfAvg).toBeNull();
+  });
+
+  it("still averages the stats the source did publish", () => {
+    expect(computePlayerAggregates([row]).ptsAvg).toBe(12);
   });
 });

@@ -14,13 +14,15 @@ function pct(made: number, attempted: number) {
 }
 
 export function computePlayerAggregates(rows: any[]): Record<string, any> | null {
-  const active = rows.filter((r: any) => r.minutes > 0);
+  const active = rows.filter((r: any) => r.played);
   const gp = active.length;
   if (gp === 0) return null;
 
   // eslint-disable-next-line security/detect-object-injection
   const sum = (key: string) => active.reduce((a: number, r: any) => a + ((r as any)[key] || 0), 0);
   const avg = (key: string) => +(sum(key) / gp).toFixed(2);
+  // eslint-disable-next-line security/detect-object-injection
+  const published = (key: string) => active.some((r: any) => ((r as any)[key] || 0) > 0);
 
   const totalPts  = sum("pts");
   const totalFgm  = sum("fgm");
@@ -48,8 +50,10 @@ export function computePlayerAggregates(rows: any[]): Record<string, any> | null
     stlAvg:    avg("stl"),
     blkAvg:    avg("blk"),
     toAvg:     avg("tov"),
-    pfAvg:     avg("pf"),
-    minutesAvg: avg("minutes"),
+    // A genuinely foul-free or benched-all-season line reads as "not published"
+    // here. Add an explicit per-source flag only if that ever turns up.
+    pfAvg:      published("pf")      ? avg("pf")      : null,
+    minutesAvg: published("minutes") ? avg("minutes") : null,
     fgPct:     pct(totalFgm,  totalFga),
     fg2Pct:    pct(totalFg2m, totalFg2a),
     fg3Pct:    pct(totalFg3m, totalFg3a),

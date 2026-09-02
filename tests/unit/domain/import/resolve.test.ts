@@ -296,3 +296,30 @@ describe("diffDraft", () => {
     expect(diffDraft(base, clone)).toHaveLength(0);
   });
 });
+
+describe("resolve per-league jersey override", () => {
+  // A player can be registered under a different number in each competition,
+  // and which competition it is only becomes known once resolveLeague has run.
+  const overridden = [
+    { id: "p1", number: 4, numbersByLeague: new Map([["sl1", 12]]) },
+    { id: "p2", number: 7 },
+  ];
+  const wearing12 = { "#": 12, Players: "On Roster", MIN: "20:00", PTS: 10 };
+
+  it("matches a scraped jersey against the number worn in that league", () => {
+    const { draft, unresolvedPlayers } = resolve(scrapedData([wearing12]), overridden, [ROOKIE]);
+    expect(unresolvedPlayers).toEqual([]);
+    expect(draft.boxScore.find(r => r.playerId === "p1").pts).toBe(10);
+  });
+
+  it("falls back to Player.number in a league with no override", () => {
+    const other = { ...ROOKIE, id: "sl2" };
+    const { unresolvedPlayers } = resolve(scrapedData([wearing12]), overridden, [other]);
+    expect(unresolvedPlayers).toEqual([{ number: 12, name: "On Roster" }]);
+  });
+
+  it("keeps Player.number when the league stays unresolved", () => {
+    const { unresolvedPlayers } = resolve(scrapedData([onRoster]), overridden, []);
+    expect(unresolvedPlayers).toEqual([]);
+  });
+});

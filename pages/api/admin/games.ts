@@ -36,6 +36,7 @@ function toDbRow(r: any, gameId: string) {
   return {
     gameId,
     playerId: r.playerId,
+    played: r.played,
     minutes: r.minutes,
     pts: r.pts,
     reb: r.reb,

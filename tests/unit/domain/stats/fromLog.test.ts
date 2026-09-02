@@ -43,7 +43,7 @@ function logRow(overrides = {}) {
 function dbRow(overrides = {}) {
   const lr = logRow(overrides);
   const { min, eff, ...rest } = lr;
-  return { minutes: min, ...rest };
+  return { minutes: min, played: min > 0, ...rest };
 }
 
 // ─── null on empty log ────────────────────────────────────────────────────────
@@ -203,7 +203,7 @@ describe("computeStatsFromLog ↔ computePlayerAggregates+aggregatesToStatsMap c
              fgm:4,  fga:10, fg2m:3, fg2a:7,  fg3m:1, fg3a:3, ftm:1, fta:1, eff:6  }),
   ];
 
-  const DB_ROWS = LOG_ROWS.map(({ min, eff, ...rest }) => ({ minutes: min, ...rest }));
+  const DB_ROWS = LOG_ROWS.map(({ min, eff, ...rest }) => ({ minutes: min, played: min > 0, ...rest }));
 
   const logStats = computeStatsFromLog(LOG_ROWS);
 

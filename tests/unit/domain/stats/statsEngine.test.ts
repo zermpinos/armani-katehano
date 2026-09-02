@@ -181,7 +181,7 @@ describe("aggregatesToStatsMap", () => {
 //   Expected RPG = 10.0, FG% = +(22/47*100).toFixed(1)
 
 describe("computeTeamAverages - agrees with aggregatesToStatsMap on same fixture", () => {
-  const GAMES = [
+  const RAW_GAMES = [
     {
       id: "g1",
       boxScore: [
@@ -204,6 +204,13 @@ describe("computeTeamAverages - agrees with aggregatesToStatsMap on same fixture
       ],
     },
   ];
+
+  // The fixture predates the played flag, which the migration backfilled as
+  // min > 0, so deriving it here keeps it expressing the same cases.
+  const GAMES = RAW_GAMES.map(g => ({
+    ...g,
+    boxScore: g.boxScore.map(r => ({ ...r, played: r.min > 0 })),
+  }));
 
   // Build expected team totals directly from the fixture for sanity
   const TEAM_GP = 3;
@@ -267,5 +274,40 @@ describe("computeTeamAverages - agrees with aggregatesToStatsMap on same fixture
     // naiveRpg uses 5 rows, teamAvg.rpg uses 3 games - they must differ
     expect(naiveRpg).not.toBe(teamAvg.rpg);
     expect(teamAvg.rpg).toBe(+(rawSum("reb") / TEAM_GP).toFixed(1));
+  });
+});
+
+// ─── mergeAggregates - a source that publishes no minutes or fouls ────────────
+
+describe("mergeAggregates - a competition whose source published no minutes", () => {
+  // Weighting a null as 0 over the combined gp halves the merged average
+  // instead of leaving it at what the other competition actually measured.
+  const withMin    = agg(10, 20, { minutesAvg: 30,   pfAvg: 2 });
+  const withoutMin = agg(10, 20, { minutesAvg: null, pfAvg: null });
+
+  it("keeps the average of the side that did publish it", () => {
+    expect(mergeAggregates(withMin, withoutMin).minutesAvg).toBe(30);
+    expect(mergeAggregates(withoutMin, withMin).minutesAvg).toBe(30);
+  });
+
+  it("still sums gp across both", () => {
+    expect(mergeAggregates(withMin, withoutMin).gp).toBe(20);
+  });
+
+  it("is null when neither published it", () => {
+    expect(mergeAggregates(withoutMin, withoutMin).pfAvg).toBeNull();
+  });
+
+  it("weights by games when both published", () => {
+    const merged = mergeAggregates(agg(5, 20, { minutesAvg: 10 }), agg(15, 20, { minutesAvg: 30 }));
+    expect(merged.minutesAvg).toBe(25);
+  });
+});
+
+describe("aggregatesToStatsMap - unpublished minutes and fouls", () => {
+  it("renders null rather than throwing on a null average", () => {
+    const map = aggregatesToStatsMap([agg(10, 20, { playerId: "p1", minutesAvg: null, pfAvg: null })]);
+    expect(Reflect.get(map, "p1").mpg).toBeNull();
+    expect(Reflect.get(map, "p1").fpg).toBeNull();
   });
 });

@@ -4,16 +4,20 @@ import { scrapeGameFromUrl, ScrapeError } from "@/server/services/scrape-game";
 import { captureImportDraft } from "@/server/services/import-commit";
 import { resolve } from "@/domain/import/resolve";
 import { verify } from "@/domain/import/verify";
-import type { SeasonLeagueRef, ResolveResult } from "@/domain/import/resolve";
+import type { SeasonLeagueRef, ResolveResult, RosterPlayer } from "@/domain/import/resolve";
 import type { ClassifyResult } from "@/domain/import/classify";
 import type { GateResult } from "@/domain/import/verify";
 
-async function resolverInputs(): Promise<{ roster: { id: string; number: number }[]; seasonLeagues: SeasonLeagueRef[] }> {
-  const [players, seasonLeagues] = await Promise.all([
+async function resolverInputs(): Promise<{ roster: RosterPlayer[]; seasonLeagues: SeasonLeagueRef[] }> {
+  const [players, overrides, seasonLeagues] = await Promise.all([
     prisma.player.findMany({
       where:   { isActive: true },
       orderBy: { number: "asc" },
       select:  { id: true, number: true },
+    }),
+    prisma.rosterEntry.findMany({
+      where:  { number: { not: null } },
+      select: { playerId: true, seasonLeagueId: true, number: true },
     }),
     // An archived season is closed, so a scrape must never resolve into it.
     // Without this the first game of a new season lands in the old one, since
@@ -24,8 +28,16 @@ async function resolverInputs(): Promise<{ roster: { id: string; number: number 
     }),
   ]);
 
+  const numbersByLeague = new Map<string, Map<string, number>>();
+  for (const o of overrides) {
+    if (o.number === null) continue;
+    const forPlayer = numbersByLeague.get(o.playerId) ?? new Map<string, number>();
+    forPlayer.set(o.seasonLeagueId, o.number);
+    numbersByLeague.set(o.playerId, forPlayer);
+  }
+
   return {
-    roster: players,
+    roster: players.map(p => ({ ...p, numbersByLeague: numbersByLeague.get(p.id) })),
     seasonLeagues: seasonLeagues.map(sl => ({
       id:           sl.id,
       leagueSlug:   sl.league.slug,

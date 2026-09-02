@@ -54,6 +54,7 @@ export default function RosterEditPage({
   const [notFound, setNotFound] = useState(false);
   const [askRetire, setAskRetire] = useState(false);
   const [toast,    setToast]    = useState<{ msg: string; type?: string } | null>(null);
+  const [leagues,  setLeagues]  = useState<{ seasonLeagueId: string; label: string; number: string }[]>([]);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -68,6 +69,15 @@ export default function RosterEditPage({
         if (cancelled) return;
         if (!p) { setNotFound(true); setLoading(false); return; }
         setDraft(playerToDraft(p));
+
+        const lres  = await fetch(`/api/admin/roster-entries?playerId=${encodeURIComponent(idParam)}`);
+        const ldata = lres.ok ? await lres.json() : { leagues: [] };
+        if (cancelled) return;
+        setLeagues((ldata.leagues ?? []).map((l: { seasonLeagueId: string; label: string; number: number | null }) => ({
+          seasonLeagueId: l.seasonLeagueId,
+          label:          l.label,
+          number:         l.number === null ? "" : String(l.number),
+        })));
         setLoading(false);
       } catch {
         if (!cancelled) { setNotFound(true); setLoading(false); }
@@ -92,6 +102,15 @@ export default function RosterEditPage({
       setToast({ msg: "Jersey number must be a non-negative integer", type: "error" });
       return;
     }
+    const badJersey = leagues.find(l => {
+      if (l.number === "") return false;
+      const n = Number(l.number);
+      return !Number.isInteger(n) || n < 0 || n > 99;
+    });
+    if (badJersey) {
+      setToast({ msg: `Jersey for ${badJersey.label} must be a whole number 0-99`, type: "error" });
+      return;
+    }
     setSaving(true);
     const payload = {
       name:         draft.name.trim(),
@@ -113,6 +132,25 @@ export default function RosterEditPage({
       setToast({ msg: body.error ?? "Save failed", type: "error" });
       setSaving(false);
       return;
+    }
+    if (!isNew && leagues.length > 0) {
+      const jres = await apiFetch("/api/admin/roster-entries", {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          playerId: idParam,
+          numbers:  leagues.map(l => ({
+            seasonLeagueId: l.seasonLeagueId,
+            number:         l.number === "" ? null : Number(l.number),
+          })),
+        }),
+      });
+      if (!jres.ok) {
+        const body = await jres.json();
+        setToast({ msg: body.error ?? "Per-competition jersey save failed", type: "error" });
+        setSaving(false);
+        return;
+      }
     }
     router.push(`/admin/${slug}/roster?saved=${isNew ? "created" : "updated"}`);
   };
@@ -205,6 +243,27 @@ export default function RosterEditPage({
             <F label="PHOTO URL" value={draft.photoUrl} onChange={v => upd("photoUrl", v)} placeholder="https://res.cloudinary.com/..." />
             <F label="CONTACT EMAIL" value={draft.contactEmail} onChange={v => upd("contactEmail", v)} placeholder="player@example.com" type="email" />
           </div>
+
+          {!isNew && leagues.length > 0 && (
+            <div className="rounded-xl border border-ak-border bg-ak-surface p-4 md:p-5 mb-5">
+              <div className="text-[11px] font-black tracking-[0.15em] uppercase text-ak-text-dim">Per-competition jersey</div>
+              <div className="text-[12px] text-ak-text-dim mt-1 mb-4 leading-relaxed">
+                Blank wears the number above. Set one only where a competition registered this player under a different number.
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {leagues.map((l, i) => (
+                  <F
+                    key={l.seasonLeagueId}
+                    label={l.label.toUpperCase()}
+                    value={l.number}
+                    onChange={v => setLeagues(ls => ls.map((x, j) => j === i ? { ...x, number: v } : x))}
+                    type="number"
+                    placeholder={draft.number || "inherit"}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="sticky bottom-0 -mx-4 px-4 py-3 bg-ak-base border-t border-ak-border flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
