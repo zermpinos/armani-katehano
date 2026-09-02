@@ -27,10 +27,12 @@ async function resolverInputs(): Promise<{ roster: { id: string; number: number 
   return {
     roster: players,
     seasonLeagues: seasonLeagues.map(sl => ({
-      id:          sl.id,
-      leagueSlug:  sl.league.slug,
-      seasonStart: sl.season.startDate?.toISOString() ?? null,
-      seasonEnd:   sl.season.endDate?.toISOString() ?? null,
+      id:           sl.id,
+      leagueSlug:   sl.league.slug,
+      organization: sl.league.organization,
+      sourceSlug:   sl.league.sourceSlug,
+      seasonStart:  sl.season.startDate?.toISOString() ?? null,
+      seasonEnd:    sl.season.endDate?.toISOString() ?? null,
     })),
   };
 }

@@ -145,10 +145,10 @@ describe("poll-imports candidate selection", () => {
   });
 
   it("reports a listing that could not be read, and does not go quiet about it", async () => {
-    mockDiscover.mockResolvedValue({ games: [], errors: ["SCRAPE_LISTING_URL_MEN: Upstream unreachable"] });
+    mockDiscover.mockResolvedValue({ games: [], errors: ["BC6: Upstream unreachable"] });
     await handler(mockReq(), mockRes());
     expect(summary().skipped[0]).toEqual({
-      sourceUrl: "listing", reason: "SCRAPE_LISTING_URL_MEN: Upstream unreachable", transient: false,
+      sourceUrl: "listing", reason: "BC6: Upstream unreachable", transient: false,
     });
     expect(mockNotify).toHaveBeenCalledTimes(1);
   });

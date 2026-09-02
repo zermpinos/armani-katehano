@@ -1,12 +1,7 @@
 import "@/server/_internal/node-only";
+import prisma from "@/server/db/client";
 import { fetchGuarded } from "@/server/services/scrape-game";
 import { parseTeamSchedule, type ListedGame } from "@/server/integrations/scraper/team-schedule";
-
-// Read by name rather than indexed, so the env lookup stays a static access.
-const LISTINGS = [
-  { key: "SCRAPE_LISTING_URL_MEN", read: () => process.env.SCRAPE_LISTING_URL_MEN },
-  { key: "SCRAPE_LISTING_URL_CUP", read: () => process.env.SCRAPE_LISTING_URL_CUP },
-] as const;
 
 export interface Discovery {
   games:  ListedGame[];
@@ -20,10 +15,26 @@ export async function discoverGames(): Promise<Discovery> {
   const byId  = new Map<string, ListedGame>();
   const errors: string[] = [];
 
-  for (const { key, read } of LISTINGS) {
-    const url = read();
-    if (!url) { errors.push(`${key} is not set`); continue; }
+  // Listing URLs live on the league rather than in the environment, so a league
+  // that starts mid-season does not need a redeploy to be polled. An archived
+  // season is closed, so its leagues are not worth a fetch.
+  const leagues = await prisma.league.findMany({
+    where:   { listingUrl: { not: null }, seasonLeagues: { some: { season: { archivedAt: null } } } },
+    select:  { name: true, organization: true, listingUrl: true },
+    orderBy: { slug: "asc" },
+  });
 
+  if (leagues.length === 0) errors.push("No active league has a listing URL configured");
+
+  for (const league of leagues) {
+    // Only the sportstats listing has a parser today. Reporting the skip keeps a
+    // misconfigured league from looking like a quiet week.
+    if (league.organization !== "basketcity") {
+      errors.push(`${league.name}: no listing parser for ${league.organization}`);
+      continue;
+    }
+
+    const url = league.listingUrl as string;
     try {
       for (const g of parseTeamSchedule(await fetchGuarded(url), url)) {
         if (!g.hasScore) continue;
@@ -33,7 +44,7 @@ export async function discoverGames(): Promise<Discovery> {
         if (!byId.has(g.gameId)) byId.set(g.gameId, g);
       }
     } catch (err) {
-      errors.push(`${key}: ${(err as Error).message}`);
+      errors.push(`${league.name}: ${(err as Error).message}`);
     }
   }
 

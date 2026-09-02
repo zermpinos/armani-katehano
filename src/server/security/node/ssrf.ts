@@ -4,7 +4,7 @@ import net from "node:net";
 import { Agent, buildConnector } from "undici";
 
 const ALLOWLIST: string[] = (
-  process.env.SCRAPE_HOSTNAME_ALLOWLIST ?? "basketcity.sportstats.gr,basketaki.com,reports.sportstats.gr"
+  process.env.SCRAPE_HOSTNAME_ALLOWLIST ?? "basketcity.sportstats.gr,basketaki.com,reports.sportstats.gr,www.jumpball.com.gr"
 )
   .split(",")
   .map(h => h.trim().toLowerCase())

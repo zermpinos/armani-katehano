@@ -7,7 +7,7 @@ const roster = [
   { id: "p2", number: 7 },
 ];
 
-const ROOKIE = { id: "sl1", leagueSlug: "rookie", seasonStart: "2025-09-01T00:00:00.000Z", seasonEnd: null };
+const ROOKIE = { id: "sl1", leagueSlug: "basketcity-rookie", organization: "basketcity", sourceSlug: "rookie", seasonStart: "2025-09-01T00:00:00.000Z", seasonEnd: null };
 
 function scrapedData(akPlayers, url = "https://example.com/rookie/game/123") {
   return {
@@ -61,7 +61,7 @@ describe("resolve roster guard", () => {
     const { unresolved, unresolvedPlayers } = resolve(
       scrapedData([onRoster, { "#": 99, Players: "New Guy", MIN: "15:00", PTS: 8 }]),
       roster,
-      [{ id: "slX", leagueSlug: "bc6", seasonStart: null, seasonEnd: null }],
+      [{ id: "slX", leagueSlug: "basketcity-bc6", organization: "basketcity", sourceSlug: "bc6", seasonStart: null, seasonEnd: null }],
     );
     expect(unresolvedPlayers).toHaveLength(1);
     expect(unresolved).toHaveLength(1);
@@ -82,7 +82,7 @@ describe("resolve league resolution", () => {
     const { draft, unresolved } = resolve(
       scrapedData([onRoster]),
       roster,
-      [{ id: "slX", leagueSlug: "bc6", seasonStart: null, seasonEnd: null }],
+      [{ id: "slX", leagueSlug: "basketcity-bc6", organization: "basketcity", sourceSlug: "bc6", seasonStart: null, seasonEnd: null }],
     );
     expect(draft.seasonLeagueId).toBe("");
     expect(unresolved.join(" ")).toContain("rookie");
@@ -92,7 +92,7 @@ describe("resolve league resolution", () => {
     const { draft, unresolved } = resolve(
       scrapedData([onRoster]),
       roster,
-      [{ id: "slOld", leagueSlug: "rookie", seasonStart: "2024-09-01T00:00:00.000Z", seasonEnd: "2025-06-30T00:00:00.000Z" }],
+      [{ id: "slOld", leagueSlug: "basketcity-rookie", organization: "basketcity", sourceSlug: "rookie", seasonStart: "2024-09-01T00:00:00.000Z", seasonEnd: "2025-06-30T00:00:00.000Z" }],
     );
     expect(draft.seasonLeagueId).toBe("");
     expect(unresolved).toHaveLength(1);
@@ -102,7 +102,7 @@ describe("resolve league resolution", () => {
     const { draft, unresolved } = resolve(
       scrapedData([onRoster]),
       roster,
-      [{ id: "slNext", leagueSlug: "rookie", seasonStart: "2026-09-01T00:00:00.000Z", seasonEnd: "2027-07-31T00:00:00.000Z" }],
+      [{ id: "slNext", leagueSlug: "basketcity-rookie", organization: "basketcity", sourceSlug: "rookie", seasonStart: "2026-09-01T00:00:00.000Z", seasonEnd: "2027-07-31T00:00:00.000Z" }],
     );
     expect(draft.seasonLeagueId).toBe("");
     expect(unresolved).toHaveLength(1);
@@ -113,16 +113,16 @@ describe("resolve league resolution", () => {
   // would file it under the season that had not begun yet.
   it("files an old game under the season that was running, not the newest", () => {
     const { draft } = resolve(scrapedData([onRoster]), roster, [
-      { id: "slPast", leagueSlug: "rookie", seasonStart: "2025-09-01T00:00:00.000Z", seasonEnd: "2026-07-31T00:00:00.000Z" },
-      { id: "slNext", leagueSlug: "rookie", seasonStart: "2026-09-01T00:00:00.000Z", seasonEnd: "2027-07-31T00:00:00.000Z" },
+      { id: "slPast", leagueSlug: "basketcity-rookie", organization: "basketcity", sourceSlug: "rookie", seasonStart: "2025-09-01T00:00:00.000Z", seasonEnd: "2026-07-31T00:00:00.000Z" },
+      { id: "slNext", leagueSlug: "basketcity-rookie", organization: "basketcity", sourceSlug: "rookie", seasonStart: "2026-09-01T00:00:00.000Z", seasonEnd: "2027-07-31T00:00:00.000Z" },
     ]);
     expect(draft.seasonLeagueId).toBe("slPast");
   });
 
   it("picks the most recent season when a league has several", () => {
     const { draft } = resolve(scrapedData([onRoster]), roster, [
-      { id: "slOld", leagueSlug: "rookie", seasonStart: "2024-09-01T00:00:00.000Z", seasonEnd: null },
-      { id: "slNew", leagueSlug: "rookie", seasonStart: "2025-09-01T00:00:00.000Z", seasonEnd: null },
+      { id: "slOld", leagueSlug: "basketcity-rookie", organization: "basketcity", sourceSlug: "rookie", seasonStart: "2024-09-01T00:00:00.000Z", seasonEnd: null },
+      { id: "slNew", leagueSlug: "basketcity-rookie", organization: "basketcity", sourceSlug: "rookie", seasonStart: "2025-09-01T00:00:00.000Z", seasonEnd: null },
     ]);
     expect(draft.seasonLeagueId).toBe("slNew");
   });
@@ -131,7 +131,7 @@ describe("resolve league resolution", () => {
     const { draft, unresolved } = resolve(
       scrapedData([onRoster], "https://example.com/men/game/99"),
       roster,
-      [ROOKIE, { id: "slW", leagueSlug: "winter-cup", seasonStart: null, seasonEnd: null }],
+      [ROOKIE, { id: "slW", leagueSlug: "basketcity-wintercup", organization: "basketcity", sourceSlug: "wintercup", seasonStart: null, seasonEnd: null }],
     );
     expect(draft.seasonLeagueId).toBe("sl1");
     expect(unresolved).toHaveLength(0);
@@ -141,17 +141,49 @@ describe("resolve league resolution", () => {
     const { draft, unresolved } = resolve(
       scrapedData([onRoster], "https://example.com/men/game/99"),
       roster,
-      [ROOKIE, { id: "sl2", leagueSlug: "bc8", seasonStart: null, seasonEnd: null }],
+      [ROOKIE, { id: "sl2", leagueSlug: "basketcity-bc8", organization: "basketcity", sourceSlug: "bc8", seasonStart: null, seasonEnd: null }],
     );
     expect(draft.seasonLeagueId).toBe("");
     expect(unresolved[0]).toContain("bc8");
+  });
+
+  // Two organizations can run inside one season. A /men/ URL is BasketCity's,
+  // so a Jumpball league must not become a candidate for it. Without the
+  // organization filter this resolves to "" with "Several active leagues match".
+  it("ignores another organization's league when resolving a /men/ URL", () => {
+    const { draft, unresolved } = resolve(
+      scrapedData([onRoster], "https://basketcity.sportstats.gr/men/gamedetails/id/99"),
+      roster,
+      [
+        { id: "slBC", leagueSlug: "basketcity-bc8",  organization: "basketcity", sourceSlug: "bc8",    seasonStart: null, seasonEnd: null },
+        { id: "slJB", leagueSlug: "jumpball-golden", organization: "jumpball",   sourceSlug: "golden", seasonStart: null, seasonEnd: null },
+      ],
+    );
+    expect(draft.seasonLeagueId).toBe("slBC");
+    expect(unresolved).toHaveLength(0);
+  });
+
+  // Both organizations run a "Rookie League", so the source slug alone is
+  // ambiguous and only the URL's host settles it.
+  it("picks the right league when both organizations share a source slug", () => {
+    const { draft, unresolved } = resolve(
+      scrapedData([onRoster], "https://www.jumpball.com.gr/event/armani-katehano-vs-rivals/"),
+      roster,
+      [
+        { id: "slBC", leagueSlug: "basketcity-rookie", organization: "basketcity", sourceSlug: "rookie", seasonStart: null, seasonEnd: null },
+        { id: "slJB", leagueSlug: "jumpball-rookie",   organization: "jumpball",   sourceSlug: "rookie", seasonStart: null, seasonEnd: null },
+      ],
+      { leagueSlug: "rookie" },
+    );
+    expect(draft.seasonLeagueId).toBe("slJB");
+    expect(unresolved).toHaveLength(0);
   });
 
   it("blocks a /men/ URL when no league is active", () => {
     const { draft, unresolved } = resolve(
       scrapedData([onRoster], "https://example.com/men/game/99"),
       roster,
-      [{ id: "slW", leagueSlug: "winter-cup", seasonStart: null, seasonEnd: null }],
+      [{ id: "slW", leagueSlug: "basketcity-wintercup", organization: "basketcity", sourceSlug: "wintercup", seasonStart: null, seasonEnd: null }],
     );
     expect(draft.seasonLeagueId).toBe("");
     expect(unresolved).toHaveLength(1);

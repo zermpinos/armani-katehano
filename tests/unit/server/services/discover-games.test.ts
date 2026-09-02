@@ -1,13 +1,22 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const { mockFetchGuarded } = vi.hoisted(() => ({ mockFetchGuarded: vi.fn() }));
+const { mockFetchGuarded, mockPrisma } = vi.hoisted(() => ({
+  mockFetchGuarded: vi.fn(),
+  mockPrisma: { league: { findMany: vi.fn() } },
+}));
 vi.mock("@/server/services/scrape-game", () => ({ fetchGuarded: mockFetchGuarded }));
+vi.mock("@/server/db/client", () => ({ default: mockPrisma, prisma: mockPrisma }));
 
 import { discoverGames } from "@/server/services/discover-games";
 
 const MEN = "https://basketcity.sportstats.gr/men/teamdetails/id/TEAM";
 const CUP = "https://basketcity.sportstats.gr/winter-cup/teamdetails/id/TEAM";
+
+const LEAGUES = [
+  { name: "BC6",        organization: "basketcity", listingUrl: MEN },
+  { name: "Winter Cup", organization: "basketcity", listingUrl: CUP },
+];
 
 function page(...rows) {
   return `<div class="schedule_list"><ul>${rows.join("")}</ul></div>`;
@@ -23,8 +32,7 @@ function row({ path, title = "BC6<br />1ος Γύρος", score = null }) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  process.env.SCRAPE_LISTING_URL_MEN = MEN;
-  process.env.SCRAPE_LISTING_URL_CUP = CUP;
+  mockPrisma.league.findMany.mockResolvedValue(LEAGUES);
 });
 
 describe("discoverGames", () => {
@@ -38,7 +46,7 @@ describe("discoverGames", () => {
     expect(games.map(g => g.gameId)).toEqual(["AAA"]);
   });
 
-  it("reads both listings", async () => {
+  it("reads every league that carries a listing url", async () => {
     mockFetchGuarded
       .mockResolvedValueOnce(page(row({ path: "/men/gamedetails/id/AAA", score: [1, 2] })))
       .mockResolvedValueOnce(page(row({ path: "/winter-cup/gamedetails/id/CCC", title: "Προκριματικοι", score: [3, 4] })));
@@ -64,13 +72,26 @@ describe("discoverGames", () => {
       .mockResolvedValueOnce(page(row({ path: "/winter-cup/gamedetails/id/CCC", score: [3, 4] })));
     const { games, errors } = await discoverGames();
     expect(games.map(g => g.gameId)).toEqual(["CCC"]);
-    expect(errors).toEqual(["SCRAPE_LISTING_URL_MEN: Upstream unreachable"]);
+    expect(errors).toEqual(["BC6: Upstream unreachable"]);
   });
 
-  it("reports a listing url that is not configured", async () => {
-    delete process.env.SCRAPE_LISTING_URL_CUP;
-    mockFetchGuarded.mockResolvedValue(page(row({ path: "/men/gamedetails/id/AAA", score: [1, 2] })));
-    const { errors } = await discoverGames();
-    expect(errors).toEqual(["SCRAPE_LISTING_URL_CUP is not set"]);
+  it("reports when no active league carries a listing url", async () => {
+    mockPrisma.league.findMany.mockResolvedValue([]);
+    const { games, errors } = await discoverGames();
+    expect(games).toEqual([]);
+    expect(errors).toEqual(["No active league has a listing URL configured"]);
+    expect(mockFetchGuarded).not.toHaveBeenCalled();
+  });
+
+  // A listing we cannot parse would come back empty, which is indistinguishable
+  // from a quiet week, so it is reported rather than fetched.
+  it("skips a league whose organization has no listing parser", async () => {
+    mockPrisma.league.findMany.mockResolvedValue([
+      { name: "Golden League", organization: "jumpball", listingUrl: "https://www.jumpball.com.gr/calendar/golden/" },
+    ]);
+    const { games, errors } = await discoverGames();
+    expect(games).toEqual([]);
+    expect(errors).toEqual(["Golden League: no listing parser for jumpball"]);
+    expect(mockFetchGuarded).not.toHaveBeenCalled();
   });
 });

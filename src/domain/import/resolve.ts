@@ -1,6 +1,7 @@
 import { parseGreekDate, parseMinutes, detectLeagueSlug } from "@/domain/calendar/greek-date";
 import { isUsTeam } from "./identity";
 import { displayOpponent } from "./opponents";
+import { organizationForUrl } from "@/domain/leagues/organizations";
 
 export interface RosterPlayer {
   id: string;
@@ -10,6 +11,8 @@ export interface RosterPlayer {
 export interface SeasonLeagueRef {
   id: string;
   leagueSlug: string;
+  organization: string;
+  sourceSlug: string | null;
   seasonStart: string | null;
   seasonEnd: string | null;
 }
@@ -101,10 +104,17 @@ function resolveLeague(
     return "";
   }
 
-  const eligible = seasonLeagues.filter(sl => coversDate(sl, playedOn));
+  // Two organizations can run inside one season and can name a competition the
+  // same thing, so a source slug only identifies a league within the
+  // organization the URL came from. An unrecognised host keeps the behaviour it
+  // had before organizations existed rather than blocking an old source URL.
+  const organization = organizationForUrl(sourceUrl);
+  const eligible = seasonLeagues.filter(sl =>
+    coversDate(sl, playedOn) && (!organization || sl.organization === organization),
+  );
 
   if (slug === "men") {
-    const candidates = eligible.filter(sl => !sl.leagueSlug.includes("winter"));
+    const candidates = eligible.filter(sl => sl.sourceSlug !== "wintercup");
     if (candidates.length === 1) return candidates[0].id;
     unresolved.push(
       candidates.length === 0
@@ -114,7 +124,7 @@ function resolveLeague(
     return "";
   }
 
-  const matches = eligible.filter(sl => sl.leagueSlug === slug).sort(bySeasonStartDesc);
+  const matches = eligible.filter(sl => sl.sourceSlug === slug).sort(bySeasonStartDesc);
   if (matches.length) return matches[0].id;
 
   unresolved.push(`No active season found for league "${slug}". Pick one under Game info.`);

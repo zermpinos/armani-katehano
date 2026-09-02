@@ -164,7 +164,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 
 ### Imports & scraping
 - `scrape-game.ts` (fetch + parse) + `domain/import/classify.ts` (game state: scheduled/live/final) + `domain/import/verify.ts` (checks the scrape against itself before review) + `domain/import/resolve.ts` (pure draft resolution) + `import-commit.ts` (persist idempotently, 409 on a re-imported source URL). `import-pipeline.ts` chains URL to reviewable draft and is the single path both the admin's scrape route and the poll go through.
-- `team-schedule.ts` parses the club's two team pages (`SCRAPE_LISTING_URL_MEN`, `SCRAPE_LISTING_URL_CUP`) and `discover-games.ts` returns the games the organisers have posted a result for. This is where candidates come from: a game's URL does not exist until the fixture is published, so it cannot be recorded on an `UpcomingGame` row in advance. Games are keyed by the id in the URL, never the URL itself, since the same game has been served under both `/winter-cup/` and `/super-winter-cup/`.
+- `team-schedule.ts` parses the club's team pages, whose URLs are stored on `League.listingUrl` so a league that starts mid-season needs no redeploy, and `discover-games.ts` returns the games the organisers have posted a result for. This is where candidates come from: a game's URL does not exist until the fixture is published, so it cannot be recorded on an `UpcomingGame` row in advance. Games are keyed by the id in the URL, never the URL itself, since the same game has been served under both `/winter-cup/` and `/super-winter-cup/`.
 - The listing is also the only place a game states its league and round. A `/men/` URL is shared by Rookie, BC6 and BC8, so `resolve()` takes the league from the listing label when it has one and falls back to detecting it from the URL otherwise. `1ος Γύρος` is regular season, `Play Offs` is a quarterfinal, `Ημιτελική Φάση` a semifinal.
 - A game whose scrape classifies as `final`, passes every `verify()` check and resolves with nothing unresolved is committed unattended by the nightly poll, since a review of it could only agree. Everything else is skipped and imported by hand as before.
 - Import alerts go to Slack when `SLACK_WEBHOOK_URL` is set, and to `ADMIN_ALERT_EMAIL` otherwise. Email is also the fallback when the webhook is unreachable or fails, so an unattended run cannot fail silently. The webhook host is pinned to `hooks.slack.com` and is kept out of the audit trail, since the URL is itself the credential.
@@ -383,8 +383,6 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`  | Admin / coach login    | Cloudflare Turnstile client-side site key                  |
 | `CRON_SECRET`                     | Cron                   | Bearer token gating `/api/cron/*` endpoints                |
 | `SCRAPE_HOSTNAME_ALLOWLIST`       | Scrape SSRF guard      | Comma-separated allowlist of hostnames the scraper may reach |
-| `SCRAPE_LISTING_URL_MEN`          | Import discovery       | Team page for the weekday leagues, the poll's candidate source |
-| `SCRAPE_LISTING_URL_CUP`          | Import discovery       | Team page for the cup, the poll's other candidate source   |
 | `SLACK_WEBHOOK_URL`               | Admin alerts           | Slack incoming webhook. When set, import alerts go here instead of email |
 
 ### Optional / environment-specific
