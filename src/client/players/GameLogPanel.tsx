@@ -16,6 +16,11 @@ const STAT_OPTIONS = [
 export function GameLogPanel({ gameLog }: any) {
   const seasons = ["All", ...Array.from(new Set<string>(gameLog.map((g: any) => g.season).filter(Boolean) as string[])).sort().reverse()];
   const leagues = ["All", ...Array.from(new Set<string>(gameLog.map((g: any) => g.league).filter(Boolean) as string[])).sort()];
+  // Labelled from the league's own name, since the slug is namespaced by
+  // organization and is not meant to be read.
+  const leagueNames = new Map<string, string>(
+    gameLog.filter((g: any) => g.league).map((g: any) => [g.league, g.leagueName || g.league]),
+  );
 
   const [selSeason, setSelSeason] = useState("All");
   const [selLeague, setSelLeague] = useState("All");
@@ -67,7 +72,7 @@ export function GameLogPanel({ gameLog }: any) {
         <div className="flex gap-1 flex-wrap mb-1.5">
           {leagues.map(l => (
             <button key={l} className={filterBtn(selLeague === l)} onClick={() => setSelLeague(l)}>
-              {l === "rookie" ? "Rookie" : l === "bc6" ? "BC6" : l === "wintercup" ? "Winter Cup" : l}
+              {leagueNames.get(l) ?? l}
             </button>
           ))}
         </div>

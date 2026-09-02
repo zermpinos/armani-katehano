@@ -25,11 +25,11 @@ import { scrapeAndResolve } from "@/server/services/import-pipeline";
 // and with no start date the newest-first sort has nothing to order on, so the
 // archive flag is all that keeps a September game out of last season.
 const ARCHIVED = {
-  id: "sl-2025", league: { slug: "rookie" },
+  id: "sl-2025", league: { slug: "basketcity-rookie", organization: "basketcity", sourceSlug: "rookie" },
   season: { startDate: null, endDate: null, archivedAt: new Date("2026-07-17") },
 };
 const LIVE = {
-  id: "sl-2026", league: { slug: "rookie" },
+  id: "sl-2026", league: { slug: "basketcity-rookie", organization: "basketcity", sourceSlug: "rookie" },
   season: { startDate: null, endDate: null, archivedAt: null },
 };
 

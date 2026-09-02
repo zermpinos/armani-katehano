@@ -91,6 +91,9 @@ export interface Season {
 export interface League {
   id: string;
   name: string;
+  organization: string;
+  sourceSlug?: string | null;
+  listingUrl?: string | null;
   organizer?: string;
   level?: string;
 }

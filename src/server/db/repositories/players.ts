@@ -8,6 +8,7 @@ function rowToGameLogEntry(r: any) {
     date:     r.game.playedOn.toISOString().split("T")[0],
     opponent: r.game.opponent,
     league:   r.game.seasonLeague.league.slug,
+    leagueName: r.game.seasonLeague.league.name,
     season:   r.game.seasonLeague.season.name,
     round:    r.game.round,
     pts:  r.pts,

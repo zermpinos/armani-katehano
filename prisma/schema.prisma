@@ -43,6 +43,9 @@ model League {
   slug          String         @unique
   name          String
   organizer     String?
+  organization  String
+  sourceSlug    String?
+  listingUrl    String?
   level         String?
   createdAt     DateTime       @default(now())
   seasonLeagues SeasonLeague[]
