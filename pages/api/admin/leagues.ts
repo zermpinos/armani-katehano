@@ -9,6 +9,7 @@ import prisma                        from "@/server/db/client";
 import { slugify } from "@/domain/players/format";
 import { prodError } from "@/domain/shared/format";
 import { LeagueCreateSchema }        from "@/schemas/league";
+import { organizationName }          from "@/domain/leagues/organizations";
 import { invalidateForLeagueMutation } from "@/server/services/cache-invalidation";
 
 async function handler(req: any, res: any) {
@@ -23,8 +24,9 @@ async function handler(req: any, res: any) {
     return res.status(400).json({ error: parsed.error.flatten() });
   }
 
-  const { name, organizer, level, seasonId } = parsed.data;
-  const slug = slugify(name);
+  const { name, organization, sourceSlug, listingUrl, organizer, level, seasonId } = parsed.data;
+  // Prefixed so two organizations can each run a competition of the same name.
+  const slug = `${organization}-${slugify(name)}`;
 
   // A league that returns for another year is the normal case, not a typo, and
   // this route can only attach a league it just created. Name the tool that
@@ -32,13 +34,19 @@ async function handler(req: any, res: any) {
   const existing = await prisma.league.findUnique({ where: { slug } });
   if (existing) {
     return res.status(409).json({
-      error: `A league named "${name}" already exists. To use it in another season, link it with "Link existing pair" below.`,
+      error: `${organizationName(organization)} already has a league named "${name}". To use it in another season, link it with "Link existing pair" below.`,
     });
   }
 
   try {
     const league = await prisma.league.create({
-      data: { slug, name, organizer: organizer ?? null, level: level ?? null },
+      data: {
+        slug, name, organization,
+        sourceSlug: sourceSlug ?? null,
+        listingUrl: listingUrl ?? null,
+        organizer:  organizer  ?? null,
+        level:      level      ?? null,
+      },
     });
 
     if (seasonId) {
@@ -62,7 +70,7 @@ async function handler(req: any, res: any) {
       });
     }
 
-    auditLog("league_created", { ip, leagueId: league.id, name });
+    auditLog("league_created", { ip, leagueId: league.id, name, organization });
     await invalidateForLeagueMutation({ revalidate: (p) => res.revalidate?.(p) });
     return res.status(201).json({ ok: true, league });
   } catch (err) {

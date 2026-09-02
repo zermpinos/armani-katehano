@@ -1,7 +1,7 @@
 export const RAW_GAMES = [
   {
     id: "id_1773322959546_f5y5i", date: "2025-09-14", opponent: "Fonikes Trompetes",
-    home: true, result: "L", score: "34-37", league: "wintercup",
+    home: true, result: "L", score: "34-37", league: "basketcity-wintercup",
     boxScore: [
       { pid:"p1",  min:17, pts:2,  reb:3,  orb:1, drb:2, ast:0, stl:0, blk:0, tov:0, pf:0, fgm:1,  fga:3,  fg3m:0, fg3a:1,  ftm:0, fta:0  },
       { pid:"p2",  min:27, pts:0,  reb:4,  orb:0, drb:4, ast:2, stl:2, blk:0, tov:0, pf:0, fgm:0,  fga:0,  fg3m:0, fg3a:5,  ftm:0, fta:0  },
@@ -17,7 +17,7 @@ export const RAW_GAMES = [
   },
   {
     id: "id_1773324710533_ersm7", date: "2025-09-20", opponent: "Eazy Tigers",
-    home: false, result: "L", score: "43-54", league: "wintercup",
+    home: false, result: "L", score: "43-54", league: "basketcity-wintercup",
     boxScore: [
       { pid:"p1",  min:19, pts:0,  reb:1,  orb:1, drb:0, ast:0, stl:0, blk:0, tov:1, pf:3, fgm:0,  fga:3,  fg3m:0, fg3a:2,  ftm:0, fta:0  },
       { pid:"p2",  min:26, pts:7,  reb:12, orb:6, drb:6, ast:4, stl:1, blk:0, tov:0, pf:0, fgm:3,  fga:7,  fg3m:1, fg3a:5,  ftm:0, fta:0  },
@@ -32,7 +32,7 @@ export const RAW_GAMES = [
   },
   {
     id: "id_1773699918141_ylx5p", date: "2026-02-07", opponent: "Hustling Huskies",
-    home: false, result: "L", score: "49-72", league: "bc6",
+    home: false, result: "L", score: "49-72", league: "basketcity-bc6",
     boxScore: [
       { pid:"p1",  min:15, pts:1,  reb:3,  orb:1, drb:2, ast:0, stl:1, blk:0, tov:0, pf:0, fgm:0,  fga:2,  fg3m:0, fg3a:0,  ftm:1, fta:2  },
       { pid:"p2",  min:24, pts:3,  reb:4,  orb:2, drb:2, ast:3, stl:3, blk:0, tov:0, pf:0, fgm:1,  fga:8,  fg3m:0, fg3a:5,  ftm:1, fta:2  },
@@ -47,7 +47,7 @@ export const RAW_GAMES = [
   },
   {
     id: "id_1773699709624_d5jca", date: "2026-02-15", opponent: "THE 90s",
-    home: false, result: "W", score: "46-40", league: "bc6",
+    home: false, result: "W", score: "46-40", league: "basketcity-bc6",
     boxScore: [
       { pid:"p2",  min:37, pts:12, reb:4,  orb:2, drb:2, ast:4, stl:3, blk:0, tov:1, pf:3, fgm:4,  fga:10, fg3m:4, fg3a:10, ftm:0, fta:0  },
       { pid:"p3",  min:15, pts:0,  reb:0,  orb:0, drb:0, ast:1, stl:1, blk:0, tov:0, pf:0, fgm:0,  fga:0,  fg3m:0, fg3a:0,  ftm:0, fta:0  },
@@ -62,7 +62,7 @@ export const RAW_GAMES = [
   },
   {
     id: "id_1773699567571_29ww1", date: "2026-02-21", opponent: "DRAGONS",
-    home: false, result: "W", score: "58-55", league: "bc6",
+    home: false, result: "W", score: "58-55", league: "basketcity-bc6",
     boxScore: [
       { pid:"p1",  min:19, pts:0,  reb:4,  orb:1, drb:3, ast:1, stl:0, blk:1, tov:0, pf:2, fgm:0,  fga:2,  fg3m:0, fg3a:1,  ftm:0, fta:0  },
       { pid:"p3",  min:24, pts:0,  reb:8,  orb:2, drb:6, ast:2, stl:2, blk:0, tov:0, pf:1, fgm:0,  fga:1,  fg3m:0, fg3a:0,  ftm:0, fta:0  },
@@ -76,7 +76,7 @@ export const RAW_GAMES = [
   },
   {
     id: "id_1773699365517_zi2uj", date: "2026-02-28", opponent: "B.C. ABLA",
-    home: false, result: "W", score: "53-39", league: "bc6",
+    home: false, result: "W", score: "53-39", league: "basketcity-bc6",
     boxScore: [
       { pid:"p1",  min:10, pts:0,  reb:1,  orb:0, drb:1, ast:0, stl:0, blk:0, tov:0, pf:1, fgm:0,  fga:1,  fg3m:0, fg3a:1,  ftm:0, fta:0  },
       { pid:"p2",  min:27, pts:12, reb:12, orb:5, drb:7, ast:0, stl:1, blk:0, tov:0, pf:0, fgm:5,  fga:12, fg3m:2, fg3a:7,  ftm:0, fta:0  },
@@ -91,7 +91,7 @@ export const RAW_GAMES = [
   },
   {
     id: "id_1773699023526_kygd1", date: "2026-03-08", opponent: "Skillountia",
-    home: false, result: "L", score: "57-60", league: "bc6",
+    home: false, result: "L", score: "57-60", league: "basketcity-bc6",
     boxScore: [
       { pid:"p1",  min:14, pts:0,  reb:4,  orb:1, drb:3, ast:3, stl:0, blk:0, tov:0, pf:0, fgm:0,  fga:4,  fg3m:0, fg3a:2,  ftm:0, fta:0  },
       { pid:"p2",  min:31, pts:13, reb:10, orb:4, drb:6, ast:2, stl:1, blk:0, tov:0, pf:3, fgm:5,  fga:12, fg3m:3, fg3a:8,  ftm:0, fta:0  },
@@ -106,7 +106,7 @@ export const RAW_GAMES = [
   },
   {
     id: "id_1773698831400_qcqnf", date: "2026-03-14", opponent: "Cappuccino Knights",
-    home: false, result: "L", score: "53-60", league: "bc6",
+    home: false, result: "L", score: "53-60", league: "basketcity-bc6",
     boxScore: [
       { pid:"p1",  min:8,  pts:0,  reb:1,  orb:0, drb:1, ast:1, stl:0, blk:0, tov:1, pf:0, fgm:0,  fga:2,  fg3m:0, fg3a:1,  ftm:0, fta:0  },
       { pid:"p2",  min:30, pts:6,  reb:4,  orb:1, drb:3, ast:4, stl:1, blk:0, tov:1, pf:3, fgm:2,  fga:13, fg3m:2, fg3a:10, ftm:0, fta:0  },

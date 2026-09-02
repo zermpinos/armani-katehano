@@ -2,6 +2,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout, F, Sel, Btn, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch } from "@/client/admin";
 import type { SeasonLeague, Season, League, Player } from "@/client/admin";
+import { ORGANIZATIONS } from "@/domain/leagues/organizations";
 import { getAdminPasskeyLoginProps } from "@/server/auth";
 
 function setsEqual(a: Set<string>, b: Set<string>): boolean {
@@ -31,7 +32,7 @@ export default function SeasonsPage({
   const [toast,         setToast]         = useState<{ msg: string; type?: string } | null>(null);
 
   const [newSeason,    setNewSeason]    = useState({ name: "", year: "" });
-  const [newLeague,    setNewLeague]    = useState({ name: "", organizer: "", level: "" });
+  const [newLeague,    setNewLeague]    = useState({ name: "", organization: "basketcity", sourceSlug: "", listingUrl: "", organizer: "", level: "" });
   const [linkSeasonId, setLinkSeasonId] = useState("");
   const [linkLeagueId, setLinkLeagueId] = useState("");
 
@@ -106,7 +107,7 @@ export default function SeasonsPage({
     setBusyCreateLeague(false);
     if (!res.ok) { const d = await res.json(); showToast(d.error || "Failed", "error"); return; }
     showToast("League created.");
-    setNewLeague({ name: "", organizer: "", level: "" });
+    setNewLeague({ name: "", organization: "basketcity", sourceSlug: "", listingUrl: "", organizer: "", level: "" });
     loadData();
   };
 
@@ -181,6 +182,7 @@ export default function SeasonsPage({
 
   const seasonOptions = seasons.map(s => ({ value: s.id, label: s.name }));
   const leagueOptions = leagues.map(l => ({ value: l.id, label: l.name }));
+  const organizationOptions = Object.entries(ORGANIZATIONS).map(([value, org]) => ({ value, label: org.name }));
 
   return (
     <AdminLayout slug={slug} title="Seasons" toast={toast} setToast={setToast} onLogout={handleLogout}>
@@ -358,13 +360,31 @@ export default function SeasonsPage({
               </Btn>
             </Panel>
 
-            <Panel label="Add a league" hint="Creates a league that does not exist yet and links it to the selected season. A league that already exists goes through 'Link existing pair'.">
+            <Panel label="Add a league" hint="Creates a league that does not exist yet and links it to the selected season. A league that already exists goes through 'Link existing pair'. Source slug is what the source site calls this competition in its URLs; listing URL is the page the nightly poll reads.">
               <div className="flex flex-col gap-3 mb-4">
                 <F
                   label="NAME"
                   value={newLeague.name}
                   onChange={v => setNewLeague(l => ({ ...l, name: v }))}
                   placeholder="BC6"
+                />
+                <Sel
+                  label="ORGANIZATION"
+                  value={newLeague.organization}
+                  onChange={v => setNewLeague(l => ({ ...l, organization: v }))}
+                  options={organizationOptions}
+                />
+                <F
+                  label="SOURCE SLUG"
+                  value={newLeague.sourceSlug}
+                  onChange={v => setNewLeague(l => ({ ...l, sourceSlug: v }))}
+                  placeholder="bc6"
+                />
+                <F
+                  label="LISTING URL"
+                  value={newLeague.listingUrl}
+                  onChange={v => setNewLeague(l => ({ ...l, listingUrl: v }))}
+                  placeholder="https://basketcity.sportstats.gr/men/teamdetails/id/..."
                 />
                 <F
                   label="ORGANIZER"
