@@ -6,6 +6,9 @@ const { mockPrisma } = vi.hoisted(() => ({
   mockPrisma: {
     auditLog: {
       create: vi.fn().mockResolvedValue(undefined),
+      // Page-worthy events lazy-load the alert dispatcher, which reads this to
+      // debounce. A non-zero count keeps these tests off the delivery path.
+      count:  vi.fn().mockResolvedValue(1),
     },
   },
 }));

@@ -19,6 +19,7 @@ import { timingSafeEqual } from "node:crypto";
 import prisma              from "@/server/db/client";
 import { securityHeaders } from "@/server/security/edge";
 import { auditLog }        from "@/server/security/node";
+import { startCronRun, finishCronRun } from "@/server/services/cron-run";
 
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
@@ -36,6 +37,8 @@ export default async function handler(req: any, res: any) {
   ) {
     return res.status(401).json({ error: "Unauthorized" });
   }
+
+  const runId = await startCronRun("purgeUpcomingGames");
 
   try {
     const past = await prisma.upcomingGame.findMany({
@@ -57,8 +60,10 @@ export default async function handler(req: any, res: any) {
     }
 
     auditLog("cron_purge_upcoming_games", { deleted: count });
+    await finishCronRun(runId, { ok: true, summary: { deleted: count } });
     return res.status(200).json({ ok: true, deleted: count });
-  } catch (err) {
+  } catch (err: any) {
+    await finishCronRun(runId, { ok: false, error: err.message });
     console.error("[purge-upcoming-games]", err);
     return res.status(500).json({ error: "Internal server error" });
   }

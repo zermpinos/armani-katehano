@@ -212,3 +212,21 @@ export async function sendImportNotification(payload: ImportNotificationPayload)
 }
 
 export type { SendRosterAnnouncementParams } from "./templates/shared";
+
+// Generic admin-facing alert. Same Slack-first, email-fallback routing as the
+// import notification, without the import-specific templates. Deliberately does
+// not call auditLog: its only caller records the delivery marker itself.
+export async function sendAdminAlert(subject: string, text: string): Promise<NotificationChannel> {
+  if (await sendSlackAlert(`${subject}\n${text}`)) return "slack";
+
+  const transport = createTransport();
+  if (!transport) return "none";
+
+  const to = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
+  try {
+    await transport.sendMail({ from: FROM, to, subject, text });
+    return "email";
+  } catch {
+    return "none";
+  }
+}

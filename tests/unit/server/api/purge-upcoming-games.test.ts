@@ -5,6 +5,7 @@ const { mockPrisma } = vi.hoisted(() => ({
   mockPrisma: {
     upcomingGame: { findMany: vi.fn(), deleteMany: vi.fn() },
     game:         { findMany: vi.fn() },
+    cronRun:      { create: vi.fn(), update: vi.fn() },
   },
 }));
 
@@ -38,6 +39,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
+  mockPrisma.cronRun.create.mockResolvedValue({ id: "run-1" });
+  mockPrisma.cronRun.update.mockResolvedValue(undefined);
   process.env.CRON_SECRET = "test-secret";
   mockPrisma.upcomingGame.findMany.mockResolvedValue([]);
   mockPrisma.game.findMany.mockResolvedValue([]);
