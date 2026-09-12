@@ -104,7 +104,7 @@ PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end
 - Nodemailer + Brevo SMTP (transactional email + admin broadcasts)
 - Cheerio (box-score scraping)
 - Cloudinary (player-photo hosting; URLs are pasted directly by admins and resized client-side via a URL-transform helper, no SDK)
-- Self-hosted monitoring: a dependency-free `/api/health` liveness endpoint plus anonymous Web Vitals beaconed to `/api/vitals` (no vendor, no cookies, no PII)
+- Self-hosted monitoring: a dependency-free `/api/health` liveness endpoint, an authenticated `/api/status` reporting cron freshness, and anonymous Web Vitals beaconed to `/api/vitals` (no vendor, no cookies, no PII)
 
 **Tooling**
 - ESLint 9 (with `eslint-plugin-security`, `eslint-plugin-no-unsanitized`, `eslint-config-next`)
@@ -192,7 +192,7 @@ All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECR
 - Audit log written to structured stdout (`[AUDIT]`) and persisted to the `AuditLog` table (client IPs are SHA-256 hashed before storage), with `console.warn` alerts (`[AUDIT_ALERT]`) on high-signal events (locked accounts, blocked CSRF, broadcast abuse); purged after 90 days.
 - `security.txt` (RFC 9116) at `/.well-known/security.txt` points to [`SECURITY.md`](SECURITY.md) for vulnerability disclosure.
 - ESLint security plugins + `no-unsanitized` + `node:` protocol enforcement + Semgrep + Gitleaks workflows.
-- **Monitoring** - `/api/health` is a dependency-free liveness probe (it does not touch the database, so uptime pings add no Neon load); the client beacons anonymous Web Vitals to `/api/vitals`, which validates the metric name, drops anything unknown, and stores no IP or identifier.
+- **Monitoring** - `/api/health` is a dependency-free liveness probe (it does not touch the database, so uptime pings add no Neon load); `/api/status` is bearer-authenticated, reports the last successful run of every cron job, and returns 503 when one has gone stale. Both are probed every 15 minutes by a scheduled GitHub Actions workflow rather than by a Vercel cron, because a checker inside the system cannot report that the system is down. The client beacons anonymous Web Vitals to `/api/vitals`, which validates the metric name, drops anything unknown, and stores no IP or identifier.
 
 ---
 

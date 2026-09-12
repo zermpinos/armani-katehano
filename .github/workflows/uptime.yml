@@ -1,0 +1,58 @@
+name: Uptime
+
+# The probe deliberately lives outside Vercel. A checker that runs inside the
+# system it watches cannot report that the system is down, and Hobby cron fires
+# once a day, which is not an uptime signal.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SITE_URL: ${{ vars.SITE_URL || 'https://armani-katehano.com' }}
+    steps:
+      - name: Liveness
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /dev/null -w '%{http_code}' \
+            --max-time 15 --retry 2 --retry-delay 5 --retry-all-errors \
+            "$SITE_URL/api/health")
+          if [ "$code" != "200" ]; then
+            echo "::error::/api/health returned $code"
+            exit 1
+          fi
+          echo "health ok"
+
+      - name: Cron freshness
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::warning::CRON_SECRET repository secret is not set, skipping freshness check"
+            exit 0
+          fi
+          body=$(mktemp)
+          code=$(curl -sS -o "$body" -w '%{http_code}' \
+            --max-time 20 --retry 2 --retry-delay 5 --retry-all-errors \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$SITE_URL/api/status")
+          cat "$body"
+          echo
+          if [ "$code" != "200" ]; then
+            echo "::error::/api/status returned $code"
+            exit 1
+          fi
+          echo "cron freshness ok"

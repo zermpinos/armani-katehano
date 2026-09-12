@@ -12,6 +12,7 @@ import { timingSafeEqual } from "node:crypto";
 import prisma from "@/server/db/client";
 import { securityHeaders } from "@/server/security/edge";
 import { auditLog } from "@/server/security/node";
+import { startCronRun, finishCronRun } from "@/server/services/cron-run";
 
 const UNCONFIRMED_TTL     = 86_400;         // 1 day in seconds
 const CONFIRMED_RETENTION = 365 * 86_400;   // 1 year in seconds
@@ -37,6 +38,8 @@ export default async function handler(req: any, res: any) {
   const unconfirmedCutoff = new Date(Date.now() - UNCONFIRMED_TTL * 1000);
   const retentionCutoff   = new Date(Date.now() - CONFIRMED_RETENTION * 1000);
 
+  const runId = await startCronRun("purgeSubscribers");
+
   try {
     const { count: unconfirmedDeleted } = await prisma.subscriber.deleteMany({
       where: { confirmedAt: null, createdAt: { lt: unconfirmedCutoff } },
@@ -53,8 +56,10 @@ export default async function handler(req: any, res: any) {
     });
 
     auditLog("cron_purge_subscribers", { unconfirmedDeleted, expiredDeleted });
+    await finishCronRun(runId, { ok: true, summary: { unconfirmedDeleted, expiredDeleted } });
     return res.status(200).json({ ok: true, unconfirmedDeleted, expiredDeleted });
-  } catch (err) {
+  } catch (err: any) {
+    await finishCronRun(runId, { ok: false, error: err.message });
     console.error("[purge-subscribers]", err);
     return res.status(500).json({ error: "Internal server error" });
   }

@@ -4,7 +4,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 const { mockPrisma } = vi.hoisted(() => ({
   mockPrisma: {
     auditLog: { deleteMany: vi.fn() },
-    cronRun:  { create: vi.fn(), update: vi.fn() },
+    cronRun:  { create: vi.fn(), update: vi.fn(), deleteMany: vi.fn() },
   },
 }));
 
@@ -39,6 +39,7 @@ beforeEach(() => {
   mockPrisma.auditLog.deleteMany.mockResolvedValue({ count: 0 });
   mockPrisma.cronRun.create.mockResolvedValue({ id: "run-1" });
   mockPrisma.cronRun.update.mockResolvedValue(undefined);
+  mockPrisma.cronRun.deleteMany.mockResolvedValue({ count: 0 });
 });
 
 describe("purge-audit-log auth", () => {
@@ -86,7 +87,7 @@ describe("purge-audit-log behavior", () => {
     await handler(mockReq(), res);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual({ ok: true, deleted: 42 });
+    expect(res.body).toEqual({ ok: true, deleted: 42, runsDeleted: 0 });
 
     const ninetyDaysAgo = new Date(NOW.getTime() - 90 * 24 * 60 * 60 * 1000);
     expect(mockPrisma.auditLog.deleteMany).toHaveBeenCalledWith({
@@ -104,7 +105,7 @@ describe("purge-audit-log behavior", () => {
     });
     expect(mockPrisma.cronRun.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ ok: true, summary: { deleted: 7 } }),
+        data: expect.objectContaining({ ok: true, summary: { deleted: 7, runsDeleted: 0 } }),
       })
     );
   });

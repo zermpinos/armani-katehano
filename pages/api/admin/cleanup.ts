@@ -22,6 +22,7 @@ import prisma from "@/server/db/client";
 import crypto from "node:crypto";
 import { purgeUnconfirmedSubscribers } from "@/server/services/subscriber";
 import { securityHeaders } from "@/server/security/edge";
+import { startCronRun, finishCronRun } from "@/server/services/cron-run";
 
 
 // Every guard sharing LoginAttempt reads back over its own window: 15 min IP
@@ -65,6 +66,8 @@ export default async function handler(req: any, res: any) {
   }
 
   // ── Purge expired rows ───────────────────────────────────────────────────
+  const runId = await startCronRun("cleanup");
+
   try {
     const cutoff = new Date(Date.now() - RETENTION_MS);
 
@@ -80,6 +83,12 @@ export default async function handler(req: any, res: any) {
       `${challengeResult.count} expired WebAuthnChallenge rows`
     );
 
+    await finishCronRun(runId, { ok: true, summary: {
+      deletedLoginAttempts: loginResult.count,
+      deletedSubscribers:   unconfirmedCount,
+      deletedChallenges:    challengeResult.count,
+    } });
+
     return res.status(200).json({
       ok:                   true,
       deletedLoginAttempts: loginResult.count,
@@ -87,7 +96,8 @@ export default async function handler(req: any, res: any) {
       deletedChallenges:    challengeResult.count,
       cutoff:               cutoff.toISOString(),
     });
-  } catch (err) {
+  } catch (err: any) {
+    await finishCronRun(runId, { ok: false, error: err.message });
     console.error("[cleanup] Purge failed:", err);
     return res.status(500).json({ error: "Cleanup failed" });
   }

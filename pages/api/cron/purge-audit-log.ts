@@ -9,7 +9,7 @@
 
 import { timingSafeEqual } from "node:crypto";
 import { securityHeaders }  from "@/server/security/edge";
-import { startCronRun, finishCronRun } from "@/server/services/cron-run";
+import { startCronRun, finishCronRun, purgeCronRuns } from "@/server/services/cron-run";
 import { purgeAuditLogs }  from "@/server/services/audit-log-purge";
 
 export default async function handler(req: any, res: any) {
@@ -34,8 +34,11 @@ export default async function handler(req: any, res: any) {
 
   try {
     const deleted = await purgeAuditLogs();
-    await finishCronRun(runId, { ok: true, summary: { deleted } });
-    return res.status(200).json({ ok: true, deleted });
+    // CronRun carries the same 90-day policy: it is the table this job writes to
+    // on every run, and nothing else purges it.
+    const runsDeleted = await purgeCronRuns();
+    await finishCronRun(runId, { ok: true, summary: { deleted, runsDeleted } });
+    return res.status(200).json({ ok: true, deleted, runsDeleted });
   } catch (err: any) {
     await finishCronRun(runId, { ok: false, error: err.message });
     console.error("[purge-audit-log]", err);

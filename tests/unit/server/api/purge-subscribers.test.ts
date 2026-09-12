@@ -4,6 +4,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 const { mockPrisma } = vi.hoisted(() => ({
   mockPrisma: {
     subscriber: { deleteMany: vi.fn() },
+    cronRun:    { create: vi.fn(), update: vi.fn() },
   },
 }));
 
@@ -36,6 +37,8 @@ beforeEach(() => {
   vi.setSystemTime(NOW);
   process.env.CRON_SECRET = "test-secret";
   mockPrisma.subscriber.deleteMany.mockResolvedValue({ count: 0 });
+  mockPrisma.cronRun.create.mockResolvedValue({ id: "run-1" });
+  mockPrisma.cronRun.update.mockResolvedValue(undefined);
 });
 
 describe("purge-subscribers auth", () => {
