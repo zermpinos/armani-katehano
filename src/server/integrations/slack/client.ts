@@ -31,9 +31,7 @@ function scrub(message: unknown): string {
 
 // Returns whether Slack accepted the message, so the caller can fall back to
 // email rather than dropping an alert when Slack is unset or unreachable.
-// Blocks carry buttons; text stays the notification and the fallback for any
-// client that cannot render them.
-export async function sendSlackAlert(text: string, blocks?: unknown[]): Promise<boolean> {
+export async function sendSlackAlert(text: string): Promise<boolean> {
   const url = webhook();
   if (!url) return false;
 
@@ -41,7 +39,7 @@ export async function sendSlackAlert(text: string, blocks?: unknown[]): Promise<
     const res = await fetch(url, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(blocks ? { text, blocks } : { text }),
+      body:    JSON.stringify({ text }),
       signal:  AbortSignal.timeout(TIMEOUT_MS),
       redirect: "manual",
     });
@@ -60,46 +58,27 @@ export function slackConfigured(): boolean {
   return webhook() !== null;
 }
 
-// Slack reads these three characters as markup, and a team name is scraped
-// text we did not write.
-function escapeMrkdwn(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
 export interface AliasPrompt {
   scrapedName: string;
   suggestion:  string;
   dateText:    string;
 }
 
-// Asks for a name the alias table does not cover. Confirm writes it and the
-// next run publishes the fixture; reject leaves it off the site. The buttons
-// carry the pair, and the endpoint revalidates it before writing.
+// Reports a name the alias table does not cover, with the spelling we would
+// suggest. Deliberately not interactive: acting on it needs a write, and this
+// app has no endpoint Slack can reach without one that takes writes from the
+// public internet.
 export async function sendAliasPrompt(entries: AliasPrompt[]): Promise<boolean> {
   if (entries.length === 0) return false;
 
-  const blocks = entries.flatMap(e => {
-    const value = JSON.stringify({ scrapedName: e.scrapedName, displayName: e.suggestion });
-    return [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `Fixture not published: *${escapeMrkdwn(e.scrapedName)}* on ${escapeMrkdwn(e.dateText)} has no name set.\nSuggested: *${escapeMrkdwn(e.suggestion)}*`,
-        },
-      },
-      {
-        type: "actions",
-        elements: [
-          { type: "button", action_id: "alias_confirm", style: "primary",
-            text: { type: "plain_text", text: "Confirm" }, value },
-          { type: "button", action_id: "alias_reject",
-            text: { type: "plain_text", text: "Reject" }, value },
-        ],
-      },
-    ];
-  });
+  const lines = entries.map(e =>
+    `- "${e.scrapedName}" on ${e.dateText}, suggested: ${e.suggestion}`);
 
-  const text = `${entries.length} fixture${entries.length > 1 ? "s" : ""} waiting on an opponent name`;
-  return sendSlackAlert(text, blocks);
+  return sendSlackAlert(
+    [
+      `${entries.length} fixture${entries.length > 1 ? "s" : ""} not published: opponent name not set.`,
+      ...lines,
+      "Add the name in the admin portal to publish it on the next run.",
+    ].join("\n"),
+  );
 }
