@@ -1,6 +1,7 @@
 /**
  * pages/api/admin/leagues.ts
- * POST /api/admin/leagues -> create a new league and optionally link to a season
+ * POST  /api/admin/leagues -> create a new league and optionally link to a season
+ * PATCH /api/admin/leagues -> edit an existing league's source fields
  */
 
 import { requireAuth }               from '@/server/auth';
@@ -8,16 +9,14 @@ import { auditLog, getClientIp }     from "@/server/security/node";
 import prisma                        from "@/server/db/client";
 import { slugify } from "@/domain/players/format";
 import { prodError } from "@/domain/shared/format";
-import { LeagueCreateSchema }        from "@/schemas/league";
+import { LeagueCreateSchema, LeagueUpdateSchema } from "@/schemas/league";
 import { organizationName }          from "@/domain/leagues/organizations";
+import { parseBody }                 from "@/server/http/parse-body";
+import { methodRouter }              from "@/server/http/method-router";
 import { invalidateForLeagueMutation } from "@/server/services/cache-invalidation";
 
-async function handler(req: any, res: any) {
+async function createLeague(req: any, res: any) {
   const ip = getClientIp(req);
-
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
 
   const parsed = LeagueCreateSchema.safeParse(req.body ?? {});
   if (!parsed.success) {
@@ -79,4 +78,33 @@ async function handler(req: any, res: any) {
   }
 }
 
-export default requireAuth(handler);
+// Writes only the keys the caller actually sent. Spreading `?? null` across the
+// rest the way the create path does would blank every field left out, which is
+// how listingUrl emptied in the first place.
+async function updateLeague(req: any, res: any) {
+  const ip   = getClientIp(req);
+  const body = parseBody(LeagueUpdateSchema, req.body, res, "flatten");
+  if (!body) return;
+
+  const { id, ...fields } = body;
+  const data = Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined));
+  if (Object.keys(data).length === 0) {
+    return res.status(400).json({ error: "No fields to update" });
+  }
+
+  try {
+    const league = await prisma.league.update({ where: { id }, data });
+    auditLog("league_updated", { ip, leagueId: id, fields: Object.keys(data) });
+    await invalidateForLeagueMutation({ revalidate: (p: string) => res.revalidate?.(p) });
+    return res.status(200).json({ ok: true, league });
+  } catch (err) {
+    if ((err as any).code === "P2025") return res.status(404).json({ error: "League not found" });
+    auditLog("league_update_error", { ip, error: (err as any).message });
+    return res.status(500).json({ error: prodError(err) });
+  }
+}
+
+export default requireAuth(methodRouter({
+  POST:  createLeague,
+  PATCH: updateLeague,
+}));

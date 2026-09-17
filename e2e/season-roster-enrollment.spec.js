@@ -53,7 +53,10 @@ async function mockSeasonsApis(page, { putResponse } = {}) {
     : route.continue());
   await page.route("**/api/admin/seasons-list",  route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ seasons: SEASONS }) }));
   await page.route("**/api/admin/leagues-list",  route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ leagues: [] }) }));
-  await page.route("**/api/admin/season-leagues",route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ seasonLeagues: SEASON_LEAGUES }) }));
+  // Regex rather than a glob: this page asks for ?includeArchived=true, and a
+  // glob has to match the whole URL including the query. A missed match falls
+  // through to the real route and the panel renders empty.
+  await page.route(/\/api\/admin\/season-leagues(\?|$)/, route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ seasonLeagues: SEASON_LEAGUES }) }));
   await page.route("**/api/admin/players",       route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ players: PLAYERS }) }));
   await page.route("**/api/admin/roster-entries", route => {
     if (route.request().method() === "GET") {
