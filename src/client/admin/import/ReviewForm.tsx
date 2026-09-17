@@ -46,9 +46,12 @@ export function ReviewForm({
     Number(draft.teamScore) || 0,
     Number(draft.opponentScore) || 0,
   );
+  // Every season the league has run is listed, so the league name alone repeats
+  // once per season and the archived ones are indistinguishable from the live
+  // one. Picking the wrong twin files the game into a closed season.
   const leagueOptions = [
     ...(leagueMissing ? [{ value: "", label: "Select a league" }] : []),
-    ...seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName })),
+    ...seasonLeagues.map(sl => ({ value: sl.id, label: `${sl.leagueName} · ${sl.seasonName}` })),
   ];
 
   return (
