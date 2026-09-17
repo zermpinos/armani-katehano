@@ -6,6 +6,7 @@
 import "@/server/_internal/node-only";
 import * as cheerio from "cheerio";
 import { detectLeagueSlug } from "@/domain/calendar/greek-date";
+import { isUsTeam } from "@/domain/import/identity";
 
 export interface ListedGame {
   gameId:     string;
@@ -16,6 +17,12 @@ export interface ListedGame {
   // The listing shows a score only once a result has been published, which is
   // the one signal that a game is over that does not come from the game page.
   hasScore:   boolean;
+  // Only a fixture needs these, and only the listing carries them: the game
+  // page leaves its date, time and score empty for a script to fill in.
+  opponent:   string | null;
+  tipoff:     string | null;
+  venue:      string | null;
+  isHome:     boolean;
 }
 
 // A /men/ URL is shared by every weekday league, so the slug alone cannot say
@@ -69,18 +76,36 @@ export function parseTeamSchedule(html: string, pageUrl: string): ListedGame[] {
       : urlSlug;
 
     const round    = parts.map(p => ROUNDS.get(p)).find(Boolean) ?? "regular";
-    const dateText = $el.find(".date").first().text().split("/")[0].trim();
     const hasScore = $el.find(".points .number").length > 0;
 
+    // One field holds both halves: "Σάββατο, 19 Σεπτεμβρίου 2026 / 16:15".
+    // The row also carries a data-unixtimestamp, which reads as 2017 on live
+    // fixtures, so the printed text is the only trustworthy source.
+    const [datePart, timePart] = $el.find(".date").first().text().split("/");
+    const dateText = datePart?.trim() ?? "";
+    const tipoff   = timePart?.trim() || null;
+
+    // Home team on the left, away on the right. Which side we are is the only
+    // thing that says whether a fixture is home or away.
+    const left  = $el.find(".country.left .name").first().text().trim();
+    const right = $el.find(".country.right .name").first().text().trim();
+    const isHome   = isUsTeam(left);
+    const opponent = (isHome ? right : left) || null;
+    const venue    = $el.find(".location").first().text().trim() || null;
+
     // The same game appears in both the results list and the fixture list, once
-    // with a score and once without. Either sighting of a score counts.
+    // with a score and once without. Either sighting of a score counts, and a
+    // field the thinner sighting left blank is filled by the richer one.
     const seen = byId.get(gameId);
     if (seen) {
       seen.hasScore ||= hasScore;
       if (!seen.dateText) seen.dateText = dateText;
+      seen.opponent ??= opponent;
+      seen.tipoff   ??= tipoff;
+      seen.venue    ??= venue;
       return;
     }
-    byId.set(gameId, { gameId, url, leagueSlug, round, dateText, hasScore });
+    byId.set(gameId, { gameId, url, leagueSlug, round, dateText, hasScore, opponent, tipoff, venue, isHome });
   });
 
   return [...byId.values()];

@@ -7,7 +7,7 @@
  * so it tested stale duplicates instead of production code. Fixed: now imports from source.
  */
 import { describe, it, expect } from "vitest";
-import { parseGreekDate, detectLeagueSlug, parseMinutes } from "@/domain/calendar/greek-date";
+import { parseGreekDate, detectLeagueSlug, parseMinutes, parseGreekDateTime } from "@/domain/calendar/greek-date";
 
 // ─── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -156,5 +156,44 @@ describe("parseMinutes", () => {
     expect(parseMinutes("28:")).toBe(28);
     expect(parseMinutes("28:xx")).toBe(0);
     expect(parseMinutes("abc:00")).toBe(0);
+  });
+});
+
+describe("parseGreekDateTime", () => {
+  const iso = (d, t) => parseGreekDateTime(d, t)?.toISOString() ?? null;
+
+  // Greece runs EEST (+3) in summer and EET (+2) in winter. A fixed offset
+  // would put every winter fixture an hour out.
+  it("reads a summer kick-off as EEST", () => {
+    expect(iso("Σάββατο, 19 Σεπτεμβρίου 2026", "16:15")).toBe("2026-09-19T13:15:00.000Z");
+  });
+
+  it("reads the same clock time in winter as EET", () => {
+    expect(iso("Σάββατο, 19 Δεκεμβρίου 2026", "16:15")).toBe("2026-12-19T14:15:00.000Z");
+  });
+
+  // DST ends 25 Oct 2026. Either side of it the same wall clock is a different
+  // instant, which is the case a constant offset gets wrong.
+  it("straddles the October transition", () => {
+    expect(iso("Σάββατο, 24 Οκτωβρίου 2026", "12:00")).toBe("2026-10-24T09:00:00.000Z");
+    expect(iso("Δευτέρα, 26 Οκτωβρίου 2026", "12:00")).toBe("2026-10-26T10:00:00.000Z");
+  });
+
+  // 03:30 happens twice on the transition day. Resolving to the later, post
+  // transition instant is arbitrary but has to be stable.
+  it("resolves the repeated hour deterministically", () => {
+    expect(iso("Κυριακή, 25 Οκτωβρίου 2026", "03:30")).toBe("2026-10-25T01:30:00.000Z");
+  });
+
+  // Naive arithmetic on a UTC-midnight date rolls this back a day twice.
+  it("keeps midnight on the right calendar day", () => {
+    expect(iso("Σάββατο, 19 Σεπτεμβρίου 2026", "00:00")).toBe("2026-09-18T21:00:00.000Z");
+  });
+
+  it("returns null rather than inventing a time", () => {
+    for (const t of ["", "25:00", "16:60", "abc", null, undefined]) {
+      expect(parseGreekDateTime("19 Σεπτεμβρίου 2026", t)).toBeNull();
+    }
+    expect(parseGreekDateTime("not a date", "16:15")).toBeNull();
   });
 });
