@@ -9,12 +9,29 @@ import type { SeasonLeagueRef, ResolveResult, RosterPlayer } from "@/domain/impo
 import type { ClassifyResult } from "@/domain/import/classify";
 import type { GateResult } from "@/domain/import/verify";
 
+// Shared with the poll, which needs the same names to write a fixture as the
+// import needs to commit a game, and the same refusal when there are none.
+export async function loadOpponentAliases(): Promise<OpponentAliases> {
+  const rows = await prisma.opponentAlias.findMany({ select: { scrapedName: true, displayName: true } });
+
+  // An empty table is a database whose seed migration never ran, not a team
+  // with no opponents. Left alone it would mark every opponent unknown and
+  // quietly stall every import, so it stops here instead.
+  if (rows.length === 0) {
+    throw new Error(
+      "OpponentAlias is empty, so no opponent name can be resolved. " +
+      "Run the migrations: the table ships seeded.",
+    );
+  }
+  return buildAliases(rows);
+}
+
 async function resolverInputs(): Promise<{
   roster: RosterPlayer[];
   seasonLeagues: SeasonLeagueRef[];
   aliases: OpponentAliases;
 }> {
-  const [players, overrides, seasonLeagues, aliasRows] = await Promise.all([
+  const [players, overrides, seasonLeagues, aliases] = await Promise.all([
     prisma.player.findMany({
       where:   { isActive: true },
       orderBy: { number: "asc" },
@@ -31,18 +48,8 @@ async function resolverInputs(): Promise<{
       where:   { season: { archivedAt: null } },
       include: { league: true, season: true },
     }),
-    prisma.opponentAlias.findMany({ select: { scrapedName: true, displayName: true } }),
+    loadOpponentAliases(),
   ]);
-
-  // An empty table is a database whose seed migration never ran, not a team
-  // with no opponents. Left alone it would mark every opponent unknown and
-  // quietly stall every import, so it stops here instead.
-  if (aliasRows.length === 0) {
-    throw new Error(
-      "OpponentAlias is empty, so no opponent name can be resolved. " +
-      "Run the migrations: the table ships seeded.",
-    );
-  }
 
   const numbersByLeague = new Map<string, Map<string, number>>();
   for (const o of overrides) {
@@ -62,7 +69,7 @@ async function resolverInputs(): Promise<{
       seasonStart:  sl.season.startDate?.toISOString() ?? null,
       seasonEnd:    sl.season.endDate?.toISOString() ?? null,
     })),
-    aliases: buildAliases(aliasRows),
+    aliases,
   };
 }
 

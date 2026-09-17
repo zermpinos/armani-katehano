@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const { mockPrisma, mockDiscover, mockScrapeAndResolve, mockCommitImport, MockCommitError, mockFinishCronRun, mockNotify } = vi.hoisted(() => {
+const { mockPrisma, mockDiscover, mockScrapeAndResolve, mockCommitImport, MockCommitError, mockFinishCronRun, mockNotify, mockSyncFixtures, mockLoadAliases } = vi.hoisted(() => {
   class MockCommitError extends Error {
     constructor(message, status) { super(message); this.status = status; }
   }
@@ -13,6 +13,8 @@ const { mockPrisma, mockDiscover, mockScrapeAndResolve, mockCommitImport, MockCo
     MockCommitError,
     mockFinishCronRun:    vi.fn(),
     mockNotify:           vi.fn(),
+    mockSyncFixtures:     vi.fn(),
+    mockLoadAliases:      vi.fn(),
   };
 });
 
@@ -24,7 +26,12 @@ vi.mock("@/server/services/cron-run", () => ({
   finishCronRun: mockFinishCronRun,
 }));
 vi.mock("@/server/services/discover-games", () => ({ discoverGames: mockDiscover }));
-vi.mock("@/server/services/import-pipeline", () => ({ scrapeAndResolve: mockScrapeAndResolve }));
+vi.mock("@/server/services/import-pipeline", () => ({
+  scrapeAndResolve:    mockScrapeAndResolve,
+  loadOpponentAliases: mockLoadAliases,
+}));
+vi.mock("@/server/services/sync-fixtures", () => ({ syncFixtures: mockSyncFixtures }));
+vi.mock("@/server/services/cache-invalidation", () => ({ invalidateForScheduleMutation: vi.fn() }));
 vi.mock("@/server/services/import-commit", () => ({
   commitImport: mockCommitImport,
   CommitError:  MockCommitError,
@@ -92,6 +99,8 @@ beforeEach(() => {
   mockScrapeAndResolve.mockResolvedValue(pipelineResult());
   mockCommitImport.mockResolvedValue({ gameId: "clgame000000000000000001" });
   mockNotify.mockResolvedValue(undefined);
+  mockLoadAliases.mockResolvedValue(new Map());
+  mockSyncFixtures.mockResolvedValue({ created: [], changed: [], unmapped: [], skipped: [] });
 });
 
 describe("poll-imports auth", () => {
@@ -314,5 +323,39 @@ describe("poll-imports resilience", () => {
     await handler(mockReq(), res);
     expect(res.statusCode).toBe(500);
     expect(mockFinishCronRun).toHaveBeenCalledWith("run1", { ok: false, error: "db down" });
+  });
+});
+
+// The listing fetch already carries the schedule, so the poll is what keeps
+// UpcomingGame current. syncFixtures has its own tests; these cover the handoff.
+describe("poll-imports fixture sync", () => {
+  it("hands the unplayed rows to the sync", async () => {
+    const fixture = listed({ gameId: "F1", hasScore: false });
+    mockDiscover.mockResolvedValue({ games: [], fixtures: [fixture], errors: [] });
+    await handler(mockReq(), mockRes());
+    expect(mockSyncFixtures).toHaveBeenCalledWith([fixture], expect.anything());
+  });
+
+  it("records what the sync did on the run", async () => {
+    mockSyncFixtures.mockResolvedValue({
+      created:  [{ opponent: "Atalantoi Hawks", scheduledFor: new Date("2026-09-19T13:15:00Z") }],
+      changed:  [],
+      unmapped: [{ scrapedName: "BRAND NEW TEAM", suggestion: "Brand New Team", dateText: "1 Μαρτίου 2026" }],
+      skipped:  [],
+    });
+    await handler(mockReq(), mockRes());
+    expect(summary().fixtures.created).toEqual(["Atalantoi Hawks 2026-09-19T13:15:00.000Z"]);
+    expect(summary().fixtures.unmapped[0].suggestion).toBe("Brand New Team");
+  });
+
+  // Writing the schedule is secondary to importing results, so it must not be
+  // able to take the import down with it.
+  it("imports results even when the fixture sync fails", async () => {
+    mockSyncFixtures.mockRejectedValue(new Error("fixture table locked"));
+    const res = mockRes();
+    await handler(mockReq(), res);
+    expect(res.statusCode).toBe(200);
+    expect(mockCommitImport).toHaveBeenCalledTimes(1);
+    expect(summary().fixtures.skipped[0]).toMatch(/fixture sync failed: fixture table locked/);
   });
 });
