@@ -14,6 +14,7 @@ const OPPONENT_NAMES: Record<string, string> = {
   "ΧΛΑΤΣΕΡΣ LEGENDS":      "Xlatsers Legends",
   "AIRBALL WIZARDS":       "Airball Wizards",
   "AIRBALLS":              "Airballs",
+  "ATALANTOI HAWKS":       "Atalantoi Hawks",
   "B.C. ABLA":             "B.C. Abla",
   "BLACKOUTS B.A.M.C.":    "Blackouts BAMC",
   "CAPPUCCINO KNIGHTS":    "Cappuccino Knights",

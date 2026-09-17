@@ -1,6 +1,7 @@
 /**
  * pages/api/admin/season-leagues.js
- * GET /api/admin/season-leagues -> list all season+league combinations
+ * GET /api/admin/season-leagues                        -> open season+league pairs
+ * GET /api/admin/season-leagues?includeArchived=true   -> every pair, for managing seasons
  *
  * Returns the data the import page needs to populate the league dropdown.
  */
@@ -15,8 +16,16 @@ async function handler(req: any, res: any) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // An archived season is closed, so a game must never be filed into one. That
+  // is already the rule resolverInputs and discoverGames enforce; leaving the
+  // archived pairs in this list let a hand import contradict it, and the league
+  // name alone repeats once per season, so the closed twin was unrecognisable.
+  // Managing seasons is the one job that needs them, and it asks.
+  const includeArchived = req.query.includeArchived === "true";
+
   try {
     const seasonLeagues = await prisma.seasonLeague.findMany({
+      where: includeArchived ? {} : { season: { archivedAt: null } },
       include: {
         league: true,
         season: true,
