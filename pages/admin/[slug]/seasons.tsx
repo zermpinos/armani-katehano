@@ -51,7 +51,8 @@ export default function SeasonsPage({
       const [sRes, lRes, slRes, pRes, reRes] = await Promise.all([
         fetch("/api/admin/seasons-list"),
         fetch("/api/admin/leagues-list"),
-        fetch("/api/admin/season-leagues"),
+        // Managing seasons is the one place a closed season still has to show.
+        fetch("/api/admin/season-leagues?includeArchived=true"),
         fetch("/api/admin/players"),
         fetch("/api/admin/roster-entries"),
       ]);
