@@ -6,9 +6,10 @@
  * consistent. Every other outcome is a skip, leaving the game to be imported by
  * hand exactly as before, so the poll can only ever add work it finished.
  *
- * Candidates come from the listing rather than from the schedule because the
- * game URL is not knowable before the organisers publish the fixture, so no one
- * can put it on an UpcomingGame row in advance.
+ * Candidates come from the listing rather than from the schedule, because the
+ * listing is the only place a game appears before anyone here knows about it.
+ * The same fetch also carries the fixtures, which are written to UpcomingGame
+ * so the schedule keeps itself current.
  *
  * A skip nobody hears about is indistinguishable from a quiet week, so anything
  * that will not resolve itself on a later run is emailed to the admin.
@@ -21,13 +22,16 @@ import prisma              from "@/server/db/client";
 import { securityHeaders } from "@/server/security/edge";
 import { auditLog }        from "@/server/security/node";
 import { startCronRun, finishCronRun } from "@/server/services/cron-run";
-import { scrapeAndResolve } from "@/server/services/import-pipeline";
+import { scrapeAndResolve, loadOpponentAliases } from "@/server/services/import-pipeline";
 import { commitImport, CommitError } from "@/server/services/import-commit";
 import { toCommitInput } from "@/domain/import/resolve";
 import { parseGreekDate } from "@/domain/calendar/greek-date";
 import { GameWriteSchema } from "@/schemas/game";
 import { sendImportNotification } from "@/server/integrations/email/client";
+import { sendAliasPrompt } from "@/server/integrations/slack/client";
 import { discoverGames } from "@/server/services/discover-games";
+import { syncFixtures } from "@/server/services/sync-fixtures";
+import { invalidateForScheduleMutation } from "@/server/services/cache-invalidation";
 
 // Three scrapes at an 8s timeout each fits the function budget with room for
 // the commits, on top of the two listing fetches. A fourth game on one night
@@ -68,7 +72,24 @@ export default async function handler(req: any, res: any) {
 
   try {
     const now = Date.now();
-    const { games, errors } = await discoverGames();
+    const { games, fixtures, errors } = await discoverGames();
+
+    // The same fetch carried the schedule, so writing it costs no extra
+    // request. A fixture the site is missing is as invisible to a reader as a
+    // result that never imported.
+    const aliases = await loadOpponentAliases();
+    let fixtureSync = { created: [], changed: [], unmapped: [], skipped: [] } as Awaited<ReturnType<typeof syncFixtures>>;
+    try {
+      fixtureSync = await syncFixtures(fixtures, aliases);
+      // Both public pages read the schedule, and an hour late is a fixture
+      // nobody saw when it mattered.
+      if (fixtureSync.created.length || fixtureSync.changed.length) {
+        await invalidateForScheduleMutation({ revalidate: (p: string) => res.revalidate?.(p) });
+      }
+    } catch (err: any) {
+      // Secondary to importing results, so it reports and stands aside.
+      fixtureSync.skipped.push(`fixture sync failed: ${err.message}`);
+    }
 
     // Keyed on the game id rather than the URL: the same game has been served
     // under both /winter-cup/ and /super-winter-cup/, and one stored URL ends
@@ -120,6 +141,14 @@ export default async function handler(req: any, res: any) {
       }
     }
 
+    // A name nobody can act on from an inbox: this one ships the buttons that
+    // write it, so it goes to Slack directly rather than through the alert
+    // path that falls back to email.
+    if (fixtureSync.unmapped.length) {
+      await sendAliasPrompt(fixtureSync.unmapped)
+        .catch(err => console.error("[poll-imports] alias prompt:", err));
+    }
+
     const stalled = skipped.filter(s => !s.transient);
     if (stalled.length) {
       await sendImportNotification({
@@ -128,7 +157,15 @@ export default async function handler(req: any, res: any) {
       }).catch(err => console.error("[poll-imports] notify:", err));
     }
 
-    const summary = { listed: games.length, candidates: candidates.length, committed, skipped };
+    const summary = {
+      listed: games.length, candidates: candidates.length, committed, skipped,
+      fixtures: {
+        created:  fixtureSync.created.map(c => `${c.opponent} ${c.scheduledFor.toISOString()}`),
+        changed:  fixtureSync.changed,
+        unmapped: fixtureSync.unmapped,
+        skipped:  fixtureSync.skipped,
+      },
+    };
     await finishCronRun(runId, { ok: true, summary });
     return res.status(200).json({ ok: true, committed: committed.length, skipped: skipped.length });
   } catch (err: any) {

@@ -5,8 +5,12 @@ import { parseTeamSchedule } from "@/server/integrations/scraper/team-schedule";
 const PAGE = "https://basketcity.sportstats.gr/men/teamdetails/id/TEAM";
 
 // Shape taken from the live page: single-quoted attributes, the competition and
-// round joined by <br />, and the score present only once a result is posted.
-function row({ path, title, date, score = null }) {
+// round joined by <br />, the score present only once a result is posted, and
+// the two teams in left/right tables with the home side on the left.
+function row({
+  path, title, date, score = null,
+  home = "ARMANI KATEHANO", away = "DRAGONS", venue = "ARENA",
+}) {
   const points = score
     ? `<table class='points'><tbody><tr><td>
          <div class='number greyColor'>${score[0]}</div>
@@ -14,13 +18,20 @@ function row({ path, title, date, score = null }) {
          <div class='number orangeColor'>${score[1]}</div>
        </td></tr></tbody></table>`
     : "";
+  const side = (cls, name) =>
+    `<table class='country ${cls}'><tbody><tr><td class='flag_col'>
+       <div class='name colorBlueBlack fnt10'>${name}</div>
+     </td></tr></tbody></table>`;
   return `<li class='past' style='margin-top: 11px;'>
     <a class='schedule_main_content' href='${path}'>
       <div class='details'>
         <div class='title blackColor'>${title}</div>
-        <div class='wrapper'><div class='date'>${date}</div></div>
+        <div class='wrapper'>
+          <div class='date'>${date}</div>
+          <div class='location'>${venue}<br /></div>
+        </div>
       </div>
-      <div class='participants'>${points}</div>
+      <div class='participants'>${side("left", home)}${points}${side("right", away)}</div>
     </a>
   </li>`;
 }
@@ -90,9 +101,42 @@ describe("parseTeamSchedule", () => {
     expect(games[0].hasScore).toBe(true);
   });
 
-  it("drops the kick-off time the fixture rendering appends to the date", () => {
+  // The date field carries both halves. The date drives the import lookback,
+  // the time is what an UpcomingGame needs, so neither may swallow the other.
+  it("splits the date and the kick-off time the fixture rendering appends", () => {
     const html = page(row({ path: "/men/gamedetails/id/GGG", title: "BC6", date: "Σάββατο, 16 Μαΐου 2026 / 18:30" }));
-    expect(parseTeamSchedule(html, PAGE)[0].dateText).toBe("Σάββατο, 16 Μαΐου 2026");
+    const [g] = parseTeamSchedule(html, PAGE);
+    expect(g.dateText).toBe("Σάββατο, 16 Μαΐου 2026");
+    expect(g.tipoff).toBe("18:30");
+  });
+
+  it("leaves the tip-off null when the row prints a date alone", () => {
+    const html = page(row({ path: "/men/gamedetails/id/GG2", title: "BC6", date: "Σάββατο, 16 Μαΐου 2026" }));
+    expect(parseTeamSchedule(html, PAGE)[0].tipoff).toBeNull();
+  });
+
+  it("reads the opponent, venue and home side of a fixture", () => {
+    const html = page(row({
+      path: "/winter-cup/gamedetails/id/JJJ", title: "Προκριματικοι<br />2η αγωνιστικη",
+      date: "Σάββατο, 19 Σεπτεμβρίου 2026 / 16:15", away: "ATALANTOI HAWKS",
+    }));
+    const [g] = parseTeamSchedule(html, PAGE);
+    expect(g.opponent).toBe("ATALANTOI HAWKS");
+    expect(g.tipoff).toBe("16:15");
+    expect(g.venue).toBe("ARENA");
+    expect(g.isHome).toBe(true);
+  });
+
+  // Our own team page still renders us on whichever side we actually played,
+  // so the side is the only thing that says home from away.
+  it("reads us on the right as an away game", () => {
+    const html = page(row({
+      path: "/men/gamedetails/id/KKK", title: "BC6", date: "1 Μαρτίου 2026",
+      home: "PATISSIA THUNDERS", away: "ARMANI KATEHANO", score: [60, 70],
+    }));
+    const [g] = parseTeamSchedule(html, PAGE);
+    expect(g.isHome).toBe(false);
+    expect(g.opponent).toBe("PATISSIA THUNDERS");
   });
 
   it("leaves the league unresolved for a /men/ label it does not know", () => {

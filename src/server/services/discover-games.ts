@@ -4,13 +4,17 @@ import { fetchGuarded } from "@/server/services/scrape-game";
 import { parseTeamSchedule, type ListedGame } from "@/server/integrations/scraper/team-schedule";
 
 export interface Discovery {
-  games:  ListedGame[];
-  errors: string[];
+  // A result has been published for these; the poll imports them.
+  games:    ListedGame[];
+  // Published but not yet played. The same fetch carries both, so reading the
+  // schedule costs nothing on top of looking for results.
+  fixtures: ListedGame[];
+  errors:   string[];
 }
 
-// Games the organisers have published a result for, newest first. A page that
-// fails to load is reported rather than thrown: one league being down should
-// not stop the other from importing.
+// What the organisers have listed for our team. A page that fails to load is
+// reported rather than thrown: one league being down should not stop the other
+// from importing.
 export async function discoverGames(): Promise<Discovery> {
   const byId  = new Map<string, ListedGame>();
   const errors: string[] = [];
@@ -37,16 +41,27 @@ export async function discoverGames(): Promise<Discovery> {
     const url = league.listingUrl as string;
     try {
       for (const g of parseTeamSchedule(await fetchGuarded(url), url)) {
-        if (!g.hasScore) continue;
         // Keyed on the game id, not the URL: the same game has been served
         // under both /winter-cup/ and /super-winter-cup/, and one stored URL
         // carries a trailing newline. Either would import a duplicate.
-        if (!byId.has(g.gameId)) byId.set(g.gameId, g);
+        const seen = byId.get(g.gameId);
+        if (!seen) { byId.set(g.gameId, g); continue; }
+        // One listing can show a game as played while another still has it as a
+        // fixture, so a score sighted anywhere wins and the blanks get filled.
+        seen.hasScore ||= g.hasScore;
+        seen.opponent ??= g.opponent;
+        seen.tipoff   ??= g.tipoff;
+        seen.venue    ??= g.venue;
       }
     } catch (err) {
       errors.push(`${league.name}: ${(err as Error).message}`);
     }
   }
 
-  return { games: [...byId.values()], errors };
+  const all = [...byId.values()];
+  return {
+    games:    all.filter(g => g.hasScore),
+    fixtures: all.filter(g => !g.hasScore),
+    errors,
+  };
 }

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { describe, it, expect } from "vitest";
 import { resolve, diffDraft, toCommitInput } from "@/domain/import/resolve";
+import { buildAliases } from "@/domain/import/opponents";
 
 const roster = [
   { id: "p1", number: 4 },
@@ -208,11 +209,20 @@ describe("resolve game fields", () => {
 });
 
 describe("resolve opponent naming", () => {
+  // The real pairs live in OpponentAlias now; these stand in for the rows the
+  // caller loads, and cover the spellings no rule could derive.
+  const ALIASES = buildAliases([
+    { scrapedName: "ΓΕΡΟΛΥΚΟΙ B.C.",     displayName: "Gerolykoi" },
+    { scrapedName: "S.H.A.W.",           displayName: "Shaw" },
+    { scrapedName: "TAZ BOYS",           displayName: "Taz Boyz" },
+    { scrapedName: "CAPPUCCINO KNIGHTS", displayName: "Cappuccino Knights" },
+  ]);
+
   function against(name) {
     const data = scrapedData([onRoster]);
     data.game.awayTeam = name;
     data.teams[1].name = name;
-    return resolve(data, roster, [ROOKIE]);
+    return resolve(data, roster, [ROOKIE], { aliases: ALIASES });
   }
 
   it("renames a known opponent the way the site shows it", () => {
