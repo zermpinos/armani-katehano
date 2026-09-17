@@ -35,10 +35,13 @@ export default function SeasonsPage({
   const [newLeague,    setNewLeague]    = useState({ name: "", organization: "basketcity", sourceSlug: "", listingUrl: "", organizer: "", level: "" });
   const [linkSeasonId, setLinkSeasonId] = useState("");
   const [linkLeagueId, setLinkLeagueId] = useState("");
+  const [editLeagueId, setEditLeagueId] = useState("");
+  const [editListing,  setEditListing]  = useState("");
 
   const [busyCreateSeason, setBusyCreateSeason] = useState(false);
   const [busyCreateLeague, setBusyCreateLeague] = useState(false);
   const [busyLink,         setBusyLink]         = useState(false);
+  const [busyEditLeague,   setBusyEditLeague]   = useState(false);
 
   const showToast = (msg: string, type = "success") => setToast({ msg, type });
 
@@ -108,6 +111,25 @@ export default function SeasonsPage({
     if (!res.ok) { const d = await res.json(); showToast(d.error || "Failed", "error"); return; }
     showToast("League created.");
     setNewLeague({ name: "", organization: "basketcity", sourceSlug: "", listingUrl: "", organizer: "", level: "" });
+    loadData();
+  };
+
+  const pickLeagueToEdit = (id: string) => {
+    setEditLeagueId(id);
+    setEditListing(leagues.find(l => l.id === id)?.listingUrl ?? "");
+  };
+
+  const saveListingUrl = async () => {
+    setBusyEditLeague(true);
+    const res = await apiFetch("/api/admin/leagues", {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      // Empty clears it, which is how a league stops being polled.
+      body:    JSON.stringify({ id: editLeagueId, listingUrl: editListing.trim() || null }),
+    });
+    setBusyEditLeague(false);
+    if (!res.ok) { const d = await res.json(); showToast(d.error || "Failed", "error"); return; }
+    showToast("Listing URL saved.");
     loadData();
   };
 
@@ -413,6 +435,29 @@ export default function SeasonsPage({
               >
                 {busyCreateLeague ? "CREATING..." : "CREATE LEAGUE"}
               </Btn>
+            </Panel>
+
+            <Panel label="Edit listing URL" hint="The team page the nightly poll reads for finished games. A league whose listing URL is empty is skipped, and the poll reports it rather than looking like a quiet week.">
+              {leagues.length === 0 ? (
+                <div className="py-6 text-center text-[12px] text-ak-text-dim">
+                  No leagues yet.
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-3 mb-4">
+                    <Sel label="LEAGUE" value={editLeagueId} onChange={pickLeagueToEdit} options={leagueOptions} />
+                    <F
+                      label="LISTING URL"
+                      value={editListing}
+                      onChange={setEditListing}
+                      placeholder="https://basketcity.sportstats.gr/men/teamdetails/id/..."
+                    />
+                  </div>
+                  <Btn onClick={saveListingUrl} disabled={busyEditLeague || !editLeagueId}>
+                    {busyEditLeague ? "SAVING..." : "SAVE"}
+                  </Btn>
+                </>
+              )}
             </Panel>
 
             <Panel label="Link existing pair" hint="Pair a league that already exists with a season.">

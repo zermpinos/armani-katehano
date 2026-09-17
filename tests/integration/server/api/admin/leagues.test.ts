@@ -7,7 +7,7 @@ vi.hoisted(() => {
 
 const { mockPrisma } = vi.hoisted(() => ({
   mockPrisma: {
-    league:       { findUnique: vi.fn(), create: vi.fn() },
+    league:       { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
     seasonLeague: { create: vi.fn() },
     rosterEntry:  { findMany: vi.fn(), createMany: vi.fn() },
     $transaction: vi.fn(fn => fn({
@@ -24,11 +24,14 @@ import handler from "../../../../../pages/api/admin/leagues";
 import { authedReq, mockResWithRevalidate } from "../../db/__support__/games-admin-mocks";
 
 const SEASON_ID = "cmrdj8nd0000004la94dnc3jh";
+const LEAGUE_ID = "cmrdj8nd0000004la94dnc3ji";
+const LISTING   = "https://basketcity.sportstats.gr/men/teamdetails/id/BED40AE7";
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockPrisma.league.findUnique.mockResolvedValue(null);
   mockPrisma.league.create.mockResolvedValue({ id: "l1", slug: "bc6", name: "BC6" });
+  mockPrisma.league.update.mockResolvedValue({ id: LEAGUE_ID, slug: "basketcity-bc6", name: "BC6" });
   mockPrisma.rosterEntry.findMany.mockResolvedValue([]);
 });
 
@@ -60,5 +63,46 @@ describe("POST /api/admin/leagues", () => {
     expect(res.statusCode).toBe(409);
     expect(res._body.error).toMatch(/Link existing pair/);
     expect(mockPrisma.league.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("PATCH /api/admin/leagues", () => {
+  it("sets a listing URL on an existing league", async () => {
+    const res = mockResWithRevalidate();
+    await handler(authedReq({ method: "PATCH", body: { id: LEAGUE_ID, listingUrl: LISTING } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(mockPrisma.league.update).toHaveBeenCalledWith({
+      where: { id: LEAGUE_ID },
+      data:  { listingUrl: LISTING },
+    });
+  });
+
+  // The whole point of the route: an edit that names one field must not blank
+  // the others. Writing `?? null` across the rest is what emptied listingUrl.
+  it("leaves fields the caller did not send untouched", async () => {
+    const res = mockResWithRevalidate();
+    await handler(authedReq({ method: "PATCH", body: { id: LEAGUE_ID, listingUrl: LISTING } }), res);
+    expect(mockPrisma.league.update.mock.calls[0][0].data).not.toHaveProperty("sourceSlug");
+  });
+
+  it("clears the listing URL when sent null", async () => {
+    const res = mockResWithRevalidate();
+    await handler(authedReq({ method: "PATCH", body: { id: LEAGUE_ID, listingUrl: null } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(mockPrisma.league.update.mock.calls[0][0].data).toEqual({ listingUrl: null });
+  });
+
+  it("rejects a listing URL off the scraper allowlist", async () => {
+    const res = mockResWithRevalidate();
+    await handler(authedReq({ method: "PATCH", body: { id: LEAGUE_ID, listingUrl: "https://evil.example.com/x" } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(mockPrisma.league.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects an edit that names no field", async () => {
+    const res = mockResWithRevalidate();
+    await handler(authedReq({ method: "PATCH", body: { id: LEAGUE_ID } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(mockPrisma.league.update).not.toHaveBeenCalled();
   });
 });
