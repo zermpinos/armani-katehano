@@ -24,6 +24,7 @@ const OPPONENT_NAMES: Record<string, string> = {
   "GEROLEAGUE STARS":      "Geroleague Stars",
   "HUSTLING HUSKIES":      "Hustling Huskies",
   "MIAMI BRICKS":          "Miami Bricks",
+  "NEW YORK BRICKS":       "New York Bricks",
   "PATISSIA THUNDERS":     "Patissia Thunders",
   "PORT WARRIORS":         "Port Warriors",
   "PTOMA HAWKS":           "Ptoma Hawks",

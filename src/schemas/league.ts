@@ -29,3 +29,12 @@ export const LeagueCreateSchema = z.object({
   level:        z.string().max(50).optional().nullable(),
   seasonId:     z.string().cuid().optional(),
 });
+
+// Genuinely partial, unlike the player schemas, which replace the whole row: the
+// fields this route exists to fix arrived by migration, and a caller that has to
+// resend the ones it does not care about blanks whatever it forgets. picked from
+// the create schema so an edited listing URL faces the same allowlist check.
+export const LeagueUpdateSchema = LeagueCreateSchema
+  .pick({ listingUrl: true, sourceSlug: true })
+  .partial()
+  .extend({ id: z.string().cuid() });
