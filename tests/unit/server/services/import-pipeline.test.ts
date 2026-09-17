@@ -3,9 +3,10 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 const { mockPrisma, mockScrape } = vi.hoisted(() => ({
   mockPrisma: {
-    player:       { findMany: vi.fn() },
-    rosterEntry:  { findMany: vi.fn() },
-    seasonLeague: { findMany: vi.fn() },
+    player:        { findMany: vi.fn() },
+    rosterEntry:   { findMany: vi.fn() },
+    seasonLeague:  { findMany: vi.fn() },
+    opponentAlias: { findMany: vi.fn() },
   },
   mockScrape: vi.fn(),
 }));
@@ -60,7 +61,21 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockPrisma.player.findMany.mockResolvedValue([{ id: "p1", number: 4 }]);
   mockPrisma.rosterEntry.findMany.mockResolvedValue([]);
+  mockPrisma.opponentAlias.findMany.mockResolvedValue([
+    { scrapedName: "Rivals", displayName: "Rivals" },
+  ]);
   mockScrape.mockResolvedValue({ data: boxScore(), gameState: "final", bytesHash: "h" });
+});
+
+// An empty table means the seed migration never ran. Resolving every opponent
+// to unknown would stall each import with no clue why, so it stops at the load.
+describe("scrapeAndResolve alias guard", () => {
+  it("refuses to run when no opponent alias exists", async () => {
+    seasonLeaguesIn([LIVE]);
+    mockPrisma.opponentAlias.findMany.mockResolvedValue([]);
+    await expect(scrapeAndResolve("https://example.com/rookie/gamedetails/id/ABC"))
+      .rejects.toThrow(/OpponentAlias is empty/);
+  });
 });
 
 describe("scrapeAndResolve season selection", () => {

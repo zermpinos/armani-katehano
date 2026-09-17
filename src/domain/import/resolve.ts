@@ -1,6 +1,6 @@
 import { parseGreekDate, parseMinutes, detectLeagueSlug } from "@/domain/calendar/greek-date";
 import { isUsTeam } from "./identity";
-import { displayOpponent } from "./opponents";
+import { displayOpponent, type OpponentAliases } from "./opponents";
 import { organizationForUrl } from "@/domain/leagues/organizations";
 
 export interface RosterPlayer {
@@ -137,7 +137,9 @@ export function resolve(
   raw: Record<string, unknown>,
   roster: RosterPlayer[],
   seasonLeagues: SeasonLeagueRef[],
-  opts: { leagueSlug?: string | null } = {},
+  // Aliases are loaded by the caller: this module does no I/O. resolverInputs
+  // refuses to run on an empty table, so production never passes nothing here.
+  opts: { leagueSlug?: string | null; aliases?: OpponentAliases } = {},
 ): ResolveResult {
   const { game, teams, url: sourceUrl } = raw as {
     game: { homeTeam: string; awayTeam: string; date: string; finalScore: { home: number; away: number } };
@@ -157,7 +159,7 @@ export function resolve(
   const oppTeamName = isHome ? game.awayTeam        : game.homeTeam;
   const result      = akScore > oppScore ? "W" : akScore < oppScore ? "L" : "T";
   const playedOn    = parseGreekDate(game.date);
-  const mappedOpp   = displayOpponent(oppTeamName);
+  const mappedOpp   = displayOpponent(oppTeamName, opts.aliases ?? new Map());
 
   const unresolved: string[] = [];
   const seasonLeagueId = resolveLeague(sourceUrl ?? null, playedOn, seasonLeagues, unresolved, opts.leagueSlug);

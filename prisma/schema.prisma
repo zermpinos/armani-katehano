@@ -249,6 +249,16 @@ model Setting {
   updatedAt DateTime @updatedAt
 }
 
+// How a name the source publishes in caps is written on the site. Exact key
+// only: the fuzzy-matching version of this table was removed in June for
+// guessing wrong, and a name that is not here is reported, never inferred.
+model OpponentAlias {
+  id          String   @id @default(cuid())
+  scrapedName String   @unique
+  displayName String
+  createdAt   DateTime @default(now())
+}
+
 model CronRun {
   id         String    @id @default(cuid())
   job        String

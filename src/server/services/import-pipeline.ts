@@ -3,13 +3,18 @@ import prisma from "@/server/db/client";
 import { scrapeGameFromUrl, ScrapeError } from "@/server/services/scrape-game";
 import { captureImportDraft } from "@/server/services/import-commit";
 import { resolve } from "@/domain/import/resolve";
+import { buildAliases, type OpponentAliases } from "@/domain/import/opponents";
 import { verify } from "@/domain/import/verify";
 import type { SeasonLeagueRef, ResolveResult, RosterPlayer } from "@/domain/import/resolve";
 import type { ClassifyResult } from "@/domain/import/classify";
 import type { GateResult } from "@/domain/import/verify";
 
-async function resolverInputs(): Promise<{ roster: RosterPlayer[]; seasonLeagues: SeasonLeagueRef[] }> {
-  const [players, overrides, seasonLeagues] = await Promise.all([
+async function resolverInputs(): Promise<{
+  roster: RosterPlayer[];
+  seasonLeagues: SeasonLeagueRef[];
+  aliases: OpponentAliases;
+}> {
+  const [players, overrides, seasonLeagues, aliasRows] = await Promise.all([
     prisma.player.findMany({
       where:   { isActive: true },
       orderBy: { number: "asc" },
@@ -26,7 +31,18 @@ async function resolverInputs(): Promise<{ roster: RosterPlayer[]; seasonLeagues
       where:   { season: { archivedAt: null } },
       include: { league: true, season: true },
     }),
+    prisma.opponentAlias.findMany({ select: { scrapedName: true, displayName: true } }),
   ]);
+
+  // An empty table is a database whose seed migration never ran, not a team
+  // with no opponents. Left alone it would mark every opponent unknown and
+  // quietly stall every import, so it stops here instead.
+  if (aliasRows.length === 0) {
+    throw new Error(
+      "OpponentAlias is empty, so no opponent name can be resolved. " +
+      "Run the migrations: the table ships seeded.",
+    );
+  }
 
   const numbersByLeague = new Map<string, Map<string, number>>();
   for (const o of overrides) {
@@ -46,6 +62,7 @@ async function resolverInputs(): Promise<{ roster: RosterPlayer[]; seasonLeagues
       seasonStart:  sl.season.startDate?.toISOString() ?? null,
       seasonEnd:    sl.season.endDate?.toISOString() ?? null,
     })),
+    aliases: buildAliases(aliasRows),
   };
 }
 
@@ -62,12 +79,12 @@ export async function scrapeAndResolve(
   opts: { leagueSlug?: string | null } = {},
 ): Promise<PipelineResult> {
   const { data, gameState, bytesHash } = await scrapeGameFromUrl(url);
-  const { roster, seasonLeagues } = await resolverInputs();
+  const { roster, seasonLeagues, aliases } = await resolverInputs();
 
   await captureImportDraft(url, data, bytesHash);
 
   try {
-    return { data, gameState, gate: verify(data), ...resolve(data, roster, seasonLeagues, opts) };
+    return { data, gameState, gate: verify(data), ...resolve(data, roster, seasonLeagues, { ...opts, aliases }) };
   } catch (err) {
     // resolve() throws only when our team is missing from the scraped teams.
     throw new ScrapeError((err as Error).message, 422);
