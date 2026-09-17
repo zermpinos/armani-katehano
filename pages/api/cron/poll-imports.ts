@@ -28,6 +28,7 @@ import { toCommitInput } from "@/domain/import/resolve";
 import { parseGreekDate } from "@/domain/calendar/greek-date";
 import { GameWriteSchema } from "@/schemas/game";
 import { sendImportNotification } from "@/server/integrations/email/client";
+import { sendAliasPrompt } from "@/server/integrations/slack/client";
 import { discoverGames } from "@/server/services/discover-games";
 import { syncFixtures } from "@/server/services/sync-fixtures";
 import { invalidateForScheduleMutation } from "@/server/services/cache-invalidation";
@@ -138,6 +139,14 @@ export default async function handler(req: any, res: any) {
       } catch (err: any) {
         skip(err instanceof CommitError ? `commit: ${err.message}` : err.message);
       }
+    }
+
+    // A name nobody can act on from an inbox: this one ships the buttons that
+    // write it, so it goes to Slack directly rather than through the alert
+    // path that falls back to email.
+    if (fixtureSync.unmapped.length) {
+      await sendAliasPrompt(fixtureSync.unmapped)
+        .catch(err => console.error("[poll-imports] alias prompt:", err));
     }
 
     const stalled = skipped.filter(s => !s.transient);

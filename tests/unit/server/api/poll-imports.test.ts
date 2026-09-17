@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const { mockPrisma, mockDiscover, mockScrapeAndResolve, mockCommitImport, MockCommitError, mockFinishCronRun, mockNotify, mockSyncFixtures, mockLoadAliases } = vi.hoisted(() => {
+const { mockPrisma, mockDiscover, mockScrapeAndResolve, mockCommitImport, MockCommitError, mockFinishCronRun, mockNotify, mockSyncFixtures, mockLoadAliases, mockAliasPrompt } = vi.hoisted(() => {
   class MockCommitError extends Error {
     constructor(message, status) { super(message); this.status = status; }
   }
@@ -15,6 +15,7 @@ const { mockPrisma, mockDiscover, mockScrapeAndResolve, mockCommitImport, MockCo
     mockNotify:           vi.fn(),
     mockSyncFixtures:     vi.fn(),
     mockLoadAliases:      vi.fn(),
+    mockAliasPrompt:      vi.fn(),
   };
 });
 
@@ -31,6 +32,7 @@ vi.mock("@/server/services/import-pipeline", () => ({
   loadOpponentAliases: mockLoadAliases,
 }));
 vi.mock("@/server/services/sync-fixtures", () => ({ syncFixtures: mockSyncFixtures }));
+vi.mock("@/server/integrations/slack/client", () => ({ sendAliasPrompt: mockAliasPrompt }));
 vi.mock("@/server/services/cache-invalidation", () => ({ invalidateForScheduleMutation: vi.fn() }));
 vi.mock("@/server/services/import-commit", () => ({
   commitImport: mockCommitImport,
@@ -101,6 +103,7 @@ beforeEach(() => {
   mockNotify.mockResolvedValue(undefined);
   mockLoadAliases.mockResolvedValue(new Map());
   mockSyncFixtures.mockResolvedValue({ created: [], changed: [], unmapped: [], skipped: [] });
+  mockAliasPrompt.mockResolvedValue(true);
 });
 
 describe("poll-imports auth", () => {
@@ -357,5 +360,32 @@ describe("poll-imports fixture sync", () => {
     expect(res.statusCode).toBe(200);
     expect(mockCommitImport).toHaveBeenCalledTimes(1);
     expect(summary().fixtures.skipped[0]).toMatch(/fixture sync failed: fixture table locked/);
+  });
+});
+
+// The alias prompt carries the buttons that write the name, so it goes to
+// Slack directly rather than through the alert path that falls back to email.
+describe("poll-imports alias prompt", () => {
+  const unmapped = [{ scrapedName: "BRAND NEW TEAM", suggestion: "Brand New Team", dateText: "1 Μαρτίου 2026" }];
+
+  it("asks Slack for a name the alias table does not cover", async () => {
+    mockSyncFixtures.mockResolvedValue({ created: [], changed: [], unmapped, skipped: [] });
+    await handler(mockReq(), mockRes());
+    expect(mockAliasPrompt).toHaveBeenCalledWith(unmapped);
+  });
+
+  it("stays quiet when every opponent is already named", async () => {
+    await handler(mockReq(), mockRes());
+    expect(mockAliasPrompt).not.toHaveBeenCalled();
+  });
+
+  // Slack being down is not a reason to lose the night's imports.
+  it("still finishes the run when the prompt cannot be delivered", async () => {
+    mockSyncFixtures.mockResolvedValue({ created: [], changed: [], unmapped, skipped: [] });
+    mockAliasPrompt.mockRejectedValue(new Error("slack unreachable"));
+    const res = mockRes();
+    await handler(mockReq(), res);
+    expect(res.statusCode).toBe(200);
+    expect(mockCommitImport).toHaveBeenCalledTimes(1);
   });
 });
