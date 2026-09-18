@@ -8,11 +8,19 @@
  * than one interrupted import at a time. A team already in the table when its
  * first fixture appears never blocks anything.
  *
- * Suggestions are a starting point and are wrong often enough to matter: no
- * rule gets from TAZ BOYS to Taz Boyz, and Greek names need a person. Review
- * the output before running it.
+ * Greek is transliterated by ELOT 743, the scheme Greek passports use, so the
+ * output is uniform and predictable rather than a per-name judgement. The rule
+ * knows shapes, not meanings: an acronym reads as a word and a brand loses its
+ * inner capital. Read the output before running it, and fix those by editing
+ * the row, never by teaching this script a name.
  *
  * Run: npx tsx scripts/suggest-opponent-aliases.ts
+ *      npx tsx scripts/suggest-opponent-aliases.ts --check-existing
+ *
+ * --check-existing reports rows already in the table whose display name the
+ * rule would write differently. A row listed there is drift or a deliberate
+ * override, and either way it should be a decision somebody made rather than
+ * one nobody remembers.
  */
 
 import prisma from "@/server/db/client";
@@ -38,23 +46,84 @@ function parseTeamNames(html: string): string[] {
   return [...names];
 }
 
-// Title case over the source's caps. Right for ATALANTOI HAWKS, wrong for
-// TAZ BOYS, and no help at all for Greek, which is why this is reviewed.
+// ELOT 743, the scheme Greek passports use. Applied because the names written
+// by hand before it had no rule: chi read as x in one and ch in another,
+// upsilon as y, i and v across three. A rule nobody can state is a rule nobody
+// can apply to the next name.
+const VOICELESS = new Set([..."θκξπστφχψ"]);
+
+// Maps rather than objects: the keys come from scraped markup.
+const GREEK = new Map<string, string>(Object.entries({
+  α: "a", β: "v", γ: "g", δ: "d", ε: "e", ζ: "z", η: "i", θ: "th", ι: "i",
+  κ: "k", λ: "l", μ: "m", ν: "n", ξ: "x", ο: "o", π: "p", ρ: "r", σ: "s",
+  ς: "s", τ: "t", υ: "y", φ: "f", χ: "ch", ψ: "ps", ω: "o",
+}));
+
+function elot743(word: string): string {
+  const w = word.normalize("NFD").replace(/[\u0300-\u036f]/g, "").normalize("NFC").toLowerCase();
+  let out = "";
+  for (let i = 0; i < w.length; ) {
+    const pair = w.slice(i, i + 2);
+    const after = w.charAt(i + 2);
+    // The diphthongs take v before a vowel or voiced consonant, f before a
+    // voiceless one, which is the only context-sensitive part of the scheme.
+    if (pair === "αυ" || pair === "ευ" || pair === "ηυ") {
+      out += (pair[0] === "α" ? "a" : pair[0] === "ε" ? "e" : "i") + (after && VOICELESS.has(after) ? "f" : "v");
+      i += 2; continue;
+    }
+    const digraph = new Map<string, string>(Object.entries({
+      ου: "ou", αι: "ai", ει: "ei", οι: "oi", υι: "yi", γγ: "ng", γκ: "gk",
+      // Word initial only; medial keeps both letters.
+      μπ: i === 0 ? "b" : "mp",
+      ντ: i === 0 ? "d" : "nt",
+    }));
+    const two = digraph.get(pair);
+    if (two) { out += two; i += 2; continue; }
+    const one = w.charAt(i);
+    out += GREEK.get(one) ?? one;
+    i += 1;
+  }
+  return out;
+}
+
+const titleCase = (s: string) =>
+  s.replace(/\p{L}[\p{L}'\u2019]*/gu, w => w[0].toUpperCase() + w.slice(1));
+
+// Rules by shape only. Nothing here knows what a word means, so no name gets a
+// special case: an acronym reads as a word and a brand loses its inner capital,
+// and both are fixed by editing the row rather than by teaching this a name.
 function suggest(scraped: string): string {
   return scraped.split(/\s+/).map(token => {
     // A token starting with a digit reads as an ordinal: 3rd, not 3Rd.
     if (/^\d/.test(token)) return token.toLowerCase();
-    // Everything arrives in caps, so length cannot tell an abbreviation from a
-    // word: WILD, WEST and KIDS are as short as BC. Only a dotted token is
-    // unambiguous, plus BC, which this league writes on half its team names.
+    // A dotted token is an abbreviation whatever language it is in.
     if (/\./.test(token) || token === "BC") return token;
-    return token.toLowerCase().replace(/\p{L}[\p{L}'’]*/gu, w => w[0].toUpperCase() + w.slice(1));
+    if (/[\u0370-\u03FF]/.test(token)) return titleCase(elot743(token));
+    return titleCase(token.toLowerCase());
   }).join(" ");
 }
 
 const sqlQuote = (s: string) => s.replace(/'/g, "''");
 
+async function checkExisting() {
+  const rows = await prisma.opponentAlias.findMany({ orderBy: { scrapedName: "asc" } });
+  const drift = rows.filter(r => suggest(r.scrapedName) !== r.displayName);
+
+  console.error(`${rows.length} rows, ${drift.length} the rule would write differently\n`);
+  if (drift.length === 0) return;
+
+  for (const r of drift) {
+    console.error(`  ${r.scrapedName}\n    stored: ${r.displayName}\n    rule:   ${suggest(r.scrapedName)}`);
+  }
+  console.log("\n-- To adopt the rule for these:");
+  for (const r of drift) {
+    console.log(`UPDATE "OpponentAlias" SET "displayName" = '${sqlQuote(suggest(r.scrapedName))}' WHERE "scrapedName" = '${sqlQuote(r.scrapedName)}';`);
+  }
+}
+
 async function main() {
+  if (process.argv.includes("--check-existing")) return checkExisting();
+
   const leagues = await prisma.league.findMany({
     where:  { listingUrl: { not: null }, seasonLeagues: { some: { season: { archivedAt: null } } } },
     select: { name: true, listingUrl: true },
@@ -85,7 +154,7 @@ async function main() {
   console.error(`\n${scraped.size} teams listed, ${known.size} already named, ${missing.length} to review\n`);
   if (missing.length === 0) return;
 
-  console.log("-- Review every displayName before running this. Greek names need a person.");
+  console.log("-- Transliteration is ELOT 743. Read it before running: the rule reads shapes, not meanings.");
   console.log('INSERT INTO "OpponentAlias" ("id", "scrapedName", "displayName") VALUES');
   // Greek names are marked rather than transliterated. The names already in the
   // table map the same letter several ways depending on the word, Gerolykoi and
@@ -94,10 +163,8 @@ async function main() {
   const greek = (s: string) => /[\u0370-\u03FF]/.test(s);
 
   console.log(missing.map((name, i) =>
-    `  ('team_${String(i).padStart(3, "0")}', '${sqlQuote(name)}', '${sqlQuote(suggest(name))}')`
-    + (greek(name) ? "," : ",")
-    + (greek(name) ? "  -- TRANSLITERATE" : ""),
-  ).join("\n").replace(/,(\s*--[^\n]*)?$/, "$1") + "\nON CONFLICT (\"scrapedName\") DO NOTHING;");
+    `  ('team_${String(i).padStart(3, "0")}', '${sqlQuote(name)}', '${sqlQuote(suggest(name))}')`,
+  ).join(",\n") + "\nON CONFLICT (\"scrapedName\") DO NOTHING;");
 }
 
 main()
