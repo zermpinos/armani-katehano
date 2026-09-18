@@ -437,7 +437,7 @@ These variables are set by the build/runtime environment automatically. Do not s
 |-----------------------------------|------------------------------------------------------------------------|
 | `strip-next-polyfills.mjs`        | Prebuild: stubs out Next.js polyfill-module so Turbopack doesn't bundle it |
 | `check-proxy-bundle.mjs`          | Post-build CI guard: asserts the proxy runtime and scans its real chunk graph |
-| `suggest-opponent-aliases.ts`     | Reads each open league's team index and prints INSERT statements for opponents `OpponentAlias` does not cover yet, transliterating Greek by ELOT 743. Run once per season. `--check-existing` reports rows the rule would write differently, so an override stays visible instead of becoming drift |
+| `suggest-opponent-aliases.ts`     | Reads each open league's team index and prints INSERT statements for opponents `OpponentAlias` does not cover yet, transliterating Greek by ELOT 743. Run once per season. `--check-existing` reports rows the rule would write differently, so an override stays visible instead of becoming drift. Both modes print what they would do; `--apply` writes it |
 | `check-isr-pages.mjs`             | Post-build CI guard: confirms expected pages were statically pre-rendered, no admin page leaked into static output, and committed CSP hashes appear in the built bundle |
 | `regenerate-csp-hashes.mjs`       | Walks pre-rendered HTML, SHA-256-hashes inline `<script>`/`<style>` bodies, writes `src/server/security/edge/csp-hashes.ts` |
 | `check-postcss-override.mjs`      | Scans postcss config for nested entries and reports the lowest override |
