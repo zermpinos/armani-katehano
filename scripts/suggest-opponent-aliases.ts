@@ -14,8 +14,11 @@
  * inner capital. Read the output before running it, and fix those by editing
  * the row, never by teaching this script a name.
  *
- * Run: npx tsx scripts/suggest-opponent-aliases.ts
- *      npx tsx scripts/suggest-opponent-aliases.ts --check-existing
+ * Run: npx tsx --env-file=.env scripts/suggest-opponent-aliases.ts
+ *      npx tsx --env-file=.env scripts/suggest-opponent-aliases.ts --check-existing
+ *
+ * Both print what they would do. Add --apply to write it, which is there so the
+ * output can be read before anything changes.
  *
  * --check-existing reports rows already in the table whose display name the
  * rule would write differently. A row listed there is drift or a deliberate
@@ -105,6 +108,8 @@ function suggest(scraped: string): string {
 
 const sqlQuote = (s: string) => s.replace(/'/g, "''");
 
+const APPLY = process.argv.includes("--apply");
+
 async function checkExisting() {
   const rows = await prisma.opponentAlias.findMany({ orderBy: { scrapedName: "asc" } });
   const drift = rows.filter(r => suggest(r.scrapedName) !== r.displayName);
@@ -115,10 +120,22 @@ async function checkExisting() {
   for (const r of drift) {
     console.error(`  ${r.scrapedName}\n    stored: ${r.displayName}\n    rule:   ${suggest(r.scrapedName)}`);
   }
-  console.log("\n-- To adopt the rule for these:");
-  for (const r of drift) {
-    console.log(`UPDATE "OpponentAlias" SET "displayName" = '${sqlQuote(suggest(r.scrapedName))}' WHERE "scrapedName" = '${sqlQuote(r.scrapedName)}';`);
+  if (!APPLY) {
+    console.log("\n-- To adopt the rule for these, re-run with --apply, or:");
+    for (const r of drift) {
+      console.log(`UPDATE "OpponentAlias" SET "displayName" = '${sqlQuote(suggest(r.scrapedName))}' WHERE "scrapedName" = '${sqlQuote(r.scrapedName)}';`);
+    }
+    return;
   }
+
+  for (const r of drift) {
+    await prisma.opponentAlias.update({
+      where: { scrapedName: r.scrapedName },
+      data:  { displayName: suggest(r.scrapedName) },
+    });
+    console.error(`  updated ${r.scrapedName} -> ${suggest(r.scrapedName)}`);
+  }
+  console.error(`\n${drift.length} rows now follow the rule.`);
 }
 
 async function main() {
@@ -153,6 +170,15 @@ async function main() {
 
   console.error(`\n${scraped.size} teams listed, ${known.size} already named, ${missing.length} to review\n`);
   if (missing.length === 0) return;
+
+  if (APPLY) {
+    const { count } = await prisma.opponentAlias.createMany({
+      data: missing.map(name => ({ scrapedName: aliasKey(name), displayName: suggest(name) })),
+      skipDuplicates: true,
+    });
+    console.error(`inserted ${count} rows`);
+    return;
+  }
 
   console.log("-- Transliteration is ELOT 743. Read it before running: the rule reads shapes, not meanings.");
   console.log('INSERT INTO "OpponentAlias" ("id", "scrapedName", "displayName") VALUES');
