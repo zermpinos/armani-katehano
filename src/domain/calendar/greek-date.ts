@@ -33,25 +33,10 @@ export function parseGreekDate(str: string | null | undefined): Date | null {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
-const ATHENS = "Europe/Athens";
-
-// How far Athens wall-clock runs ahead of UTC at a given instant. Read from the
-// zone rather than fixed at +3: Greece drops to +2 in late October, so a
-// constant would move every winter fixture an hour off.
-function athensOffsetMs(instant: number): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: ATHENS, hour12: false,
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit",
-  }).formatToParts(new Date(instant));
-  const n = (type: string) => Number(parts.find(p => p.type === type)?.value);
-  // Midnight prints as 24 under some ICU builds, which would roll the day.
-  return Date.UTC(n("year"), n("month") - 1, n("day"), n("hour") % 24, n("minute"), n("second")) - instant;
-}
-
 // The listing prints a local kick-off ("Σάββατο, 19 Σεπτεμβρίου 2026 / 16:15").
-// Returns the instant that names, or null when either half is unreadable, so a
-// caller can skip rather than invent a time.
+// Kept as those Athens digits in UTC, not converted to the real instant: every
+// reader and the admin editor show the UTC digits as Athens time. Null when
+// either half is unreadable, so a caller can skip rather than invent a time.
 export function parseGreekDateTime(
   dateStr: string | null | undefined,
   timeStr: string | null | undefined,
@@ -65,11 +50,7 @@ export function parseGreekDateTime(
   const minutes = parseInt(match[2], 10);
   if (hours > 23 || minutes > 59) return null;
 
-  const wallClock = date.getTime() + (hours * 60 + minutes) * 60_000;
-  // Twice: the first offset is sampled at the wrong instant for a reading that
-  // sits near a transition, the second at the corrected one.
-  const firstPass = wallClock - athensOffsetMs(wallClock);
-  return new Date(wallClock - athensOffsetMs(firstPass));
+  return new Date(date.getTime() + (hours * 60 + minutes) * 60_000);
 }
 
 export function detectLeagueSlug(url: string | null | undefined): string | null {
