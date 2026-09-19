@@ -32,10 +32,12 @@ import { sendAliasPrompt } from "@/server/integrations/slack/client";
 import { discoverGames } from "@/server/services/discover-games";
 import { syncFixtures } from "@/server/services/sync-fixtures";
 import { invalidateForScheduleMutation } from "@/server/services/cache-invalidation";
+import { fetchGuarded } from "@/server/services/scrape-game";
+import { VIDEO_FEED_URL, findGameVideo } from "@/server/integrations/scraper/video-feed";
 
 // Three scrapes at an 8s timeout each fits the function budget with room for
-// the commits, on top of the two listing fetches. A fourth game on one night
-// waits for tomorrow's run.
+// the commits, on top of the two listing fetches and the video feed. A fourth
+// game on one night waits for tomorrow's run.
 const MAX_CANDIDATES = 3;
 // A week, so a game that needs someone to act first (add a new player to the
 // roster, name an unknown opponent) still imports itself once they have.
@@ -107,7 +109,17 @@ export default async function handler(req: any, res: any) {
       .sort((a, b) => b.playedOn!.getTime() - a.playedOn!.getTime())
       .slice(0, MAX_CANDIDATES);
 
-    const committed: { sourceUrl: string; gameId: string }[] = [];
+    // The replay is up by the time the stats are, so it rides along with the
+    // commit. A feed that will not load costs the video, never the game.
+    let videoFeed = "", videoFeedError: string | null = null;
+    if (candidates.length) {
+      videoFeed = await fetchGuarded(VIDEO_FEED_URL).catch((err: Error) => {
+        videoFeedError = err.message;
+        return "";
+      });
+    }
+
+    const committed: { sourceUrl: string; gameId: string; youtubeUrl: string | null }[] = [];
     const skipped:   Skip[] = [];
     for (const e of errors) skipped.push({ sourceUrl: "listing", reason: e, transient: false });
 
@@ -128,13 +140,14 @@ export default async function handler(req: any, res: any) {
 
         // Same validation the admin's save goes through. Round comes from the
         // listing label, which is the only place a playoff game says so.
-        const parsed = GameWriteSchema.safeParse({ ...toCommitInput(result.draft), round: candidate.round });
+        const youtubeUrl = findGameVideo(videoFeed, candidate.playedOn!);
+        const parsed = GameWriteSchema.safeParse({ ...toCommitInput(result.draft), round: candidate.round, youtubeUrl });
         if (!parsed.success) { skip("draft failed schema validation"); continue; }
 
         const { gameId } = await commitImport(parsed.data, {
           revalidate: (p: string) => res.revalidate?.(p),
         });
-        committed.push({ sourceUrl, gameId });
+        committed.push({ sourceUrl, gameId, youtubeUrl });
         auditLog("poll_import_committed", { gameId, sourceUrl });
       } catch (err: any) {
         skip(err instanceof CommitError ? `commit: ${err.message}` : err.message);
@@ -158,7 +171,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const summary = {
-      listed: games.length, candidates: candidates.length, committed, skipped,
+      listed: games.length, candidates: candidates.length, committed, skipped, videoFeedError,
       fixtures: {
         created:  fixtureSync.created.map(c => `${c.opponent} ${c.scheduledFor.toISOString()}`),
         changed:  fixtureSync.changed,
