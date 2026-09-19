@@ -48,7 +48,7 @@ function boxRow(overrides = {}) {
   };
 }
 
-function commitData({ teamScore = 10, sourceUrl = SOURCE_URL } = {}) {
+function commitData({ teamScore = 10, sourceUrl = SOURCE_URL, youtubeUrl = undefined } = {}) {
   return {
     seasonLeagueId: SEASON_LEAGUE_ID,
     opponent: "Rivals BC",
@@ -58,6 +58,7 @@ function commitData({ teamScore = 10, sourceUrl = SOURCE_URL } = {}) {
     result: "W",
     playedOn: "2026-03-28",
     sourceUrl,
+    youtubeUrl,
     round: "regular",
     boxScore: [boxRow()],
   };
@@ -206,6 +207,17 @@ describe("commitImport notification", () => {
     expect(sendImportNotification).toHaveBeenCalledWith(
       expect.objectContaining({ kind: "success", opponent: "Rivals BC", location: "home" }),
     );
+  });
+
+  it("tells the alert which video the game was saved with", async () => {
+    const youtubeUrl = "https://www.youtube.com/watch?v=2ebwcUbtvrA";
+    await commitImport(commitData({ youtubeUrl }));
+    expect(sendImportNotification).toHaveBeenCalledWith(expect.objectContaining({ youtubeUrl }));
+  });
+
+  it("tells the alert when the game was saved without a video", async () => {
+    await commitImport(commitData());
+    expect(sendImportNotification).toHaveBeenCalledWith(expect.objectContaining({ youtubeUrl: null }));
   });
 
   it("does not send the alert on a duplicate", async () => {
