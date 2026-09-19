@@ -187,6 +187,7 @@ export async function commitImport(data: CommitInput, opts: CommitOptions = {}):
     location,
     scheduledFor: gameDate.toISOString(),
     importedAt:   new Date(),
+    youtubeUrl:   youtubeUrl ?? null,
   }).catch(err => console.error("[import-commit] notify:", err));
 
   return { gameId: game.id };

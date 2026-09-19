@@ -7,8 +7,10 @@ export function buildImportSuccess(p: {
   location:     string;
   scheduledFor: string;
   importedAt:   Date;
+  youtubeUrl:   string | null;
 }): ImportNotificationResult {
   const vsAt    = p.location === "home" ? "vs" : "@";
+  const video   = p.youtubeUrl ?? "none attached, paste it by hand";
   const subject = `[AK] Imported: ${vsAt} ${p.opponent}`;
   const html = adminHtml({
     title:       "Game Imported",
@@ -17,10 +19,11 @@ export function buildImportSuccess(p: {
       { label: "Match",      value: `${vsAt} ${esc(p.opponent)}` },
       { label: "Scheduled",  value: esc(formatDate(p.scheduledFor)) },
       { label: "Imported at",value: esc(p.importedAt.toUTCString()) },
+      { label: "Video",      value: esc(video) },
     ],
     extra: "",
   });
-  const text = `[AK] Game Imported\n\nMatch: ${vsAt} ${p.opponent}\nScheduled: ${p.scheduledFor}\nImported at: ${p.importedAt.toISOString()}`;
+  const text = `[AK] Game Imported\n\nMatch: ${vsAt} ${p.opponent}\nScheduled: ${p.scheduledFor}\nImported at: ${p.importedAt.toISOString()}\nVideo: ${video}`;
   return { subject, html, text };
 }
 

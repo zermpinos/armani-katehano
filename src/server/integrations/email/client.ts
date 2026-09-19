@@ -17,7 +17,7 @@ import { buildConfirmationEmailHtml, buildConfirmationEmailText } from "./templa
 import { sendSlackAlert } from "@/server/integrations/slack/client";
 
 export type ImportNotificationPayload =
-  | { kind: "success"; opponent: string; location: string; scheduledFor: string; importedAt: Date }
+  | { kind: "success"; opponent: string; location: string; scheduledFor: string; importedAt: Date; youtubeUrl: string | null }
   | { kind: "stalled"; entries: { sourceUrl: string; reason: string }[]; error?: string | null }
   | { kind: "test" };
 
