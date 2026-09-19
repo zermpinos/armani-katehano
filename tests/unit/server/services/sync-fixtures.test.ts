@@ -12,6 +12,7 @@ vi.mock("@/server/db/client", () => ({ default: mockPrisma, prisma: mockPrisma }
 
 import { syncFixtures, suggestDisplayName } from "@/server/services/sync-fixtures";
 import { buildAliases } from "@/domain/import/opponents";
+import { formatGameTime } from "@/client/home/calendar-utils";
 
 const ALIASES = buildAliases([
   { scrapedName: "ATALANTOI HAWKS", displayName: "Atalantoi Hawks" },
@@ -48,8 +49,10 @@ describe("syncFixtures", () => {
     expect(out.created).toHaveLength(1);
     const { data } = mockPrisma.upcomingGame.create.mock.calls[0][0];
     expect(data.opponent).toBe("Atalantoi Hawks");
-    // 16:15 Athens in September is EEST, so 13:15Z.
-    expect(data.scheduledFor.toISOString()).toBe("2026-09-19T13:15:00.000Z");
+    // Checked through a reader too: the parser and the site once each passed
+    // their own tests while disagreeing about what the stored time meant.
+    expect(data.scheduledFor.toISOString()).toBe("2026-09-19T16:15:00.000Z");
+    expect(formatGameTime(data.scheduledFor.toISOString())).toBe("16:15");
     expect(data.location).toBe("home");
     expect(data.notes).toBe("ARENA");
     expect(data.seasonLeagueId).toBe("sl-cup");
@@ -72,17 +75,17 @@ describe("syncFixtures", () => {
     expect(mockPrisma.upcomingGame.create).not.toHaveBeenCalled();
     expect(mockPrisma.upcomingGame.update).toHaveBeenCalledWith({
       where: { id: "ug1" },
-      data:  { scheduledFor: new Date("2026-09-19T13:15:00.000Z") },
+      data:  { scheduledFor: new Date("2026-09-19T16:15:00.000Z") },
     });
     expect(out.changed).toEqual([
       { opponent: "Atalantoi Hawks", field: "scheduledFor",
-        from: "2026-09-19T15:15:00.000Z", to: "2026-09-19T13:15:00.000Z" },
+        from: "2026-09-19T15:15:00.000Z", to: "2026-09-19T16:15:00.000Z" },
     ]);
   });
 
   it("leaves an unchanged fixture alone", async () => {
     mockPrisma.upcomingGame.findFirst.mockResolvedValue({
-      id: "ug1", scheduledFor: new Date("2026-09-19T13:15:00.000Z"),
+      id: "ug1", scheduledFor: new Date("2026-09-19T16:15:00.000Z"),
       location: "home", notes: "ARENA",
     });
     const out = await syncFixtures([fixture()], ALIASES);
