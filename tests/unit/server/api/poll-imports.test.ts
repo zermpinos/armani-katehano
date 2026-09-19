@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const { mockPrisma, mockDiscover, mockScrapeAndResolve, mockCommitImport, MockCommitError, mockFinishCronRun, mockNotify, mockSyncFixtures, mockLoadAliases, mockAliasPrompt } = vi.hoisted(() => {
+const { mockPrisma, mockDiscover, mockScrapeAndResolve, mockCommitImport, MockCommitError, mockFinishCronRun, mockNotify, mockSyncFixtures, mockLoadAliases, mockAliasPrompt, mockFetchGuarded } = vi.hoisted(() => {
   class MockCommitError extends Error {
     constructor(message, status) { super(message); this.status = status; }
   }
@@ -16,6 +16,7 @@ const { mockPrisma, mockDiscover, mockScrapeAndResolve, mockCommitImport, MockCo
     mockSyncFixtures:     vi.fn(),
     mockLoadAliases:      vi.fn(),
     mockAliasPrompt:      vi.fn(),
+    mockFetchGuarded:     vi.fn(),
   };
 });
 
@@ -39,6 +40,7 @@ vi.mock("@/server/services/import-commit", () => ({
   CommitError:  MockCommitError,
 }));
 vi.mock("@/server/integrations/email/client", () => ({ sendImportNotification: mockNotify }));
+vi.mock("@/server/services/scrape-game", () => ({ fetchGuarded: mockFetchGuarded }));
 
 import handler from "../../../../pages/api/cron/poll-imports";
 
@@ -104,6 +106,7 @@ beforeEach(() => {
   mockLoadAliases.mockResolvedValue(new Map());
   mockSyncFixtures.mockResolvedValue({ created: [], changed: [], unmapped: [], skipped: [] });
   mockAliasPrompt.mockResolvedValue(true);
+  mockFetchGuarded.mockResolvedValue("");
 });
 
 describe("poll-imports auth", () => {
@@ -387,5 +390,43 @@ describe("poll-imports alias prompt", () => {
     await handler(mockReq(), res);
     expect(res.statusCode).toBe(200);
     expect(mockCommitImport).toHaveBeenCalledTimes(1);
+  });
+});
+
+// The organisers post the replay by the time the stats are up, so the video can
+// ride along with the commit instead of needing a pass of its own.
+describe("poll-imports replay video", () => {
+  const FEED = `<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns="http://www.w3.org/2005/Atom">
+ <entry><yt:videoId>h2a3hdhyZ2Y</yt:videoId><title>Dragons-Sharks ( Σάββατο 28/3/26)</title></entry>
+ <entry><yt:videoId>2ebwcUbtvrA</yt:videoId><title>Armani Katehano-Rivals BC ( Σάββατο 28/3/26)</title></entry>
+</feed>`;
+
+  it("commits the game with the replay uploaded for its date", async () => {
+    mockFetchGuarded.mockResolvedValue(FEED);
+    await handler(mockReq(), mockRes());
+    expect(mockCommitImport.mock.calls[0][0].youtubeUrl).toBe("https://www.youtube.com/watch?v=2ebwcUbtvrA");
+    expect(summary().committed[0].youtubeUrl).toBe("https://www.youtube.com/watch?v=2ebwcUbtvrA");
+  });
+
+  it("commits the game without a video when none matches", async () => {
+    await handler(mockReq(), mockRes());
+    expect(mockCommitImport).toHaveBeenCalledTimes(1);
+    expect(mockCommitImport.mock.calls[0][0].youtubeUrl).toBeNull();
+  });
+
+  // A missing video costs a link a person can paste; a missing game costs the stats.
+  it("still commits when the feed cannot be read, and records why", async () => {
+    mockFetchGuarded.mockRejectedValue(new Error("Upstream returned 503"));
+    const res = mockRes();
+    await handler(mockReq(), res);
+    expect(res.body).toEqual({ ok: true, committed: 1, skipped: 0 });
+    expect(mockCommitImport.mock.calls[0][0].youtubeUrl).toBeNull();
+    expect(summary().videoFeedError).toBe("Upstream returned 503");
+  });
+
+  it("does not fetch the feed on a night with nothing to import", async () => {
+    mockDiscover.mockResolvedValue({ games: [], errors: [] });
+    await handler(mockReq(), mockRes());
+    expect(mockFetchGuarded).not.toHaveBeenCalled();
   });
 });
