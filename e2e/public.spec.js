@@ -142,3 +142,23 @@ test.describe("Navigation", () => {
     await expect(page).toHaveURL(/\/leaderboard/);
   });
 });
+
+// ─── Mobile menu ──────────────────────────────────────────────────────────────
+
+test.describe("Mobile menu", () => {
+  // The panel used to open to a fixed height that fit exactly five links, so
+  // adding a sixth clipped it in half with nothing in the code to catch it.
+  test("opens far enough to show every link", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Menu" }).click();
+
+    const links = page.locator("nav a[href]:visible");
+    const last  = links.last();
+    await expect(last).toBeVisible();
+
+    const panel = await page.locator("nav").boundingBox();
+    const box   = await last.boundingBox();
+    expect(box.y + box.height).toBeLessThanOrEqual(panel.y + panel.height);
+  });
+});
