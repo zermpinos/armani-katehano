@@ -1,3 +1,12 @@
+// A game row carries its scoreline as written, our points first.
+export function parseScore(score: string | null | undefined): { team: number; opponent: number } | null {
+  const parts = String(score ?? "").split("-");
+  if (parts.length !== 2) return null;
+  const team     = parseInt(parts[0], 10);
+  const opponent = parseInt(parts[1], 10);
+  return Number.isFinite(team) && Number.isFinite(opponent) ? { team, opponent } : null;
+}
+
 export function computeRecord(games: any[], leagueFilter: string | null = null) {
   const filtered = leagueFilter
     ? games.filter(g => (g.league || "") === leagueFilter)
@@ -25,10 +34,10 @@ export function computeRecord(games: any[], leagueFilter: string | null = null) 
     if (g.home) { if (isW) homeWins++; else homeLosses++; }
     else        { if (isW) awayWins++; else awayLosses++; }
 
-    const parts = (g.score || "").split("-");
-    if (parts.length === 2) {
-      totalPts    += parseInt(parts[0], 10) || 0;
-      totalOppPts += parseInt(parts[1], 10) || 0;
+    const score = parseScore(g.score);
+    if (score) {
+      totalPts    += score.team;
+      totalOppPts += score.opponent;
     }
   }
 
