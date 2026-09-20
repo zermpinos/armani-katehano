@@ -106,7 +106,10 @@ export function buildIcsFeed(games: FeedGame[]): string {
     "VERSION:2.0",
     "PRODID:-//Armani Katehano//EN",
     "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
+    // A PUBLISH message has to carry at least one event, and between rounds
+    // there are none. Left out then, so an empty schedule reads as a calendar
+    // with nothing in it rather than a publication a client can reject.
+    ...(games.length ? ["METHOD:PUBLISH"] : []),
     `X-WR-CALNAME:${escIcs(SITE_NAME)}`,
     "X-WR-TIMEZONE:Europe/Athens",
     // A hint, not a contract: Apple and Outlook follow it, Google refreshes on
