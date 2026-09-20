@@ -75,6 +75,7 @@ describe("buildIcsFeed", () => {
     expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(2);
     expect(ics.match(/BEGIN:VTIMEZONE/g)).toHaveLength(1);
     expect(ics).toContain("X-WR-CALNAME:Armani Katehano");
+    expect(ics).toContain("METHOD:PUBLISH");
     expect(ics.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
     expect(ics.endsWith("END:VCALENDAR\r\n")).toBe(true);
   });
@@ -120,5 +121,8 @@ describe("buildIcsFeed", () => {
     expect(ics).not.toContain("BEGIN:VEVENT");
     expect(ics).toContain("BEGIN:VTIMEZONE");
     expect(ics.endsWith("END:VCALENDAR\r\n")).toBe(true);
+    // Claiming to publish events while carrying none is the one thing here a
+    // strict client can reject outright instead of showing an empty calendar.
+    expect(ics).not.toContain("METHOD:PUBLISH");
   });
 });
