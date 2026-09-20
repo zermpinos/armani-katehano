@@ -10,6 +10,7 @@ const STATIC_PAGES = [
   { url: "/leaderboard", priority: "0.9", changefreq: "weekly" },
   { url: "/games",       priority: "0.8", changefreq: "weekly" },
   { url: "/team-stats",  priority: "0.8", changefreq: "weekly" },
+  { url: "/records",     priority: "0.7", changefreq: "weekly" },
 ];
 
 function buildSitemap(lastmod: string, gameIds: string[]): string {

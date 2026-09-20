@@ -138,6 +138,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - **Games** (`/games`) - chronological game list; completed games link to box-score pages (`/games/[id]`) with playoff round badges (QF / SF / Final); upcoming games open a details modal with calendar export.
 - **Leaderboard** (`/leaderboard`) - sortable, multi-stat leaderboard with season-phase filter (All Season / Regular Season / Playoffs) and, once a season has games, a top-3 awards podium (MVP, Top Scorer, Rebounds, Assists, TS%) with a shooting-formula tooltip.
 - **Team stats** (`/team-stats`) - aggregated team-level metrics with season-phase filter.
+- **Records** (`/records`) - franchise records across every season: best team games (most points, biggest win, fewest allowed, longest win streak), the best single game by any player in six stats, and a season-by-season W-L table. No season selector, because a record is measured against the whole history; every entry links to the box score it came from.
 - **Calendar export** (`/api/calendar/ics`) - generates a real `.ics` file (with proper Europe/Athens DST rules) for an upcoming game; linked from roster-announcement/game-imported emails and from the upcoming-game UI alongside a "Add to Google Calendar" link.
 - **Season calendar feed** (`/api/calendar/games.ics`) - the whole fixture list as one subscribable calendar, cached an hour at the edge; the Subscribe buttons in the Upcoming Games header hand it to Apple Calendar and Outlook over `webcal://` and to Google Calendar. Events are keyed on the fixture row, so a rescheduled game moves in a subscriber's calendar instead of arriving twice.
 - **Subscribe / unsubscribe** - double-opt-in email flow with token-based unsubscribe (`/unsubscribe`) and confirmation (`/api/confirm`).
@@ -206,6 +207,7 @@ armani-katehano/
 │   │   team-stats.tsx, privacy.tsx, sitemap.xml.tsx, unsubscribe.tsx,
 │   │   maintenance.tsx
 │   ├── players/[slug].tsx          Individual player stats page
+│   ├── records.tsx                Franchise records across all seasons
 │   ├── games/[id].tsx              Individual game box-score page
 │   ├── coming-soon.tsx             Pre-launch gate page
 │   ├── admin/[slug]/               Admin portal pages (slug-randomized)

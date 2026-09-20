@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { href: "/leaderboard",label: "Leaderboard"},
   { href: "/games",      label: "Games"      },
   { href: "/team-stats", label: "Team Stats" },
+  { href: "/records",    label: "Records"    },
 ];
 
 interface LayoutProps {
