@@ -10,6 +10,12 @@ function athensDayStartUtc(d: Date): number {
   return Date.UTC(y, m - 1, day);
 }
 
+// The whole schedule as one subscription, so a fan adds it once instead of
+// per game. NEXT_PUBLIC_ values are inlined at build time.
+const FEED_URL = `${process.env.NEXT_PUBLIC_BASE_URL ?? "https://armani-katehano.com"}/api/calendar/games.ics`;
+export const WEBCAL_FEED_URL = FEED_URL.replace(/^https?:/, "webcal:");
+export const GOOGLE_FEED_URL = `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(WEBCAL_FEED_URL)}`;
+
 export function getCountdownInfo(isoStr: string): { label: string; tier: "today" | "week" | "future" } {
   const gameTime = new Date(isoStr);
   // Stored convention: UTC digits == Athens digits. So game-side UTC accessors
