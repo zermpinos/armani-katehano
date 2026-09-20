@@ -153,12 +153,15 @@ test.describe("Mobile menu", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Menu" }).click();
 
-    const links = page.locator("nav a[href]:visible");
-    const last  = links.last();
-    await expect(last).toBeVisible();
-
-    const panel = await page.locator("nav").boundingBox();
-    const box   = await last.boundingBox();
-    expect(box.y + box.height).toBeLessThanOrEqual(panel.y + panel.height);
+    // Measured rather than asserted visible: a link clipped by the panel's
+    // overflow still counts as visible. Polled because the panel animates open,
+    // so a single read lands mid-transition. The number is the room left under
+    // the last link, and a negative one is the panel cutting it off.
+    const last = page.locator("nav a[href]:visible").last();
+    await expect.poll(async () => {
+      const nav  = await page.locator("nav").boundingBox();
+      const link = await last.boundingBox();
+      return Math.round((nav.y + nav.height) - (link.y + link.height));
+    }).toBeGreaterThanOrEqual(0);
   });
 });
