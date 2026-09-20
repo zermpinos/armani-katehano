@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { describe, it, expect } from "vitest";
-import { findGameVideo } from "@/server/integrations/scraper/video-feed";
+import { VIDEO_FEED_URL, findGameVideo } from "@/server/integrations/scraper/video-feed";
+import { isAllowedHostname } from "@/server/security/node/ssrf";
 
 // Shape taken from the live channel feed: one <entry> per upload, newest first,
 // every game in the league, and a title the uploader types by hand.
@@ -20,6 +21,15 @@ const feed = (...entries) => `<?xml version="1.0" encoding="UTF-8"?>
 
 const SEP_19 = new Date(Date.UTC(2026, 8, 19));
 const watch  = id => `https://www.youtube.com/watch?v=${id}`;
+
+// The poll reaches the feed through the scraper's SSRF guard, which serves the
+// admin pasting a URL and admits nothing off the allowlist. A host missing from
+// it costs the video on every run and says so only in the cron summary.
+describe("VIDEO_FEED_URL", () => {
+  it("is on the scrape allowlist", () => {
+    expect(isAllowedHostname(new URL(VIDEO_FEED_URL).hostname)).toBe(true);
+  });
+});
 
 describe("findGameVideo", () => {
   it("picks our upload for the date out of the rest of the league's", () => {
