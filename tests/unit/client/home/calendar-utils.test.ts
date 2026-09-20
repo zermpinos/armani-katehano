@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { getCountdownInfo } from "@/client/home/calendar-utils";
+import { getCountdownInfo, WEBCAL_FEED_URL, GOOGLE_FEED_URL } from "@/client/home/calendar-utils";
 
 describe("getCountdownInfo", () => {
   afterEach(() => { vi.useRealTimers(); });
@@ -25,5 +25,19 @@ describe("getCountdownInfo", () => {
     const r = getCountdownInfo("2026-06-29T20:00:00.000Z");
     expect(r.label).toBe("Tomorrow at 20:00");
     expect(r.tier).toBe("week");
+  });
+});
+
+// A subscribe button that hands over the wrong scheme fails silently: the
+// browser just does nothing when the link is clicked.
+describe("season feed links", () => {
+  it("hands the feed to Apple and Outlook over webcal", () => {
+    expect(WEBCAL_FEED_URL).toMatch(/^webcal:\/\/[^/]+\/api\/calendar\/games\.ics$/);
+  });
+
+  it("hands the same feed to Google as an encoded cid", () => {
+    expect(GOOGLE_FEED_URL).toBe(
+      `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(WEBCAL_FEED_URL)}`,
+    );
   });
 });

@@ -139,6 +139,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - **Leaderboard** (`/leaderboard`) - sortable, multi-stat leaderboard with season-phase filter (All Season / Regular Season / Playoffs) and, once a season has games, a top-3 awards podium (MVP, Top Scorer, Rebounds, Assists, TS%) with a shooting-formula tooltip.
 - **Team stats** (`/team-stats`) - aggregated team-level metrics with season-phase filter.
 - **Calendar export** (`/api/calendar/ics`) - generates a real `.ics` file (with proper Europe/Athens DST rules) for an upcoming game; linked from roster-announcement/game-imported emails and from the upcoming-game UI alongside a "Add to Google Calendar" link.
+- **Season calendar feed** (`/api/calendar/games.ics`) - the whole fixture list as one subscribable calendar, cached an hour at the edge; the Subscribe buttons in the Upcoming Games header hand it to Apple Calendar and Outlook over `webcal://` and to Google Calendar. Events are keyed on the fixture row, so a rescheduled game moves in a subscriber's calendar instead of arriving twice.
 - **Subscribe / unsubscribe** - double-opt-in email flow with token-based unsubscribe (`/unsubscribe`) and confirmation (`/api/confirm`).
 - **Maintenance page** (`/maintenance`) - shown to visitors when site-wide maintenance mode is on; admins with an active session bypass it transparently (enforced in `proxy.ts`, fails open on error).
 - **Privacy policy** (`/privacy`), **sitemap** (`/sitemap.xml`), **humans.txt** (`/api/humans-txt`), **security.txt** (`/.well-known/security.txt`, RFC 9116).
@@ -222,6 +223,7 @@ armani-katehano/
 │       ├── auth.ts, subscribe.ts, confirm.ts
 │       ├── auth/passkey/           WebAuthn register/auth options + verify
 │       ├── calendar/ics.ts         Public .ics calendar export for a game
+│       ├── calendar/games.ics.ts   Public season calendar feed (subscribable)
 │       ├── humans-txt.ts, .well-known/security.txt.ts
 │       ├── health.ts, vitals.ts       Liveness probe + anonymous Web Vitals sink
 │       ├── admin/                  Admin endpoints (CRUD, recalc, import, broadcast, popup-config, cleanup)
