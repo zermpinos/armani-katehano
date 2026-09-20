@@ -134,7 +134,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 
 ### Public site
 - **Home** (`/`) - record, win %, MVP card, recent results, scoring-trend chart (configurable range), top scorers chart, upcoming games with featured roster panel (player avatars via Cloudinary, starter/bench split, coach callout, add-to-calendar / "Add to Google Calendar" buttons), efficiency leader, email subscribe form, an archived-season banner once a season is closed out, and a dismissible playoff popup (semifinal/final messaging, version-gated so re-enabling it resurfaces for visitors who already dismissed it).
-- **Players** (`/players`) - full roster with per-player season averages and totals; player cards link to individual stat pages (`/players/[slug]`).
+- **Players** (`/players`) - full roster with per-player season averages and totals; player cards link to individual stat pages (`/players/[slug]`), which carry season averages, personal bests, a skill radar, season-by-season history, and a filterable game log. Personal bests read as season highs or career highs depending on the season selector, each linking to the box score of the game it came from.
 - **Games** (`/games`) - chronological game list; completed games link to box-score pages (`/games/[id]`) with playoff round badges (QF / SF / Final); upcoming games open a details modal with calendar export.
 - **Leaderboard** (`/leaderboard`) - sortable, multi-stat leaderboard with season-phase filter (All Season / Regular Season / Playoffs) and, once a season has games, a top-3 awards podium (MVP, Top Scorer, Rebounds, Assists, TS%) with a shooting-formula tooltip.
 - **Team stats** (`/team-stats`) - aggregated team-level metrics with season-phase filter.

@@ -7,8 +7,9 @@ import ArchivedBanner from "@/components/ui/ArchivedBanner";
 import { SeasonAverages } from "@/client/players/SeasonAverages";
 import { SeasonHistoryTable } from "@/client/players/SeasonHistoryTable";
 import { PlayerHero } from "@/client/players/PlayerHero";
+import { PersonalBests } from "@/client/players/PersonalBests";
 import { getAllPublicData, getAllSeasonsStats, getPlayerGameLog } from "@/server/db/repositories";
-import { buildAllTimeStatsMap, computeStatsFromLog } from "@/domain/stats";
+import { buildAllTimeStatsMap, computeStatsFromLog, personalBests } from "@/domain/stats";
 
 const SkillRadar   = dynamic(() => import("@/client/players/SkillRadar").then(m => ({ default: m.SkillRadar })),     { ssr: false });
 const GameLogPanel = dynamic(() => import("@/client/players/GameLogPanel").then(m => ({ default: m.GameLogPanel })), { ssr: false });
@@ -49,6 +50,10 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
     return seasonHistory[activeSeason] ?? EMPTY_STATS;
   }, [phaseFilter, gameLog, allTimeStatsMap, statsMap, seasonHistory, activeSeason, currentSeason, player.id]);
 
+  // Same list the game log and the phase filter already narrow, so a best is
+  // always the best of what the page is showing.
+  const highs = useMemo(() => personalBests(gameLog), [gameLog]);
+
   const handleSeasonChange = (sid: string) => {
     setActiveSeason(sid);
     setPhaseFilter("all");
@@ -87,6 +92,7 @@ export default function PlayerPage({ player, statsMap, allTimeStatsMap, seasons,
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="sm:col-start-2 sm:col-span-2 sm:row-start-1">
             <SeasonAverages s={activeStats} />
+            <PersonalBests highs={highs} title={activeSeason === "all-time" ? "Career Highs" : "Season Highs"} />
           </div>
           <div className="sm:col-start-2 sm:col-span-2 sm:row-start-2">
             <SeasonHistoryTable player={playerWithHistory} activeSeason={activeSeason} />
