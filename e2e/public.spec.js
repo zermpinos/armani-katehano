@@ -142,3 +142,26 @@ test.describe("Navigation", () => {
     await expect(page).toHaveURL(/\/leaderboard/);
   });
 });
+
+// ─── Mobile menu ──────────────────────────────────────────────────────────────
+
+test.describe("Mobile menu", () => {
+  // The panel used to open to a fixed height that fit exactly five links, so
+  // adding a sixth clipped it in half with nothing in the code to catch it.
+  test("opens far enough to show every link", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Menu" }).click();
+
+    // Measured rather than asserted visible: a link clipped by the panel's
+    // overflow still counts as visible. Polled because the panel animates open,
+    // so a single read lands mid-transition. The number is the room left under
+    // the last link, and a negative one is the panel cutting it off.
+    const last = page.locator("nav a[href]:visible").last();
+    await expect.poll(async () => {
+      const nav  = await page.locator("nav").boundingBox();
+      const link = await last.boundingBox();
+      return Math.round((nav.y + nav.height) - (link.y + link.height));
+    }).toBeGreaterThanOrEqual(0);
+  });
+});

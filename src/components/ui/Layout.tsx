@@ -128,27 +128,31 @@ export default function Layout({ children, title = SITE_NAME, ogDescription }: L
             </button>
           </div>
 
-          {/* Mobile dropdown */}
-          <div className={`sm:hidden overflow-hidden transition-all duration-200 ${open ? "max-h-64 opacity-100" : "max-h-0 opacity-0"}`}>
-            <div className="border-t border-ak-border pb-2">
-              {NAV_LINKS.map(link => {
-                const active = router.pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setOpen(false)}
-                    className={[
-                      "block px-4 py-3 text-[13px] font-black tracking-[0.12em] uppercase rounded-md my-0.5 transition-colors duration-150",
-                      active
-                        ? "text-ak-red-text bg-[#8b1a1a15]"
-                        : "text-ak-text-dim bg-transparent hover:text-ak-text hover:bg-[#ffffff08]",
-                    ].join(" ")}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
+          {/* Mobile dropdown. Opens to the height of its own rows: a fixed
+              max-height fit five links and clipped the sixth the day one was
+              added. */}
+          <div className={`sm:hidden grid transition-all duration-200 ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
+            <div className="overflow-hidden">
+              <div className="border-t border-ak-border pb-2">
+                {NAV_LINKS.map(link => {
+                  const active = router.pathname === link.href;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setOpen(false)}
+                      className={[
+                        "block px-4 py-3 text-[13px] font-black tracking-[0.12em] uppercase rounded-md my-0.5 transition-colors duration-150",
+                        active
+                          ? "text-ak-red-text bg-[#8b1a1a15]"
+                          : "text-ak-text-dim bg-transparent hover:text-ak-text hover:bg-[#ffffff08]",
+                      ].join(" ")}
+                    >
+                      {link.label}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
