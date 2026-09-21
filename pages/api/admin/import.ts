@@ -14,7 +14,7 @@ export default requireAuth(async function handler(req: any, res: any) {
   if (!data) return;
 
   try {
-    const { gameId } = await commitImport(data, { ip, revalidate: (p: string) => res.revalidate?.(p) });
+    const { gameId } = await commitImport(data, { ip, revalidate: res.revalidate });
     return res.status(201).json({ ok: true, gameId });
   } catch (err) {
     if (err instanceof CommitError) {

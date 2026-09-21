@@ -28,7 +28,7 @@ async function handler(req: any, res: any) {
     });
 
     auditLog("season_unarchived", { ip, seasonId: id, name: existing.name });
-    await invalidateForSeasonMutation({ revalidate: (p) => res.revalidate?.(p) });
+    await invalidateForSeasonMutation({ revalidate: res.revalidate });
     return res.status(200).json({ ok: true, season });
   } catch (err) {
     auditLog("season_unarchive_error", { ip, seasonId: id, error: (err as any).message });

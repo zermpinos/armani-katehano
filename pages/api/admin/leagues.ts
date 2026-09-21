@@ -70,7 +70,7 @@ async function createLeague(req: any, res: any) {
     }
 
     auditLog("league_created", { ip, leagueId: league.id, name, organization });
-    await invalidateForLeagueMutation({ revalidate: (p) => res.revalidate?.(p) });
+    await invalidateForLeagueMutation({ revalidate: res.revalidate });
     return res.status(201).json({ ok: true, league });
   } catch (err) {
     auditLog("league_create_error", { ip, error: (err as any).message });
@@ -95,7 +95,7 @@ async function updateLeague(req: any, res: any) {
   try {
     const league = await prisma.league.update({ where: { id }, data });
     auditLog("league_updated", { ip, leagueId: id, fields: Object.keys(data) });
-    await invalidateForLeagueMutation({ revalidate: (p: string) => res.revalidate?.(p) });
+    await invalidateForLeagueMutation({ revalidate: res.revalidate });
     return res.status(200).json({ ok: true, league });
   } catch (err) {
     if ((err as any).code === "P2025") return res.status(404).json({ error: "League not found" });

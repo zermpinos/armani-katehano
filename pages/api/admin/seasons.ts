@@ -36,7 +36,7 @@ async function handler(req: any, res: any) {
     }
 
     auditLog("season_created", { ip, seasonId: season.id, name });
-    await invalidateForSeasonMutation({ revalidate: (p) => res.revalidate?.(p) });
+    await invalidateForSeasonMutation({ revalidate: res.revalidate });
     return res.status(201).json({ ok: true, season });
   } catch (err) {
     auditLog("season_create_error", { ip, error: (err as any).message });

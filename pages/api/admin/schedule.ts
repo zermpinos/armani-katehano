@@ -54,7 +54,7 @@ async function createSchedule(req: any, res: any) {
       },
     });
     auditLog("schedule_created", { ip, gameId: game.id, opponent });
-    await invalidateForScheduleMutation({ revalidate: (p) => res.revalidate?.(p) });
+    await invalidateForScheduleMutation({ revalidate: res.revalidate });
     return res.status(201).json({ ok: true, id: game.id });
   } catch (err) {
     auditLog("schedule_create_error", { ip, error: (err as any).message });
@@ -82,7 +82,7 @@ async function updateSchedule(req: any, res: any) {
     });
 
     auditLog("schedule_updated", { ip, gameId: id, opponent });
-    await invalidateForScheduleMutation({ revalidate: (p) => res.revalidate?.(p) });
+    await invalidateForScheduleMutation({ revalidate: res.revalidate });
     return res.status(200).json({ ok: true });
   } catch (err) {
     auditLog("schedule_update_error", { ip, error: (err as any).message });
@@ -99,7 +99,7 @@ async function deleteSchedule(req: any, res: any) {
   try {
     await prisma.upcomingGame.delete({ where: { id } });
     auditLog("schedule_deleted", { ip, gameId: id });
-    await invalidateForScheduleMutation({ revalidate: (p) => res.revalidate?.(p) });
+    await invalidateForScheduleMutation({ revalidate: res.revalidate });
     return res.status(200).json({ ok: true });
   } catch (err) {
     auditLog("schedule_delete_error", { ip, error: (err as any).message });
