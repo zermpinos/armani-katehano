@@ -35,6 +35,7 @@ describe("cache-invalidation", () => {
         "/players",
         "/players/alex",
         "/players/marios",
+        "/records",
         "/sitemap.xml",
         "/team-stats",
       ]);
@@ -47,13 +48,18 @@ describe("cache-invalidation", () => {
       expect(calls.some((p) => p.startsWith("/players/"))).toBe(false);
     });
 
-    it("is a no-op when no revalidate function is provided", async () => {
+    it("reports a missing revalidate function instead of skipping silently", async () => {
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
       await expect(
         invalidateForGameMutation({ gameId: "g1", affectedPlayerSlugs: ["alex"] }),
       ).resolves.toBeUndefined();
+      expect(spy).toHaveBeenCalledOnce();
+      expect(JSON.parse(spy.mock.calls[0][0]).error).toBe("res.revalidate unavailable");
+      spy.mockRestore();
     });
 
-    it("does not let a rejected revalidate call reject the batch", async () => {
+    it("reports a rejected revalidate call by path without rejecting the batch", async () => {
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
       const fn = vi.fn(async (p: string) => {
         if (p === "/players") throw new Error("boom");
       });
@@ -61,6 +67,8 @@ describe("cache-invalidation", () => {
         invalidateForGameMutation({ revalidate: fn, gameId: "g1", affectedPlayerSlugs: ["alex"] }),
       ).resolves.toBeUndefined();
       expect(fn).toHaveBeenCalledWith("/players/alex");
+      expect(JSON.parse(spy.mock.calls[0][0]).failed).toEqual([{ path: "/players", error: "boom" }]);
+      spy.mockRestore();
     });
   });
 
@@ -76,7 +84,7 @@ describe("cache-invalidation", () => {
     it("hits every public listing", async () => {
       const { fn, calls } = recorder();
       await invalidateForRecalc({ revalidate: fn });
-      expect(calls.sort()).toEqual(["/", "/games", "/leaderboard", "/players", "/sitemap.xml", "/team-stats"]);
+      expect(calls.sort()).toEqual(["/", "/games", "/leaderboard", "/players", "/records", "/sitemap.xml", "/team-stats"]);
     });
   });
 
@@ -84,7 +92,7 @@ describe("cache-invalidation", () => {
     it("hits stats listings and home", async () => {
       const { fn, calls } = recorder();
       await invalidateForSeasonMutation({ revalidate: fn });
-      expect(calls.sort()).toEqual(["/", "/games", "/leaderboard", "/players", "/sitemap.xml", "/team-stats"]);
+      expect(calls.sort()).toEqual(["/", "/games", "/leaderboard", "/players", "/records", "/sitemap.xml", "/team-stats"]);
     });
 
     it("revalidates home, which renders the archived banner and current-season content", async () => {
@@ -114,7 +122,7 @@ describe("cache-invalidation", () => {
     it("hits roster listings and the per-player page when a slug is passed", async () => {
       const { fn, calls } = recorder();
       await invalidateForPlayerMutation({ revalidate: fn, playerSlug: "alex" });
-      expect(calls.sort()).toEqual(["/", "/leaderboard", "/players", "/players/alex", "/team-stats"]);
+      expect(calls.sort()).toEqual(["/", "/leaderboard", "/players", "/players/alex", "/records", "/team-stats"]);
     });
 
     it("invalidates the previous slug too on rename, deduplicating same-slug edits", async () => {

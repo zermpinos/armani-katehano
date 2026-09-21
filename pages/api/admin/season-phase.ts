@@ -31,7 +31,7 @@ async function handler(req: any, res: any) {
         update: { value: phase },
         create: { key: "seasonPhase", value: phase },
       });
-      await invalidateForSeasonPhaseChange({ revalidate: (p) => res.revalidate?.(p) });
+      await invalidateForSeasonPhaseChange({ revalidate: res.revalidate });
       return res.status(200).json({ seasonPhase: phase });
     } catch (err) {
       console.error("[admin/season-phase:POST]", err);

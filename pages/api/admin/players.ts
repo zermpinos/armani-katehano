@@ -58,7 +58,7 @@ async function createPlayer(req: any, res: any) {
     });
     auditLog("player_created", { ip, playerId: player.id, name });
     await invalidateForPlayerMutation({
-      revalidate: (p) => res.revalidate?.(p),
+      revalidate: res.revalidate,
       playerSlug: player.slug,
     });
     return res.status(201).json({ ok: true, player });
@@ -104,7 +104,7 @@ async function updatePlayer(req: any, res: any) {
     });
     auditLog("player_updated", { ip, playerId, name });
     await invalidateForPlayerMutation({
-      revalidate:   (p) => res.revalidate?.(p),
+      revalidate:   res.revalidate,
       playerSlug:   player.slug,
       previousSlug: previous.slug,
     });

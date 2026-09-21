@@ -2,14 +2,29 @@ import "@/server/_internal/node-only";
 
 export type RevalidateFn = (path: string) => Promise<unknown>;
 
-const LISTINGS_STATS_AND_HOME = ["/", "/players", "/leaderboard", "/games", "/team-stats", "/sitemap.xml"] as const;
+const LISTINGS_STATS_AND_HOME = ["/", "/players", "/leaderboard", "/games", "/team-stats", "/records", "/sitemap.xml"] as const;
 const LISTINGS_STATS          = ["/leaderboard", "/players", "/games", "/team-stats"] as const;
-const LISTINGS_ROSTER         = ["/", "/players", "/leaderboard", "/team-stats"] as const;
+const LISTINGS_ROSTER         = ["/", "/players", "/leaderboard", "/team-stats", "/records"] as const;
 const LISTINGS_HOME_GAMES     = ["/", "/games", "/sitemap.xml"] as const;
 
 async function fanout(revalidate: RevalidateFn | undefined, paths: readonly string[]) {
-  if (!revalidate) return;
-  await Promise.allSettled(paths.map((p) => revalidate(p)));
+  if (!revalidate) {
+    console.error(JSON.stringify({ type: "[REVALIDATE_ERROR]", error: "res.revalidate unavailable", paths }));
+    return;
+  }
+
+  const outcomes = await Promise.all(paths.map((path) =>
+    revalidate(path).then(
+      () => null,
+      (err) => ({ path, error: String(err?.message ?? err) }),
+    ),
+  ));
+  const failed = outcomes.filter((o) => o !== null);
+
+  // Success is logged too, so a page still stale after a write can be told
+  // apart from a fan-out that never ran.
+  if (failed.length) console.error(JSON.stringify({ type: "[REVALIDATE_ERROR]", failed }));
+  else               console.log(JSON.stringify({ type: "[REVALIDATE]", paths }));
 }
 
 export interface GameMutationInvalidation {

@@ -86,7 +86,7 @@ export default async function handler(req: any, res: any) {
       // Both public pages read the schedule, and an hour late is a fixture
       // nobody saw when it mattered.
       if (fixtureSync.created.length || fixtureSync.changed.length) {
-        await invalidateForScheduleMutation({ revalidate: (p: string) => res.revalidate?.(p) });
+        await invalidateForScheduleMutation({ revalidate: res.revalidate });
       }
     } catch (err: any) {
       // Secondary to importing results, so it reports and stands aside.
@@ -145,7 +145,7 @@ export default async function handler(req: any, res: any) {
         if (!parsed.success) { skip("draft failed schema validation"); continue; }
 
         const { gameId } = await commitImport(parsed.data, {
-          revalidate: (p: string) => res.revalidate?.(p),
+          revalidate: res.revalidate,
         });
         committed.push({ sourceUrl, gameId, youtubeUrl });
         auditLog("poll_import_committed", { gameId, sourceUrl });

@@ -199,7 +199,7 @@ async function createGame(req: any, res: any) {
     });
     auditLog("game_created", { ip, gameId: game.id, opponent, ...(importDiff?.length ? { importDiff } : {}) });
     await invalidateForGameMutation({
-      revalidate: (p) => res.revalidate?.(p),
+      revalidate: res.revalidate,
       gameId: game.id,
       affectedPlayerSlugs: await slugsForPlayerIds(boxScore?.map(r => r.playerId) ?? []),
     });
@@ -292,7 +292,7 @@ async function updateGame(req: any, res: any) {
     auditLog("game_updated", { ip, gameId, opponent });
     const newPlayerIds = boxScore?.map(r => r.playerId) ?? [];
     await invalidateForGameMutation({
-      revalidate: (p) => res.revalidate?.(p),
+      revalidate: res.revalidate,
       gameId,
       affectedPlayerSlugs: await slugsForPlayerIds([...previousPlayerIds, ...newPlayerIds]),
     });
@@ -326,7 +326,7 @@ async function deleteGame(req: any, res: any) {
     });
     auditLog("game_deleted", { ip, gameId });
     await invalidateForGameMutation({
-      revalidate: (p) => res.revalidate?.(p),
+      revalidate: res.revalidate,
       gameId,
       affectedPlayerSlugs: await slugsForPlayerIds(deletedPlayerIds),
     });
