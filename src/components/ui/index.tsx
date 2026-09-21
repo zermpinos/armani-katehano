@@ -44,7 +44,7 @@ export function StatTile({ label, value, sub, highlight }: StatTileProps) {
   return (
     <div
       className={[
-        "rounded-xl px-3 py-[14px] text-center border",
+        "h-full rounded-xl px-3 py-[14px] text-center border",
         highlight
           ? "border-[#c0392b55] bg-[#8b1a1a22]"
           : "border-ak-border bg-ak-surface",
