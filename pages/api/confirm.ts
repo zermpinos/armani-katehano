@@ -44,7 +44,7 @@ export default async function handler(req: any, res: any) {
         if (err?.code !== "P2025") throw err;
         // Concurrent expiry delete already removed the row - treat as success
       }
-      auditLog("subscriber_confirm_expired", { tokenPrefix: token.slice(0, 8) });
+      await auditLog("subscriber_confirm_expired", { tokenPrefix: token.slice(0, 8) });
       return res.redirect(302, `${appUrl}/?confirmed=expired`);
     }
 
@@ -60,7 +60,7 @@ export default async function handler(req: any, res: any) {
       }
       throw err;
     }
-    auditLog("subscriber_confirmed", { tokenPrefix: token.slice(0, 8) });
+    await auditLog("subscriber_confirmed", { tokenPrefix: token.slice(0, 8) });
 
     return res.redirect(302, `${appUrl}/?confirmed=1`);
   } catch (err) {

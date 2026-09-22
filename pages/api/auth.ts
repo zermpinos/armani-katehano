@@ -21,11 +21,11 @@ async function recordAndCheckLockouts(ip: string, accountKey: string, username: 
     atomicRecordAndCheck(accountKey, 25, 3600),
   ]);
   if (ipRes.locked) {
-    auditLog("login_locked", { ip });
+    await auditLog("login_locked", { ip });
     return { status: 429, body: { error: "Too many failed attempts. Try again later.", retryAfter: 900 } };
   }
   if (accountRes.locked) {
-    auditLog("login_account_locked", { ip, username });
+    await auditLog("login_account_locked", { ip, username });
     return { status: 429, body: { error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 } };
   }
   return null;
@@ -62,19 +62,19 @@ export default async function handler(req: any, res: any) {
     let logoutUser: string | undefined;
     try { logoutUser = payload ? JSON.parse(payload).user : undefined; } catch { /* ignore */ }
     res.setHeader("Set-Cookie", [clearSessionCookie(), clearCsrfCookie()]);
-    auditLog("logout", { ip, username: logoutUser });
+    await auditLog("logout", { ip, username: logoutUser });
     return res.status(200).json({ ok: true });
   }
 
   // ── POST: login ───────────────────────────────────────────────────────────
   if (req.method === "POST") {
     if (!csrfCheck(req, { strict: true })) {
-      auditLog("csrf_rejected", { ip });
+      await auditLog("csrf_rejected", { ip });
       return res.status(403).json({ error: "Forbidden" });
     }
 
     if (!process.env.PASSKEY_FALLBACK_TOKEN) {
-      auditLog("login_fallback_disabled", { ip });
+      await auditLog("login_fallback_disabled", { ip });
       return res.status(404).json({ error: "Not found" });
     }
 
@@ -89,14 +89,14 @@ export default async function handler(req: any, res: any) {
     // Checked before lockouts are recorded so a slug-less attacker cannot lock out the admin account.
     const slugValid = await validateAdminSlug(slug);
     if (!slugValid) {
-      auditLog("login_invalid_slug", { ip, username });
+      await auditLog("login_invalid_slug", { ip, username });
       return res.status(404).json({ error: "Not found" });
     }
 
     // Brute-force lockout - per-IP
     const locked = await isLockedOut(ip);
     if (locked) {
-      auditLog("login_locked", { ip });
+      await auditLog("login_locked", { ip });
       return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
     }
 
@@ -104,7 +104,7 @@ export default async function handler(req: any, res: any) {
     const ACCOUNT_KEY = `account_${username}`;
     const accountLocked = await isLockedOut(ACCOUNT_KEY, 25, 3600);
     if (accountLocked) {
-      auditLog("login_account_locked", { ip, username });
+      await auditLog("login_account_locked", { ip, username });
       console.warn("Admin account lockout triggered", { username });
       return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
     }
@@ -120,7 +120,7 @@ export default async function handler(req: any, res: any) {
       if (!captchaOk) {
         const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY, username);
         if (locked) return res.status(locked.status).json(locked.body);
-        auditLog("login_captcha_failed", { ip, username });
+        await auditLog("login_captcha_failed", { ip, username });
         return res.status(401).json({ error: "Captcha verification failed", requiresCaptcha: true });
       }
     }
@@ -129,7 +129,7 @@ export default async function handler(req: any, res: any) {
     if (!valid) {
       const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY, username);
       if (locked) return res.status(locked.status).json(locked.body);
-      auditLog("login_failed", { ip, username });
+      await auditLog("login_failed", { ip, username });
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
@@ -140,20 +140,20 @@ export default async function handler(req: any, res: any) {
     if (!userRecord?.totpSecret) {
       const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY, username);
       if (locked) return res.status(locked.status).json(locked.body);
-      auditLog("login_totp_not_configured", { ip, username });
+      await auditLog("login_totp_not_configured", { ip, username });
       return res.status(401).json({ error: "Invalid credentials" });
     }
     if (!totpToken || typeof totpToken !== "string" || !verifyTotp(userRecord.totpSecret, totpToken)) {
       const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY, username);
       if (locked) return res.status(locked.status).json(locked.body);
-      auditLog("login_totp_failed", { ip, username });
+      await auditLog("login_totp_failed", { ip, username });
       return res.status(401).json({ error: "Invalid authenticator code" });
     }
 
     await Promise.all([clearAttempts(ip), clearAttempts(ACCOUNT_KEY)]);
     const payload = JSON.stringify({ ts: Date.now(), role: "admin", user: username });
     res.setHeader("Set-Cookie", [buildSessionCookie(payload), buildCsrfCookie(generateCsrfToken())]);
-    auditLog("login_success", { ip, slugValid, username });
+    await auditLog("login_success", { ip, slugValid, username });
     return res.status(200).json({ ok: true });
   }
 

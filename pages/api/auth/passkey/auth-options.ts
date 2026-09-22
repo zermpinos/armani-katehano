@@ -18,7 +18,7 @@ export default async function handler(req: any, res: any) {
     return res.status(429).json({ error: "Too many requests", retryAfter: 60 });
   }
 
-  auditLog("passkey_challenge_issued", { ip: crypto.createHash("sha256").update(ip).digest("hex") });
+  await auditLog("passkey_challenge_issued", { ip: crypto.createHash("sha256").update(ip).digest("hex") });
 
   const options     = await generateAuthOpts();
   const challengeId = await issueChallenge(options.challenge);

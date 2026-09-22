@@ -27,11 +27,11 @@ async function handler(req: any, res: any) {
       data: { archivedAt: null },
     });
 
-    auditLog("season_unarchived", { ip, seasonId: id, name: existing.name });
+    await auditLog("season_unarchived", { ip, seasonId: id, name: existing.name });
     await invalidateForSeasonMutation({ revalidate: res.revalidate });
     return res.status(200).json({ ok: true, season });
   } catch (err) {
-    auditLog("season_unarchive_error", { ip, seasonId: id, error: (err as any).message });
+    await auditLog("season_unarchive_error", { ip, seasonId: id, error: (err as any).message });
     return res.status(500).json({ error: prodError(err) });
   }
 }

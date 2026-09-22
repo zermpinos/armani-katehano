@@ -45,7 +45,7 @@ async function handler(req: any, res: any) {
       })),
     });
   } catch (err) {
-    auditLog("season_leagues_fetch_error", { error: (err as any).message });
+    await auditLog("season_leagues_fetch_error", { error: (err as any).message });
     return res.status(500).json({ error: prodError(err) });
   }
 }

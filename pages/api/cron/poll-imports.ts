@@ -148,7 +148,7 @@ export default async function handler(req: any, res: any) {
           revalidate: res.revalidate,
         });
         committed.push({ sourceUrl, gameId, youtubeUrl });
-        auditLog("poll_import_committed", { gameId, sourceUrl });
+        await auditLog("poll_import_committed", { gameId, sourceUrl });
       } catch (err: any) {
         skip(err instanceof CommitError ? `commit: ${err.message}` : err.message);
       }

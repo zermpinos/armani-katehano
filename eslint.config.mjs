@@ -54,6 +54,17 @@ const eslintConfig = [
       }],
     },
   },
+  {
+    // A serverless function can be frozen once its response is sent, and an
+    // audit row still being written goes with it.
+    files: ["src/**", "pages/**"],
+    rules: {
+      "no-restricted-syntax": ["error", {
+        selector: "ExpressionStatement > CallExpression[callee.name='auditLog']",
+        message:  "Await auditLog() so the row is written before the response is sent.",
+      }],
+    },
+  },
   // ─── Architecture layer enforcement ───────────────────────────────────────
   // These zones encode the import rules from docs/architecture.md:
   //   components/ui  -> no server, no features

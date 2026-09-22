@@ -56,14 +56,14 @@ async function createPlayer(req: any, res: any) {
         isActive:     true,
       },
     });
-    auditLog("player_created", { ip, playerId: player.id, name });
+    await auditLog("player_created", { ip, playerId: player.id, name });
     await invalidateForPlayerMutation({
       revalidate: res.revalidate,
       playerSlug: player.slug,
     });
     return res.status(201).json({ ok: true, player });
   } catch (err) {
-    auditLog("player_create_error", { ip, error: (err as any).message });
+    await auditLog("player_create_error", { ip, error: (err as any).message });
     return handleError(res, err);
   }
 }
@@ -102,7 +102,7 @@ async function updatePlayer(req: any, res: any) {
         isActive:     isActive     ?? true,
       },
     });
-    auditLog("player_updated", { ip, playerId, name });
+    await auditLog("player_updated", { ip, playerId, name });
     await invalidateForPlayerMutation({
       revalidate:   res.revalidate,
       playerSlug:   player.slug,
@@ -110,7 +110,7 @@ async function updatePlayer(req: any, res: any) {
     });
     return res.status(200).json({ ok: true, player });
   } catch (err) {
-    auditLog("player_update_error", { ip, error: (err as any).message });
+    await auditLog("player_update_error", { ip, error: (err as any).message });
     return handleError(res, err);
   }
 }

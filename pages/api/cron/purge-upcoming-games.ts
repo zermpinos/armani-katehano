@@ -59,7 +59,7 @@ export default async function handler(req: any, res: any) {
         ({ count } = await prisma.upcomingGame.deleteMany({ where: { id: { in: ids } } }));
     }
 
-    auditLog("cron_purge_upcoming_games", { deleted: count });
+    await auditLog("cron_purge_upcoming_games", { deleted: count });
     await finishCronRun(runId, { ok: true, summary: { deleted: count } });
     return res.status(200).json({ ok: true, deleted: count });
   } catch (err: any) {
