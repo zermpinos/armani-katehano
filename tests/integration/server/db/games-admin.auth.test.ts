@@ -27,7 +27,7 @@ vi.mock("@/server/services/stats-recalc", () => ({
   recalcAggregates: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { signSession, SESSION_TTL_S } from "@/server/auth";
+import { signSession, generateCsrfToken, SESSION_TTL_S } from "@/server/auth";
 import { recalcAggregates } from "@/server/services/stats-recalc";
 import handler from "../../../../pages/api/admin/games";
 import {
@@ -79,7 +79,7 @@ describe("requireAuth middleware", () => {
     expect(res.statusCode).toBe(200);
   });
 
-  it("returns 403 when Origin mismatches Host on POST", async () => {
+  it("returns 403 when the Origin is not the configured one", async () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://evil.com" },
@@ -89,5 +89,42 @@ describe("requireAuth middleware", () => {
     const res = mockRes();
     await handler(req, res);
     expect(res.statusCode).toBe(403);
+  });
+
+  it("returns 403 when the CSRF token was minted for a different session", async () => {
+    const foreign = generateCsrfToken(signSession(JSON.stringify({ ts: Date.now() - 1000, role: "admin" })));
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": foreign },
+      cookies: { "__Host-ak_session": authCookie(), "__Host-ak_csrf": foreign },
+      body:    VALID_GAME_BODY,
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(403);
+  });
+
+  // csrf_blocked used to fire for every bot probe and CI run, which is what
+  // paged the channel. The session check now runs first.
+  it("does not raise csrf_blocked for a request with no session", async () => {
+    const req = mockReq({ method: "POST", headers: { host: "example.com" }, body: VALID_GAME_BODY });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(401);
+    const events = mockPrisma.auditLog.create.mock.calls.map(([arg]) => arg.data.event);
+    expect(events).not.toContain("csrf_blocked");
+  });
+
+  it("raises csrf_blocked for a valid session arriving from another origin", async () => {
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://evil.com" },
+      cookies: { "__Host-ak_session": authCookie() },
+      body:    VALID_GAME_BODY,
+    });
+    const res = mockRes();
+    await handler(req, res);
+    const events = mockPrisma.auditLog.create.mock.calls.map(([arg]) => arg.data.event);
+    expect(events).toContain("csrf_blocked");
   });
 });

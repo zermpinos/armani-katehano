@@ -11,7 +11,7 @@
  */
 
 import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount } from "@/server/auth";
-import { getSessionToken, verifyPayload, verifyCredentials, getAdminUser, verifyTotp, buildSessionCookie, clearSessionCookie, generateCsrfToken, buildCsrfCookie, clearCsrfCookie, csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha, validateAdminSlug, SESSION_TTL_S } from "@/server/auth";
+import { getSessionToken, verifyPayload, verifyCredentials, getAdminUser, verifyTotp, signSession, buildSessionCookie, clearSessionCookie, buildCsrfCookie, clearCsrfCookie, csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha, validateAdminSlug, SESSION_TTL_S } from "@/server/auth";
 import { securityHeaders } from "@/server/security/edge";
 import { auditLog, getClientIp } from "@/server/security/node";
 
@@ -68,7 +68,7 @@ export default async function handler(req: any, res: any) {
 
   // ── POST: login ───────────────────────────────────────────────────────────
   if (req.method === "POST") {
-    if (!csrfCheck(req, { strict: true })) {
+    if (!csrfCheck(req)) {
       await auditLog("csrf_rejected", { ip });
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -152,7 +152,8 @@ export default async function handler(req: any, res: any) {
 
     await Promise.all([clearAttempts(ip), clearAttempts(ACCOUNT_KEY)]);
     const payload = JSON.stringify({ ts: Date.now(), role: "admin", user: username });
-    res.setHeader("Set-Cookie", [buildSessionCookie(payload), buildCsrfCookie(generateCsrfToken())]);
+    const session = signSession(payload);
+    res.setHeader("Set-Cookie", [buildSessionCookie(payload), buildCsrfCookie(session)]);
     await auditLog("login_success", { ip, slugValid, username });
     return res.status(200).json({ ok: true });
   }

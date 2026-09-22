@@ -15,5 +15,8 @@ export default defineConfig({
     // Only run files in tests/ - prevents Playwright spec files in e2e/ from
     // being picked up by vitest (they use test.describe which conflicts).
     include: ["tests/**/*.test.ts"],
+    // The CSRF origin check compares against the configured app URL, and the
+    // mocked requests in the suite arrive from example.com.
+    env: { NEXT_PUBLIC_APP_URL: "https://example.com" },
   },
 });

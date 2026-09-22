@@ -11,15 +11,6 @@ export function requireCoachAuth(handler: (req: any, res: any) => any) {
 
     const ip = getClientIp(req);
 
-    if (!csrfCheck(req, { strict: true })) {
-      await auditLog("coach_csrf_blocked", { ip, path: req.url, method: req.method });
-      return res.status(403).json({ error: "Forbidden" });
-    }
-    if (!csrfTokenCheck(req)) {
-      await auditLog("coach_csrf_token_blocked", { ip, path: req.url, method: req.method });
-      return res.status(403).json({ error: "Forbidden" });
-    }
-
     const token   = getCoachSessionToken(req);
     const payload = verifyCoachSession(token);
 
@@ -42,6 +33,19 @@ export function requireCoachAuth(handler: (req: any, res: any) => any) {
     if (!parsed?.ts || Date.now() - parsed.ts > COACH_SESSION_TTL_S * 1000) {
       await auditLog("coach_expired_session", { ip, ts: parsed?.ts });
       return res.status(401).json({ error: "Session expired" });
+    }
+
+    // Below the session checks: the token binds to the session, and it makes
+    // coach_csrf_blocked an event about a request that carried one. Above the
+    // version read, so a request that already fails CSRF never reaches the
+    // database.
+    if (!csrfCheck(req)) {
+      await auditLog("coach_csrf_blocked", { ip, path: req.url, method: req.method });
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    if (!csrfTokenCheck(req, token)) {
+      await auditLog("coach_csrf_token_blocked", { ip, path: req.url, method: req.method });
+      return res.status(403).json({ error: "Forbidden" });
     }
 
     let currentVersion: number;

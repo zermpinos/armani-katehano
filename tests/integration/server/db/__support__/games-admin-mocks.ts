@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { vi } from "vitest";
-import { signSession, SESSION_TTL_S } from "@/server/auth";
+import { signSession, generateCsrfToken, SESSION_TTL_S } from "@/server/auth";
 
 export const VALID_CUID         = "clxxxxxxxxxxxxxxxxxxxxxx";
 export const VALID_SEASON_LEAGUE = "clseasonxxxxxxxxxxxxxxxx";
@@ -50,16 +50,18 @@ export function mockReq({ method = "GET", headers = {}, body = {}, query = {}, c
   return { method, headers, body, query, cookies };
 }
 
-const TEST_CSRF_TOKEN = "test-csrf-token-32bytes-xxxxxxxxx";
-
 export function authCookie() {
   return signSession(JSON.stringify({ ts: Date.now(), role: "admin" }));
 }
 
+// The CSRF token is bound to the session cookie it was minted with, so both
+// come from the same call.
 export function authedReq(overrides = {}) {
+  const session = authCookie();
+  const csrf    = generateCsrfToken(session);
   return mockReq({
-    headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": TEST_CSRF_TOKEN },
-    cookies: { "__Host-ak_session": authCookie(), "__Host-ak_csrf": TEST_CSRF_TOKEN },
+    headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": csrf },
+    cookies: { "__Host-ak_session": session, "__Host-ak_csrf": csrf },
     ...overrides,
   });
 }

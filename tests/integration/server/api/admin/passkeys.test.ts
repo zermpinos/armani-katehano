@@ -34,13 +34,17 @@ vi.mock("@/server/auth/session", async (importOriginal) => {
 import handler from "../../../../../pages/api/admin/passkeys";
 import prisma   from "@/server/db/client";
 import { mockReq, mockRes } from "../../auth/__support__/auth-mocks";
+import { generateCsrfToken } from "@/server/auth/csrf";
+
+// Bound to the session cookie value the mock above returns.
+const CSRF = generateCsrfToken("valid-token");
 
 const authHeaders = {
   host:            "example.com",
   origin:          "https://example.com",
-  "x-csrf-token":  "tok",
+  "x-csrf-token":  CSRF,
 };
-const authCookies = { "__Host-ak_csrf": "tok" };
+const authCookies = { "__Host-ak_csrf": CSRF };
 
 const fakeRow = {
   id:          "row-1",
