@@ -67,10 +67,9 @@ describe("sanitize - IP hashing", () => {
 });
 
 describe("DB write", () => {
-  it("fires a non-blocking auditLog.create with sanitized data", async () => {
+  it("writes the row with sanitized data", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
-    auditLog("login_account_locked", { ip: "9.9.9.9", path: "/api/login" });
-    await flushPromises();
+    await auditLog("login_account_locked", { ip: "9.9.9.9", path: "/api/login" });
 
     expect(mockPrisma.auditLog.create).toHaveBeenCalledOnce();
     expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
@@ -86,14 +85,34 @@ describe("DB write", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     mockPrisma.auditLog.create.mockRejectedValueOnce(new Error("connection refused"));
 
-    expect(() => auditLog("test_event", {})).not.toThrow();
-    await flushPromises();
+    await expect(auditLog("test_event", {})).resolves.toBeUndefined();
 
     expect(errorSpy).toHaveBeenCalledOnce();
     const logged = JSON.parse(errorSpy.mock.calls[0][0]);
     expect(logged.type).toBe("[AUDIT_DB_ERROR]");
     expect(logged.event).toBe("test_event");
     expect(logged.error).toBe("connection refused");
+  });
+
+  it("resolves only once the row and the alert have both settled", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    let writeRow, answerDebounce;
+    mockPrisma.auditLog.create.mockReturnValueOnce(new Promise((r) => { writeRow = r; }));
+    mockPrisma.auditLog.count.mockReturnValueOnce(new Promise((r) => { answerDebounce = r; }));
+
+    let settled = false;
+    const pending = auditLog("login_account_locked", {}).then(() => { settled = true; });
+    await flushPromises();
+    expect(settled).toBe(false);
+
+    writeRow(undefined);
+    await flushPromises();
+    expect(settled).toBe(false);
+
+    answerDebounce(1);
+    await pending;
+    expect(mockPrisma.auditLog.count).toHaveBeenCalledOnce();
   });
 });
 

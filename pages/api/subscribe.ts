@@ -30,7 +30,7 @@ export default async function handler(req: any, res: any) {
   // ── SUBSCRIBE ──────────────────────────────────────────────────────────────
   if (req.method === "POST") {
     if (!csrfCheck(req, { strict: true })) {
-      auditLog("subscribe_csrf_blocked", { ip, path: req.url });
+      await auditLog("subscribe_csrf_blocked", { ip, path: req.url });
       return res.status(403).json({ error: "Forbidden" });
     }
     // Rate-limit: max 3 subscribe attempts per IP per hour
@@ -124,7 +124,7 @@ export default async function handler(req: any, res: any) {
   // ── UNSUBSCRIBE ────────────────────────────────────────────────────────────
   if (req.method === "DELETE") {
     if (!csrfCheck(req, { strict: true })) {
-      auditLog("unsubscribe_csrf_blocked", { ip, path: req.url });
+      await auditLog("unsubscribe_csrf_blocked", { ip, path: req.url });
       return res.status(403).json({ error: "Forbidden" });
     }
     const parsed = UnsubscribeSchema.safeParse(req.body ?? {});

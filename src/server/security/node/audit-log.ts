@@ -37,7 +37,7 @@ function sanitize(data: Record<string, unknown>): Record<string, unknown> {
   return { ...data, ip: createHash("sha256").update(data.ip).digest("hex") };
 }
 
-export function auditLog(event: string, data: Record<string, unknown> = {}) {
+export async function auditLog(event: string, data: Record<string, unknown> = {}) {
   const sanitized = sanitize(data);
 
   console.log(JSON.stringify({
@@ -55,19 +55,26 @@ export function auditLog(event: string, data: Record<string, unknown> = {}) {
     }));
   }
 
-  prisma.auditLog.create({
-    data: { event, data: sanitized as object },
-  }).catch((err: Error) => {
-    console.error(JSON.stringify({ type: "[AUDIT_DB_ERROR]", event, error: err.message }));
-  });
+  const writes: Promise<unknown>[] = [
+    prisma.auditLog.create({
+      data: { event, data: sanitized as object },
+    }).catch((err: Error) => {
+      console.error(JSON.stringify({ type: "[AUDIT_DB_ERROR]", event, error: err.message }));
+    }),
+  ];
 
   if (PAGE_WORTHY_EVENTS.has(event)) {
     // Loaded on demand. The dispatcher pulls in the mail transport, which would
     // otherwise be resident in every API route that writes an audit line.
-    import("@/server/services/security-alert")
+    writes.push(import("@/server/services/security-alert")
       .then(m => m.dispatchSecurityAlert(event, sanitized))
       .catch((err: Error) => {
         console.error(JSON.stringify({ type: "[AUDIT_ALERT_ERROR]", event, error: err.message }));
-      });
+      }));
   }
+
+  // Callers await this before responding: a serverless function can be frozen
+  // once its response is sent, taking a pending write with it. Both writes
+  // catch their own errors, so an audit failure never fails the request.
+  await Promise.all(writes);
 }

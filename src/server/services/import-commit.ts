@@ -158,7 +158,7 @@ export async function commitImport(data: CommitInput, opts: CommitOptions = {}):
     return g;
   });
 
-  auditLog("game_created", {
+  await auditLog("game_created", {
     ip: opts.ip,
     gameId: game.id,
     opponent,

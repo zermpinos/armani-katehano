@@ -62,9 +62,9 @@ export async function sendConfirmationEmail({
   const emailHash = crypto.createHash("sha256").update(email).digest("hex");
   try {
     await transport.sendMail({ from: FROM, to: email, subject, html, text });
-    auditLog("confirmation_email_sent", { emailHash });
+    await auditLog("confirmation_email_sent", { emailHash });
   } catch (err: any) {
-    auditLog("confirmation_email_failed", { emailHash, error: err.message });
+    await auditLog("confirmation_email_failed", { emailHash, error: err.message });
     throw err;
   }
 }
@@ -81,7 +81,7 @@ export async function sendRosterAnnouncement({
     return;
   }
   if (subscribers.length === 0) {
-    auditLog("roster_emails_skipped", { reason: "no_confirmed_subscribers", opponent: game.opponent });
+    await auditLog("roster_emails_skipped", { reason: "no_confirmed_subscribers", opponent: game.opponent });
     return;
   }
 
@@ -97,15 +97,15 @@ export async function sendRosterAnnouncement({
       const html = buildHtml(game, players, message, appUrl, unsubscribeUrl);
       const text = buildText(game, players, message, appUrl, unsubscribeUrl);
       return transport.sendMail({ from: FROM, to: sub.email, subject, html, text })
-        .then(() => {
-          auditLog("roster_email_delivered", { emailHash, opponent: game.opponent });
+        .then(async () => {
+          await auditLog("roster_email_delivered", { emailHash, opponent: game.opponent });
           return prisma.subscriber.update({
             where: { id: sub.id },
             data:  { lastEmailedAt: new Date() },
           });
         })
-        .catch((err: any) => {
-          auditLog("roster_email_failed", { emailHash, error: err.message, opponent: game.opponent });
+        .catch(async (err: any) => {
+          await auditLog("roster_email_failed", { emailHash, error: err.message, opponent: game.opponent });
           throw err;
         });
     }),
@@ -114,7 +114,7 @@ export async function sendRosterAnnouncement({
   const sent   = results.filter(r => r.status === "fulfilled").length;
   const failed = results.filter(r => r.status === "rejected").length;
 
-  auditLog("roster_emails_summary", {
+  await auditLog("roster_emails_summary", {
     opponent:     game.opponent,
     total:        subscribers.length,
     sent,
@@ -142,7 +142,7 @@ export async function sendGameImportedBroadcast({
     return;
   }
   if (subscribers.length === 0) {
-    auditLog("game_imported_emails_skipped", { reason: "no_confirmed_subscribers", gameId: game.id });
+    await auditLog("game_imported_emails_skipped", { reason: "no_confirmed_subscribers", gameId: game.id });
     return;
   }
 
@@ -158,12 +158,12 @@ export async function sendGameImportedBroadcast({
       const html = buildGameImportedHtml(game, topPerformers, ctx, appUrl, unsubscribeUrl);
       const text = buildGameImportedText(game, topPerformers, ctx, appUrl, unsubscribeUrl);
       return transport.sendMail({ from: FROM, to: sub.email, subject, html, text })
-        .then(() => {
-          auditLog("game_imported_email_delivered", { emailHash, gameId: game.id });
+        .then(async () => {
+          await auditLog("game_imported_email_delivered", { emailHash, gameId: game.id });
           return prisma.subscriber.update({ where: { id: sub.id }, data: { lastEmailedAt: new Date() } });
         })
-        .catch((err: any) => {
-          auditLog("game_imported_email_failed", { emailHash, error: err.message, gameId: game.id });
+        .catch(async (err: any) => {
+          await auditLog("game_imported_email_failed", { emailHash, error: err.message, gameId: game.id });
           throw err;
         });
     }),
@@ -171,7 +171,7 @@ export async function sendGameImportedBroadcast({
 
   const sent   = results.filter(r => r.status === "fulfilled").length;
   const failed = results.filter(r => r.status === "rejected").length;
-  auditLog("game_imported_emails_summary", {
+  await auditLog("game_imported_emails_summary", {
     gameId:        game.id,
     total:         subscribers.length,
     sent,
@@ -190,7 +190,7 @@ export async function sendImportNotification(payload: ImportNotificationPayload)
   // a channel rather than an inbox. Email stays the fallback so a webhook that
   // is unset, misconfigured or down loses nothing.
   if (await sendSlackAlert(result.text)) {
-    auditLog("import_notification_sent", { kind: payload.kind, via: "slack" });
+    await auditLog("import_notification_sent", { kind: payload.kind, via: "slack" });
     return "slack";
   }
 
@@ -203,10 +203,10 @@ export async function sendImportNotification(payload: ImportNotificationPayload)
 
   try {
     await transport.sendMail({ from: FROM, to, subject: result.subject, html: result.html, text: result.text });
-    auditLog("import_notification_sent", { kind: payload.kind, via: "email" });
+    await auditLog("import_notification_sent", { kind: payload.kind, via: "email" });
     return "email";
   } catch (err: any) {
-    auditLog("import_notification_failed", { kind: payload.kind, error: err.message });
+    await auditLog("import_notification_failed", { kind: payload.kind, error: err.message });
     return "none";
   }
 }

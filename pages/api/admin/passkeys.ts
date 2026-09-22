@@ -31,7 +31,7 @@ async function handler(req: any, res: any) {
     }
 
     await prisma.passkeyCredential.delete({ where: { id } });
-    auditLog("passkey_delete", { username, id });
+    await auditLog("passkey_delete", { username, id });
 
     return res.status(200).json({ ok: true });
   }

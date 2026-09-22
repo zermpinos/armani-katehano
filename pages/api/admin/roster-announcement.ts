@@ -90,11 +90,11 @@ async function handler(req: any, res: any) {
         });
       });
 
-      auditLog("roster_announcement_published", { ip, upcomingGameId, playerCount: players.length });
+      await auditLog("roster_announcement_published", { ip, upcomingGameId, playerCount: players.length });
       await invalidateForRosterAnnouncement({ revalidate: res.revalidate });
       return res.status(200).json({ ok: true, id: announcement.id });
     } catch (err) {
-      auditLog("roster_announcement_error", { ip, error: (err as any).message });
+      await auditLog("roster_announcement_error", { ip, error: (err as any).message });
       return res.status(500).json({ error: prodError(err) });
     }
   }
@@ -111,11 +111,11 @@ async function handler(req: any, res: any) {
 
     try {
       await prisma.gameRosterAnnouncement.delete({ where: { upcomingGameId } });
-      auditLog("roster_announcement_deleted", { ip, upcomingGameId });
+      await auditLog("roster_announcement_deleted", { ip, upcomingGameId });
       await invalidateForRosterAnnouncement({ revalidate: res.revalidate });
       return res.status(200).json({ ok: true });
     } catch (err) {
-      auditLog("roster_announcement_delete_error", { ip, error: (err as any).message });
+      await auditLog("roster_announcement_delete_error", { ip, error: (err as any).message });
       return res.status(500).json({ error: prodError(err) });
     }
   }

@@ -134,7 +134,7 @@ async function putEntries(req: NextApiRequest, res: NextApiResponse) {
       return { enrolled: playerIds.length, seasonLeagueCount: seasonLeagues.length };
     });
 
-    auditLog("roster_synced", {
+    await auditLog("roster_synced", {
       ip,
       seasonId,
       seasonLeagueCount: result.seasonLeagueCount,
@@ -150,7 +150,7 @@ async function putEntries(req: NextApiRequest, res: NextApiResponse) {
     if (msg.startsWith("BAD_REQUEST:")) {
       return res.status(400).json({ error: msg.slice("BAD_REQUEST:".length) });
     }
-    auditLog("roster_sync_error", { ip, seasonId, error: msg });
+    await auditLog("roster_sync_error", { ip, seasonId, error: msg });
     return handleError(res, err);
   }
 }
@@ -172,7 +172,7 @@ async function patchNumbers(req: NextApiRequest, res: NextApiResponse) {
       ),
     );
 
-    auditLog("roster_numbers_updated", { ip, playerId: data.playerId, leagues: data.numbers.length });
+    await auditLog("roster_numbers_updated", { ip, playerId: data.playerId, leagues: data.numbers.length });
     return res.status(200).json({ ok: true });
   } catch (err) {
     return handleError(res, err);

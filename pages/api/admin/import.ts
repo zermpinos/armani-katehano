@@ -19,10 +19,10 @@ export default requireAuth(async function handler(req: any, res: any) {
   } catch (err) {
     if (err instanceof CommitError) {
       if (err.status === 409 && err.gameId)
-        auditLog("game_create_duplicate", { ip, gameId: err.gameId, sourceUrl: data.sourceUrl });
+        await auditLog("game_create_duplicate", { ip, gameId: err.gameId, sourceUrl: data.sourceUrl });
       return res.status(err.status).json({ error: err.message, ...(err.gameId ? { gameId: err.gameId } : {}) });
     }
-    auditLog("game_create_error", { ip, error: (err as any).message });
+    await auditLog("game_create_error", { ip, error: (err as any).message });
     return handleError(res, err);
   }
 });
