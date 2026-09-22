@@ -57,7 +57,7 @@ async function handler(req: any, res: any) {
       await auditLog("roster_blast_rate_limited", { ip });
       return res.status(429).json({ error: "Too many announcements. Try again later." });
     }
-    prisma.loginAttempt.create({ data: { ip: blastKey } })
+    await prisma.loginAttempt.create({ data: { ip: blastKey } })
       .catch((err: unknown) => console.error("[roster-announcement] rate-limit record failed:", err));
 
     const parsed = CoachAnnouncementWriteSchema.safeParse(req.body ?? {});
