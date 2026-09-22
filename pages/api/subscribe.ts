@@ -29,7 +29,7 @@ export default async function handler(req: any, res: any) {
 
   // ── SUBSCRIBE ──────────────────────────────────────────────────────────────
   if (req.method === "POST") {
-    if (!csrfCheck(req, { strict: true })) {
+    if (!csrfCheck(req)) {
       await auditLog("subscribe_csrf_blocked", { ip, path: req.url });
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -124,7 +124,7 @@ export default async function handler(req: any, res: any) {
 
   // ── UNSUBSCRIBE ────────────────────────────────────────────────────────────
   if (req.method === "DELETE") {
-    if (!csrfCheck(req, { strict: true })) {
+    if (!csrfCheck(req)) {
       await auditLog("unsubscribe_csrf_blocked", { ip, path: req.url });
       return res.status(403).json({ error: "Forbidden" });
     }

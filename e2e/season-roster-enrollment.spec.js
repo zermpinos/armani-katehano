@@ -296,7 +296,7 @@ test.describe("roster-entries API › auth guards", () => {
     expect(res.status()).toBe(401);
   });
 
-  test("PUT /api/admin/roster-entries returns 403 without a session (CSRF fires first)", async ({ request }) => {
+  test("PUT /api/admin/roster-entries returns 401 without a session", async ({ request }) => {
     const res = await request.put("/api/admin/roster-entries", { data: { seasonId: "x", playerIds: [] } });
     expect([401, 403]).toContain(res.status());
   });

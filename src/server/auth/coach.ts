@@ -6,7 +6,7 @@ import prisma  from "@/server/db/client";
 const COACH_COOKIE = "__Host-ak_coach";
 export const COACH_SESSION_TTL_S = 4 * 60 * 60;
 
-function signCoachSession(payload: string): string {
+export function signCoachSession(payload: string): string {
   const secret = process.env.COACH_SESSION_SECRET;
   if (!secret) throw new Error("COACH_SESSION_SECRET is not set");
   const data = Buffer.from(payload).toString("base64url");

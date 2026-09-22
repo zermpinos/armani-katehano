@@ -84,10 +84,10 @@ describe("POST /api/admin/season-phase", () => {
     expect(res.revalidate).toHaveBeenCalledWith("/games");
   });
 
-  it("returns 403 without auth (CSRF blocked)", async () => {
+  it("returns 401 without a session", async () => {
     const req = mockReq({ method: "POST", body: { phase: "semifinal" } });
     const res = mockRes();
     await handler(req, res);
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(401);
   });
 });

@@ -25,7 +25,7 @@ vi.mock("@/server/security/node", () => ({
   getClientIp: vi.fn().mockReturnValue("1.2.3.4"),
 }));
 
-import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount, verifyCredentials, getAdminUser, verifyTotp, verifyCaptcha } from "@/server/auth";
+import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount, verifyCredentials, getAdminUser, verifyTotp, verifyCaptcha, csrfTokenCheck } from "@/server/auth";
 import handler from "../../../../pages/api/auth";
 import { mockRes, mockReq } from "./__support__/auth-mocks";
 import { auditLog } from "@/server/security/node";
@@ -271,6 +271,30 @@ describe("POST /api/auth (login)", () => {
     expect(res.statusCode).toBe(200);
     expect(res._body).toEqual({ ok: true });
     expect(clearAttempts).toHaveBeenCalledTimes(2);
+  });
+
+  // The token handed back at login is only good for the session it came with.
+  it("mints a CSRF cookie bound to the session it just issued", async () => {
+    verifyCredentials.mockResolvedValue(true);
+    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$...", totpSecret: "BASE32SECRET" });
+    verifyTotp.mockReturnValue(true);
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { username: "admin", password: "correct", totpToken: "123456", slug: ADMIN_SLUG },
+    });
+    const res = mockRes();
+    await handler(req, res);
+
+    const [session, csrf] = res._headers["Set-Cookie"]
+      .map((c: string) => c.split(";")[0].split("=").slice(1).join("="));
+    const mutating = {
+      method:  "POST",
+      cookies: { "__Host-ak_csrf": csrf },
+      headers: { "x-csrf-token": csrf },
+    };
+    expect(csrfTokenCheck(mutating, session)).toBe(true);
+    expect(csrfTokenCheck(mutating, "a-different-session")).toBe(false);
   });
 
   it("returns 401 with requiresCaptcha when IP has 3+ failures and no captchaToken", async () => {

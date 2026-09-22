@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
+import { generateCsrfToken } from "@/server/auth/csrf";
 
 vi.hoisted(() => {
   process.env.SESSION_SECRET = "test-session-secret-32bytes-xxxx";
@@ -70,12 +71,14 @@ beforeEach(() => {
   });
 });
 
+const CSRF = generateCsrfToken("valid-token");
+
 describe("POST /api/auth/passkey/register-options", () => {
   it("returns 200 with options and challengeId when authenticated", async () => {
     const req = mockReq({
       method:  "POST",
-      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": "tok" },
-      cookies: { "__Host-ak_csrf": "tok" },
+      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": CSRF },
+      cookies: { "__Host-ak_csrf": CSRF },
     });
     const res = mockRes();
     await optionsHandler(req, res);
@@ -90,8 +93,8 @@ describe("POST /api/auth/passkey/register-verify", () => {
   it("returns 400 when challengeId is malformed", async () => {
     const req = mockReq({
       method:  "POST",
-      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": "tok" },
-      cookies: { "__Host-ak_csrf": "tok" },
+      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": CSRF },
+      cookies: { "__Host-ak_csrf": CSRF },
       body:    { challengeId: "short", label: "My Key", response: {} },
     });
     const res = mockRes();
@@ -102,8 +105,8 @@ describe("POST /api/auth/passkey/register-verify", () => {
   it("returns 400 when label is empty", async () => {
     const req = mockReq({
       method:  "POST",
-      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": "tok" },
-      cookies: { "__Host-ak_csrf": "tok" },
+      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": CSRF },
+      cookies: { "__Host-ak_csrf": CSRF },
       body:    { challengeId: "a".repeat(64), label: "", response: {} },
     });
     const res = mockRes();
@@ -114,8 +117,8 @@ describe("POST /api/auth/passkey/register-verify", () => {
   it("returns 400 when label exceeds 100 chars", async () => {
     const req = mockReq({
       method:  "POST",
-      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": "tok" },
-      cookies: { "__Host-ak_csrf": "tok" },
+      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": CSRF },
+      cookies: { "__Host-ak_csrf": CSRF },
       body:    { challengeId: "a".repeat(64), label: "x".repeat(101), response: {} },
     });
     const res = mockRes();
@@ -127,8 +130,8 @@ describe("POST /api/auth/passkey/register-verify", () => {
     (consumeChallenge as any).mockResolvedValue(null);
     const req = mockReq({
       method:  "POST",
-      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": "tok" },
-      cookies: { "__Host-ak_csrf": "tok" },
+      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": CSRF },
+      cookies: { "__Host-ak_csrf": CSRF },
       body:    { challengeId: "a".repeat(64), label: "My Key", response: {} },
     });
     const res = mockRes();
@@ -143,8 +146,8 @@ describe("POST /api/auth/passkey/register-verify", () => {
     );
     const req = mockReq({
       method:  "POST",
-      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": "tok" },
-      cookies: { "__Host-ak_csrf": "tok" },
+      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": CSRF },
+      cookies: { "__Host-ak_csrf": CSRF },
       body:    { challengeId: "a".repeat(64), label: "My Key", response: { id: "Y3JlZGVudGlhbElk" } },
     });
     const res = mockRes();
@@ -155,8 +158,8 @@ describe("POST /api/auth/passkey/register-verify", () => {
   it("returns 200 with id, label, createdAt on success", async () => {
     const req = mockReq({
       method:  "POST",
-      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": "tok" },
-      cookies: { "__Host-ak_csrf": "tok" },
+      headers: { host: "example.com", origin: "https://example.com", "x-csrf-token": CSRF },
+      cookies: { "__Host-ak_csrf": CSRF },
       body:    { challengeId: "a".repeat(64), label: "My Key", response: { id: "Y3JlZGVudGlhbElk" } },
     });
     const res = mockRes();

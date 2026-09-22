@@ -6,8 +6,8 @@ import {
   verifyAuthResp,
 }                                            from "@/server/auth/passkey";
 import { getAdminUser }                      from "@/server/auth/password";
-import { buildSessionCookie }                from "@/server/auth/session";
-import { generateCsrfToken, buildCsrfCookie } from "@/server/auth/csrf";
+import { buildSessionCookie, signSession }   from "@/server/auth/session";
+import { buildCsrfCookie }                   from "@/server/auth/csrf";
 import prisma                                from "@/server/db/client";
 
 // base64url: no padding, URL-safe chars only, at least 4 chars
@@ -95,7 +95,7 @@ export default async function handler(req: any, res: any) {
 
   res.setHeader("Set-Cookie", [
     buildSessionCookie(payload),
-    buildCsrfCookie(generateCsrfToken()),
+    buildCsrfCookie(signSession(payload)),
   ]);
 
   return res.status(200).json({ ok: true });

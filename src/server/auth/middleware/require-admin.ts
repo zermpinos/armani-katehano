@@ -11,15 +11,6 @@ export function requireAuth(handler: (req: any, res: any) => any) {
 
     const ip = getClientIp(req);
 
-    if (!csrfCheck(req, { strict: true })) {
-      await auditLog("csrf_blocked", { ip, path: req.url, method: req.method });
-      return res.status(403).json({ error: "Forbidden" });
-    }
-    if (!csrfTokenCheck(req)) {
-      await auditLog("csrf_token_blocked", { ip, path: req.url, method: req.method });
-      return res.status(403).json({ error: "Forbidden" });
-    }
-
     const token   = getSessionToken(req);
     const payload = token ? verifyPayload(token) : null;
 
@@ -41,6 +32,18 @@ export function requireAuth(handler: (req: any, res: any) => any) {
 
     if (parsed?.role !== "admin") {
       await auditLog("forbidden_role", { ip, path: req.url, role: parsed?.role, user: parsed?.user });
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    // Below the session checks: the token binds to the session, and it makes
+    // csrf_blocked an event about a request that carried one, not about every
+    // bot probe and CI run that arrives without an origin header.
+    if (!csrfCheck(req)) {
+      await auditLog("csrf_blocked", { ip, path: req.url, method: req.method });
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    if (!csrfTokenCheck(req, token)) {
+      await auditLog("csrf_token_blocked", { ip, path: req.url, method: req.method });
       return res.status(403).json({ error: "Forbidden" });
     }
 

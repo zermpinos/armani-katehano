@@ -10,7 +10,7 @@
  */
 
 import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount } from "@/server/auth";
-import { csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha, generateCsrfToken, buildCsrfCookie, clearCsrfCookie } from "@/server/auth";
+import { csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha, buildCsrfCookie, clearCsrfCookie } from "@/server/auth";
 import { securityHeaders } from "@/server/security/edge";
 import { auditLog, getClientIp } from "@/server/security/node";
 import {
@@ -19,6 +19,7 @@ import {
   verifyCoachPassword,
   getCoachSessionVersion,
   buildCoachSessionCookie,
+  signCoachSession,
   clearCoachSessionCookie,
   COACH_SESSION_TTL_S,
 } from "@/server/auth";
@@ -74,7 +75,7 @@ export default async function handler(req: any, res: any) {
 
   // ── POST: login ───────────────────────────────────────────────────────────
   if (req.method === "POST") {
-    if (!csrfCheck(req, { strict: true })) {
+    if (!csrfCheck(req)) {
       await auditLog("coach_csrf_rejected", { ip });
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -127,7 +128,8 @@ export default async function handler(req: any, res: any) {
     await Promise.all([clearAttempts(ip), clearAttempts(ACCOUNT_KEY)]);
     const v = await getCoachSessionVersion();
     const payload = JSON.stringify({ ts: Date.now(), role: "coach", v });
-    res.setHeader("Set-Cookie", [buildCoachSessionCookie(payload), buildCsrfCookie(generateCsrfToken())]);
+    const session = signCoachSession(payload);
+    res.setHeader("Set-Cookie", [buildCoachSessionCookie(payload), buildCsrfCookie(session)]);
     await auditLog("coach_login_success", { ip });
     return res.status(200).json({ ok: true });
   }
