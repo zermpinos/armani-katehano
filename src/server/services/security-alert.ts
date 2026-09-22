@@ -7,9 +7,10 @@ const SENT_MARKER  = "security_alert_sent";
 const MAX_VALUE_LEN = 120;
 
 // Debounce is keyed on the delivery marker rather than on the event itself: the
-// event row is written fire-and-forget by auditLog, so counting those races the
-// write and can suppress the very first alert. The marker is awaited here, which
-// makes a lockout storm one message instead of forty.
+// event row is written by auditLog alongside this dispatch, not before it, so
+// counting those races the write and can suppress the very first alert. The
+// marker is awaited here, which makes a lockout storm one message instead of
+// forty.
 export async function dispatchSecurityAlert(
   event: string,
   data:  Record<string, unknown> = {},

@@ -20,10 +20,10 @@ async function handler(req: any, res: any) {
     // the deployed webhook variable and the email fallback rather than just the
     // webhook on its own.
     const via = await sendImportNotification({ kind: "test" });
-    auditLog("import_alert_tested", { ip, via });
+    await auditLog("import_alert_tested", { ip, via });
     return res.status(200).json({ ok: true, via });
   } catch (err: any) {
-    auditLog("import_alert_test_error", { ip, error: err.message });
+    await auditLog("import_alert_test_error", { ip, error: err.message });
     return res.status(500).json({ error: prodError(err) });
   }
 }

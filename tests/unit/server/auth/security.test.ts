@@ -3,7 +3,7 @@
  * tests/security.test.js
  * Unit tests for lib/security - verifySession, csrfCheck, buildSessionCookie, clearSessionCookie.
  */
-import { describe, it, expect, beforeAll } from "vitest";
+import { vi, describe, it, expect, beforeAll } from "vitest";
 
 // Set SESSION_SECRET before the module is imported so signSession / verifySession work.
 beforeAll(() => {
@@ -87,12 +87,18 @@ describe("csrfCheck", () => {
     expect(csrfCheck(req("HEAD"))).toBe(true);
   });
 
-  it("allows POST when Origin matches Host", () => {
+  it("allows POST from the configured origin", () => {
     expect(csrfCheck(req("POST", { host: "example.com", origin: "https://example.com" }))).toBe(true);
   });
 
-  it("rejects POST when Origin mismatches Host", () => {
+  it("rejects POST from another origin", () => {
     expect(csrfCheck(req("POST", { host: "example.com", origin: "https://evil.com" }))).toBe(false);
+  });
+
+  // The old check compared Origin against the request's own Host, which both
+  // sides of a forged request control.
+  it("rejects POST whose Origin matches its own Host but not the configured one", () => {
+    expect(csrfCheck(req("POST", { host: "evil.com", origin: "https://evil.com" }))).toBe(false);
   });
 
   it("falls back to Referer when Origin is absent - matches", () => {
@@ -103,13 +109,8 @@ describe("csrfCheck", () => {
     expect(csrfCheck(req("POST", { host: "example.com", referer: "https://evil.com/x" }))).toBe(false);
   });
 
-  it("rejects POST with no Origin and no Referer in strict mode", () => {
-    expect(csrfCheck(req("POST", { host: "example.com" }), { strict: true })).toBe(false);
-  });
-
-  it("allows POST with no Origin and no Referer in default (non-strict) mode", () => {
-    // Documents the permissive default - SameSite=Strict cookie is the primary CSRF defence
-    expect(csrfCheck(req("POST", { host: "example.com" }))).toBe(true);
+  it("rejects POST with no Origin and no Referer", () => {
+    expect(csrfCheck(req("POST", { host: "example.com" }))).toBe(false);
   });
 
   it("rejects POST with malformed Origin URL", () => {
@@ -118,6 +119,29 @@ describe("csrfCheck", () => {
 
   it("rejects DELETE with mismatched Origin", () => {
     expect(csrfCheck(req("DELETE", { host: "example.com", origin: "https://evil.com" }))).toBe(false);
+  });
+
+  // Falling back to the Host header here would put back the weakness above.
+  it("rejects every mutating request when no app URL is configured", () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
+    expect(csrfCheck(req("POST", { host: "example.com", origin: "https://example.com" }))).toBe(false);
+    vi.unstubAllEnvs();
+  });
+
+  // A preview deployment answers on a host the configured URL never names, and
+  // the e2e suite runs against one.
+  it("allows a preview deployment its own host", () => {
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_BRANCH_URL", "ak-git-branch.vercel.app");
+    expect(csrfCheck(req("POST", { host: "x", origin: "https://ak-git-branch.vercel.app" }))).toBe(true);
+    vi.unstubAllEnvs();
+  });
+
+  it("does not allow that host in production", () => {
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("VERCEL_BRANCH_URL", "ak-git-branch.vercel.app");
+    expect(csrfCheck(req("POST", { host: "x", origin: "https://ak-git-branch.vercel.app" }))).toBe(false);
+    vi.unstubAllEnvs();
   });
 });
 

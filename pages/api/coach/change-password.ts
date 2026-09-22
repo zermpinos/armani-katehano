@@ -32,7 +32,7 @@ async function handler(req: any, res: any) {
   try {
     const valid = await verifyCoachPassword(currentPassword);
     if (!valid) {
-      auditLog("coach_change_password_wrong_current", { ip });
+      await auditLog("coach_change_password_wrong_current", { ip });
       return res.status(401).json({ error: "Current password is incorrect." });
     }
 
@@ -41,7 +41,7 @@ async function handler(req: any, res: any) {
     // Increment version - invalidates every issued session across all devices,
     // not just the current one. The coach must log in again with the new password.
     await incrementCoachSessionVersion();
-    auditLog("coach_password_changed", { ip });
+    await auditLog("coach_password_changed", { ip });
 
     res.setHeader("Set-Cookie", clearCoachSessionCookie());
     return res.status(200).json({ ok: true, sessionCleared: true });

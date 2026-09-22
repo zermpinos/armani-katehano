@@ -11,18 +11,29 @@ export function makeSessionCookieValue(username = "admin") {
 }
 
 /**
+ * A CSRF token the server will accept for this session cookie: the server binds
+ * the two with an HMAC, so an unrelated random value no longer validates.
+ */
+export function makeCsrfToken(sessionValue) {
+  const nonce   = randomBytes(32).toString("hex");
+  const binding = createHmac("sha256", SESSION_SECRET).update(`${nonce}!${sessionValue}`).digest("base64url");
+  return `${nonce}.${binding}`;
+}
+
+/**
  * Returns { cookies, csrfToken }. Inject cookies into the browser context
  * via context.addCookies(cookies), then pass csrfToken as x-csrf-token header
  * and origin: BASE_URL on every mutating request so csrfCheck passes.
  */
 export function makeAdminAuth(username = "admin") {
-  const host      = new URL(BASE_URL).hostname;
-  const csrfToken = randomBytes(32).toString("hex");
+  const host         = new URL(BASE_URL).hostname;
+  const sessionValue = makeSessionCookieValue(username);
+  const csrfToken    = makeCsrfToken(sessionValue);
   return {
     cookies: [
       {
         name:     "__Host-ak_session",
-        value:    makeSessionCookieValue(username),
+        value:    sessionValue,
         domain:   host,
         path:     "/",
         secure:   true,

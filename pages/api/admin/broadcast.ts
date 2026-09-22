@@ -68,7 +68,7 @@ async function handler(req: any, res: any) {
         });
         const matchedEmails = new Set(matched.map(s => s.email));
         const unmatched     = data.targetEmails.filter(e => !matchedEmails.has(e));
-        auditLog("broadcast_resolve_checked", { count: data.targetEmails.length });
+        await auditLog("broadcast_resolve_checked", { count: data.targetEmails.length });
         return res.status(200).json({
           matched:        matched.length,
           unmatchedCount: unmatched.length,
@@ -95,10 +95,10 @@ async function handler(req: any, res: any) {
         const html           = buildBroadcastHtml(renderedHtml, appUrl, fakeUnsub);
         const text           = buildBroadcastText(renderedHtml, appUrl, fakeUnsub);
         await transport.sendMail({ from: FROM, to: adminEmail, subject: previewSubject, html, text });
-        auditLog("broadcast_preview_sent", { subjectLength: subject.length, bodyLength: body.length });
+        await auditLog("broadcast_preview_sent", { subjectLength: subject.length, bodyLength: body.length });
         return res.status(200).json({ ok: true, renderedHtml: String(renderedHtml) });
       } catch (err: any) {
-        auditLog("broadcast_preview_failed", { error: err.message });
+        await auditLog("broadcast_preview_failed", { error: err.message });
         return res.status(500).json({ error: prodError(err) });
       }
     }
@@ -190,13 +190,13 @@ async function handler(req: any, res: any) {
         .filter(r => r.status === "fulfilled" && r.value.ok)
         .map(r => (r as PromiseFulfilledResult<{ id: string; ok: true }>).value.id);
       if (deliveredIds.length > 0) {
-        prisma.subscriber.updateMany({
+        await prisma.subscriber.updateMany({
           where: { id: { in: deliveredIds } },
           data:  { lastEmailedAt: new Date() },
         }).catch(() => {});
       }
 
-      auditLog("broadcast_sent", {
+      await auditLog("broadcast_sent", {
         sentToAll,
         targetIds:      resolvedIds,
         recipientCount: subscribers.length,

@@ -54,10 +54,10 @@ async function handler(req: any, res: any) {
       where: { ip: blastKey, attemptedAt: { gte: blastSince } },
     });
     if (blastCount >= BLAST_LIMIT) {
-      auditLog("roster_blast_rate_limited", { ip });
+      await auditLog("roster_blast_rate_limited", { ip });
       return res.status(429).json({ error: "Too many announcements. Try again later." });
     }
-    prisma.loginAttempt.create({ data: { ip: blastKey } })
+    await prisma.loginAttempt.create({ data: { ip: blastKey } })
       .catch((err: unknown) => console.error("[roster-announcement] rate-limit record failed:", err));
 
     const parsed = CoachAnnouncementWriteSchema.safeParse(req.body ?? {});
@@ -90,10 +90,10 @@ async function handler(req: any, res: any) {
           });
         }
       } catch (err) {
-        auditLog("roster_resend_error", { error: (err as any).message });
+        await auditLog("roster_resend_error", { error: (err as any).message });
       }
 
-      auditLog("coach_roster_resend", { ip, upcomingGameId });
+      await auditLog("coach_roster_resend", { ip, upcomingGameId });
       return res.status(200).json({ ok: true });
     }
 
@@ -132,9 +132,9 @@ async function handler(req: any, res: any) {
         });
       });
 
-      auditLog("coach_roster_published", { ip, upcomingGameId, playerCount: players.length });
+      await auditLog("coach_roster_published", { ip, upcomingGameId, playerCount: players.length });
 
-      await invalidateForRosterAnnouncement({ revalidate: (p) => res.revalidate?.(p) });
+      await invalidateForRosterAnnouncement({ revalidate: res.revalidate });
 
       // Send emails to all confirmed subscribers - awaited so Vercel doesn't kill the function early.
       try {
@@ -159,12 +159,12 @@ async function handler(req: any, res: any) {
           });
         }
       } catch (err) {
-        auditLog("roster_email_trigger_error", { error: (err as any).message });
+        await auditLog("roster_email_trigger_error", { error: (err as any).message });
       }
 
       return res.status(200).json({ ok: true, id: announcement.id });
     } catch (err) {
-      auditLog("coach_roster_error", { ip, error: (err as any).message });
+      await auditLog("coach_roster_error", { ip, error: (err as any).message });
       return res.status(500).json({ error: prodError(err) });
     }
   }
@@ -181,11 +181,11 @@ async function handler(req: any, res: any) {
 
     try {
       await prisma.gameRosterAnnouncement.delete({ where: { upcomingGameId } });
-      auditLog("coach_roster_deleted", { ip, upcomingGameId });
-      await invalidateForRosterAnnouncement({ revalidate: (p) => res.revalidate?.(p) });
+      await auditLog("coach_roster_deleted", { ip, upcomingGameId });
+      await invalidateForRosterAnnouncement({ revalidate: res.revalidate });
       return res.status(200).json({ ok: true });
     } catch (err) {
-      auditLog("coach_roster_delete_error", { ip, error: (err as any).message });
+      await auditLog("coach_roster_delete_error", { ip, error: (err as any).message });
       return res.status(500).json({ error: prodError(err) });
     }
   }

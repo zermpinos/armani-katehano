@@ -55,7 +55,7 @@ export default async function handler(req: any, res: any) {
       },
     });
 
-    auditLog("cron_purge_subscribers", { unconfirmedDeleted, expiredDeleted });
+    await auditLog("cron_purge_subscribers", { unconfirmedDeleted, expiredDeleted });
     await finishCronRun(runId, { ok: true, summary: { unconfirmedDeleted, expiredDeleted } });
     return res.status(200).json({ ok: true, unconfirmedDeleted, expiredDeleted });
   } catch (err: any) {

@@ -44,7 +44,7 @@ async function handler(req: any, res: any) {
 
     const failed = results.filter(r => r.status === "error");
 
-    await invalidateForRecalc({ revalidate: (p) => res.revalidate(p) });
+    await invalidateForRecalc({ revalidate: res.revalidate });
 
     return res.status(failed.length > 0 ? 500 : 200).json({
       ...(failed.length > 0 && {

@@ -67,7 +67,7 @@ async function handler(req: any, res: any) {
     throw err;
   }
 
-  auditLog("passkey_register", {
+  await auditLog("passkey_register", {
     username,
     label,
     credentialId: credentialId.slice(0, 8),

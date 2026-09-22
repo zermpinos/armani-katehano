@@ -54,11 +54,11 @@ async function handler(req: any, res: any) {
       });
     }
 
-    auditLog("season_updated", { ip, seasonId: id, name: existing.name });
-    await invalidateForSeasonMutation({ revalidate: (p: string) => res.revalidate?.(p) });
+    await auditLog("season_updated", { ip, seasonId: id, name: existing.name });
+    await invalidateForSeasonMutation({ revalidate: res.revalidate });
     return res.status(200).json({ ok: true, season });
   } catch (err) {
-    auditLog("season_update_error", { ip, seasonId: id, error: (err as any).message });
+    await auditLog("season_update_error", { ip, seasonId: id, error: (err as any).message });
     return res.status(500).json({ error: prodError(err) });
   }
 }

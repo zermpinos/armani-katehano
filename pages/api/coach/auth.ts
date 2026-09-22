@@ -10,7 +10,7 @@
  */
 
 import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount } from "@/server/auth";
-import { csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha, generateCsrfToken, buildCsrfCookie, clearCsrfCookie } from "@/server/auth";
+import { csrfCheck, CAPTCHA_THRESHOLD, verifyCaptcha, buildCsrfCookie, clearCsrfCookie } from "@/server/auth";
 import { securityHeaders } from "@/server/security/edge";
 import { auditLog, getClientIp } from "@/server/security/node";
 import {
@@ -19,6 +19,7 @@ import {
   verifyCoachPassword,
   getCoachSessionVersion,
   buildCoachSessionCookie,
+  signCoachSession,
   clearCoachSessionCookie,
   COACH_SESSION_TTL_S,
 } from "@/server/auth";
@@ -29,11 +30,11 @@ async function recordAndCheckLockouts(ip: string, accountKey: string) {
     atomicRecordAndCheck(accountKey, 25, 3600),
   ]);
   if (ipRes.locked) {
-    auditLog("coach_login_locked", { ip });
+    await auditLog("coach_login_locked", { ip });
     return { status: 429, body: { error: "Too many failed attempts. Try again later.", retryAfter: 900 } };
   }
   if (accountRes.locked) {
-    auditLog("coach_login_account_locked", { ip });
+    await auditLog("coach_login_account_locked", { ip });
     return { status: 429, body: { error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 } };
   }
   return null;
@@ -68,14 +69,14 @@ export default async function handler(req: any, res: any) {
   // ── DELETE: logout ────────────────────────────────────────────────────────
   if (req.method === "DELETE") {
     res.setHeader("Set-Cookie", [clearCoachSessionCookie(), clearCsrfCookie()]);
-    auditLog("coach_logout", { ip });
+    await auditLog("coach_logout", { ip });
     return res.status(200).json({ ok: true });
   }
 
   // ── POST: login ───────────────────────────────────────────────────────────
   if (req.method === "POST") {
-    if (!csrfCheck(req, { strict: true })) {
-      auditLog("coach_csrf_rejected", { ip });
+    if (!csrfCheck(req)) {
+      await auditLog("coach_csrf_rejected", { ip });
       return res.status(403).json({ error: "Forbidden" });
     }
 
@@ -87,7 +88,7 @@ export default async function handler(req: any, res: any) {
     // Brute-force lockout - per-IP
     const locked = await isLockedOut(ip);
     if (locked) {
-      auditLog("coach_login_locked", { ip });
+      await auditLog("coach_login_locked", { ip });
       return res.status(429).json({ error: "Too many failed attempts. Try again later.", retryAfter: 900 });
     }
 
@@ -95,7 +96,7 @@ export default async function handler(req: any, res: any) {
     const ACCOUNT_KEY = "account_coach";
     const accountLocked = await isLockedOut(ACCOUNT_KEY, 25, 3600);
     if (accountLocked) {
-      auditLog("coach_login_account_locked", { ip });
+      await auditLog("coach_login_account_locked", { ip });
       console.warn("Coach account lockout triggered");
       return res.status(429).json({ error: "Too many attempts across all clients. Try again in an hour.", retryAfter: 3600 });
     }
@@ -111,7 +112,7 @@ export default async function handler(req: any, res: any) {
       if (!captchaOk) {
         const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY);
         if (locked) return res.status(locked.status).json(locked.body);
-        auditLog("coach_login_captcha_failed", { ip });
+        await auditLog("coach_login_captcha_failed", { ip });
         return res.status(401).json({ error: "Captcha verification failed", requiresCaptcha: true });
       }
     }
@@ -120,15 +121,16 @@ export default async function handler(req: any, res: any) {
     if (!valid) {
       const locked = await recordAndCheckLockouts(ip, ACCOUNT_KEY);
       if (locked) return res.status(locked.status).json(locked.body);
-      auditLog("coach_login_failed", { ip });
+      await auditLog("coach_login_failed", { ip });
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
     await Promise.all([clearAttempts(ip), clearAttempts(ACCOUNT_KEY)]);
     const v = await getCoachSessionVersion();
     const payload = JSON.stringify({ ts: Date.now(), role: "coach", v });
-    res.setHeader("Set-Cookie", [buildCoachSessionCookie(payload), buildCsrfCookie(generateCsrfToken())]);
-    auditLog("coach_login_success", { ip });
+    const session = signCoachSession(payload);
+    res.setHeader("Set-Cookie", [buildCoachSessionCookie(payload), buildCsrfCookie(session)]);
+    await auditLog("coach_login_success", { ip });
     return res.status(200).json({ ok: true });
   }
 

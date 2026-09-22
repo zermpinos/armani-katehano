@@ -78,11 +78,11 @@ describe("POST /api/admin/seasons/[id]/archive", () => {
     expect(res.statusCode).toBe(405);
   });
 
-  it("returns 403 without auth (CSRF blocked)", async () => {
+  it("returns 401 without a session", async () => {
     const req = mockReq({ method: "POST", query: { id: "s1" } });
     const res = mockRes();
     await archiveHandler(req, res);
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(401);
   });
 
   it("calls revalidate for stat listings after archive", async () => {
@@ -130,10 +130,10 @@ describe("POST /api/admin/seasons/[id]/unarchive", () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it("returns 403 without auth (CSRF blocked)", async () => {
+  it("returns 401 without a session", async () => {
     const req = mockReq({ method: "POST", query: { id: "s1" } });
     const res = mockRes();
     await unarchiveHandler(req, res);
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(401);
   });
 });

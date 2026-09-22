@@ -14,7 +14,8 @@
  * - The passkey button text is "SIGN IN WITH PASSKEY".
  */
 import { test, expect } from "@playwright/test";
-import { createHmac, randomBytes } from "node:crypto";
+import { createHmac } from "node:crypto";
+import { makeCsrfToken } from "./helpers/admin-auth.js";
 
 const BASE_URL              = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 const ADMIN_SLUG            = process.env.ADMIN_SLUG            ?? null;
@@ -55,13 +56,13 @@ function makeSessionCookieValue(username = "admin") {
  * here; it is set via page.evaluate after navigation because __Host- cookies
  * with a domain attribute are not exposed via document.cookie in Chrome.
  */
-function makeAdminStorageState(username = ADMIN_USERNAME) {
+function makeAdminStorageState(username = ADMIN_USERNAME, sessionValue = makeSessionCookieValue(username)) {
   const host = new URL(BASE_URL).hostname;
   return {
     cookies: [
       {
         name:     "__Host-ak_session",
-        value:    makeSessionCookieValue(username),
+        value:    sessionValue,
         domain:   host,
         path:     "/",
         secure:   true,
@@ -199,10 +200,10 @@ test.describe("Admin panel › API protection", () => {
     expect(res.status()).toBe(401);
   });
 
-  test("POST /api/admin/games returns 403 without a session cookie", async ({ request }) => {
+  test("POST /api/admin/games returns 401 without a session cookie", async ({ request }) => {
     const res = await request.post("/api/admin/games", { data: { opponent: "Test" } });
-    // CSRF check fires before session check: bare API POST has no Origin header -> 403
-    expect(res.status()).toBe(403);
+    // The session check runs first, so a bare API POST never reaches the CSRF check.
+    expect(res.status()).toBe(401);
   });
 });
 
@@ -219,12 +220,14 @@ test.describe("passkey login", () => {
     test.skip(!ADMIN_SLUG || !SESSION_SECRET,
       "ADMIN_SLUG or SESSION_SECRET not configured");
 
+    // One session value for both cookies: the CSRF token is bound to it.
+    const sessionValue = makeSessionCookieValue(ADMIN_USERNAME);
     const context = await browser.newContext({
       baseURL:      BASE_URL,
       // Seed a valid server-side session so we can reach the passkeys page without
       // a real password login. The session is HMAC-signed with SESSION_SECRET so
       // requireAuth accepts it. storageState bypasses CDP's __Host- cookie validation.
-      storageState: makeAdminStorageState(ADMIN_USERNAME),
+      storageState: makeAdminStorageState(ADMIN_USERNAME, sessionValue),
     });
     const page    = await context.newPage();
     const cdp     = await context.newCDPSession(page);
@@ -247,7 +250,7 @@ test.describe("passkey login", () => {
     // Step 2: Navigate to passkeys page and register a new passkey.
     // Set the CSRF cookie after navigation (document.cookie is origin-scoped
     // and __Host- cookies with domain attrs aren't exposed, so we set it here).
-    const csrfToken = randomBytes(32).toString("hex");
+    const csrfToken = makeCsrfToken(sessionValue);
     await page.goto(`/admin/${ADMIN_SLUG}/passkeys`);
     await expect(page.getByText("AK Admin").first()).toBeVisible({ timeout: 10_000 });
     await setCsrfCookie(page, csrfToken);

@@ -197,9 +197,9 @@ async function createGame(req: any, res: any) {
 
       return g;
     });
-    auditLog("game_created", { ip, gameId: game.id, opponent, ...(importDiff?.length ? { importDiff } : {}) });
+    await auditLog("game_created", { ip, gameId: game.id, opponent, ...(importDiff?.length ? { importDiff } : {}) });
     await invalidateForGameMutation({
-      revalidate: (p) => res.revalidate?.(p),
+      revalidate: res.revalidate,
       gameId: game.id,
       affectedPlayerSlugs: await slugsForPlayerIds(boxScore?.map(r => r.playerId) ?? []),
     });
@@ -210,11 +210,11 @@ async function createGame(req: any, res: any) {
     if ((err as any)?.code === "P2002" && sourceUrl) {
       const existing = await prisma.game.findFirst({ where: { sourceUrl } });
       if (existing) {
-        auditLog("game_create_duplicate", { ip, gameId: existing.id, sourceUrl });
+        await auditLog("game_create_duplicate", { ip, gameId: existing.id, sourceUrl });
         return res.status(409).json({ error: "A game with this source URL already exists.", gameId: existing.id });
       }
     }
-    auditLog("game_create_error", { ip, error: (err as any).message });
+    await auditLog("game_create_error", { ip, error: (err as any).message });
     return handleError(res, err);
   }
 }
@@ -289,16 +289,16 @@ async function updateGame(req: any, res: any) {
         await recalcAggregates(newLeagueId!, tx);
       }
     });
-    auditLog("game_updated", { ip, gameId, opponent });
+    await auditLog("game_updated", { ip, gameId, opponent });
     const newPlayerIds = boxScore?.map(r => r.playerId) ?? [];
     await invalidateForGameMutation({
-      revalidate: (p) => res.revalidate?.(p),
+      revalidate: res.revalidate,
       gameId,
       affectedPlayerSlugs: await slugsForPlayerIds([...previousPlayerIds, ...newPlayerIds]),
     });
     return res.status(200).json({ ok: true });
   } catch (err) {
-    auditLog("game_update_error", { ip, error: (err as any).message });
+    await auditLog("game_update_error", { ip, error: (err as any).message });
     return handleError(res, err);
   }
 }
@@ -324,15 +324,15 @@ async function deleteGame(req: any, res: any) {
 
       await recalcAggregates(existing.seasonLeagueId, tx);
     });
-    auditLog("game_deleted", { ip, gameId });
+    await auditLog("game_deleted", { ip, gameId });
     await invalidateForGameMutation({
-      revalidate: (p) => res.revalidate?.(p),
+      revalidate: res.revalidate,
       gameId,
       affectedPlayerSlugs: await slugsForPlayerIds(deletedPlayerIds),
     });
     return res.status(200).json({ ok: true });
   } catch (err) {
-    auditLog("game_delete_error", { ip, error: (err as any).message });
+    await auditLog("game_delete_error", { ip, error: (err as any).message });
     return handleError(res, err);
   }
 }

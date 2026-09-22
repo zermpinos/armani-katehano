@@ -29,8 +29,8 @@ export default async function handler(req: any, res: any) {
 
   // ── SUBSCRIBE ──────────────────────────────────────────────────────────────
   if (req.method === "POST") {
-    if (!csrfCheck(req, { strict: true })) {
-      auditLog("subscribe_csrf_blocked", { ip, path: req.url });
+    if (!csrfCheck(req)) {
+      await auditLog("subscribe_csrf_blocked", { ip, path: req.url });
       return res.status(403).json({ error: "Forbidden" });
     }
     // Rate-limit: max 3 subscribe attempts per IP per hour
@@ -48,8 +48,8 @@ export default async function handler(req: any, res: any) {
     }
     const { email } = parsed.data;
 
-    // Record attempt before processing (async, errors logged)
-    prisma.loginAttempt.create({ data: { ip: rateLimitKey } })
+    // Record attempt before processing. A failed write is logged, not fatal.
+    await prisma.loginAttempt.create({ data: { ip: rateLimitKey } })
       .catch((err: unknown) => console.error("[subscribe] rate-limit record failed:", err));
 
     // Per-email cooldown: reject if the same address attempted within the last 24 h.
@@ -63,10 +63,11 @@ export default async function handler(req: any, res: any) {
       // Return 200 so we don't reveal whether the address is known
       return res.status(200).json({ ok: true });
     }
-    // Purge stale records (async, runs on each subscribe attempt)
+    // Purge stale records before the lookup below, so an address whose
+    // unconfirmed signup has expired is not mistaken for a live subscriber.
     const unconfirmedCutoff = new Date(Date.now() - UNCONFIRMED_TTL * 1000);
     const retentionCutoff   = new Date(Date.now() - CONFIRMED_RETENTION * 1000);
-    prisma.subscriber.deleteMany({
+    await prisma.subscriber.deleteMany({
       where: {
         OR: [
           // Unconfirmed for more than 1 day
@@ -112,7 +113,7 @@ export default async function handler(req: any, res: any) {
 
       // Only stamp the cooldown after a successful email send so a delivery
       // failure doesn't silently block the user from retrying.
-      prisma.loginAttempt.create({ data: { ip: emailKey } })
+      await prisma.loginAttempt.create({ data: { ip: emailKey } })
         .catch((err: unknown) => console.error("[subscribe] email cooldown record failed:", err));
 
       return res.status(201).json({ ok: true });
@@ -123,8 +124,8 @@ export default async function handler(req: any, res: any) {
 
   // ── UNSUBSCRIBE ────────────────────────────────────────────────────────────
   if (req.method === "DELETE") {
-    if (!csrfCheck(req, { strict: true })) {
-      auditLog("unsubscribe_csrf_blocked", { ip, path: req.url });
+    if (!csrfCheck(req)) {
+      await auditLog("unsubscribe_csrf_blocked", { ip, path: req.url });
       return res.status(403).json({ error: "Forbidden" });
     }
     const parsed = UnsubscribeSchema.safeParse(req.body ?? {});

@@ -44,12 +44,12 @@ export async function sendSlackAlert(text: string): Promise<boolean> {
       redirect: "manual",
     });
     if (!res.ok) {
-      auditLog("slack_alert_failed", { status: res.status });
+      await auditLog("slack_alert_failed", { status: res.status });
       return false;
     }
     return true;
   } catch (err: any) {
-    auditLog("slack_alert_failed", { error: scrub(err?.message) });
+    await auditLog("slack_alert_failed", { error: scrub(err?.message) });
     return false;
   }
 }

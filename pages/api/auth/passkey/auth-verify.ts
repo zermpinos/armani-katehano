@@ -6,8 +6,8 @@ import {
   verifyAuthResp,
 }                                            from "@/server/auth/passkey";
 import { getAdminUser }                      from "@/server/auth/password";
-import { buildSessionCookie }                from "@/server/auth/session";
-import { generateCsrfToken, buildCsrfCookie } from "@/server/auth/csrf";
+import { buildSessionCookie, signSession }   from "@/server/auth/session";
+import { buildCsrfCookie }                   from "@/server/auth/csrf";
 import prisma                                from "@/server/db/client";
 
 // base64url: no padding, URL-safe chars only, at least 4 chars
@@ -42,12 +42,12 @@ export default async function handler(req: any, res: any) {
     where: { credentialId },
   });
   if (!credential) {
-    auditLog("login_passkey_failed", { ip, reason: "credential_not_found" });
+    await auditLog("login_passkey_failed", { ip, reason: "credential_not_found" });
     return res.status(401).json({ error: "Authentication failed" });
   }
 
   if (!getAdminUser(credential.username)) {
-    auditLog("passkey_orphan_rejected", { ip, username: credential.username });
+    await auditLog("passkey_orphan_rejected", { ip, username: credential.username });
     return res.status(401).json({ error: "Authentication failed" });
   }
 
@@ -55,12 +55,12 @@ export default async function handler(req: any, res: any) {
   try {
     verification = await verifyAuthResp(response, challenge, credential as any);
   } catch {
-    auditLog("login_passkey_failed", { ip, reason: "verify_threw" });
+    await auditLog("login_passkey_failed", { ip, reason: "verify_threw" });
     return res.status(401).json({ error: "Authentication failed" });
   }
 
   if (!verification.verified) {
-    auditLog("login_passkey_failed", { ip, reason: "assertion_invalid" });
+    await auditLog("login_passkey_failed", { ip, reason: "assertion_invalid" });
     return res.status(401).json({ error: "Authentication failed" });
   }
 
@@ -73,7 +73,7 @@ export default async function handler(req: any, res: any) {
   `;
 
   if (updated === 0) {
-    auditLog("passkey_clone_suspected", {
+    await auditLog("passkey_clone_suspected", {
       ip,
       credentialId: credentialId.slice(0, 8),
       username:     credential.username,
@@ -81,7 +81,7 @@ export default async function handler(req: any, res: any) {
     return res.status(401).json({ error: "Authentication failed" });
   }
 
-  auditLog("login_passkey_success", {
+  await auditLog("login_passkey_success", {
     ip,
     credentialId: credentialId.slice(0, 8),
     username:     credential.username,
@@ -95,7 +95,7 @@ export default async function handler(req: any, res: any) {
 
   res.setHeader("Set-Cookie", [
     buildSessionCookie(payload),
-    buildCsrfCookie(generateCsrfToken()),
+    buildCsrfCookie(signSession(payload)),
   ]);
 
   return res.status(200).json({ ok: true });

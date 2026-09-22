@@ -132,12 +132,12 @@ export async function claimAndBroadcastByGameId(gameId: string): Promise<ClaimRe
   if (!game) return { ok: false, reason: "not_found" };
 
   if (game.broadcastedAt) {
-    auditLog("broadcast_already_viewed", { gameId });
+    await auditLog("broadcast_already_viewed", { gameId });
     return { ok: true, state: "already_broadcast", broadcastedAt: game.broadcastedAt };
   }
 
   if (!brevoConfigured()) {
-    auditLog("broadcast_transport_unavailable", { gameId });
+    await auditLog("broadcast_transport_unavailable", { gameId });
     return { ok: false, reason: "transport_unavailable" };
   }
 
@@ -149,7 +149,7 @@ export async function claimAndBroadcastByGameId(gameId: string): Promise<ClaimRe
   `;
   if (rowsAffected === 0) {
     const fresh = await prisma.game.findUnique({ where: { id: gameId }, select: { broadcastedAt: true } });
-    auditLog("broadcast_already_claimed", { gameId });
+    await auditLog("broadcast_already_claimed", { gameId });
     return { ok: true, state: "already_broadcast", broadcastedAt: fresh?.broadcastedAt ?? new Date() };
   }
 
@@ -171,10 +171,10 @@ export async function claimAndBroadcastByGameId(gameId: string): Promise<ClaimRe
       SET "broadcastedAt" = NULL
       WHERE id = ${gameId}
     `;
-    auditLog("broadcast_send_failed", { gameId });
+    await auditLog("broadcast_send_failed", { gameId });
     throw err;
   }
 
-  auditLog("broadcast_sent_by_game_id", { gameId, recipientCount: subscribers.length });
+  await auditLog("broadcast_sent_by_game_id", { gameId, recipientCount: subscribers.length });
   return { ok: true, state: "broadcasted", recipientCount: subscribers.length };
 }

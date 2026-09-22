@@ -54,6 +54,27 @@ const eslintConfig = [
       }],
     },
   },
+  {
+    // A serverless function can be frozen once its response is sent, and a
+    // write still in flight goes with it.
+    files: ["src/**", "pages/**"],
+    rules: {
+      "no-restricted-syntax": ["error",
+        {
+          selector: "ExpressionStatement > CallExpression[callee.name='auditLog']",
+          message:  "Await auditLog() so the row is written before the response is sent.",
+        },
+        {
+          selector: "ExpressionStatement > CallExpression[callee.object.object.name='prisma']",
+          message:  "Await this query so it completes before the response is sent.",
+        },
+        {
+          selector: "ExpressionStatement > CallExpression[callee.property.name='catch'][callee.object.callee.object.object.name='prisma']",
+          message:  "Await this query so it completes before the response is sent.",
+        },
+      ],
+    },
+  },
   // ─── Architecture layer enforcement ───────────────────────────────────────
   // These zones encode the import rules from docs/architecture.md:
   //   components/ui  -> no server, no features
