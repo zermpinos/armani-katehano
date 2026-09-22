@@ -190,7 +190,7 @@ async function handler(req: any, res: any) {
         .filter(r => r.status === "fulfilled" && r.value.ok)
         .map(r => (r as PromiseFulfilledResult<{ id: string; ok: true }>).value.id);
       if (deliveredIds.length > 0) {
-        prisma.subscriber.updateMany({
+        await prisma.subscriber.updateMany({
           where: { id: { in: deliveredIds } },
           data:  { lastEmailedAt: new Date() },
         }).catch(() => {});
