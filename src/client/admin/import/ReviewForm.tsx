@@ -3,7 +3,7 @@ import type { Player, SeasonLeague } from "@/client/admin";
 import { teamRatingsFromBox } from "@/domain/stats";
 import type { ImportDraft } from "@/domain/import/resolve";
 import type { GateResult } from "@/domain/import/verify";
-import type { UnresolvedPlayer } from "@/domain/import/resolve";
+import type { NameMismatch, UnresolvedPlayer } from "@/domain/import/resolve";
 import { UnresolvedPlayers } from "@/client/admin/import/UnresolvedPlayers";
 
 type Props = {
@@ -13,6 +13,7 @@ type Props = {
   gate: GateResult | null;
   unresolved: string[];
   unresolvedPlayers: UnresolvedPlayer[];
+  nameMismatches: NameMismatch[];
   onPlayerCreated: (player: Player) => void;
   youtubeUrl: string;
   setYoutubeUrl: (v: string) => void;
@@ -28,7 +29,7 @@ type Props = {
 const urlInputCls = "w-full py-[10px] px-3 text-[13px] font-sans rounded-lg border border-ak-border2 bg-ak-base text-ak-text outline-none";
 
 export function ReviewForm({
-  draft, phase, gameState, gate, unresolved, unresolvedPlayers, onPlayerCreated,
+  draft, phase, gameState, gate, unresolved, unresolvedPlayers, nameMismatches, onPlayerCreated,
   youtubeUrl, setYoutubeUrl, players, highlights, seasonLeagues,
   updDraft, updBox, onSave, onBack,
 }: Props) {
@@ -82,6 +83,15 @@ export function ReviewForm({
           {unresolved.map((u, i) => <div key={i}>• {u}</div>)}
           {leagueMissing && <div>• No league matched the source URL. Pick one under Game info.</div>}
           {drift.map((f, i) => <div key={i}>• {f.detail} Stats for it would save as zero.</div>)}
+        </div>
+      )}
+
+      {nameMismatches.length > 0 && (
+        <div className="py-[10px] px-[14px] rounded-lg bg-[#8b1a1a18] border border-[#8b1a1a40] text-xs text-ak-red-text">
+          <div className="font-black mb-1">⚠ Jersey worn by someone else - move the line to the right player before saving:</div>
+          {nameMismatches.map((m, i) => (
+            <div key={i}>• #{m.number} on the sheet is {m.scrapedName}, matched to {players.find(p => p.id === m.playerId)?.name ?? "an unknown player"}.</div>
+          ))}
         </div>
       )}
 

@@ -75,7 +75,7 @@ const DRAFT = {
 const pipelineResult = (over = {}) => ({
   data: {}, gameState: { state: "final", reason: "all 4 quarters complete" },
   gate: { ok: true, failures: [] }, draft: DRAFT, highlights: {},
-  unresolved: [], unresolvedPlayers: [], ...over,
+  unresolved: [], unresolvedPlayers: [], nameMismatches: [], ...over,
 });
 
 const mockReq = (o = {}) => ({
@@ -234,6 +234,15 @@ describe("poll-imports commit gate", () => {
     mockScrapeAndResolve.mockResolvedValue(pipelineResult({ unresolvedPlayers: [{ number: 99, name: "New Guy" }] }));
     await handler(mockReq(), mockRes());
     expect(summary().skipped[0].reason).toBe("player not on roster");
+  });
+
+  it("skips when a jersey was worn by someone other than its owner", async () => {
+    mockScrapeAndResolve.mockResolvedValue(pipelineResult({
+      nameMismatches: [{ number: 6, scrapedName: "ΧΑΛΚΙΑΔΑΚΗΣ ΧΑΡΗΣ", playerId: "p6" }],
+    }));
+    await handler(mockReq(), mockRes());
+    expect(mockCommitImport).not.toHaveBeenCalled();
+    expect(summary().skipped[0]).toMatchObject({ reason: 'jersey #6 worn by "ΧΑΛΚΙΑΔΑΚΗΣ ΧΑΡΗΣ"', transient: false });
   });
 
   it("skips a draft the write schema rejects", async () => {

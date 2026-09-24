@@ -29,3 +29,22 @@ export function slugify(str: string) {
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]/g, "");
 }
+
+// Collapses the spellings a Greek surname takes in Latin letters (ou/u, y/i,
+// b/v, ch/h, mp/b) so the source's capitals and our stored name can meet.
+// slugify keeps those apart, which is right for a URL and wrong for a match.
+export function surnameKey(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/ου/g, "u").replace(/μπ/g, "b").replace(/ντ/g, "d").replace(/γ[κγ]/g, "g")
+    .split("")
+    .map((c: string) => (Reflect.get(GREEK as object, c) ?? c) as string)
+    .join("")
+    .replace(/[^a-z]/g, "")
+    .replace(/ch/g, "h").replace(/ou/g, "u").replace(/mp/g, "b").replace(/nt/g, "d")
+    .replace(/g[kg]/g, "g").replace(/ks/g, "x").replace(/ei|oi|y/g, "i").replace(/ai/g, "e")
+    .replace(/b/g, "v")
+    .replace(/(.)\1+/g, "$1");
+}

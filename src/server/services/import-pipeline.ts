@@ -35,7 +35,7 @@ async function resolverInputs(): Promise<{
     prisma.player.findMany({
       where:   { isActive: true },
       orderBy: { number: "asc" },
-      select:  { id: true, number: true },
+      select:  { id: true, number: true, name: true },
     }),
     prisma.rosterEntry.findMany({
       where:  { number: { not: null } },
