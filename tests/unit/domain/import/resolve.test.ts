@@ -333,3 +333,38 @@ describe("resolve per-league jersey override", () => {
     expect(unresolvedPlayers).toEqual([]);
   });
 });
+
+describe("resolve surname cross-check", () => {
+  const named = [
+    { id: "nikos",  number: 6,  name: "Nikos Tsiardakas" },
+    { id: "charis", number: 21, name: "Charis Chalkiadakis" },
+  ];
+  const row = (n, name) => ({ "#": n, Players: name, MIN: "20:00", PTS: 10 });
+
+  it("does not flag a jersey worn by its owner", () => {
+    const { nameMismatches } = resolve(scrapedData([row(6, "ΤΣΙΑΡΔΑΚΑΣ ΝΙΚΟΣ")]), named, [ROOKIE]);
+    expect(nameMismatches).toEqual([]);
+  });
+
+  it("flags a jersey worn by someone else", () => {
+    const { nameMismatches } = resolve(scrapedData([row(6, "ΧΑΛΚΙΑΔΑΚΗΣ ΧΑΡΗΣ")]), named, [ROOKIE]);
+    expect(nameMismatches).toEqual([{ number: 6, scrapedName: "ΧΑΛΚΙΑΔΑΚΗΣ ΧΑΡΗΣ", playerId: "nikos" }]);
+  });
+
+  it("flags every holder of a shared number whose surname does not match", () => {
+    const shared = [...named, { id: "charis6", number: 6, name: "Someone Else" }];
+    const { nameMismatches } = resolve(scrapedData([row(6, "ΤΣΙΑΡΔΑΚΑΣ ΝΙΚΟΣ")]), shared, [ROOKIE]);
+    expect(nameMismatches.map(m => m.playerId)).toEqual(["charis6"]);
+  });
+
+  it("ignores a player who did not play", () => {
+    const benched = { ...row(6, "ΧΑΛΚΙΑΔΑΚΗΣ ΧΑΡΗΣ"), MIN: "0" };
+    const { nameMismatches } = resolve(scrapedData([benched]), named, [ROOKIE]);
+    expect(nameMismatches).toEqual([]);
+  });
+
+  it("skips the check for a roster entry with no name", () => {
+    const { nameMismatches } = resolve(scrapedData([onRoster]), roster, [ROOKIE]);
+    expect(nameMismatches).toEqual([]);
+  });
+});
