@@ -136,6 +136,10 @@ export default async function handler(req: any, res: any) {
         if (!result.gate.ok)                    { skip("failed verification");                   continue; }
         if (result.unresolved.length)           { skip("league unresolved");                     continue; }
         if (result.unresolvedPlayers.length)    { skip("player not on roster");                  continue; }
+        if (result.nameMismatches.length) {
+          skip(result.nameMismatches.map(m => `jersey #${m.number} worn by "${m.scrapedName}"`).join(", "));
+          continue;
+        }
         if (result.unknownOpponent)             { skip(`unknown opponent "${result.unknownOpponent}"`); continue; }
 
         // Same validation the admin's save goes through. Round comes from the

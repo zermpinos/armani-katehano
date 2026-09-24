@@ -5,7 +5,7 @@ import type { Player, ScheduledGame } from "@/client/admin";
 import { getAdminPasskeyLoginProps } from "@/server/auth";
 import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
 import { diffDraft, toCommitInput } from "@/domain/import/resolve";
-import type { ImportDraft, UnresolvedPlayer } from "@/domain/import/resolve";
+import type { ImportDraft, NameMismatch, UnresolvedPlayer } from "@/domain/import/resolve";
 import type { GateResult } from "@/domain/import/verify";
 import { useImportData } from "@/client/admin/import/use-import-data";
 import { IdleForm } from "@/client/admin/import/IdleForm";
@@ -31,6 +31,7 @@ export default function ImportPage({
   const [gate,       setGate]       = useState<GateResult | null>(null);
   const [unresolved, setUnresolved] = useState<string[]>([]);
   const [unresolvedPlayers, setUnresolvedPlayers] = useState<UnresolvedPlayer[]>([]);
+  const [nameMismatches, setNameMismatches] = useState<NameMismatch[]>([]);
   const [error,      setError]      = useState("");
   const [gameState,  setGameState]  = useState<{ state: string; reason: string } | null>(null);
   // Snapshot of the resolver's draft, before any review-form edits, for the
@@ -63,6 +64,7 @@ export default function ImportPage({
       setGate(body.gate ?? null);
       setUnresolved(body.unresolved ?? []);
       setUnresolvedPlayers(body.unresolvedPlayers ?? []);
+      setNameMismatches(body.nameMismatches ?? []);
       resolvedRef.current = body.draft;
       setGameState(body.gameState ?? null);
       setPhase("review");
@@ -143,7 +145,7 @@ export default function ImportPage({
     setPhase("idle");
     setDraft(null);
     setGameUrl(""); setYoutubeUrl("");
-    setHighlights({}); setGate(null); setUnresolved([]); setUnresolvedPlayers([]);
+    setHighlights({}); setGate(null); setUnresolved([]); setUnresolvedPlayers([]); setNameMismatches([]);
     setGameState(null);
 
     // Refresh schedule so the just-imported entry now shows as Imported.
@@ -158,7 +160,7 @@ export default function ImportPage({
 
   const handleBack = () => {
     setPhase("idle"); setDraft(null);
-    setGate(null); setUnresolved([]); setUnresolvedPlayers([]);
+    setGate(null); setUnresolved([]); setUnresolvedPlayers([]); setNameMismatches([]);
     setGameState(null);
   };
 
@@ -234,6 +236,7 @@ export default function ImportPage({
               gate={gate}
               unresolved={unresolved}
               unresolvedPlayers={unresolvedPlayers}
+              nameMismatches={nameMismatches}
               onPlayerCreated={handlePlayerCreated}
               youtubeUrl={youtubeUrl}
               setYoutubeUrl={setYoutubeUrl}

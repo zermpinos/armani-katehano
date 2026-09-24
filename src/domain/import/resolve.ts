@@ -2,10 +2,13 @@ import { parseGreekDate, parseMinutes, detectLeagueSlug } from "@/domain/calenda
 import { isUsTeam } from "./identity";
 import { displayOpponent, type OpponentAliases } from "./opponents";
 import { organizationForUrl } from "@/domain/leagues/organizations";
+import { surnameKey } from "@/domain/players/format";
 
 export interface RosterPlayer {
   id: string;
   number: number | string;
+  // Absent skips the surname cross-check.
+  name?: string;
   // seasonLeagueId -> jersey worn in that competition, when it differs
   numbersByLeague?: Map<string, number>;
 }
@@ -46,12 +49,21 @@ export interface UnresolvedPlayer {
   name: string;
 }
 
+export interface NameMismatch {
+  number: number;
+  scrapedName: string;
+  playerId: string;
+}
+
 export interface ResolveResult {
   draft: ImportDraft;
   highlights: Record<string, boolean>;
   // Blockers the form cannot act on beyond reading them.
   unresolved: string[];
   unresolvedPlayers: UnresolvedPlayer[];
+  // A jersey matched a roster player whose surname is not the one on the sheet,
+  // as when a teammate borrows a shirt for a game.
+  nameMismatches: NameMismatch[];
   // The source's spelling, when it maps to no known team. The draft carries it
   // verbatim so a person can correct it in the form; an unattended caller has
   // nothing to correct it with and should stop.
@@ -181,6 +193,18 @@ export function resolve(
       unresolvedPlayers.push({ number: Number(p["#"]), name: String(p.Players ?? "").trim() });
   }
 
+  const nameMismatches: NameMismatch[] = [];
+  for (const p of played) {
+    const scrapedName = String(p.Players ?? "").trim();
+    const key = surnameKey(scrapedName.split(/\s+/)[0] ?? "");
+    if (!key) continue;
+    for (const r of scoped) {
+      if (Number(r.number) !== p["#"] || !r.name) continue;
+      if (!r.name.split(/\s+/).some(t => surnameKey(t) === key))
+        nameMismatches.push({ number: Number(p["#"]), scrapedName, playerId: r.id });
+    }
+  }
+
   const boxScore: ResolvedRow[] = [...scoped]
     .sort((a, b) => Number(a.number) - Number(b.number))
     .map(rosterPlayer => {
@@ -234,6 +258,7 @@ export function resolve(
     highlights,
     unresolved,
     unresolvedPlayers,
+    nameMismatches,
     ...(mappedOpp ? {} : { unknownOpponent: oppTeamName }),
   };
 }
