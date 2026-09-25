@@ -3,7 +3,8 @@ import { useRouter } from "next/router";
 import { AdminLayout, F, Sel, Btn, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch } from "@/client/admin";
 import type { SeasonLeague, Season, League, Player } from "@/client/admin";
 import { ORGANIZATIONS } from "@/domain/leagues/organizations";
-import { getAdminPasskeyLoginProps } from "@/server/auth";
+import type { GetServerSidePropsContext } from "next";
+import { getAdminPageProps } from "@/server/auth";
 
 function setsEqual(a: Set<string>, b: Set<string>): boolean {
   if (a.size !== b.size) return false;
@@ -592,6 +593,6 @@ function SeasonRosterRow({
   );
 }
 
-export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
-  return getAdminPasskeyLoginProps(params, query);
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return getAdminPageProps(ctx);
 }

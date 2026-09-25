@@ -11,7 +11,8 @@ import {
 import prisma from "@/server/db/client";
 import { getAdminUser } from "@/server/auth/password";
 import { validateAdminSlug } from "@/server/auth/admin-slug";
-import type { ParsedUrlQuery } from "node:querystring";
+import type { GetServerSidePropsContext } from "next";
+import { getSessionToken, isLiveAdminSession } from "@/server/auth/session";
 
 // Validated at call time (not module load) so next build doesn't fail when
 // runtime secrets aren't present in the CI build environment.
@@ -143,25 +144,25 @@ export async function consumeChallenge(challengeId: string): Promise<string | nu
 }
 
 // ---------------------------------------------------------------------------
-// SSR login props helper (used by getServerSideProps in all admin pages)
+// SSR props for every admin page
 // ---------------------------------------------------------------------------
 
-export type AdminLoginProps = {
-  validSlug:   boolean;
+export type AdminPageProps = {
+  validSlug:    true;
+  authed:       boolean;
   showFallback: boolean;
-  noPasskeys:  boolean;
+  noPasskeys:   boolean;
 };
 
-export async function getAdminPasskeyLoginProps(
-  params: { slug: string },
-  query:  ParsedUrlQuery
-): Promise<{ notFound: true } | { props: AdminLoginProps }> {
-  const validSlug = await validateAdminSlug(params.slug);
-  if (!validSlug) return { notFound: true };
+export async function getAdminPageProps(
+  ctx: Pick<GetServerSidePropsContext, "params" | "query" | "req">,
+): Promise<{ notFound: true } | { props: AdminPageProps }> {
+  const slug = typeof ctx.params?.slug === "string" ? ctx.params.slug : undefined;
+  if (!(await validateAdminSlug(slug))) return { notFound: true };
 
   // Timing-safe fallback token comparison - NEVER use ===
   const envToken   = process.env.PASSKEY_FALLBACK_TOKEN ?? "";
-  const queryToken = typeof query.fallback === "string" ? query.fallback : "";
+  const queryToken = typeof ctx.query.fallback === "string" ? ctx.query.fallback : "";
   let showFallback = false;
   if (envToken && queryToken) {
     const a = Buffer.from(envToken,   "utf8");
@@ -169,9 +170,9 @@ export async function getAdminPasskeyLoginProps(
     showFallback = a.length === b.length && crypto.timingSafeEqual(a, b);
   }
 
-  // Check for zero passkeys - determines bootstrap hint (SSR only, never via auth API)
-  const count     = await prisma.passkeyCredential.count();
-  const noPasskeys = count === 0;
+  const authed = isLiveAdminSession(getSessionToken(ctx.req));
+  // A signed-in request never sees the login form, so it must not wake the database.
+  const noPasskeys = authed ? false : (await prisma.passkeyCredential.count()) === 0;
 
-  return { props: { validSlug, showFallback, noPasskeys } };
+  return { props: { validSlug: true, authed, showFallback, noPasskeys } };
 }

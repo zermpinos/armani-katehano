@@ -4,7 +4,8 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, byJersey } from "@/client/admin";
 import type { Player } from "@/client/admin";
-import { getAdminPasskeyLoginProps } from "@/server/auth";
+import type { GetServerSidePropsContext } from "next";
+import { getAdminPageProps } from "@/server/auth";
 import { initials } from "@/domain/players/format";
 import { cloudinaryThumb } from "@/domain/shared/cloudinary";
 
@@ -172,6 +173,6 @@ function RosterSkeleton() {
   );
 }
 
-export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
-  return getAdminPasskeyLoginProps(params, query);
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return getAdminPageProps(ctx);
 }

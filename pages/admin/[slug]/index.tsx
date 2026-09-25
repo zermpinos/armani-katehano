@@ -3,7 +3,8 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth } from "@/client/admin";
 import type { DashboardData, ScheduledGame } from "@/client/admin";
-import { getAdminPasskeyLoginProps } from "@/server/auth";
+import type { GetServerSidePropsContext } from "next";
+import { getAdminPageProps } from "@/server/auth";
 import { fmtDate } from "@/domain/shared/format";
 
 export default function AdminDashboard({
@@ -254,6 +255,6 @@ function DashboardSkeleton() {
   );
 }
 
-export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
-  return getAdminPasskeyLoginProps(params, query);
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return getAdminPageProps(ctx);
 }

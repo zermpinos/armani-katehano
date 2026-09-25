@@ -3,7 +3,8 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { AdminLayout, Spinner, PasskeyLoginForm, F, Sel, Btn, Confirm, useAdminAuth, apiFetch } from "@/client/admin";
 import type { ScheduledGame } from "@/client/admin";
-import { getAdminPasskeyLoginProps } from "@/server/auth";
+import type { GetServerSidePropsContext } from "next";
+import { getAdminPageProps } from "@/server/auth";
 
 type Draft = {
   opponent:    string;
@@ -239,6 +240,6 @@ export default function ScheduleEditPage({
   );
 }
 
-export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
-  return getAdminPasskeyLoginProps(params, query);
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return getAdminPageProps(ctx);
 }

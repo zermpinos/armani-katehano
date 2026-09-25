@@ -3,7 +3,8 @@ import { useRouter } from "next/router";
 import {
   AdminLayout, Spinner, PasskeyLoginForm, Btn, useAdminAuth, apiFetch,
 } from "@/client/admin";
-import { getAdminPasskeyLoginProps } from "@/server/auth";
+import type { GetServerSidePropsContext } from "next";
+import { getAdminPageProps } from "@/server/auth";
 
 type BroadcastLogRow = {
   id:             string;
@@ -419,8 +420,8 @@ function Stat({ label, value, tone = "dim" }: { label: string; value: number; to
   );
 }
 
-export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
-  const result = await getAdminPasskeyLoginProps(params, query);
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  const result = await getAdminPageProps(ctx);
   if ("notFound" in result) return result;
 
   const rawEmail         = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";

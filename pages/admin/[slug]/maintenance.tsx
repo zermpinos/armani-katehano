@@ -1,7 +1,8 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch } from "@/client/admin";
-import { getAdminPasskeyLoginProps } from "@/server/auth";
+import type { GetServerSidePropsContext } from "next";
+import { getAdminPageProps } from "@/server/auth";
 
 const PHASES = [
   { value: "regular",      label: "Regular Season" },
@@ -374,6 +375,6 @@ function Section({ label, hint, children }: { label: string; hint?: string; chil
   );
 }
 
-export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
-  return getAdminPasskeyLoginProps(params, query);
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return getAdminPageProps(ctx);
 }

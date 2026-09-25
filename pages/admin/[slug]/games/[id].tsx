@@ -6,7 +6,8 @@ import {
   useAdminAuth, byJersey, apiFetch,
 } from "@/client/admin";
 import type { Player, Game, SeasonLeague, BoxScoreRow } from "@/client/admin";
-import { getAdminPasskeyLoginProps } from "@/server/auth";
+import type { GetServerSidePropsContext } from "next";
+import { getAdminPageProps } from "@/server/auth";
 import { fmt } from "@/domain/players/format";
 
 type Draft = {
@@ -440,6 +441,6 @@ function StatInput({ label, value, onChange, highlight }: {
   );
 }
 
-export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
-  return getAdminPasskeyLoginProps(params, query);
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return getAdminPageProps(ctx);
 }

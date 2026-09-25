@@ -2,7 +2,8 @@ import { useState, useMemo, useRef, type ReactNode } from "react";
 import { useRouter } from "next/router";
 import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch, byJersey } from "@/client/admin";
 import type { Player, ScheduledGame } from "@/client/admin";
-import { getAdminPasskeyLoginProps } from "@/server/auth";
+import type { GetServerSidePropsContext } from "next";
+import { getAdminPageProps } from "@/server/auth";
 import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
 import { diffDraft, toCommitInput } from "@/domain/import/resolve";
 import type { ImportDraft, NameMismatch, UnresolvedPlayer } from "@/domain/import/resolve";
@@ -264,6 +265,6 @@ function Panel({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
-  return getAdminPasskeyLoginProps(params, query);
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return getAdminPageProps(ctx);
 }

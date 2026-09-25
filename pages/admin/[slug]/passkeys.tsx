@@ -9,7 +9,8 @@ import {
   useAdminAuth,
   apiFetch,
 } from "@/client/admin";
-import { getAdminPasskeyLoginProps } from "@/server/auth";
+import type { GetServerSidePropsContext } from "next";
+import { getAdminPageProps } from "@/server/auth";
 
 type CredentialRow = {
   id:         string;
@@ -231,6 +232,6 @@ function PasskeySkeleton() {
   );
 }
 
-export async function getServerSideProps({ params, query }: { params: { slug: string }; query: Record<string, string | string[] | undefined> }) {
-  return getAdminPasskeyLoginProps(params, query);
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return getAdminPageProps(ctx);
 }
