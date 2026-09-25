@@ -6,7 +6,13 @@ function getCsrfToken(): string {
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
 
-export function apiFetch(url: string, init: Record<string, any> = {}): Promise<Response> {
+let onUnauthorized: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler;
+}
+
+export async function apiFetch(url: string, init: Record<string, any> = {}): Promise<Response> {
   const method = ((init.method as string | undefined) ?? "GET").toUpperCase();
   if (MUTATING_METHODS.has(method)) {
     const token = getCsrfToken();
@@ -14,5 +20,7 @@ export function apiFetch(url: string, init: Record<string, any> = {}): Promise<R
       init = { ...init, headers: { ...init.headers, "X-CSRF-Token": token } };
     }
   }
-  return fetch(url, init);
+  const res = await fetch(url, init);
+  if (res.status === 401 && url.startsWith("/api/admin/")) onUnauthorized?.();
+  return res;
 }
