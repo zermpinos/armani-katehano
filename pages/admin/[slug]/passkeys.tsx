@@ -1,12 +1,9 @@
 import { useState, useEffect, useCallback, type ReactNode } from "react";
-import { useRouter } from "next/router";
 import {
-  AdminLayout,
-  Spinner,
-  PasskeyLoginForm,
+  adminLayout,
+  useAdminSession,
   Btn,
   Confirm,
-  useAdminAuth,
   apiFetch,
 } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
@@ -27,27 +24,14 @@ function transportLabel(transports: string[]): string {
   return transports.join(", ") || "Unknown";
 }
 
-export default function PasskeysPage({
-  validSlug,
-  showFallback,
-  noPasskeys: initialNoPasskeys,
-}: {
-  validSlug:    boolean;
-  showFallback: boolean;
-  noPasskeys:   boolean;
-}) {
-  const router = useRouter();
-  const slug = router.query.slug || validSlug;
-
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
+export default function PasskeysPage() {
+  const { setToast } = useAdminSession();
 
   const [credentials, setCredentials] = useState<CredentialRow[]>([]);
   const [listLoading, setListLoading] = useState(false);
-  const [toast,       setToast]       = useState<{ type?: string; msg: string } | null>(null);
   const [registering, setRegistering] = useState(false);
   const [labelInput,  setLabelInput]  = useState("");
   const [confirmCred, setConfirmCred] = useState<CredentialRow | null>(null);
-  const [noPasskeys,  setNoPasskeys]  = useState(initialNoPasskeys);
 
   const loadCredentials = useCallback(async () => {
     setListLoading(true);
@@ -56,7 +40,6 @@ export default function PasskeysPage({
       if (res.ok) {
         const rows: CredentialRow[] = await res.json();
         setCredentials(rows);
-        setNoPasskeys(rows.length === 0);
       }
     } finally {
       setListLoading(false);
@@ -64,24 +47,8 @@ export default function PasskeysPage({
   }, []);
 
   useEffect(() => {
-    if (authed) loadCredentials();
-  }, [authed, loadCredentials]);
-
-  if (!validSlug) return null;
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm
-        onPasskeyLogin={handlePasskeyLogin}
-        onFallbackLogin={handleLogin}
-        loginError={loginError}
-        showFallback={showFallback}
-        noPasskeys={noPasskeys}
-      />
-    </div>
-  );
+    loadCredentials();
+  }, [loadCredentials]);
 
   const handleRegister = async () => {
     setRegistering(true);
@@ -139,7 +106,7 @@ export default function PasskeysPage({
   };
 
   return (
-    <AdminLayout slug={slug} title="Passkeys" toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <h1 className="text-[22px] md:text-[28px] font-black text-ak-text mb-6">Passkeys</h1>
 
       <div className="flex flex-col gap-5 max-w-[720px]">
@@ -208,9 +175,11 @@ export default function PasskeysPage({
           onCancel={() => setConfirmCred(null)}
         />
       )}
-    </AdminLayout>
+    </>
   );
 }
+
+PasskeysPage.getLayout = adminLayout("Passkeys");
 
 function Panel({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (

@@ -93,7 +93,7 @@ test.describe("Admin panel › Login form", () => {
     test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
 
     await page.goto(`/admin/${ADMIN_SLUG}/`);
-    // Wait for React to hydrate and the GET /api/auth call to return 401
+    // SSR renders the login form for a request without a session
     await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole("button", { name: "SIGN IN WITH PASSKEY" })).toBeVisible();
   });
@@ -192,6 +192,55 @@ test.describe("Admin panel › Authenticated dashboard", () => {
   });
 });
 
+test.describe("Admin panel › Persistent shell", () => {
+  const adminContext = (browser) => browser.newContext({
+    baseURL:      BASE_URL,
+    storageState: makeAdminStorageState(ADMIN_USERNAME),
+  });
+
+  test("moving between sections makes no /api/auth call", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await page.goto(`/admin/${ADMIN_SLUG}/`);
+      await expect(page.getByText("AK Admin").first()).toBeVisible({ timeout: 10_000 });
+      const authCalls = [];
+      page.on("request", req => { if (new URL(req.url()).pathname === "/api/auth") authCalls.push(req.url()); });
+      await page.getByRole("link", { name: "Roster" }).first().click();
+      await expect(page).toHaveURL(new RegExp(`/admin/${ADMIN_SLUG}/roster$`));
+      await page.getByRole("link", { name: "Schedule" }).first().click();
+      await expect(page).toHaveURL(new RegExp(`/admin/${ADMIN_SLUG}/schedule$`));
+      expect(authCalls).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("a signed-out deep link shows the login form in place", async ({ page }) => {
+    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    await page.goto(`/admin/${ADMIN_SLUG}/games`);
+    await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
+    await expect(page).toHaveURL(new RegExp(`/admin/${ADMIN_SLUG}/games$`));
+  });
+
+  test("a session that dies mid-visit shows the sign-in overlay over the page", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await page.goto(`/admin/${ADMIN_SLUG}/roster`);
+      await expect(page.getByText("AK Admin").first()).toBeVisible({ timeout: 10_000 });
+      await context.clearCookies();
+      await page.getByRole("link", { name: "Schedule" }).first().click();
+      await expect(page.getByText("Your session expired")).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText("AK Admin").first()).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  });
+});
+
 // ── API-level auth guard (always runs - no credentials needed) ─────────────
 
 test.describe("Admin panel › API protection", () => {
@@ -204,6 +253,11 @@ test.describe("Admin panel › API protection", () => {
     const res = await request.post("/api/admin/games", { data: { opponent: "Test" } });
     // The session check runs first, so a bare API POST never reaches the CSRF check.
     expect(res.status()).toBe(401);
+  });
+
+  test("a wrong admin slug is a 404", async ({ request }) => {
+    const res = await request.get("/admin/not-the-real-slug/games");
+    expect(res.status()).toBe(404);
   });
 });
 

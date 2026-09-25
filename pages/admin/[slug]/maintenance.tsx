@@ -1,6 +1,5 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { useRouter } from "next/router";
-import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch } from "@/client/admin";
+import { adminLayout, useAdminSession, Spinner, apiFetch } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
 
@@ -18,13 +17,8 @@ const PHASE_TOAST_LABELS: Record<string, string> = {
   final:        "Finals",
 };
 
-export default function MaintenancePage({
-  validSlug, showFallback, noPasskeys,
-}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
-  const router = useRouter();
-  const slug = router.query.slug || validSlug;
-
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
+export default function MaintenancePage() {
+  const { setToast } = useAdminSession();
 
   const [maintenanceOn,   setMaintenanceOn]   = useState<boolean | null>(null);
   const [seasonPhase,     setSeasonPhase]     = useState<string | null>(null);
@@ -37,7 +31,6 @@ export default function MaintenancePage({
   const [recalcing,       setRecalcing]       = useState(false);
   const [testingAlert,    setTestingAlert]    = useState(false);
   const [loading,         setLoading]         = useState(false);
-  const [toast,           setToast]           = useState<{ type?: string; msg: string } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -56,8 +49,8 @@ export default function MaintenancePage({
   };
 
   useEffect(() => {
-    if (authed && slug) load();
-  }, [authed, slug]);
+    load();
+  }, []);
 
   const handleToggleMaintenance = async () => {
     if (maintenanceOn === null) return;
@@ -192,20 +185,8 @@ export default function MaintenancePage({
     }
   };
 
-  if (!validSlug) return null;
-
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-    </div>
-  );
-
   return (
-    <AdminLayout slug={slug} title="Maintenance" toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <h1 className="text-[22px] md:text-[28px] font-black text-ak-text mb-6">Maintenance</h1>
 
       {loading ? (
@@ -361,9 +342,11 @@ export default function MaintenancePage({
           </Section>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }
+
+MaintenancePage.getLayout = adminLayout("Maintenance");
 
 function Section({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (

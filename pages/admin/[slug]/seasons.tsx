@@ -1,6 +1,5 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { useRouter } from "next/router";
-import { AdminLayout, F, Sel, Btn, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch } from "@/client/admin";
+import { adminLayout, useAdminSession, F, Sel, Btn, apiFetch } from "@/client/admin";
 import type { SeasonLeague, Season, League, Player } from "@/client/admin";
 import { ORGANIZATIONS } from "@/domain/leagues/organizations";
 import type { GetServerSidePropsContext } from "next";
@@ -12,13 +11,8 @@ function setsEqual(a: Set<string>, b: Set<string>): boolean {
   return true;
 }
 
-export default function SeasonsPage({
-  validSlug, showFallback, noPasskeys,
-}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
-  const router = useRouter();
-  const slug = router.query.slug || validSlug;
-
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
+export default function SeasonsPage() {
+  const { setToast } = useAdminSession();
 
   const [seasons,       setSeasons]       = useState<Season[]>([]);
   const [leagues,       setLeagues]       = useState<League[]>([]);
@@ -30,7 +24,6 @@ export default function SeasonsPage({
   const [busyDates,     setBusyDates]     = useState<Map<string, boolean>>(new Map());
   const [busySaving,    setBusySaving]    = useState<Record<string, boolean>>({});
   const [loading,       setLoading]       = useState(false);
-  const [toast,         setToast]         = useState<{ msg: string; type?: string } | null>(null);
 
   const [newSeason,    setNewSeason]    = useState({ name: "", year: "" });
   const [newLeague,    setNewLeague]    = useState({ name: "", organization: "basketcity", sourceSlug: "", listingUrl: "", organizer: "", level: "" });
@@ -84,7 +77,7 @@ export default function SeasonsPage({
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { if (authed && slug) loadData(); }, [authed, slug]);
+  useEffect(() => { loadData(); }, []);
 
   const createSeason = async () => {
     if (!newSeason.name || !newSeason.year) { showToast("Name and year required", "error"); return; }
@@ -194,22 +187,12 @@ export default function SeasonsPage({
     showToast("Roster saved.");
   };
 
-  if (!validSlug) return null;
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-    </div>
-  );
-
   const seasonOptions = seasons.map(s => ({ value: s.id, label: s.name }));
   const leagueOptions = leagues.map(l => ({ value: l.id, label: l.name }));
   const organizationOptions = Object.entries(ORGANIZATIONS).map(([value, org]) => ({ value, label: org.name }));
 
   return (
-    <AdminLayout slug={slug} title="Seasons" toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <h1 className="text-[22px] md:text-[28px] font-black text-ak-text mb-6">Seasons &amp; leagues</h1>
 
       {loading ? (
@@ -482,9 +465,11 @@ export default function SeasonsPage({
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }
+
+SeasonsPage.getLayout = adminLayout("Seasons");
 
 function Panel({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (

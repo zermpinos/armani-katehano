@@ -1,6 +1,9 @@
 import "../styles/globals.css";
 import Head from "next/head";
+import type { ReactElement, ReactNode } from "react";
 import type { AppProps, NextWebVitalsMetric } from "next/app";
+
+type PageWithLayout = AppProps["Component"] & { getLayout?: (page: ReactElement) => ReactNode };
 
 export function reportWebVitals(metric: NextWebVitalsMetric) {
   if (metric.label !== "web-vital") return;
@@ -16,12 +19,13 @@ export function reportWebVitals(metric: NextWebVitalsMetric) {
 }
 
 export default function App({ Component, pageProps }: AppProps) {
+  const getLayout = (Component as PageWithLayout).getLayout ?? ((page: ReactElement) => page);
   return (
     <>
       <Head>
         <meta name="google-site-verification" content="jLrtMQ8j8j_KaFR2e4nhtIpZ0DCSMtekcD2kbY4n2mc" />
       </Head>
-      <Component {...pageProps} />
+      {getLayout(<Component {...pageProps} />)}
     </>
   );
 }

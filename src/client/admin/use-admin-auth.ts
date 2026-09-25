@@ -1,17 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { apiFetch } from "./csrf";
 
-export function useAdminAuth(slug: any) {
-  const [authed,     setAuthed]  = useState(false);
-  const [loading,    setLoading] = useState(true);
-  const [loginError, setError]   = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/auth")
-      .then(r => { if (r.ok) setAuthed(true); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+export function useAdminAuth(slug: string, initialAuthed: boolean) {
+  const [authed,     setAuthed] = useState(initialAuthed);
+  const [loginError, setError]  = useState<string | null>(null);
 
   const handleLogin = useCallback(async (username: string, password: string, totpToken: string, captchaToken?: string | null) => {
     setError(null);
@@ -80,5 +72,5 @@ export function useAdminAuth(slug: any) {
     apiFetch("/api/auth", { method: "DELETE" }).finally(() => setAuthed(false));
   }, []);
 
-  return { authed, loading, loginError, handleLogin, handlePasskeyLogin, handleLogout };
+  return { authed, setAuthed, loginError, handleLogin, handlePasskeyLogin, handleLogout };
 }

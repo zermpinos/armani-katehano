@@ -2,7 +2,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { AdminLayout, Spinner, PasskeyLoginForm, F, Sel, Btn, Confirm, useAdminAuth, apiFetch } from "@/client/admin";
+import { adminLayout, useAdminSession, Spinner, F, Sel, Btn, Confirm, apiFetch } from "@/client/admin";
 import type { Player } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
@@ -39,27 +39,22 @@ function playerToDraft(p: Player): Draft {
   };
 }
 
-export default function RosterEditPage({
-  validSlug, showFallback, noPasskeys,
-}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
+export default function RosterEditPage() {
   const router = useRouter();
-  const slug = router.query.slug || validSlug;
+  const { slug, setToast } = useAdminSession();
   const idParam = typeof router.query.id === "string" ? router.query.id : null;
   const isNew = idParam === "new";
-
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
 
   const [draft,    setDraft]    = useState<Draft>(EMPTY);
   const [loading,  setLoading]  = useState(!isNew);
   const [saving,   setSaving]   = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [askRetire, setAskRetire] = useState(false);
-  const [toast,    setToast]    = useState<{ msg: string; type?: string } | null>(null);
   const [leagues,  setLeagues]  = useState<{ seasonLeagueId: string; label: string; number: string }[]>([]);
 
   useEffect(() => {
     if (!router.isReady) return;
-    if (!authed || !slug || isNew || !idParam) return;
+    if (isNew || !idParam) return;
     let cancelled = false;
     (async () => {
       try {
@@ -85,7 +80,7 @@ export default function RosterEditPage({
       }
     })();
     return () => { cancelled = true; };
-  }, [router.isReady, authed, slug, idParam, isNew]);
+  }, [router.isReady, idParam, isNew]);
 
   const upd = (k: keyof Draft, v: string | boolean) => setDraft(d => ({ ...d, [k]: v }));
 
@@ -184,20 +179,10 @@ export default function RosterEditPage({
     router.push(`/admin/${slug}/roster?saved=retired`);
   };
 
-  if (!validSlug) return null;
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-    </div>
-  );
-
   const title = isNew ? "Add player" : "Edit player";
 
   return (
-    <AdminLayout slug={slug} title={title} toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <Link
         href={`/admin/${slug}/roster`}
         className="inline-flex items-center gap-1 text-[11px] font-black tracking-[0.12em] uppercase text-ak-text-dim mb-3"
@@ -292,9 +277,11 @@ export default function RosterEditPage({
           onCancel={() => setAskRetire(false)}
         />
       )}
-    </AdminLayout>
+    </>
   );
 }
+
+RosterEditPage.getLayout = adminLayout("Player");
 
 function AvatarPreview({ name, photoUrl }: { name: string; photoUrl: string }) {
   // Track which URL is broken; changing photoUrl naturally clears the broken state.

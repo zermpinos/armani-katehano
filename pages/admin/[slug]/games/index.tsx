@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { AdminLayout, Spinner, PasskeyLoginForm, Confirm, useAdminAuth, apiFetch } from "@/client/admin";
+import { adminLayout, useAdminSession, useAdminData, Confirm, apiFetch } from "@/client/admin";
 import type { Game, SeasonLeague } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
@@ -18,18 +18,14 @@ const ROUND_LABEL: Record<string, string> = {
   final:        "Final",
 };
 
-export default function GamesListPage({
-  validSlug, showFallback, noPasskeys,
-}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
+export default function GamesListPage() {
   const router = useRouter();
-  const slug = router.query.slug || validSlug;
+  const { slug, setToast } = useAdminSession();
 
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
-
-  const [games,         setGames]         = useState<Game[]>([]);
-  const [seasonLeagues, setSeasonLeagues] = useState<SeasonLeague[]>([]);
-  const [loading,       setLoading]       = useState(false);
-  const [toast,         setToast]         = useState<{ msg: string; type?: string } | null>(null);
+  const { data, refresh: loadData } = useAdminData<{ games?: Game[]; seasonLeagues?: SeasonLeague[] }>("/api/admin/data");
+  const games         = data?.games ?? [];
+  const seasonLeagues = data?.seasonLeagues ?? [];
+  const loading       = data === undefined;
   const [confirm,       setConfirm]       = useState<Game | null>(null);
   const [search,        setSearch]        = useState("");
   const [leagueFilter,  setLeagueFilter]  = useState("");
@@ -43,20 +39,6 @@ export default function GamesListPage({
       router.replace(`/admin/${slug}/games`, undefined, { shallow: true });
     }
   }, [router, slug]);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/data");
-      if (res.ok) {
-        const d = await res.json();
-        setGames(d.games ?? []);
-        setSeasonLeagues(d.seasonLeagues ?? []);
-      }
-    } finally { setLoading(false); }
-  };
-
-  useEffect(() => { if (authed && slug) loadData(); }, [authed, slug]);
 
   const deleteGame = async (g: Game) => {
     const res = await apiFetch("/api/admin/games", {
@@ -87,18 +69,8 @@ export default function GamesListPage({
       .sort((a, b) => new Date(b.date ?? b.playedOn ?? "").getTime() - new Date(a.date ?? a.playedOn ?? "").getTime());
   }, [games, search, leagueFilter]);
 
-  if (!validSlug) return null;
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-    </div>
-  );
-
   return (
-    <AdminLayout slug={slug} title="Games" toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <header className="flex items-end justify-between gap-3 flex-wrap mb-5">
         <div>
           <h1 className="text-[22px] md:text-[28px] font-black text-ak-text">Games</h1>
@@ -160,9 +132,11 @@ export default function GamesListPage({
           onCancel={() => setConfirm(null)}
         />
       )}
-    </AdminLayout>
+    </>
   );
 }
+
+GamesListPage.getLayout = adminLayout("Games");
 
 function GameRow({ game, slug, leagueName, onDelete }: {
   game: Game; slug: string; leagueName: string; onDelete: () => void;

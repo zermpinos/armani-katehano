@@ -148,7 +148,6 @@ export async function consumeChallenge(challengeId: string): Promise<string | nu
 // ---------------------------------------------------------------------------
 
 export type AdminPageProps = {
-  validSlug:    true;
   authed:       boolean;
   showFallback: boolean;
   noPasskeys:   boolean;
@@ -174,5 +173,5 @@ export async function getAdminPageProps(
   // A signed-in request never sees the login form, so it must not wake the database.
   const noPasskeys = authed ? false : (await prisma.passkeyCredential.count()) === 0;
 
-  return { props: { validSlug: true, authed, showFallback, noPasskeys } };
+  return { props: { authed, showFallback, noPasskeys } };
 }

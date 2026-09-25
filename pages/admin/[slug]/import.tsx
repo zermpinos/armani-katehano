@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, type ReactNode } from "react";
 import { useRouter } from "next/router";
-import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, apiFetch, byJersey } from "@/client/admin";
+import { adminLayout, useAdminSession, Spinner, apiFetch, byJersey } from "@/client/admin";
 import type { Player, ScheduledGame } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
@@ -12,17 +12,13 @@ import { useImportData } from "@/client/admin/import/use-import-data";
 import { IdleForm } from "@/client/admin/import/IdleForm";
 import { ReviewForm } from "@/client/admin/import/ReviewForm";
 
-export default function ImportPage({
-  validSlug, showFallback, noPasskeys,
-}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
+export default function ImportPage() {
   const router = useRouter();
-  const slug = router.query.slug || validSlug;
+  const { slug, setToast } = useAdminSession();
   const upcomingGameId = typeof router.query.upcomingGameId === "string" ? router.query.upcomingGameId : null;
 
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
-  const { players, setPlayers, seasonLeagues, schedule, setSchedule, dataLoading } = useImportData(authed);
+  const { players, setPlayers, seasonLeagues, schedule, setSchedule, dataLoading } = useImportData();
 
-  const [toast,      setToast]      = useState<{ msg: string; type?: string } | null>(null);
   const [gameUrl,    setGameUrl]    = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [fetching,   setFetching]   = useState(false);
@@ -165,18 +161,8 @@ export default function ImportPage({
     setGameState(null);
   };
 
-  if (!validSlug) return null;
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-    </div>
-  );
-
   return (
-    <AdminLayout slug={slug} title="Import" toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <header className="mb-5 max-w-[900px]">
         <h1 className="text-[22px] md:text-[28px] font-black text-ak-text">Import game</h1>
         <div className="text-[12px] text-ak-text-dim mt-1 leading-relaxed">
@@ -252,9 +238,11 @@ export default function ImportPage({
           </Panel>
         )}
       </div>
-    </AdminLayout>
+    </>
   );
 }
+
+ImportPage.getLayout = adminLayout("Import");
 
 function Panel({ label, children }: { label: string; children: ReactNode }) {
   return (

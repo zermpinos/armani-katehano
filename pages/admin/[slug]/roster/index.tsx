@@ -2,7 +2,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, byJersey } from "@/client/admin";
+import { adminLayout, useAdminSession, useAdminData, byJersey } from "@/client/admin";
 import type { Player } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
@@ -15,17 +15,13 @@ const SAVED_MSG: Record<string, string> = {
   retired: "Player retired.",
 };
 
-export default function RosterPage({
-  validSlug, showFallback, noPasskeys,
-}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
+export default function RosterPage() {
   const router = useRouter();
-  const slug = router.query.slug || validSlug;
+  const { slug, setToast } = useAdminSession();
 
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
-
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [toast,   setToast]   = useState<{ msg: string; type?: string } | null>(null);
+  const { data } = useAdminData<{ players?: Player[] }>("/api/admin/players");
+  const players  = data?.players ?? [];
+  const loading  = data === undefined;
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -37,35 +33,10 @@ export default function RosterPage({
     }
   }, [router, slug]);
 
-  const loadPlayers = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/players");
-      if (res.ok) {
-        const d = await res.json();
-        setPlayers(d.players ?? []);
-      }
-    } finally { setLoading(false); }
-  };
-
-  useEffect(() => {
-    if (authed && slug) loadPlayers();
-  }, [authed, slug]);
-
-  if (!validSlug) return null;
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-    </div>
-  );
-
   const sorted = [...players].sort(byJersey);
 
   return (
-    <AdminLayout slug={slug} title="Roster" toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <header className="flex items-center justify-between gap-3 flex-wrap mb-6">
         <h1 className="text-[22px] md:text-[28px] font-black text-ak-text">Roster</h1>
         <Link
@@ -89,9 +60,11 @@ export default function RosterPage({
           ))}
         </ul>
       )}
-    </AdminLayout>
+    </>
   );
 }
+
+RosterPage.getLayout = adminLayout("Roster");
 
 function PlayerCard({ player, slug }: { player: Player; slug: string }) {
   return (

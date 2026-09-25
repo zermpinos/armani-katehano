@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/router";
 import {
-  AdminLayout, Spinner, PasskeyLoginForm, Btn, Confirm, useAdminAuth, apiFetch,
+  adminLayout, useAdminSession, Btn, Confirm, apiFetch,
 } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
@@ -32,13 +31,8 @@ const STATUS_LABEL: Record<StatusFilter, string> = {
   all:         "All",
 };
 
-export default function SubscribersPage({
-  validSlug, showFallback, noPasskeys,
-}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
-  const router = useRouter();
-  const slug = router.query.slug || validSlug;
-
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
+export default function SubscribersPage() {
+  const { setToast } = useAdminSession();
 
   const [rows,        setRows]        = useState<SubscriberRow[]>([]);
   const [total,       setTotal]       = useState(0);
@@ -51,7 +45,6 @@ export default function SubscribersPage({
   const [selected,    setSelected]    = useState<Set<string>>(new Set());
   const [askDelete,   setAskDelete]   = useState(false);
   const [deleting,    setDeleting]    = useState(false);
-  const [toast,       setToast]       = useState<{ msg: string; type?: string } | null>(null);
 
   const debounceRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialLoadDone = useRef(false);
@@ -85,7 +78,6 @@ export default function SubscribersPage({
   }, [fetchPage]);
 
   useEffect(() => {
-    if (!authed || !slug) return;
     if (!initialLoadDone.current) {
       initialLoadDone.current = true;
       void loadFirst(search, status);
@@ -94,7 +86,7 @@ export default function SubscribersPage({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => void loadFirst(search, status), 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [search, status, authed, slug, loadFirst]);
+  }, [search, status, loadFirst]);
 
   const handleLoadMore = async () => {
     setLoadingMore(true);
@@ -140,20 +132,10 @@ export default function SubscribersPage({
     }
   };
 
-  if (!validSlug) return null;
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-    </div>
-  );
-
   const allSelected = rows.length > 0 && selected.size === rows.length;
 
   return (
-    <AdminLayout slug={slug} title="Subscribers" toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <header className="mb-5 flex items-end justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-[22px] md:text-[28px] font-black text-ak-text">Subscribers</h1>
@@ -282,9 +264,11 @@ export default function SubscribersPage({
           onCancel={() => setAskDelete(false)}
         />
       )}
-    </AdminLayout>
+    </>
   );
 }
+
+SubscribersPage.getLayout = adminLayout("Subscribers");
 
 function EmptyState({ search }: { search: string }) {
   return (

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { AdminLayout, Spinner, PasskeyLoginForm, Confirm, useAdminAuth, apiFetch } from "@/client/admin";
+import { adminLayout, useAdminSession, useAdminData, Confirm, apiFetch } from "@/client/admin";
 import type { ScheduledGame } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
@@ -13,17 +13,13 @@ const SAVED_MSG: Record<string, string> = {
   deleted: "Game deleted.",
 };
 
-export default function SchedulePage({
-  validSlug, showFallback, noPasskeys,
-}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
+export default function SchedulePage() {
   const router = useRouter();
-  const slug = router.query.slug || validSlug;
+  const { slug, setToast } = useAdminSession();
 
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
-
-  const [schedule, setSchedule] = useState<ScheduledGame[]>([]);
-  const [loading,  setLoading]  = useState(false);
-  const [toast,    setToast]    = useState<{ msg: string; type?: string } | null>(null);
+  const { data, refresh: loadData } = useAdminData<{ schedule?: ScheduledGame[] }>("/api/admin/schedule");
+  const schedule = data?.schedule ?? [];
+  const loading  = data === undefined;
   const [confirm,  setConfirm]  = useState<ScheduledGame | null>(null);
 
   useEffect(() => {
@@ -35,21 +31,6 @@ export default function SchedulePage({
       router.replace(`/admin/${slug}/schedule`, undefined, { shallow: true });
     }
   }, [router, slug]);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/schedule");
-      if (res.ok) {
-        const d = await res.json();
-        setSchedule(d.schedule ?? []);
-      }
-    } finally { setLoading(false); }
-  };
-
-  useEffect(() => {
-    if (authed && slug) loadData();
-  }, [authed, slug]);
 
   const deleteGame = async (g: ScheduledGame) => {
     const res = await apiFetch("/api/admin/schedule", {
@@ -67,22 +48,12 @@ export default function SchedulePage({
     loadData();
   };
 
-  if (!validSlug) return null;
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-    </div>
-  );
-
   const sorted = [...schedule].sort(
     (a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime(),
   );
 
   return (
-    <AdminLayout slug={slug} title="Schedule" toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <header className="flex items-center justify-between gap-3 flex-wrap mb-6">
         <h1 className="text-[22px] md:text-[28px] font-black text-ak-text">Schedule</h1>
         <Link
@@ -118,9 +89,11 @@ export default function SchedulePage({
           onCancel={() => setConfirm(null)}
         />
       )}
-    </AdminLayout>
+    </>
   );
 }
+
+SchedulePage.getLayout = adminLayout("Schedule");
 
 function ScheduleCard({
   game, slug, onDelete,

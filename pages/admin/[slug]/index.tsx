@@ -1,24 +1,17 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { useRouter } from "next/router";
 import Link from "next/link";
-import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth } from "@/client/admin";
+import { adminLayout, useAdminSession } from "@/client/admin";
 import type { DashboardData, ScheduledGame } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
 import { fmtDate } from "@/domain/shared/format";
 
-export default function AdminDashboard({
-  validSlug, showFallback, noPasskeys,
-}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
-  const router = useRouter();
-  const slug = router.query.slug || validSlug;
-
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
+export default function AdminDashboard() {
+  const { slug } = useAdminSession();
 
   const [data,     setData]     = useState<DashboardData | null>(null);
   const [upcoming, setUpcoming] = useState<ScheduledGame[]>([]);
   const [loading,  setLoading]  = useState(false);
-  const [toast,    setToast]    = useState<{ type?: string; msg: string } | null>(null);
 
   const loadDashboard = async () => {
     setLoading(true);
@@ -42,20 +35,8 @@ export default function AdminDashboard({
   };
 
   useEffect(() => {
-    if (authed && slug) loadDashboard();
-  }, [authed, slug]);
-
-  if (!validSlug) return null;
-
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-    </div>
-  );
+    loadDashboard();
+  }, []);
 
   const wins   = data?.record?.wins   ?? 0;
   const losses = data?.record?.losses ?? 0;
@@ -72,7 +53,7 @@ export default function AdminDashboard({
   const fmtTime = (iso: string) => iso.slice(11, 16);
 
   return (
-    <AdminLayout slug={slug} title="Dashboard" toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <header className="mb-6">
         <h1 className="text-[22px] md:text-[28px] font-black text-ak-text">Overview</h1>
         {data?.currentSeason && (
@@ -189,9 +170,11 @@ export default function AdminDashboard({
           </div>
         </>
       )}
-    </AdminLayout>
+    </>
   );
 }
+
+AdminDashboard.getLayout = adminLayout("Dashboard");
 
 function StatTile({ label, value }: { label: string; value: string | number }) {
   return (

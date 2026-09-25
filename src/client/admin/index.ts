@@ -1,7 +1,9 @@
 export *               from "@/client/admin/shared";
 export * from "@/client/admin/csrf";
 export * from "@/client/admin/use-admin-auth";
-export * from "@/client/admin/layout";
+export * from "@/client/admin/session";
+export * from "@/client/admin/use-admin-data";
+export { adminLayout } from "@/client/admin/shell/AdminShell";
 export * from "@/client/admin/spinner";
 export * from "@/client/admin/primitives";
 export * from "@/client/admin/confirm";

@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import {
-  AdminLayout, Spinner, PasskeyLoginForm, BoxScoreTable, F, Sel, Btn, Confirm,
-  useAdminAuth, byJersey, apiFetch,
+  adminLayout, useAdminSession, Spinner, BoxScoreTable, F, Sel, Btn, Confirm,
+  byJersey, apiFetch,
 } from "@/client/admin";
 import type { Player, Game, SeasonLeague, BoxScoreRow } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
@@ -69,15 +69,11 @@ function gameToDraft(g: Game, players: Player[]): Draft {
   };
 }
 
-export default function GameEditPage({
-  validSlug, showFallback, noPasskeys,
-}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
+export default function GameEditPage() {
   const router = useRouter();
-  const slug = router.query.slug || validSlug;
+  const { slug, setToast } = useAdminSession();
   const idParam = typeof router.query.id === "string" ? router.query.id : null;
   const isNew = idParam === "new";
-
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
 
   const [players,       setPlayers]       = useState<Player[]>([]);
   const [seasonLeagues, setSeasonLeagues] = useState<SeasonLeague[]>([]);
@@ -88,10 +84,9 @@ export default function GameEditPage({
   const [askDelete,     setAskDelete]     = useState(false);
   const [askBroadcast,  setAskBroadcast]  = useState(false);
   const [broadcasting,  setBroadcasting]  = useState(false);
-  const [toast,         setToast]         = useState<{ msg: string; type?: string } | null>(null);
 
   useEffect(() => {
-    if (!router.isReady || !authed || !slug) return;
+    if (!router.isReady) return;
     let cancelled = false;
     (async () => {
       try {
@@ -122,7 +117,7 @@ export default function GameEditPage({
       }
     })();
     return () => { cancelled = true; };
-  }, [router.isReady, authed, slug, idParam, isNew]);
+  }, [router.isReady, idParam, isNew]);
 
   const upd = (k: keyof Draft, v: unknown) => setDraft(d => d ? ({ ...d, [k]: v } as Draft) : d);
 
@@ -231,21 +226,11 @@ export default function GameEditPage({
     setToast({ msg: `Recap sent to ${body.recipientCount} subscribers.`, type: "success" });
   };
 
-  if (!validSlug) return null;
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-    </div>
-  );
-
   const title = isNew ? "Add game" : "Edit game";
   const leagueOptions = seasonLeagues.map(sl => ({ value: sl.id, label: sl.leagueName }));
 
   return (
-    <AdminLayout slug={slug} title={title} toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <Link
         href={`/admin/${slug}/games`}
         className="inline-flex items-center gap-1 text-[11px] font-black tracking-[0.12em] uppercase text-ak-text-dim mb-3"
@@ -347,9 +332,11 @@ export default function GameEditPage({
           onCancel={() => setAskBroadcast(false)}
         />
       )}
-    </AdminLayout>
+    </>
   );
 }
+
+GameEditPage.getLayout = adminLayout("Game");
 
 function Panel({ label, children }: { label: string; children: ReactNode }) {
   return (
