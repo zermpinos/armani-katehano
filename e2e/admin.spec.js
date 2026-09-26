@@ -239,6 +239,21 @@ test.describe("Admin panel › Persistent shell", () => {
       await context.close();
     }
   });
+
+  test("admin inputs are at least 16px so phones do not zoom on focus", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await page.goto(`/admin/${ADMIN_SLUG}/schedule/new`);
+      const input = page.locator("main input").first();
+      await expect(input).toBeVisible({ timeout: 10_000 });
+      const size = await input.evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+      expect(size).toBeGreaterThanOrEqual(16);
+    } finally {
+      await context.close();
+    }
+  });
 });
 
 // ── API-level auth guard (always runs - no credentials needed) ─────────────

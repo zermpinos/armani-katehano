@@ -9,9 +9,12 @@ const BTN_VARIANT: Record<string, string> = {
 };
 
 const BTN_SIZE: Record<string, string> = {
-  sm: "py-[6px] px-3 text-[11px]",
-  md: "py-[9px] px-[18px] text-[13px]",
+  sm: "min-h-[44px] py-2 px-3 text-[11px]",
+  md: "min-h-[44px] py-[9px] px-[18px] text-[13px]",
 };
+
+const LABEL = "block text-[11px] font-black tracking-[0.12em] text-ak-text-dim uppercase mb-1";
+const CONTROL = "w-full min-h-[44px] py-2 px-3 text-base rounded-[7px] border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none focus-visible:border-ak-red-bright";
 
 export function Btn({ onClick, disabled = false, children, variant = "primary", size = "md" }: { onClick?: () => void; disabled?: boolean; children: ReactNode; variant?: string; size?: string }) {
   return (
@@ -29,9 +32,9 @@ export function Btn({ onClick, disabled = false, children, variant = "primary", 
 export function F({ label, value, onChange, type = "text", placeholder = "" }: { label: string; value: string | number; onChange: (v: string) => void; type?: string; placeholder?: string }) {
   return (
     <label className="block">
-      <span className="block text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-1">{label}</span>
+      <span className={LABEL}>{label}</span>
       <input type={type} value={value ?? ""} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full py-[7px] px-[10px] text-xs rounded-[7px] border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none" />
+        className={CONTROL} />
     </label>
   );
 }
@@ -39,9 +42,9 @@ export function F({ label, value, onChange, type = "text", placeholder = "" }: {
 export function Sel({ label, value, onChange, options = [] }: { label: string; value: string; onChange: (v: string) => void; options?: Array<{ value: string; label: string }> }) {
   return (
     <label className="block">
-      <span className="block text-[9px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-1">{label}</span>
+      <span className={LABEL}>{label}</span>
       <select value={value ?? ""} onChange={e => onChange(e.target.value)}
-        className="w-full py-[7px] px-[10px] text-xs rounded-[7px] border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none">
+        className={CONTROL}>
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
     </label>
