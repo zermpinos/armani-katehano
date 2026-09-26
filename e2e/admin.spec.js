@@ -208,9 +208,9 @@ test.describe("Admin panel › Persistent shell", () => {
       const authCalls = [];
       page.on("request", req => { if (new URL(req.url()).pathname === "/api/auth") authCalls.push(req.url()); });
       await page.getByRole("link", { name: "Roster" }).first().click();
-      await expect(page).toHaveURL(new RegExp(`/admin/${ADMIN_SLUG}/roster$`));
+      await expect(page).toHaveURL(url => url.pathname === `/admin/${ADMIN_SLUG}/roster`);
       await page.getByRole("link", { name: "Schedule" }).first().click();
-      await expect(page).toHaveURL(new RegExp(`/admin/${ADMIN_SLUG}/schedule$`));
+      await expect(page).toHaveURL(url => url.pathname === `/admin/${ADMIN_SLUG}/schedule`);
       expect(authCalls).toEqual([]);
     } finally {
       await context.close();
@@ -221,7 +221,7 @@ test.describe("Admin panel › Persistent shell", () => {
     test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
     await page.goto(`/admin/${ADMIN_SLUG}/games`);
     await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
-    await expect(page).toHaveURL(new RegExp(`/admin/${ADMIN_SLUG}/games$`));
+    await expect(page).toHaveURL(url => url.pathname === `/admin/${ADMIN_SLUG}/games`);
   });
 
   test("a session that dies mid-visit shows the sign-in overlay over the page", async ({ browser }) => {
