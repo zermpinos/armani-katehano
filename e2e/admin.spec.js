@@ -246,11 +246,75 @@ test.describe("Admin panel › Persistent shell", () => {
     const context = await adminContext(browser);
     const page    = await context.newPage();
     try {
-      await page.goto(`/admin/${ADMIN_SLUG}/schedule/new`);
-      const input = page.locator("main input").first();
+      await page.goto(`/admin/${ADMIN_SLUG}/schedule`);
+      await page.getByRole("button", { name: "+ SCHEDULE GAME" }).click();
+      const input = page.getByRole("dialog").locator("input").first();
       await expect(input).toBeVisible({ timeout: 10_000 });
       const size = await input.evaluate(el => parseFloat(getComputedStyle(el).fontSize));
       expect(size).toBeGreaterThanOrEqual(16);
+    } finally {
+      await context.close();
+    }
+  });
+});
+
+test.describe("Admin panel › Schedule sheet", () => {
+  const adminContext = (browser) => browser.newContext({
+    baseURL:      BASE_URL,
+    storageState: makeAdminStorageState(ADMIN_USERNAME),
+  });
+  const day = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+  const fixture = {
+    id: "cmfixture0000000000000001", opponent: "Mock Opponent", scheduledFor: `${day}T20:00:00.000Z`,
+    location: "home", competition: null, notes: null, sourceUrl: null,
+  };
+
+  async function mockSchedule(page, onWrite) {
+    let rows = [fixture];
+    await page.route("**/api/admin/schedule", async route => {
+      if (route.request().method() === "GET") return route.fulfill({ json: { schedule: rows } });
+      const result = await onWrite(route.request());
+      if (result.status < 300) rows = result.rows(rows);
+      return route.fulfill({ status: result.status, json: result.body });
+    });
+  }
+
+  test("editing a fixture saves in place without leaving the list", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await mockSchedule(page, req => {
+        const body = req.postDataJSON();
+        return { status: 200, body: { ok: true }, rows: rs => rs.map(r => (r.id === body.id ? { ...r, opponent: body.opponent } : r)) };
+      });
+      await page.goto(`/admin/${ADMIN_SLUG}/schedule`);
+      await page.getByRole("button", { name: /Mock Opponent/ }).click();
+      const sheet = page.getByRole("dialog", { name: "Edit fixture" });
+      await expect(sheet).toBeVisible();
+      await sheet.getByLabel("OPPONENT").fill("Renamed Opponent");
+      await sheet.getByRole("button", { name: "SAVE CHANGES" }).click();
+      await expect(sheet).toBeHidden();
+      await expect(page.getByRole("button", { name: /Renamed Opponent/ })).toBeVisible();
+      await expect(page).toHaveURL(url => url.pathname === `/admin/${ADMIN_SLUG}/schedule`);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("a rejected save reopens the sheet with the server message and the draft", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await mockSchedule(page, () => ({ status: 400, body: { error: "sourceUrl host is not on the scraper allowlist" }, rows: rs => rs }));
+      await page.goto(`/admin/${ADMIN_SLUG}/schedule`);
+      await page.getByRole("button", { name: /Mock Opponent/ }).click();
+      const sheet = page.getByRole("dialog", { name: "Edit fixture" });
+      await sheet.getByLabel("OPPONENT").fill("Draft Opponent");
+      await sheet.getByRole("button", { name: "SAVE CHANGES" }).click();
+      await expect(sheet.getByRole("alert")).toHaveText("sourceUrl host is not on the scraper allowlist");
+      await expect(sheet.getByLabel("OPPONENT")).toHaveValue("Draft Opponent");
     } finally {
       await context.close();
     }
