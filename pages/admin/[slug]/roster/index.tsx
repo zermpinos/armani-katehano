@@ -2,9 +2,10 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { AdminLayout, Spinner, PasskeyLoginForm, useAdminAuth, byJersey } from "@/client/admin";
+import { adminLayout, useAdminSession, useAdminData, Btn, byJersey } from "@/client/admin";
 import type { Player } from "@/client/admin";
-import { getAdminPasskeyLoginProps } from "@/server/auth";
+import type { GetServerSidePropsContext } from "next";
+import { getAdminPageProps } from "@/server/auth";
 import { initials } from "@/domain/players/format";
 import { cloudinaryThumb } from "@/domain/shared/cloudinary";
 
@@ -14,17 +15,14 @@ const SAVED_MSG: Record<string, string> = {
   retired: "Player retired.",
 };
 
-export default function RosterPage({
-  validSlug, showFallback, noPasskeys,
-}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
+export default function RosterPage() {
   const router = useRouter();
-  const slug = router.query.slug || validSlug;
+  const { slug, setToast } = useAdminSession();
 
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
-
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [toast,   setToast]   = useState<{ msg: string; type?: string } | null>(null);
+  const { data, error, refresh } = useAdminData<{ players?: Player[] }>("/api/admin/players");
+  const players  = data?.players ?? [];
+  const loading  = data === undefined && !error;
+  const failed   = data === undefined && error;
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -34,37 +32,12 @@ export default function RosterPage({
       setToast({ msg, type: "success" });
       router.replace(`/admin/${slug}/roster`, undefined, { shallow: true });
     }
-  }, [router, slug]);
-
-  const loadPlayers = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/players");
-      if (res.ok) {
-        const d = await res.json();
-        setPlayers(d.players ?? []);
-      }
-    } finally { setLoading(false); }
-  };
-
-  useEffect(() => {
-    if (authed && slug) loadPlayers();
-  }, [authed, slug]);
-
-  if (!validSlug) return null;
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-    </div>
-  );
+  }, [router, slug, setToast]);
 
   const sorted = [...players].sort(byJersey);
 
   return (
-    <AdminLayout slug={slug} title="Roster" toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <header className="flex items-center justify-between gap-3 flex-wrap mb-6">
         <h1 className="text-[22px] md:text-[28px] font-black text-ak-text">Roster</h1>
         <Link
@@ -77,6 +50,8 @@ export default function RosterPage({
 
       {loading ? (
         <RosterSkeleton />
+      ) : failed ? (
+        <LoadFailed onRetry={() => void refresh()} />
       ) : sorted.length === 0 ? (
         <EmptyState slug={String(slug)} />
       ) : (
@@ -88,9 +63,11 @@ export default function RosterPage({
           ))}
         </ul>
       )}
-    </AdminLayout>
+    </>
   );
 }
+
+RosterPage.getLayout = adminLayout("Roster");
 
 function PlayerCard({ player, slug }: { player: Player; slug: string }) {
   return (
@@ -162,6 +139,15 @@ function EmptyState({ slug }: { slug: string }) {
   );
 }
 
+function LoadFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="rounded-xl border border-dashed border-ak-border bg-ak-surface px-6 py-10 text-center">
+      <div className="text-[12px] text-ak-text-dim mb-4">Could not load players.</div>
+      <Btn size="sm" onClick={onRetry}>Retry</Btn>
+    </div>
+  );
+}
+
 function RosterSkeleton() {
   return (
     <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -172,6 +158,6 @@ function RosterSkeleton() {
   );
 }
 
-export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
-  return getAdminPasskeyLoginProps(params, query);
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return getAdminPageProps(ctx);
 }

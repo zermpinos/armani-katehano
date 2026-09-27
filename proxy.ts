@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { buildCsp } from "@/server/security/edge/csp";
-import { verifySession, SESSION_TTL_S } from "@/server/auth/session";
+import { isLiveAdminSession } from "@/server/auth/session";
 
 const ADMIN_SESSION_COOKIE = "__Host-ak_session";
 const FLAG_TTL_MS = 10_000;
@@ -34,19 +34,6 @@ async function isMaintenanceOn(request: NextRequest): Promise<boolean> {
   }
 }
 
-// The same shape require-admin.ts enforces, minus the audit logging it needs
-// to tell the rejection reasons apart.
-function hasValidAdminSession(cookieValue: string | undefined): boolean {
-  const payload = verifySession(cookieValue);
-  if (!payload) return false;
-
-  let parsed;
-  try { parsed = JSON.parse(payload); } catch { return false; }
-
-  if (!parsed?.ts || Date.now() - parsed.ts > SESSION_TTL_S * 1000) return false;
-  return parsed.role === "admin";
-}
-
 function passThroughWithCsp(request: NextRequest) {
   const response = NextResponse.next();
   response.headers.set("Content-Security-Policy", buildCsp());
@@ -73,7 +60,7 @@ export async function proxy(request: NextRequest) {
     return passThroughWithCsp(request);
   }
 
-  if (hasValidAdminSession(request.cookies.get(ADMIN_SESSION_COOKIE)?.value)) {
+  if (isLiveAdminSession(request.cookies.get(ADMIN_SESSION_COOKIE)?.value)) {
     return passThroughWithCsp(request);
   }
 

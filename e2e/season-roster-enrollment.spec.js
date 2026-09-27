@@ -5,16 +5,18 @@
  *   GET + PUT /api/admin/roster-entries
  *   Season Rosters panel on /admin/[slug]/seasons
  *
- * Auth strategy: mock GET /api/auth → 200 so useAdminAuth treats the
- * session as valid. All data APIs are also mocked so tests are fully
- * self-contained (no live DB required).
+ * Auth strategy: inject a real HMAC-signed session cookie (SESSION_SECRET) so
+ * the page's SSR treats the request as signed in. All data APIs are mocked so
+ * tests are fully self-contained (no live DB required).
  *
  * Do NOT use waitForLoadState("networkidle"). Next.js dev HMR keeps a
  * WebSocket open that prevents networkidle from ever firing.
  */
 import { test, expect } from "@playwright/test";
+import { makeAdminAuth } from "./helpers/admin-auth.js";
 
-const ADMIN_SLUG = process.env.ADMIN_SLUG ?? null;
+const ADMIN_SLUG     = process.env.ADMIN_SLUG     ?? null;
+const SESSION_SECRET = process.env.SESSION_SECRET ?? "";
 
 // ── Mock data ────────────────────────────────────────────────────────────────
 
@@ -48,9 +50,7 @@ const ENTRIES = [
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 async function mockSeasonsApis(page, { putResponse } = {}) {
-  await page.route("**/api/auth",              route => route.request().method() === "GET"
-    ? route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) })
-    : route.continue());
+  await page.context().addCookies(makeAdminAuth().cookies);
   await page.route("**/api/admin/seasons-list",  route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ seasons: SEASONS }) }));
   await page.route("**/api/admin/leagues-list",  route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ leagues: [] }) }));
   // Regex rather than a glob: this page asks for ?includeArchived=true, and a
@@ -79,7 +79,7 @@ async function goToSeasons(page, slug) {
 
 test.describe("Season Rosters panel › rendering", () => {
   test("panel is visible between Active links and Seasons panels", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
@@ -115,7 +115,7 @@ test.describe("Season Rosters panel › rendering", () => {
   });
 
   test("shows one collapsible row per season", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
@@ -125,7 +125,7 @@ test.describe("Season Rosters panel › rendering", () => {
   });
 
   test("enrolled count badge reflects GET /api/admin/roster-entries state", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
@@ -139,7 +139,7 @@ test.describe("Season Rosters panel › rendering", () => {
   });
 
   test("league count in row header", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
@@ -152,7 +152,7 @@ test.describe("Season Rosters panel › rendering", () => {
 
 test.describe("Season Rosters panel › checklist", () => {
   test("expanding shows all active players sorted by jersey number", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
@@ -164,7 +164,7 @@ test.describe("Season Rosters panel › checklist", () => {
   });
 
   test("enrolled players are checked, unenrolled are unchecked", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
@@ -176,7 +176,7 @@ test.describe("Season Rosters panel › checklist", () => {
   });
 
   test("no-leagues season shows empty state instead of checklist", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
@@ -186,7 +186,7 @@ test.describe("Season Rosters panel › checklist", () => {
   });
 
   test("archived season disables all checkboxes and hides save button", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
@@ -206,7 +206,7 @@ test.describe("Season Rosters panel › checklist", () => {
 
 test.describe("Season Rosters panel › save", () => {
   test("save button is disabled when no changes are pending", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
@@ -215,7 +215,7 @@ test.describe("Season Rosters panel › save", () => {
   });
 
   test("toggling a player enables the save button", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
@@ -225,7 +225,7 @@ test.describe("Season Rosters panel › save", () => {
   });
 
   test("toggling back to original state disables save button again", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
@@ -237,7 +237,7 @@ test.describe("Season Rosters panel › save", () => {
   });
 
   test("save sends PUT with correct seasonId and playerIds", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
 
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
@@ -259,7 +259,7 @@ test.describe("Season Rosters panel › save", () => {
   });
 
   test("enrolled count badge updates after successful save", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
@@ -272,7 +272,7 @@ test.describe("Season Rosters panel › save", () => {
   });
 
   test("error response shows error toast and leaves draft intact", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page, {
       putResponse: { status: 400, contentType: "application/json", body: JSON.stringify({ error: "Invalid player ID" }) },
     });

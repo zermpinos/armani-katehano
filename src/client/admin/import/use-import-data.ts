@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Player, SeasonLeague, ScheduledGame } from "@/client/admin";
 
-export function useImportData(authed: boolean) {
+export function useImportData() {
   const [players,       setPlayers]       = useState<Player[]>([]);
   const [seasonLeagues, setSeasonLeagues] = useState<SeasonLeague[]>([]);
   const [schedule,      setSchedule]      = useState<ScheduledGame[]>([]);
@@ -21,7 +21,7 @@ export function useImportData(authed: boolean) {
     } finally { setDataLoading(false); }
   };
 
-  useEffect(() => { if (authed) loadBase(); }, [authed]);
+  useEffect(() => { loadBase(); }, []);
 
   return { players, setPlayers, seasonLeagues, schedule, setSchedule, dataLoading };
 }

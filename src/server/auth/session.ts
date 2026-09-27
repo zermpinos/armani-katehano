@@ -51,3 +51,15 @@ export function buildSessionCookie(payload: string) {
 export function clearSessionCookie() {
   return `${COOKIE_NAME}=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`;
 }
+
+// The checks requireAuth runs, minus the audit logging it needs to tell rejection reasons apart.
+export function isLiveAdminSession(cookieValue: string | null | undefined): boolean {
+  const payload = verifySession(cookieValue);
+  if (!payload) return false;
+
+  let parsed;
+  try { parsed = JSON.parse(payload); } catch { return false; }
+
+  if (!parsed?.ts || Date.now() - parsed.ts > SESSION_TTL_S * 1000) return false;
+  return parsed.role === "admin";
+}

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { AdminLayout, Spinner, PasskeyLoginForm, Confirm, useAdminAuth, apiFetch } from "@/client/admin";
+import { adminLayout, useAdminSession, useAdminData, Btn, Confirm, apiFetch } from "@/client/admin";
 import type { ScheduledGame } from "@/client/admin";
-import { getAdminPasskeyLoginProps } from "@/server/auth";
+import type { GetServerSidePropsContext } from "next";
+import { getAdminPageProps } from "@/server/auth";
 import { fmtDate } from "@/domain/shared/format";
 
 const SAVED_MSG: Record<string, string> = {
@@ -12,17 +13,14 @@ const SAVED_MSG: Record<string, string> = {
   deleted: "Game deleted.",
 };
 
-export default function SchedulePage({
-  validSlug, showFallback, noPasskeys,
-}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean }) {
+export default function SchedulePage() {
   const router = useRouter();
-  const slug = router.query.slug || validSlug;
+  const { slug, setToast } = useAdminSession();
 
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
-
-  const [schedule, setSchedule] = useState<ScheduledGame[]>([]);
-  const [loading,  setLoading]  = useState(false);
-  const [toast,    setToast]    = useState<{ msg: string; type?: string } | null>(null);
+  const { data, error, refresh: loadData } = useAdminData<{ schedule?: ScheduledGame[] }>("/api/admin/schedule");
+  const schedule = data?.schedule ?? [];
+  const loading  = data === undefined && !error;
+  const failed   = data === undefined && error;
   const [confirm,  setConfirm]  = useState<ScheduledGame | null>(null);
 
   useEffect(() => {
@@ -33,22 +31,7 @@ export default function SchedulePage({
       setToast({ msg, type: "success" });
       router.replace(`/admin/${slug}/schedule`, undefined, { shallow: true });
     }
-  }, [router, slug]);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/schedule");
-      if (res.ok) {
-        const d = await res.json();
-        setSchedule(d.schedule ?? []);
-      }
-    } finally { setLoading(false); }
-  };
-
-  useEffect(() => {
-    if (authed && slug) loadData();
-  }, [authed, slug]);
+  }, [router, slug, setToast]);
 
   const deleteGame = async (g: ScheduledGame) => {
     const res = await apiFetch("/api/admin/schedule", {
@@ -66,22 +49,12 @@ export default function SchedulePage({
     loadData();
   };
 
-  if (!validSlug) return null;
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-    </div>
-  );
-
   const sorted = [...schedule].sort(
     (a, b) => new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime(),
   );
 
   return (
-    <AdminLayout slug={slug} title="Schedule" toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <header className="flex items-center justify-between gap-3 flex-wrap mb-6">
         <h1 className="text-[22px] md:text-[28px] font-black text-ak-text">Schedule</h1>
         <Link
@@ -94,6 +67,8 @@ export default function SchedulePage({
 
       {loading ? (
         <ScheduleSkeleton />
+      ) : failed ? (
+        <LoadFailed onRetry={() => void loadData()} />
       ) : sorted.length === 0 ? (
         <EmptyState slug={String(slug)} />
       ) : (
@@ -117,9 +92,11 @@ export default function SchedulePage({
           onCancel={() => setConfirm(null)}
         />
       )}
-    </AdminLayout>
+    </>
   );
 }
+
+SchedulePage.getLayout = adminLayout("Schedule");
 
 function ScheduleCard({
   game, slug, onDelete,
@@ -200,6 +177,15 @@ function EmptyState({ slug }: { slug: string }) {
   );
 }
 
+function LoadFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="rounded-xl border border-dashed border-ak-border bg-ak-surface px-6 py-10 text-center">
+      <div className="text-[12px] text-ak-text-dim mb-4">Could not load the schedule.</div>
+      <Btn size="sm" onClick={onRetry}>Retry</Btn>
+    </div>
+  );
+}
+
 function ScheduleSkeleton() {
   return (
     <ul className="flex flex-col gap-2">
@@ -210,6 +196,6 @@ function ScheduleSkeleton() {
   );
 }
 
-export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
-  return getAdminPasskeyLoginProps(params, query);
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  return getAdminPageProps(ctx);
 }

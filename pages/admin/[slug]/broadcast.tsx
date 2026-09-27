@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, type ReactNode } from "react";
-import { useRouter } from "next/router";
 import {
-  AdminLayout, Spinner, PasskeyLoginForm, Btn, useAdminAuth, apiFetch,
+  adminLayout, useAdminSession, Spinner, Btn, apiFetch,
 } from "@/client/admin";
-import { getAdminPasskeyLoginProps } from "@/server/auth";
+import type { GetServerSidePropsContext } from "next";
+import { getAdminPageProps } from "@/server/auth";
 
 type BroadcastLogRow = {
   id:             string;
@@ -23,13 +23,8 @@ type ResolveResult = {
 
 type PageMode = "compose" | "confirming" | "sending";
 
-export default function BroadcastPage({
-  validSlug, showFallback, noPasskeys, maskedAdminEmail,
-}: { validSlug: boolean; showFallback: boolean; noPasskeys: boolean; maskedAdminEmail: string }) {
-  const router = useRouter();
-  const slug = router.query.slug || validSlug;
-
-  const { authed, loading: authLoading, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug);
+export default function BroadcastPage({ maskedAdminEmail }: { maskedAdminEmail: string }) {
+  const { setToast } = useAdminSession();
 
   const [subject,        setSubject]        = useState("");
   const [body,           setBody]           = useState("");
@@ -47,7 +42,6 @@ export default function BroadcastPage({
   const [mode,           setMode]           = useState<PageMode>("compose");
   const [confirmedCount, setConfirmedCount] = useState<number | null>(null);
   const [logs,           setLogs]           = useState<BroadcastLogRow[]>([]);
-  const [toast,          setToast]          = useState<{ msg: string; type?: string } | null>(null);
 
   const [sanitizedHtml, setSanitizedHtml] = useState("");
 
@@ -80,9 +74,8 @@ export default function BroadcastPage({
   }, []);
 
   useEffect(() => {
-    if (!authed) return;
     void Promise.all([fetchHistory(), fetchCount()]);
-  }, [authed, fetchHistory, fetchCount]);
+  }, [fetchHistory, fetchCount]);
 
   useEffect(() => {
     if (!renderedHtml) { setSanitizedHtml(""); return; }
@@ -168,16 +161,6 @@ export default function BroadcastPage({
     }
   };
 
-  if (!validSlug) return null;
-  if (authLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base"><Spinner /></div>
-  );
-  if (!authed) return (
-    <div className="min-h-screen flex items-center justify-center bg-ak-base p-4">
-      <PasskeyLoginForm onPasskeyLogin={handlePasskeyLogin} onFallbackLogin={handleLogin} loginError={loginError} showFallback={showFallback} noPasskeys={noPasskeys} />
-    </div>
-  );
-
   const recipientLabel = recipientMode === "all"
     ? `All confirmed subscribers${confirmedCount !== null ? ` (${confirmedCount})` : ""}`
     : resolveResult
@@ -185,7 +168,7 @@ export default function BroadcastPage({
       : "Specific subscribers";
 
   return (
-    <AdminLayout slug={slug} title="Broadcast" toast={toast} setToast={setToast} onLogout={handleLogout}>
+    <>
       <h1 className="text-[22px] md:text-[28px] font-black text-ak-text mb-6">Broadcast</h1>
 
       {mode === "sending" ? (
@@ -348,9 +331,11 @@ export default function BroadcastPage({
           <HistorySection logs={logs} />
         </>
       )}
-    </AdminLayout>
+    </>
   );
 }
+
+BroadcastPage.getLayout = adminLayout("Broadcast");
 
 function Panel({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -419,8 +404,8 @@ function Stat({ label, value, tone = "dim" }: { label: string; value: number; to
   );
 }
 
-export async function getServerSideProps({ params, query }: { params: { slug: string }; query: import("querystring").ParsedUrlQuery }) {
-  const result = await getAdminPasskeyLoginProps(params, query);
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  const result = await getAdminPageProps(ctx);
   if ("notFound" in result) return result;
 
   const rawEmail         = process.env.ADMIN_ALERT_EMAIL ?? "webmaster@armani-katehano.com";
