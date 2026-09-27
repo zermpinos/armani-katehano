@@ -321,6 +321,60 @@ test.describe("Admin panel › Schedule sheet", () => {
   });
 });
 
+test.describe("Admin panel › Roster sheet", () => {
+  const adminContext = (browser) => browser.newContext({
+    baseURL:      BASE_URL,
+    storageState: makeAdminStorageState(ADMIN_USERNAME),
+  });
+  const players = [
+    { id: "cmplayer00000000000000001", name: "Mock Player",    number: 7, position: "SG", height: null, weight: null, photoUrl: null, contactEmail: null, isActive: true },
+    { id: "cmplayer00000000000000002", name: "Retired Player", number: 9, position: "C",  height: null, weight: null, photoUrl: null, contactEmail: null, isActive: false },
+  ];
+
+  async function mockRoster(page, onPut) {
+    await page.route("**/api/admin/players*", async route => {
+      if (route.request().method() === "GET") return route.fulfill({ json: { players } });
+      const result = onPut(route.request());
+      return route.fulfill({ status: result.status, json: result.body });
+    });
+    await page.route("**/api/admin/roster-entries*", route => route.fulfill({ json: { leagues: [] } }));
+  }
+
+  test("retired players stay behind show all", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await mockRoster(page, () => ({ status: 200, body: { ok: true } }));
+      await page.goto(`/admin/${ADMIN_SLUG}/roster`);
+      await expect(page.getByRole("button", { name: /Mock Player/ })).toBeVisible();
+      await expect(page.getByRole("button", { name: /Retired Player/ })).toHaveCount(0);
+      await page.getByRole("button", { name: "Show all (1 retired)" }).click();
+      await expect(page.getByRole("button", { name: /Retired Player/ })).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("a jersey clash reopens the sheet with the server message and the draft", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await mockRoster(page, () => ({ status: 409, body: { error: "Jersey #7 is already assigned to X." } }));
+      await page.goto(`/admin/${ADMIN_SLUG}/roster`);
+      await page.getByRole("button", { name: /Mock Player/ }).click();
+      const sheet = page.getByRole("dialog", { name: "Edit player" });
+      await sheet.getByLabel("FULL NAME").fill("Draft Name");
+      await sheet.getByRole("button", { name: "SAVE CHANGES" }).click();
+      await expect(sheet.getByRole("alert")).toHaveText("Jersey #7 is already assigned to X.");
+      await expect(sheet.getByLabel("FULL NAME")).toHaveValue("Draft Name");
+    } finally {
+      await context.close();
+    }
+  });
+});
+
 // ── API-level auth guard (always runs - no credentials needed) ─────────────
 
 test.describe("Admin panel › API protection", () => {

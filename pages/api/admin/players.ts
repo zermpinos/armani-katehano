@@ -1,6 +1,6 @@
 /**
  * pages/api/admin/players.js
- * GET  /api/admin/players -> list active players
+ * GET  /api/admin/players -> list active players (?all=1 includes retired)
  * POST /api/admin/players -> create player
  * PUT  /api/admin/players -> edit player
  */
@@ -15,10 +15,10 @@ import { parseBody }                 from "@/server/http/parse-body";
 import { methodRouter }              from "@/server/http/method-router";
 import { invalidateForPlayerMutation } from "@/server/services/cache-invalidation";
 
-async function listPlayers(_req: any, res: any) {
+async function listPlayers(req: any, res: any) {
   try {
     const players = await prisma.player.findMany({
-      where:   { isActive: true },
+      where:   req.query?.all === "1" ? {} : { isActive: true },
       orderBy: { number: "asc" },
     });
     return res.status(200).json({ players });
