@@ -3,9 +3,7 @@ import { TurnstileWidget } from "@/client/shared/turnstile";
 
 const CAPTCHA_KEY = "ak.admin.requiresCaptcha";
 
-// LoginForm only mounts after useAdminAuth resolves its session check on the
-// client, so reading sessionStorage in the lazy initializer is safe (no SSR pass
-// of this component, hence no hydration mismatch).
+// The server has no sessionStorage, so with the captcha flag set the first client render can differ from the SSR HTML and React re-renders it.
 function readPersistedCaptchaFlag(): boolean {
   if (typeof window === "undefined") return false;
   try { return sessionStorage.getItem(CAPTCHA_KEY) === "1"; }

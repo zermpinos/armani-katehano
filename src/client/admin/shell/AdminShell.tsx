@@ -64,8 +64,8 @@ export function AdminShell({
     const { view, remount } = afterRelogin({ authed, expired, reloadAfterLogin });
     setExpired(view.expired);
     setReloadAfterLogin(view.reloadAfterLogin);
-    if (!remount) return;
-    setPageKey(k => k + 1);
+    if (remount) setPageKey(k => k + 1);
+    // Fresh gSSP props, so later shallow URL changes do not replay a stale signed-out answer.
     void router.replace(router.asPath, undefined, { scroll: false });
   };
   const reloginWithPasskey = async () => {
@@ -86,8 +86,8 @@ export function AdminShell({
           <meta name="robots" content="noindex, nofollow" />
         </Head>
         <PasskeyLoginForm
-          onPasskeyLogin={handlePasskeyLogin}
-          onFallbackLogin={handleLogin}
+          onPasskeyLogin={reloginWithPasskey}
+          onFallbackLogin={reloginWithPassword}
           loginError={loginError}
           showFallback={pageProps.showFallback}
           noPasskeys={pageProps.noPasskeys}
@@ -122,7 +122,7 @@ export function AdminShell({
 
         <div className="lg:pl-[240px]">
           <TopBar title={title} onOpenMenu={() => setDrawerOpen(true)} />
-          <main key={pageKey} className="max-w-[1100px] mx-auto py-8 px-4">{children}</main>
+          <main key={pageKey} className="max-w-[1100px] mx-auto py-8 px-4">{reloadAfterLogin ? null : children}</main>
         </div>
 
         {toast && (

@@ -75,7 +75,7 @@ export default function SubscribersPage() {
     } finally {
       setLoading(false);
     }
-  }, [fetchPage]);
+  }, [fetchPage, setToast]);
 
   useEffect(() => {
     if (!initialLoadDone.current) {

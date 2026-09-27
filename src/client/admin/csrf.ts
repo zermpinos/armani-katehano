@@ -21,6 +21,7 @@ export async function apiFetch(url: string, init: Record<string, any> = {}): Pro
     }
   }
   const res = await fetch(url, init);
+  // The login endpoints answer 401 for a wrong password; only an admin API 401 means the session died.
   if (res.status === 401 && url.startsWith("/api/admin/")) onUnauthorized?.();
   return res;
 }

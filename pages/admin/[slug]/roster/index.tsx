@@ -2,7 +2,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { adminLayout, useAdminSession, useAdminData, byJersey } from "@/client/admin";
+import { adminLayout, useAdminSession, useAdminData, Btn, byJersey } from "@/client/admin";
 import type { Player } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
@@ -19,9 +19,10 @@ export default function RosterPage() {
   const router = useRouter();
   const { slug, setToast } = useAdminSession();
 
-  const { data } = useAdminData<{ players?: Player[] }>("/api/admin/players");
+  const { data, error, refresh } = useAdminData<{ players?: Player[] }>("/api/admin/players");
   const players  = data?.players ?? [];
-  const loading  = data === undefined;
+  const loading  = data === undefined && !error;
+  const failed   = data === undefined && error;
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -31,7 +32,7 @@ export default function RosterPage() {
       setToast({ msg, type: "success" });
       router.replace(`/admin/${slug}/roster`, undefined, { shallow: true });
     }
-  }, [router, slug]);
+  }, [router, slug, setToast]);
 
   const sorted = [...players].sort(byJersey);
 
@@ -49,6 +50,8 @@ export default function RosterPage() {
 
       {loading ? (
         <RosterSkeleton />
+      ) : failed ? (
+        <LoadFailed onRetry={() => void refresh()} />
       ) : sorted.length === 0 ? (
         <EmptyState slug={String(slug)} />
       ) : (
@@ -132,6 +135,15 @@ function EmptyState({ slug }: { slug: string }) {
       >
         + Add the first player
       </Link>
+    </div>
+  );
+}
+
+function LoadFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="rounded-xl border border-dashed border-ak-border bg-ak-surface px-6 py-10 text-center">
+      <div className="text-[12px] text-ak-text-dim mb-4">Could not load players.</div>
+      <Btn size="sm" onClick={onRetry}>Retry</Btn>
     </div>
   );
 }

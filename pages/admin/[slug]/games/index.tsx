@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { adminLayout, useAdminSession, useAdminData, Confirm, apiFetch } from "@/client/admin";
+import { adminLayout, useAdminSession, useAdminData, Confirm, Btn, apiFetch } from "@/client/admin";
 import type { Game, SeasonLeague } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
@@ -18,14 +18,18 @@ const ROUND_LABEL: Record<string, string> = {
   final:        "Final",
 };
 
+const NO_GAMES:   Game[]         = [];
+const NO_LEAGUES: SeasonLeague[] = [];
+
 export default function GamesListPage() {
   const router = useRouter();
   const { slug, setToast } = useAdminSession();
 
-  const { data, refresh: loadData } = useAdminData<{ games?: Game[]; seasonLeagues?: SeasonLeague[] }>("/api/admin/data");
-  const games         = data?.games ?? [];
-  const seasonLeagues = data?.seasonLeagues ?? [];
-  const loading       = data === undefined;
+  const { data, error, refresh: loadData } = useAdminData<{ games?: Game[]; seasonLeagues?: SeasonLeague[] }>("/api/admin/data");
+  const games         = data?.games ?? NO_GAMES;
+  const seasonLeagues = data?.seasonLeagues ?? NO_LEAGUES;
+  const loading       = data === undefined && !error;
+  const failed        = data === undefined && error;
   const [confirm,       setConfirm]       = useState<Game | null>(null);
   const [search,        setSearch]        = useState("");
   const [leagueFilter,  setLeagueFilter]  = useState("");
@@ -38,7 +42,7 @@ export default function GamesListPage() {
       setToast({ msg, type: "success" });
       router.replace(`/admin/${slug}/games`, undefined, { shallow: true });
     }
-  }, [router, slug]);
+  }, [router, slug, setToast]);
 
   const deleteGame = async (g: Game) => {
     const res = await apiFetch("/api/admin/games", {
@@ -75,7 +79,7 @@ export default function GamesListPage() {
         <div>
           <h1 className="text-[22px] md:text-[28px] font-black text-ak-text">Games</h1>
           <div className="text-[11px] font-black tracking-[0.12em] uppercase text-ak-text-dim mt-1">
-            {loading ? "Loading..." : `${games.length} recorded${games.length >= 200 ? " · latest 200" : ""}`}
+            {loading ? "Loading..." : failed ? "Not loaded" : `${games.length} recorded${games.length >= 200 ? " · latest 200" : ""}`}
           </div>
         </div>
         <Link
@@ -108,6 +112,8 @@ export default function GamesListPage() {
 
       {loading ? (
         <GamesSkeleton />
+      ) : failed ? (
+        <LoadFailed onRetry={() => void loadData()} />
       ) : filtered.length === 0 ? (
         <EmptyState slug={String(slug)} filtered={Boolean(search || leagueFilter)} />
       ) : (
@@ -208,6 +214,15 @@ function EmptyState({ slug, filtered }: { slug: string; filtered: boolean }) {
           </Link>
         </div>
       )}
+    </div>
+  );
+}
+
+function LoadFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="rounded-xl border border-dashed border-ak-border bg-ak-surface px-6 py-10 text-center">
+      <div className="text-[12px] text-ak-text-dim mb-4">Could not load games.</div>
+      <Btn size="sm" onClick={onRetry}>Retry</Btn>
     </div>
   );
 }

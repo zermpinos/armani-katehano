@@ -235,6 +235,7 @@ test.describe("Admin panel › Persistent shell", () => {
       await page.getByRole("link", { name: "Schedule" }).first().click();
       await expect(page.getByText("Your session expired")).toBeVisible({ timeout: 10_000 });
       await expect(page.getByText("AK Admin").first()).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Schedule", exact: true })).toHaveCount(0);
     } finally {
       await context.close();
     }

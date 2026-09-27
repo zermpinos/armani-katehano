@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { adminLayout, useAdminSession, useAdminData, Confirm, apiFetch } from "@/client/admin";
+import { adminLayout, useAdminSession, useAdminData, Btn, Confirm, apiFetch } from "@/client/admin";
 import type { ScheduledGame } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
@@ -17,9 +17,10 @@ export default function SchedulePage() {
   const router = useRouter();
   const { slug, setToast } = useAdminSession();
 
-  const { data, refresh: loadData } = useAdminData<{ schedule?: ScheduledGame[] }>("/api/admin/schedule");
+  const { data, error, refresh: loadData } = useAdminData<{ schedule?: ScheduledGame[] }>("/api/admin/schedule");
   const schedule = data?.schedule ?? [];
-  const loading  = data === undefined;
+  const loading  = data === undefined && !error;
+  const failed   = data === undefined && error;
   const [confirm,  setConfirm]  = useState<ScheduledGame | null>(null);
 
   useEffect(() => {
@@ -30,7 +31,7 @@ export default function SchedulePage() {
       setToast({ msg, type: "success" });
       router.replace(`/admin/${slug}/schedule`, undefined, { shallow: true });
     }
-  }, [router, slug]);
+  }, [router, slug, setToast]);
 
   const deleteGame = async (g: ScheduledGame) => {
     const res = await apiFetch("/api/admin/schedule", {
@@ -66,6 +67,8 @@ export default function SchedulePage() {
 
       {loading ? (
         <ScheduleSkeleton />
+      ) : failed ? (
+        <LoadFailed onRetry={() => void loadData()} />
       ) : sorted.length === 0 ? (
         <EmptyState slug={String(slug)} />
       ) : (
@@ -170,6 +173,15 @@ function EmptyState({ slug }: { slug: string }) {
       >
         + Schedule the first one
       </Link>
+    </div>
+  );
+}
+
+function LoadFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="rounded-xl border border-dashed border-ak-border bg-ak-surface px-6 py-10 text-center">
+      <div className="text-[12px] text-ak-text-dim mb-4">Could not load the schedule.</div>
+      <Btn size="sm" onClick={onRetry}>Retry</Btn>
     </div>
   );
 }
