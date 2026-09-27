@@ -256,6 +256,21 @@ test.describe("Admin panel › Persistent shell", () => {
       await context.close();
     }
   });
+
+  test("home is a launcher with the four tasks", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await page.goto(`/admin/${ADMIN_SLUG}/`);
+      const tasks = page.getByRole("navigation", { name: "Tasks" });
+      for (const name of ["Import game", "Schedule", "Roster", "Broadcast"]) {
+        await expect(tasks.getByRole("link").filter({ hasText: name })).toBeVisible();
+      }
+    } finally {
+      await context.close();
+    }
+  });
 });
 
 test.describe("Admin panel › Schedule sheet", () => {
