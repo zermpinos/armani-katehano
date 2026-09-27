@@ -334,6 +334,24 @@ test.describe("Admin panel › Schedule sheet", () => {
       await context.close();
     }
   });
+
+  test("Cancel returns focus to the row", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await mockSchedule(page, () => ({ status: 500, body: { error: "no writes expected" }, rows: rs => rs }));
+      await page.goto(`/admin/${ADMIN_SLUG}/schedule`);
+      await page.getByRole("button", { name: /Mock Opponent/ }).click();
+      const sheet = page.getByRole("dialog", { name: "Edit fixture" });
+      await expect(sheet).toBeVisible();
+      await sheet.getByRole("button", { name: "CANCEL" }).click();
+      await expect(sheet).toBeHidden();
+      await expect(page.getByRole("button", { name: /Mock Opponent/ })).toBeFocused();
+    } finally {
+      await context.close();
+    }
+  });
 });
 
 test.describe("Admin panel › Roster sheet", () => {

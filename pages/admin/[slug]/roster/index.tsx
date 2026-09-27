@@ -2,7 +2,7 @@ import Image from "next/image";
 import { useState, useRef } from "react";
 import type { GetServerSidePropsContext } from "next";
 import {
-  adminLayout, useAdminSession, useAdminData, optimisticSave, apiFetch, byJersey,
+  adminLayout, useAdminSession, useAdminData, optimisticSave, asSentence, apiFetch, byJersey,
   Btn, ListRow, ShowAllToggle,
 } from "@/client/admin";
 import type { Player, SaveResult } from "@/client/admin";
@@ -42,13 +42,11 @@ export default function RosterPage() {
   const { data, error, refresh } = useAdminData<Data>(URL_);
   const [showAll, setShowAll] = useState(false);
   const [sheet,   setSheet]   = useState<Sheet | null>(null);
-  // Counts sheet opens across the component's life; a ref because a stale
-  // closure reading it (from a save in flight) must see the latest value.
+  // A ref, so a save still in flight reads the latest count and a reopen after it always remounts the form.
   const opens = useRef(0);
-  // True whenever a sheet is on screen, so a save that fails after the admin
-  // has since closed or reopened it knows not to clobber what they see now.
+  // A ref, so a save that fails after the admin opened another sheet sees it and does not replace it.
   const sheetOpen = useRef(false);
-  // Drafts held only after a 401, so the admin can sign in again and carry on where they were.
+  // Drafts held after a 401 or a failed save behind another sheet, so nothing typed is lost.
   const [kept,    setKept]    = useState<ReadonlyMap<string, PlayerDraft>>(new Map());
   const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
 
@@ -105,7 +103,11 @@ export default function RosterPage() {
         if (sheetOpen.current) {
           // The admin opened another sheet meanwhile; a failed save must not replace what they are looking at now.
           keep(key, draft);
-          setToast({ msg: `Could not save ${draft.name.trim() || "the player"}: ${result.message} Tap it to try again.`, type: "error" });
+          const label = draft.name.trim() || "the player";
+          const msg = id === null
+            ? `Could not add ${label}: ${asSentence(result.message)} Tap + ADD PLAYER to try again.`
+            : `Could not save ${label}: ${asSentence(result.message)} Tap it to try again.`;
+          setToast({ msg, type: "error" });
         } else {
           open(id, draft, { leagues, initialLeagues, error: result.message });
         }
@@ -150,7 +152,7 @@ export default function RosterPage() {
     <>
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-[22px] font-black text-ak-text md:text-[28px]">Roster</h1>
-        <Btn onClick={openNew}>+ ADD PLAYER</Btn>
+        <Btn onClick={openNew} disabled={data === undefined}>+ ADD PLAYER</Btn>
       </header>
 
       {data === undefined && !error ? (
@@ -189,8 +191,8 @@ export default function RosterPage() {
       )}
 
       <RosterSheet
-        key={sheet ? sheet.openCount : "closed"}
         open={sheet !== null}
+        resetKey={sheet?.openCount}
         isNew={sheet?.id === null}
         draft={sheet?.draft ?? EMPTY_PLAYER}
         leagues={sheet ? sheet.leagues : []}
@@ -209,18 +211,16 @@ export default function RosterPage() {
 
 RosterPage.getLayout = adminLayout("Roster");
 
-// Matches the previous list page's avatar approach: a boolean broken flag,
-// alt text naming the player, and shrink-0 so a long name cannot squeeze it.
 function RowAvatar({ name, photoUrl }: { name: string; photoUrl: string }) {
-  const [broken, setBroken] = useState(false);
-  if (photoUrl && !broken) {
+  const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
+  if (photoUrl && brokenUrl !== photoUrl) {
     return (
       <Image
         src={cloudinaryThumb(photoUrl, 64)}
-        alt={name}
+        alt=""
         width={32}
         height={32}
-        onError={() => setBroken(true)}
+        onError={() => setBrokenUrl(photoUrl)}
         className="h-8 w-8 shrink-0 rounded-full object-cover"
         style={{ objectPosition: "top center" }}
       />

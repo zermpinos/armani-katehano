@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import type { GetServerSidePropsContext } from "next";
 import {
-  adminLayout, useAdminSession, useAdminData, optimisticSave, apiFetch,
+  adminLayout, useAdminSession, useAdminData, optimisticSave, asSentence, apiFetch,
   Btn, ListRow, ShowAllToggle,
 } from "@/client/admin";
 import type { ScheduledGame, SaveResult } from "@/client/admin";
@@ -30,8 +30,11 @@ export default function SchedulePage() {
   const { data, error, refresh } = useAdminData<Data>(URL_);
   const [showAll, setShowAll] = useState(false);
   const [sheet,   setSheet]   = useState<Sheet | null>(null);
-  const [opens,   setOpens]   = useState(0);
-  // Drafts held only after a 401, so the admin can sign in again and carry on where they were.
+  // A ref, so a save still in flight reads the latest count and a reopen after it always remounts the form.
+  const opens = useRef(0);
+  // A ref, so a save that fails after the admin opened another sheet sees it and does not replace it.
+  const sheetOpen = useRef(false);
+  // Drafts held after a 401 or a failed save behind another sheet, so nothing typed is lost.
   const [kept,    setKept]    = useState<ReadonlyMap<string, ScheduleDraft>>(new Map());
   const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
 
@@ -42,10 +45,12 @@ export default function SchedulePage() {
   const keep = (key: string, draft: ScheduleDraft | null) =>
     setKept(k => { const next = new Map(k); if (draft) next.set(key, draft); else next.delete(key); return next; });
   const open = (id: string | null, draft: ScheduleDraft, errorText: string | null = null) => {
-    const openCount = opens + 1;
-    setOpens(openCount);
+    opens.current += 1;
+    const openCount = opens.current;
+    sheetOpen.current = true;
     setSheet({ id, draft, error: errorText, openCount });
   };
+  const closeSheet = () => { sheetOpen.current = false; setSheet(null); };
   const openRow = (g: ScheduledGame) => open(g.id, kept.get(g.id) ?? toScheduleDraft(g));
   const openNew = () => open(null, kept.get(NEW_KEY) ?? emptyScheduleDraft(todayIso()));
   const markPending = (id: string, on: boolean) =>
@@ -57,6 +62,14 @@ export default function SchedulePage() {
       setToast({ msg: okMsg, type: "success" });
     } else if (result.status === 401) {
       keep(key, draft);
+    } else if (sheetOpen.current) {
+      // The admin opened another sheet meanwhile; a failed save must not replace what they are looking at now.
+      keep(key, draft);
+      const label = draft.opponent.trim() || "the fixture";
+      const msg = id === null
+        ? `Could not add ${label}: ${asSentence(result.message)} Tap + SCHEDULE GAME to try again.`
+        : `Could not save ${label}: ${asSentence(result.message)} Tap it to try again.`;
+      setToast({ msg, type: "error" });
     } else {
       open(id, draft, result.message);
     }
@@ -67,7 +80,7 @@ export default function SchedulePage() {
     const { id, draft } = sheet;
     const invalid = validateScheduleDraft(draft);
     if (invalid) { setSheet({ ...sheet, error: invalid }); return; }
-    setSheet(null);
+    closeSheet();
     const payload = toSchedulePayload(draft);
 
     if (id === null) {
@@ -79,7 +92,8 @@ export default function SchedulePage() {
         rollback: d => ({ ...d, schedule: (d.schedule ?? []).filter(g => g.id !== tempId) }),
         send: () => apiFetch(URL_, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
       });
-      markPending(tempId, false);
+      // On success the temp row stays pending until the reconcile swaps in the real row, so it is never briefly tappable with a stale id.
+      if (!result.ok) markPending(tempId, false);
       finish(NEW_KEY, null, draft, result, "Game scheduled.");
       return;
     }
@@ -102,7 +116,7 @@ export default function SchedulePage() {
     const { id, draft } = sheet;
     const original = all.find(g => g.id === id);
     if (!original) return;
-    setSheet(null);
+    closeSheet();
     markPending(id, true);
     const result = await optimisticSave<Data>({
       url: URL_,
@@ -118,7 +132,7 @@ export default function SchedulePage() {
     <>
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-[22px] font-black text-ak-text md:text-[28px]">Schedule</h1>
-        <Btn onClick={openNew}>+ SCHEDULE GAME</Btn>
+        <Btn onClick={openNew} disabled={data === undefined}>+ SCHEDULE GAME</Btn>
       </header>
 
       {data === undefined && !error ? (
@@ -138,7 +152,7 @@ export default function SchedulePage() {
                   <ListRow
                     onClick={() => openRow(g)}
                     pending={pending.has(g.id)}
-                    aside={isPlayed(g) && !g.sourceUrl ? (
+                    aside={!pending.has(g.id) && isPlayed(g) && !g.sourceUrl ? (
                       <Link
                         href={`/admin/${slug}/import?upcomingGameId=${g.id}`}
                         className="flex min-h-[44px] items-center rounded-md border border-ak-border2 px-3 text-[11px] font-black uppercase tracking-[0.12em] text-ak-text-sub"
@@ -164,8 +178,8 @@ export default function SchedulePage() {
       )}
 
       <ScheduleSheet
-        key={sheet ? sheet.openCount : "closed"}
         open={sheet !== null}
+        resetKey={sheet?.openCount}
         isNew={sheet?.id === null}
         draft={sheet?.draft ?? emptyScheduleDraft("")}
         error={sheet?.error ?? null}
@@ -173,7 +187,7 @@ export default function SchedulePage() {
         onSave={() => void save()}
         onClose={() => {
           if (sheet) keep(sheet.id ?? NEW_KEY, null);
-          setSheet(null);
+          closeSheet();
         }}
         onDelete={sheet?.id ? () => void remove() : undefined}
       />

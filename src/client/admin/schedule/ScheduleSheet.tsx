@@ -3,8 +3,9 @@ import { BottomSheet } from "@/client/admin/bottom-sheet";
 import { F, Sel, Btn } from "@/client/admin/primitives";
 import type { ScheduleDraft } from "./schedule-draft";
 
-export function ScheduleSheet({ open, isNew, draft, error, onChange, onSave, onClose, onDelete }: {
+export function ScheduleSheet({ open, resetKey, isNew, draft, error, onChange, onSave, onClose, onDelete }: {
   open:      boolean;
+  resetKey?: string | number;
   isNew:     boolean;
   draft:     ScheduleDraft;
   error:     string | null;
@@ -13,12 +14,12 @@ export function ScheduleSheet({ open, isNew, draft, error, onChange, onSave, onC
   onClose:   () => void;
   onDelete?: () => void;
 }) {
-  const [armed, setArmed] = useState(false);
   const upd = <K extends keyof ScheduleDraft>(k: K, v: ScheduleDraft[K]) => onChange({ ...draft, [k]: v });
 
   return (
     <BottomSheet
       open={open}
+      resetKey={resetKey}
       title={isNew ? "Schedule game" : "Edit fixture"}
       onClose={onClose}
       footer={
@@ -27,11 +28,7 @@ export function ScheduleSheet({ open, isNew, draft, error, onChange, onSave, onC
             <Btn onClick={onSave}>{isNew ? "SAVE" : "SAVE CHANGES"}</Btn>
             <Btn variant="ghost" onClick={onClose}>CANCEL</Btn>
           </div>
-          {onDelete && (
-            <Btn variant="danger" onClick={() => (armed ? onDelete() : setArmed(true))}>
-              {armed ? "TAP AGAIN TO DELETE" : "DELETE"}
-            </Btn>
-          )}
+          {onDelete && <DeleteButton onDelete={onDelete} />}
         </div>
       }
     >
@@ -62,5 +59,14 @@ export function ScheduleSheet({ open, isNew, draft, error, onChange, onSave, onC
         </details>
       </div>
     </BottomSheet>
+  );
+}
+
+function DeleteButton({ onDelete }: { onDelete: () => void }) {
+  const [armed, setArmed] = useState(false);
+  return (
+    <Btn variant="danger" onClick={() => (armed ? onDelete() : setArmed(true))}>
+      {armed ? "TAP AGAIN TO DELETE" : "DELETE"}
+    </Btn>
   );
 }

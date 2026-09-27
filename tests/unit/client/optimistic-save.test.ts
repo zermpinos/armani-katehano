@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { useAdminData, storeAdminData, clearAdminData } from "@/client/admin/use-admin-data";
-import { optimisticSave } from "@/client/admin/optimistic-save";
+import { optimisticSave, asSentence } from "@/client/admin/optimistic-save";
 
 type Rows = { rows: string[] };
 const URL_ = "/api/admin/things";
@@ -58,5 +58,15 @@ describe("optimisticSave", () => {
     const result = await optimisticSave<Rows>({ url: URL_, apply: add, rollback: remove, send: () => fetch("/x") });
     expect(result).toEqual({ ok: false, status: 0, message: "Network error. Check the connection and try again." });
     expect(shown()).toBe("<span>a</span>");
+  });
+});
+
+describe("asSentence", () => {
+  it("ends a bare message with a full stop", () => {
+    expect(asSentence("Save failed")).toBe("Save failed.");
+  });
+  it("leaves a message that already ends a sentence unchanged", () => {
+    expect(asSentence("Jersey #7 is taken.")).toBe("Jersey #7 is taken.");
+    expect(asSentence("Really?")).toBe("Really?");
   });
 });

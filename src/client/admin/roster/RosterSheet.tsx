@@ -9,8 +9,9 @@ import type { LeagueJersey, PlayerDraft } from "./player-draft";
 
 const POSITION_OPTIONS = POSITIONS.map(p => ({ value: p, label: p }));
 
-export function RosterSheet({ open, isNew, draft, leagues, error, onChange, onLeaguesChange, onSave, onClose }: {
+export function RosterSheet({ open, resetKey, isNew, draft, leagues, error, onChange, onLeaguesChange, onSave, onClose }: {
   open:            boolean;
+  resetKey?:       string | number;
   isNew:           boolean;
   draft:           PlayerDraft;
   leagues:         LeagueJersey[] | null;
@@ -25,6 +26,7 @@ export function RosterSheet({ open, isNew, draft, leagues, error, onChange, onLe
   return (
     <BottomSheet
       open={open}
+      resetKey={resetKey}
       title={isNew ? "Add player" : "Edit player"}
       onClose={onClose}
       footer={

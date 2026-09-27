@@ -26,3 +26,7 @@ export async function optimisticSave<T>({ url, apply, rollback, send }: {
   void loadAdminData<T>(url);
   return { ok: true, body };
 }
+
+export function asSentence(message: string): string {
+  return /[.!?]$/.test(message) ? message : `${message}.`;
+}

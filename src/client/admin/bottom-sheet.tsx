@@ -1,11 +1,12 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
-export function BottomSheet({ open, title, onClose, children, footer }: {
-  open:     boolean;
-  title:    string;
-  onClose:  () => void;
-  children: ReactNode;
-  footer:   ReactNode;
+export function BottomSheet({ open, title, onClose, children, footer, resetKey }: {
+  open:      boolean;
+  title:     string;
+  onClose:   () => void;
+  children:  ReactNode;
+  footer:    ReactNode;
+  resetKey?: string | number;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -20,7 +21,8 @@ export function BottomSheet({ open, title, onClose, children, footer }: {
     <dialog
       ref={ref}
       aria-labelledby="sheet-title"
-      onClose={onClose}
+      // A close queued by a programmatic close() can land after a reopen, and must not shut the new sheet.
+      onClose={() => { if (!ref.current?.open) onClose(); }}
       onClick={e => { if (e.target === e.currentTarget) ref.current?.close(); }}
       className="mx-0 mb-0 mt-auto w-full max-w-full max-h-[90dvh] rounded-t-2xl border border-ak-border bg-ak-surface p-0 text-ak-text backdrop:bg-black/60 md:m-auto md:max-w-[560px] md:rounded-2xl"
     >
@@ -29,8 +31,8 @@ export function BottomSheet({ open, title, onClose, children, footer }: {
           <h2 id="sheet-title" className="text-[15px] font-black">{title}</h2>
           <button type="button" aria-label="Close" onClick={() => ref.current?.close()} className="min-h-[44px] min-w-[44px] cursor-pointer text-[22px] text-ak-text-dim">×</button>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
-        <div className="border-t border-ak-border px-4 py-3">{footer}</div>
+        <div key={`body-${resetKey}`} className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
+        <div key={`footer-${resetKey}`} className="border-t border-ak-border px-4 py-3">{footer}</div>
       </div>
     </dialog>
   );
