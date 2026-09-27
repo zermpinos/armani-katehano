@@ -1,41 +1,67 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { apiFetch } from "./csrf";
 
-const cache = new Map<string, unknown>();
+type Entry = { data: unknown; error: boolean };
+
+const NONE: Entry = { data: undefined, error: false };
+const entries   = new Map<string, Entry>();
+const listeners = new Set<() => void>();
+
+function emit() {
+  for (const listener of listeners) listener();
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+
+function put(url: string, entry: Entry) {
+  entries.set(url, entry);
+  emit();
+}
 
 export function storeAdminData(url: string, data: unknown) {
-  cache.set(url, data);
+  put(url, { data, error: false });
 }
 
 export function clearAdminData() {
-  cache.clear();
+  entries.clear();
+  emit();
+}
+
+export function mutateAdminData<T>(url: string, fn: (data: T) => T) {
+  const entry = entries.get(url);
+  if (entry?.data === undefined) return;
+  put(url, { data: fn(entry.data as T), error: entry.error });
 }
 
 export async function loadAdminData<T>(url: string): Promise<T | undefined> {
   try {
     const res = await apiFetch(url);
-    if (!res.ok) return undefined;
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = (await res.json()) as T;
-    cache.set(url, json);
+    put(url, { data: json, error: false });
     return json;
   } catch {
+    put(url, { data: entries.get(url)?.data, error: true });
     return undefined;
   }
 }
 
+export function refreshAllAdminData() {
+  for (const url of [...entries.keys()]) void loadAdminData(url);
+}
+
 export function useAdminData<T>(url: string) {
-  const [data,  setData]  = useState<T | undefined>(() => cache.get(url) as T | undefined);
-  const [error, setError] = useState(false);
+  const getSnapshot = useCallback(() => entries.get(url) ?? NONE, [url]);
+  // Loads only run in client effects, so the server-side map is always empty and the same lookup is a safe server snapshot.
+  const entry = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
-  const refresh = useCallback(async () => {
-    const json = await loadAdminData<T>(url);
-    if (json === undefined) { setError(true); return; }
-    setData(json);
-    setError(false);
-  }, [url]);
+  useEffect(() => { void loadAdminData(url); }, [url]);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { void refresh(); }, [refresh]);
+  const refresh = useCallback(() => loadAdminData<T>(url), [url]);
+  const mutate  = useCallback((fn: (data: T) => T) => mutateAdminData<T>(url, fn), [url]);
 
-  return { data, error, refresh };
+  return { data: entry.data as T | undefined, error: entry.error, refresh, mutate };
 }

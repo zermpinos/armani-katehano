@@ -7,7 +7,7 @@ import { TopBar } from "./TopBar";
 import { buildNav } from "./nav";
 import { useAdminAuth } from "../use-admin-auth";
 import { setUnauthorizedHandler } from "../csrf";
-import { clearAdminData } from "../use-admin-data";
+import { clearAdminData, refreshAllAdminData } from "../use-admin-data";
 import { PasskeyLoginForm } from "../passkey-login-form";
 import { AdminSessionContext, type Toast } from "../session";
 import { afterPageLoad, afterRelogin } from "../session-sync";
@@ -64,7 +64,9 @@ export function AdminShell({
     const { view, remount } = afterRelogin({ authed, expired, reloadAfterLogin });
     setExpired(view.expired);
     setReloadAfterLogin(view.reloadAfterLogin);
+    // A remount reloads the page itself; a kept page still holds lists whose loads failed while signed out.
     if (remount) setPageKey(k => k + 1);
+    else refreshAllAdminData();
     // Fresh gSSP props, so later shallow URL changes do not replay a stale signed-out answer.
     void router.replace(router.asPath, undefined, { scroll: false });
   };
