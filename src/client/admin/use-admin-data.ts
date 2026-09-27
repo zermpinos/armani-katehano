@@ -6,6 +6,8 @@ type Entry = { data: unknown; error: boolean };
 const NONE: Entry = { data: undefined, error: false };
 const entries   = new Map<string, Entry>();
 const listeners = new Set<() => void>();
+const versions  = new Map<string, number>();
+let generation = 0;
 
 function emit() {
   for (const listener of listeners) listener();
@@ -27,24 +29,30 @@ export function storeAdminData(url: string, data: unknown) {
 
 export function clearAdminData() {
   entries.clear();
+  versions.clear();
+  generation++;
   emit();
 }
 
 export function mutateAdminData<T>(url: string, fn: (data: T) => T) {
   const entry = entries.get(url);
   if (entry?.data === undefined) return;
+  versions.set(url, (versions.get(url) ?? 0) + 1);
   put(url, { data: fn(entry.data as T), error: entry.error });
 }
 
 export async function loadAdminData<T>(url: string): Promise<T | undefined> {
+  const startedVersion    = versions.get(url) ?? 0;
+  const startedGeneration = generation;
   try {
     const res = await apiFetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = (await res.json()) as T;
-    put(url, { data: json, error: false });
+    // A change or logout during this load is newer than its response, so the response must not overwrite it.
+    if ((versions.get(url) ?? 0) === startedVersion && generation === startedGeneration) put(url, { data: json, error: false });
     return json;
   } catch {
-    put(url, { data: entries.get(url)?.data, error: true });
+    if ((versions.get(url) ?? 0) === startedVersion && generation === startedGeneration) put(url, { data: entries.get(url)?.data, error: true });
     return undefined;
   }
 }

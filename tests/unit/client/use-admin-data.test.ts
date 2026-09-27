@@ -66,6 +66,30 @@ describe("mutateAdminData", () => {
   });
 });
 
+describe("loadAdminData stale-response guard", () => {
+  it("a load that lands after a newer optimistic change does not overwrite it", async () => {
+    let resolve!: (r: Response) => void;
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(r => { resolve = r; })));
+    storeAdminData("/api/admin/players", { n: 1 });
+    const pending = loadAdminData("/api/admin/players");
+    mutateAdminData<{ n: number }>("/api/admin/players", () => ({ n: 2 }));
+    resolve(new Response(JSON.stringify({ n: 1 }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    await pending;
+    expect(render("/api/admin/players")).toBe("<span>2</span>");
+  });
+
+  it("a load that lands after logout does not repopulate the cache", async () => {
+    let resolve!: (r: Response) => void;
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(r => { resolve = r; })));
+    storeAdminData("/api/admin/players", { n: 1 });
+    const pending = loadAdminData("/api/admin/players");
+    clearAdminData();
+    resolve(new Response(JSON.stringify({ n: 1 }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    await pending;
+    expect(render("/api/admin/players")).toBe("<span>none</span>");
+  });
+});
+
 describe("refreshAllAdminData", () => {
   afterEach(() => vi.unstubAllGlobals());
 
