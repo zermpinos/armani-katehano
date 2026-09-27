@@ -34,15 +34,6 @@ export interface BoxScoreRow {
   eff?: number;
 }
 
-export interface RecentGame {
-  id: string;
-  result: "W" | "L" | "T";
-  opponent: string;
-  teamScore: number;
-  opponentScore: number;
-  playedOn: string;
-}
-
 export interface Game {
   id: string;
   result: "W" | "L" | "T";
@@ -65,7 +56,6 @@ export interface ScheduledGame {
   opponent: string;
   scheduledFor: string;
   location: "home" | "away";
-  round: string;
   competition?: string | null;
   notes?: string | null;
   sourceUrl?: string | null;
@@ -96,18 +86,6 @@ export interface League {
   listingUrl?: string | null;
   organizer?: string;
   level?: string;
-}
-
-export interface DashboardData {
-  record?: { wins: number; losses: number };
-  ppg?: number | string;
-  rpg?: number | string;
-  apg?: number | string;
-  currentSeason?: string;
-  totalGames?: number;
-  totalPlayers?: number;
-  totalSeasonLeagues?: number;
-  recentGames?: RecentGame[];
 }
 
 export const byJersey = (a: Player, b: Player) => Number(a.number) - Number(b.number);

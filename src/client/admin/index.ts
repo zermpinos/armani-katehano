@@ -10,3 +10,6 @@ export * from "@/client/admin/confirm";
 export * from "@/client/admin/login-form";
 export * from "@/client/admin/box-score-table";
 export * from "@/client/admin/passkey-login-form";
+export * from "@/client/admin/optimistic-save";
+export * from "@/client/admin/bottom-sheet";
+export * from "@/client/admin/list-row";

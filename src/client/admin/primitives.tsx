@@ -50,3 +50,15 @@ export function Sel({ label, value, onChange, options = [] }: { label: string; v
     </label>
   );
 }
+
+export function Check({ label, checked, onChange, hint }: { label: string; checked: boolean; onChange: (v: boolean) => void; hint?: string }) {
+  return (
+    <label className="flex min-h-[44px] cursor-pointer items-start gap-3 py-2">
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} className="mt-[2px] h-5 w-5 accent-ak-red" />
+      <span>
+        <span className="block text-[13px] font-black text-ak-text">{label}</span>
+        {hint && <span className="mt-1 block text-[11px] text-ak-text-dim">{hint}</span>}
+      </span>
+    </label>
+  );
+}

@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { useAdminData, storeAdminData, clearAdminData, loadAdminData } from "@/client/admin/use-admin-data";
+import { useAdminData, storeAdminData, clearAdminData, loadAdminData, mutateAdminData, refreshAllAdminData } from "@/client/admin/use-admin-data";
 
 function Probe({ url }: { url: string }) {
   const { data } = useAdminData<{ n: number }>(url);
@@ -50,5 +50,56 @@ describe("loadAdminData", () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("Network error"); }));
     const result = await loadAdminData("/api/admin/players");
     expect(result).toBeUndefined();
+  });
+});
+
+describe("mutateAdminData", () => {
+  it("changes what the next render shows", () => {
+    storeAdminData("/api/admin/players", { n: 1 });
+    mutateAdminData<{ n: number }>("/api/admin/players", d => ({ n: d.n + 1 }));
+    expect(render("/api/admin/players")).toBe("<span>2</span>");
+  });
+
+  it("does nothing for a url with no data yet", () => {
+    mutateAdminData<{ n: number }>("/api/admin/unknown", d => ({ n: d.n + 1 }));
+    expect(render("/api/admin/unknown")).toBe("<span>none</span>");
+  });
+});
+
+describe("loadAdminData stale-response guard", () => {
+  it("a load that lands after a newer optimistic change does not overwrite it", async () => {
+    let resolve!: (r: Response) => void;
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(r => { resolve = r; })));
+    storeAdminData("/api/admin/players", { n: 1 });
+    const pending = loadAdminData("/api/admin/players");
+    mutateAdminData<{ n: number }>("/api/admin/players", () => ({ n: 2 }));
+    resolve(new Response(JSON.stringify({ n: 1 }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    await pending;
+    expect(render("/api/admin/players")).toBe("<span>2</span>");
+  });
+
+  it("a load that lands after logout does not repopulate the cache", async () => {
+    let resolve!: (r: Response) => void;
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>(r => { resolve = r; })));
+    storeAdminData("/api/admin/players", { n: 1 });
+    const pending = loadAdminData("/api/admin/players");
+    clearAdminData();
+    resolve(new Response(JSON.stringify({ n: 1 }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    await pending;
+    expect(render("/api/admin/players")).toBe("<span>none</span>");
+  });
+});
+
+describe("refreshAllAdminData", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("refetches every url the store holds", async () => {
+    storeAdminData("/api/admin/players", { n: 1 });
+    storeAdminData("/api/admin/schedule", { n: 2 });
+    const fetchMock = vi.fn(async (_url: string) => new Response(JSON.stringify({ n: 9 }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    refreshAllAdminData();
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(fetchMock.mock.calls.map(c => c[0]).sort()).toEqual(["/api/admin/players", "/api/admin/schedule"]);
   });
 });
