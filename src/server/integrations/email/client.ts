@@ -1,6 +1,6 @@
 import "@/server/_internal/node-only";
 import crypto       from "node:crypto";
-import nodemailer   from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 import { auditLog } from "@/server/security/node/audit-log";
 import prisma       from "@/server/db/client";
 import { buildHtml, buildText } from "./templates/roster-announcement";
@@ -28,7 +28,7 @@ export type NotificationChannel = "slack" | "email" | "none";
 
 const FROM = "Armani Katehano <noreply@armani-katehano.com>";
 
-function createTransport(): nodemailer.Transporter | null {
+function createTransport(): Transporter | null {
   const user = process.env.BREVO_SMTP_USER;
   const pass = process.env.BREVO_SMTP_PASS;
   if (!user || !pass) return null;

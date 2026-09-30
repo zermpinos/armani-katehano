@@ -8,7 +8,7 @@ import {
   buildBroadcastHtml,
   buildBroadcastText,
 } from "@/server/integrations/email/templates/broadcast";
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 
 const FROM          = "Armani Katehano <noreply@armani-katehano.com>";
 const LIMIT_DEFAULT = 20;
@@ -20,7 +20,7 @@ const DAILY_LIMIT      = 5;
 // Sends are capped globally, not per caller, so every send contends one key.
 const SEND_LOCK_KEY    = rlKeyBigInt("broadcast_send");
 
-function createTransport(): nodemailer.Transporter | null {
+function createTransport(): Transporter | null {
   const user = process.env.BREVO_SMTP_USER;
   const pass = process.env.BREVO_SMTP_PASS;
   if (!user || !pass) return null;
