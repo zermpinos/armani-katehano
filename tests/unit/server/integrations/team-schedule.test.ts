@@ -54,14 +54,15 @@ describe("parseTeamSchedule", () => {
     expect(g.dateText).toBe("Σάββατο, 16 Μαΐου 2026");
   });
 
-  // A /men/ URL is shared by three leagues, so the label is the only source.
+  // A /men/ URL is shared by four leagues, so the label is the only source.
   it("distinguishes the leagues that share the /men/ path", () => {
     const html = page(
       bc6,
       row({ path: "/men/gamedetails/id/BBB", title: "ROOKIE LEAGUE<br />1ος Γύρος", date: "1 Μαρτίου 2026", score: [1, 2] }),
       row({ path: "/men/gamedetails/id/CCC", title: "BC8<br />1ος Γύρος<br />1η αγωνιστικη", date: "1 Μαρτίου 2026", score: [1, 2] }),
+      row({ path: "/men/gamedetails/id/DDD", title: "SUPER LEAGUE<br />1ος Γύρος<br />1η αγωνιστικη", date: "1 Οκτωβρίου 2026" }),
     );
-    expect(parseTeamSchedule(html, PAGE).map(g => g.leagueSlug)).toEqual(["bc6", "rookie", "bc8"]);
+    expect(parseTeamSchedule(html, PAGE).map(g => g.leagueSlug)).toEqual(["bc6", "rookie", "bc8", "superleague"]);
   });
 
   it("takes the cup league from the url, whatever the title says", () => {

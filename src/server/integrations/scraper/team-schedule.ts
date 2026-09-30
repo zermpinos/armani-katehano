@@ -32,6 +32,7 @@ const MEN_LEAGUES = new Map<string, string>([
   ["BC6",           "bc6"],
   ["BC8",           "bc8"],
   ["ROOKIE LEAGUE", "rookie"],
+  ["SUPER LEAGUE",  "superleague"],
 ]);
 
 // Anything unlisted is regular, including "1ος Γύρος" and the cup's "Θέσεις 1-8".
