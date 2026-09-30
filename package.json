@@ -44,7 +44,7 @@
     "dompurify": "^3.4.16",
     "marked": "^18.0.14",
     "next": "^16.3.6",
-    "nodemailer": "^9.1.1",
+    "nodemailer": "^10.0.9",
     "otpauth": "^9.5.2",
     "react": "19.3.0",
     "react-dom": "19.3.0",
