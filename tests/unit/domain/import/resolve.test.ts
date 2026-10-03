@@ -36,8 +36,19 @@ describe("resolve roster guard", () => {
       [ROOKIE],
     );
     // Number and name, not prose: the form offers to create the player.
-    expect(unresolvedPlayers).toEqual([{ number: 99, name: "New Guy" }]);
+    expect(unresolvedPlayers).toMatchObject([{ number: 99, name: "New Guy" }]);
     expect(unresolved).toHaveLength(0);
+  });
+
+  it("carries the unresolved jersey's stat line, so it can be given to an existing player", () => {
+    const guest = {
+      "#": 99, Players: "New Guy", MIN: "15:00", PTS: 8, REB: 3, OREB: 2, DREB: 1, PF: 4,
+      "2PTS": { made: 4, attempted: 7 },
+    };
+    const { unresolvedPlayers } = resolve(scrapedData([onRoster, guest]), roster, [ROOKIE]);
+    expect(unresolvedPlayers[0].line).toMatchObject({
+      min: 15, pts: 8, reb: 3, orb: 2, drb: 1, pf: 4, fg2m: 4, fg2a: 7, fgm: 4, fga: 7,
+    });
   });
 
   it("does not flag when every scraped player with minutes is on the roster", () => {
@@ -325,7 +336,7 @@ describe("resolve per-league jersey override", () => {
   it("falls back to Player.number in a league with no override", () => {
     const other = { ...ROOKIE, id: "sl2" };
     const { unresolvedPlayers } = resolve(scrapedData([wearing12]), overridden, [other]);
-    expect(unresolvedPlayers).toEqual([{ number: 12, name: "On Roster" }]);
+    expect(unresolvedPlayers).toMatchObject([{ number: 12, name: "On Roster" }]);
   });
 
   it("keeps Player.number when the league stays unresolved", () => {
