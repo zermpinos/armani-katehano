@@ -408,6 +408,75 @@ test.describe("Admin panel › Roster sheet", () => {
   });
 });
 
+test.describe("Admin panel › Import recovery", () => {
+  const adminContext = (browser) => browser.newContext({
+    baseURL:      BASE_URL,
+    storageState: makeAdminStorageState(ADMIN_USERNAME),
+  });
+  const SOURCE = "https://basketcity.sportstats.gr/men/gamedetails/id/MOCK-GAME";
+  const day = new Date(Date.now() - 2 * 86_400_000).toISOString().slice(0, 10);
+  const fixture = {
+    id: "cmfixture0000000000000002", opponent: "Mock Rivals", scheduledFor: `${day}T17:30:00.000Z`,
+    location: "home", competition: "Mock League", notes: null, sourceUrl: SOURCE,
+  };
+  const players = [
+    { id: "cmplayer00000000000000010", name: "Mock Owner",    number: 0, position: "PG", isActive: true },
+    { id: "cmplayer00000000000000011", name: "Mock Borrower", number: 1, position: "SG", isActive: true },
+    { id: "cmplayer00000000000000012", name: "Mock Bench",    number: 5, position: "C",  isActive: true },
+    { id: "cmplayer00000000000000013", name: "Mock Starter",  number: 8, position: "SF", isActive: true },
+  ];
+  const zero = { min: 0, pts: 0, reb: 0, orb: 0, drb: 0, ast: 0, stl: 0, blk: 0, tov: 0, pf: 0, fgm: 0, fga: 0, fg2m: 0, fg2a: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0, eff: 0 };
+  const borrowed = { ...zero, min: 23.35, pts: 11, reb: 5, orb: 3, drb: 2, pf: 4, fgm: 5, fga: 12, fg2m: 5, fg2a: 10, fg3a: 2, ftm: 1, fta: 2 };
+  const starter  = { ...zero, min: 30, pts: 6, reb: 2, drb: 2, fgm: 3, fga: 6, fg2m: 3, fg2a: 6 };
+  const guest    = { ...zero, min: 10, pts: 4, reb: 1, drb: 1, fgm: 2, fga: 3, fg2m: 2, fg2a: 3 };
+  const scrape = {
+    ok: true, data: {}, gameState: { state: "final", reason: "mock" }, gate: { ok: true, failures: [] },
+    draft: {
+      date: day, opponent: "Mock Rivals", home: true, result: "L", teamScore: 21, opponentScore: 30,
+      seasonLeagueId: "cmseasonleague00000000001", sourceUrl: SOURCE,
+      boxScore: [
+        { playerId: players[0].id, ...borrowed },
+        { playerId: players[1].id, ...zero },
+        { playerId: players[2].id, ...zero },
+        { playerId: players[3].id, ...starter },
+      ],
+    },
+    highlights: {}, unresolved: [],
+    unresolvedPlayers: [{ number: 44, name: "GUEST MOCK", line: guest }],
+    nameMismatches:    [{ number: 0, scrapedName: "BORROWER MOCK", playerId: players[0].id }],
+  };
+
+  async function mockImport(page, onCommit = () => {}) {
+    await page.route("**/api/admin/players*", route => route.fulfill({ json: { players } }));
+    await page.route("**/api/admin/season-leagues*", route => route.fulfill({
+      json: { seasonLeagues: [{ id: "cmseasonleague00000000001", leagueName: "Mock League", leagueSlug: "basketcity-mock", seasonName: "2026-27" }] },
+    }));
+    await page.route("**/api/admin/schedule*", route => route.fulfill({ json: { schedule: [fixture] } }));
+    await page.route("**/api/admin/scrape", route => route.fulfill({ json: scrape }));
+    await page.route("**/api/admin/import", route => {
+      onCommit(route.request().postDataJSON());
+      return route.fulfill({ status: 201, json: { ok: true, gameId: "cmgame000000000000000001" } });
+    });
+  }
+
+  test("a played fixture that was never imported is one tap from review", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await mockImport(page);
+      await page.goto(`/admin/${ADMIN_SLUG}/import`);
+      const size = await page.getByLabel("GAME URL").evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+      expect(size).toBeGreaterThanOrEqual(16);
+      const scraped = page.waitForRequest(req => req.url().endsWith("/api/admin/scrape"));
+      await page.getByRole("button", { name: /Mock Rivals/ }).click();
+      expect((await scraped).postDataJSON()).toEqual({ url: SOURCE });
+    } finally {
+      await context.close();
+    }
+  });
+});
+
 // ── API-level auth guard (always runs - no credentials needed) ─────────────
 
 test.describe("Admin panel › API protection", () => {

@@ -146,7 +146,7 @@ export default function ImportPage() {
     setGameState(null);
 
     // Refresh schedule so the just-imported entry now shows as Imported.
-    fetch("/api/admin/schedule").then(r => r.ok ? r.json() : null).then(d => {
+    apiFetch("/api/admin/schedule").then(r => r.ok ? r.json() : null).then(d => {
       if (d) setSchedule(d.schedule ?? []);
     });
 
