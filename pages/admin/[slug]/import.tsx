@@ -24,7 +24,6 @@ export default function ImportPage() {
   const [fetching,   setFetching]   = useState(false);
   const [phase,      setPhase]      = useState("idle");
   const [draft,      setDraft]      = useState<ImportDraft | null>(null);
-  const [highlights, setHighlights] = useState<Record<string, boolean>>({});
   const [gate,       setGate]       = useState<GateResult | null>(null);
   const [unresolved, setUnresolved] = useState<string[]>([]);
   const [unresolvedPlayers, setUnresolvedPlayers] = useState<UnresolvedPlayer[]>([]);
@@ -57,7 +56,6 @@ export default function ImportPage() {
       if (!res.ok) { setError(body.error || "Scrape failed"); return; }
 
       setDraft(body.draft);
-      setHighlights(body.highlights ?? {});
       setGate(body.gate ?? null);
       setUnresolved(body.unresolved ?? []);
       setUnresolvedPlayers(body.unresolvedPlayers ?? []);
@@ -142,7 +140,7 @@ export default function ImportPage() {
     setPhase("idle");
     setDraft(null);
     setGameUrl(""); setYoutubeUrl("");
-    setHighlights({}); setGate(null); setUnresolved([]); setUnresolvedPlayers([]); setNameMismatches([]);
+    setGate(null); setUnresolved([]); setUnresolvedPlayers([]); setNameMismatches([]);
     setGameState(null);
 
     // Refresh schedule so the just-imported entry now shows as Imported.
@@ -228,7 +226,6 @@ export default function ImportPage() {
               youtubeUrl={youtubeUrl}
               setYoutubeUrl={setYoutubeUrl}
               players={players}
-              highlights={highlights}
               seasonLeagues={seasonLeagues}
               updDraft={updDraft}
               updBox={updBox}

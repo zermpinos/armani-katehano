@@ -1,4 +1,5 @@
-import { BoxScoreTable, F, Sel, Btn } from "@/client/admin";
+import { F, Sel, Btn } from "@/client/admin";
+import { ReviewCards } from "@/client/admin/import/ReviewCards";
 import type { Player, SeasonLeague } from "@/client/admin";
 import { teamRatingsFromBox } from "@/domain/stats";
 import type { ImportDraft } from "@/domain/import/resolve";
@@ -18,7 +19,6 @@ type Props = {
   youtubeUrl: string;
   setYoutubeUrl: (v: string) => void;
   players: Player[];
-  highlights: Record<string, boolean>;
   seasonLeagues: SeasonLeague[];
   updDraft: (k: string, v: unknown) => void;
   updBox: (playerId: string, k: string, v: string) => void;
@@ -26,11 +26,9 @@ type Props = {
   onBack: () => void;
 };
 
-const urlInputCls = "w-full py-[10px] px-3 text-[13px] font-sans rounded-lg border border-ak-border2 bg-ak-base text-ak-text outline-none";
-
 export function ReviewForm({
   draft, phase, gameState, gate, unresolved, unresolvedPlayers, nameMismatches, onPlayerCreated,
-  youtubeUrl, setYoutubeUrl, players, highlights, seasonLeagues,
+  youtubeUrl, setYoutubeUrl, players, seasonLeagues,
   updDraft, updBox, onSave, onBack,
 }: Props) {
   const leagueMissing = !draft.seasonLeagueId;
@@ -115,18 +113,7 @@ export function ReviewForm({
         </div>
       </div>
 
-      <div>
-        <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[6px] uppercase">
-          YouTube video URL <span className="font-normal normal-case text-[11px]">(optional)</span>
-        </div>
-        <input
-          type="url"
-          value={youtubeUrl}
-          onChange={e => setYoutubeUrl(e.target.value)}
-          placeholder="https://www.youtube.com/watch?v=..."
-          className={urlInputCls}
-        />
-      </div>
+      <F label="YOUTUBE VIDEO URL (OPTIONAL)" type="url" value={youtubeUrl} onChange={setYoutubeUrl} placeholder="https://www.youtube.com/watch?v=..." />
 
       <div>
         <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[8px] uppercase">
@@ -149,8 +136,8 @@ export function ReviewForm({
       </div>
 
       <div>
-        <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Box score - green rows played</div>
-        <BoxScoreTable players={players} rows={draft.boxScore} onUpdate={updBox} highlights={highlights} />
+        <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Box score</div>
+        <ReviewCards players={players} rows={draft.boxScore} onUpdate={updBox} />
       </div>
 
       <div className="flex gap-[10px] pt-1">
