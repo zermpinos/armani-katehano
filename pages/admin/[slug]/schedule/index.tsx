@@ -56,7 +56,7 @@ export default function SchedulePage() {
   const markPending = (id: string, on: boolean) =>
     setPending(p => { const next = new Set(p); if (on) next.add(id); else next.delete(id); return next; });
 
-  const finish = (key: string, id: string | null, draft: ScheduleDraft, result: SaveResult, okMsg: string) => {
+  const finish = (key: string, id: string | null, draft: ScheduleDraft, result: SaveResult, okMsg: string, verb = "save") => {
     if (result.ok) {
       keep(key, null);
       setToast({ msg: okMsg, type: "success" });
@@ -68,7 +68,7 @@ export default function SchedulePage() {
       const label = draft.opponent.trim() || "the fixture";
       const msg = id === null
         ? `Could not add ${label}: ${asSentence(result.message)} Tap + SCHEDULE GAME to try again.`
-        : `Could not save ${label}: ${asSentence(result.message)} Tap it to try again.`;
+        : `Could not ${verb} ${label}: ${asSentence(result.message)} Tap it to try again.`;
       setToast({ msg, type: "error" });
     } else {
       open(id, draft, result.message);
@@ -125,7 +125,7 @@ export default function SchedulePage() {
       send: () => apiFetch(URL_, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }),
     });
     markPending(id, false);
-    finish(id, id, draft, result, "Fixture deleted.");
+    finish(id, id, draft, result, "Fixture deleted.", "delete");
   };
 
   return (
@@ -186,7 +186,8 @@ export default function SchedulePage() {
         onChange={d => setSheet(s => (s ? { ...s, draft: d, error: null } : s))}
         onSave={() => void save()}
         onClose={() => {
-          if (sheet) keep(sheet.id ?? NEW_KEY, null);
+          if (!sheet) return;
+          keep(sheet.id ?? NEW_KEY, null);
           closeSheet();
         }}
         onDelete={sheet?.id ? () => void remove() : undefined}

@@ -352,6 +352,28 @@ test.describe("Admin panel › Schedule sheet", () => {
       await context.close();
     }
   });
+
+  test("Save returns focus to the row while the write is in flight", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await mockSchedule(page, async req => {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const body = req.postDataJSON();
+        return { status: 200, body: { ok: true }, rows: rs => rs.map(r => (r.id === body.id ? { ...r, opponent: body.opponent } : r)) };
+      });
+      await page.goto(`/admin/${ADMIN_SLUG}/schedule`);
+      await page.getByRole("button", { name: /Mock Opponent/ }).click();
+      const sheet = page.getByRole("dialog", { name: "Edit fixture" });
+      await sheet.getByLabel("OPPONENT").fill("Focus Opponent");
+      await sheet.getByRole("button", { name: "SAVE CHANGES" }).click();
+      await expect(sheet).toBeHidden();
+      await expect(page.getByRole("button", { name: /Focus Opponent/ })).toBeFocused();
+    } finally {
+      await context.close();
+    }
+  });
 });
 
 test.describe("Admin panel › Roster sheet", () => {

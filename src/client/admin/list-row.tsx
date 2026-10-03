@@ -10,10 +10,10 @@ export function ListRow({ onClick, pending = false, children, aside }: {
     <div className="flex items-stretch rounded-xl border border-ak-border bg-ak-surface">
       <button
         type="button"
-        onClick={onClick}
-        disabled={pending}
+        onClick={pending ? undefined : onClick}
+        aria-disabled={pending || undefined}
         aria-busy={pending || undefined}
-        className="flex min-h-[56px] flex-1 cursor-pointer items-center gap-3 px-4 py-3 text-left disabled:cursor-wait disabled:opacity-60"
+        className="flex min-h-[56px] flex-1 cursor-pointer items-center gap-3 px-4 py-3 text-left aria-disabled:cursor-wait aria-disabled:opacity-60"
       >
         <div className="min-w-0 flex-1">{children}</div>
         {pending
