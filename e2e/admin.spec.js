@@ -475,6 +475,32 @@ test.describe("Admin panel › Import recovery", () => {
       await context.close();
     }
   });
+
+  test("a borrowed jersey's line moves to the player who wore it, hidden stats included", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      let committed = null;
+      await mockImport(page, body => { committed = body; });
+      await page.goto(`/admin/${ADMIN_SLUG}/import`);
+      await page.getByRole("button", { name: /Mock Rivals/ }).click();
+      const save = page.getByRole("button", { name: "SAVE GAME" });
+      await expect(save).toBeDisabled();
+      await page.getByLabel("PLAYER FOR #0").selectOption({ label: "#1 Mock Borrower" });
+      await page.getByLabel("PLAYER FOR #44").selectOption({ label: "#5 Mock Bench" });
+      await expect(save).toBeEnabled();
+      await save.click();
+      await expect.poll(() => committed).not.toBeNull();
+      const row = id => committed.boxScore.find(r => r.playerId === id);
+      expect(committed.boxScore).toHaveLength(4);
+      expect(row(players[1].id)).toMatchObject({ played: true, pts: 11, orb: 3, drb: 2, pf: 4 });
+      expect(row(players[0].id)).toMatchObject({ played: false, pts: 0, orb: 0, drb: 0, pf: 0 });
+      expect(row(players[2].id)).toMatchObject({ played: true, pts: 4 });
+    } finally {
+      await context.close();
+    }
+  });
 });
 
 // ── API-level auth guard (always runs - no credentials needed) ─────────────

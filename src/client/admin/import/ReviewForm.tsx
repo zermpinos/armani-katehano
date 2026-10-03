@@ -4,8 +4,8 @@ import type { Player, SeasonLeague } from "@/client/admin";
 import { teamRatingsFromBox } from "@/domain/stats";
 import type { ImportDraft } from "@/domain/import/resolve";
 import type { GateResult } from "@/domain/import/verify";
-import type { NameMismatch, UnresolvedPlayer } from "@/domain/import/resolve";
-import { UnresolvedPlayers } from "@/client/admin/import/UnresolvedPlayers";
+import { LineAssignments } from "@/client/admin/import/LineAssignments";
+import type { LineEntry } from "@/client/admin/import/line-assign";
 
 type Props = {
   draft: ImportDraft;
@@ -13,8 +13,8 @@ type Props = {
   gameState: { state: string; reason: string } | null;
   gate: GateResult | null;
   unresolved: string[];
-  unresolvedPlayers: UnresolvedPlayer[];
-  nameMismatches: NameMismatch[];
+  entries: LineEntry[];
+  onAssign: (entry: LineEntry, to: string | null) => void;
   onPlayerCreated: (player: Player) => void;
   youtubeUrl: string;
   setYoutubeUrl: (v: string) => void;
@@ -27,11 +27,12 @@ type Props = {
 };
 
 export function ReviewForm({
-  draft, phase, gameState, gate, unresolved, unresolvedPlayers, nameMismatches, onPlayerCreated,
+  draft, phase, gameState, gate, unresolved, entries, onAssign, onPlayerCreated,
   youtubeUrl, setYoutubeUrl, players, seasonLeagues,
   updDraft, updBox, onSave, onBack,
 }: Props) {
   const leagueMissing = !draft.seasonLeagueId;
+  const unassigned = entries.some(e => e.assignee === null);
   // The state check has its own banner above.
   const gateFailures = (gate?.failures ?? []).filter(f => f.check !== "state");
   // A dropped column reaches the form as a plausible-looking zero, so it is the
@@ -69,9 +70,12 @@ export function ReviewForm({
         </div>
       )}
 
-      <UnresolvedPlayers
-        entries={unresolvedPlayers}
+      <LineAssignments
+        entries={entries}
+        players={players}
+        box={draft.boxScore}
         disabled={phase === "saving"}
+        onAssign={onAssign}
         onCreated={onPlayerCreated}
       />
 
@@ -81,15 +85,6 @@ export function ReviewForm({
           {unresolved.map((u, i) => <div key={i}>• {u}</div>)}
           {leagueMissing && <div>• No league matched the source URL. Pick one under Game info.</div>}
           {drift.map((f, i) => <div key={i}>• {f.detail} Stats for it would save as zero.</div>)}
-        </div>
-      )}
-
-      {nameMismatches.length > 0 && (
-        <div className="py-[10px] px-[14px] rounded-lg bg-[#8b1a1a18] border border-[#8b1a1a40] text-xs text-ak-red-text">
-          <div className="font-black mb-1">⚠ Jersey worn by someone else - move the line to the right player before saving:</div>
-          {nameMismatches.map((m, i) => (
-            <div key={i}>• #{m.number} on the sheet is {m.scrapedName}, matched to {players.find(p => p.id === m.playerId)?.name ?? "an unknown player"}.</div>
-          ))}
         </div>
       )}
 
@@ -144,7 +139,7 @@ export function ReviewForm({
         <Btn
           onClick={onSave}
           variant="green"
-          disabled={phase === "saving" || gameState?.state === "scheduled" || unresolved.length > 0 || unresolvedPlayers.length > 0 || leagueMissing || drift.length > 0}
+          disabled={phase === "saving" || gameState?.state === "scheduled" || unresolved.length > 0 || unassigned || leagueMissing || drift.length > 0}
         >
           {phase === "saving" ? "SAVING..." : "SAVE GAME"}
         </Btn>
