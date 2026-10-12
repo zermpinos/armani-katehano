@@ -60,7 +60,9 @@ export async function fetchGuarded(url: string): Promise<string> {
     return await response.text();
   } catch (err) {
     if (err instanceof ScrapeError) throw err;
-    throw new ScrapeError(`Upstream unreachable: ${(err as Error).message}`, 502);
+    // fetch reports every network failure as "fetch failed"; the code on its cause is the only part that says why.
+    const code = (err as { cause?: { code?: string } }).cause?.code;
+    throw new ScrapeError(`Upstream unreachable: ${(err as Error).message}${code ? ` (${code})` : ""}`, 502);
   } finally {
     await dispatcher.destroy().catch(() => {});
   }
