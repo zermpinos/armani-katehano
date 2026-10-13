@@ -32,6 +32,8 @@ export interface ResolvedRow {
   eff: number;
 }
 
+export type Line = Omit<ResolvedRow, "playerId">;
+
 export interface ImportDraft {
   date: string;
   opponent: string;
@@ -47,6 +49,7 @@ export interface ImportDraft {
 export interface UnresolvedPlayer {
   number: number;
   name: string;
+  line: Line;
 }
 
 export interface NameMismatch {
@@ -72,7 +75,7 @@ export interface ResolveResult {
 
 type ScrapedPlayer = Record<string, unknown>;
 
-const ZERO_ROW = {
+export const ZERO_ROW: Line = {
   min: 0, pts: 0, reb: 0, orb: 0, drb: 0,
   ast: 0, stl: 0, blk: 0, tov: 0, pf: 0,
   fgm: 0, fga: 0, fg2m: 0, fg2a: 0, fg3m: 0, fg3a: 0,
@@ -86,6 +89,34 @@ function num(v: unknown): number {
 function shot(cell: unknown): { made: number; attempted: number } {
   const c = cell as { made?: number; attempted?: number } | undefined;
   return { made: num(c?.made), attempted: num(c?.attempted) };
+}
+
+function lineOf(scraped: ScrapedPlayer): Line {
+  const min = parseMinutes(scraped.MIN as string);
+  if (min === 0) return { ...ZERO_ROW };
+
+  const fg2 = shot(scraped["2PTS"]);
+  const fg3 = shot(scraped["3PTS"]);
+  const ft  = shot(scraped.FT);
+
+  return {
+    min,
+    pts:  num(scraped.PTS),
+    reb:  num(scraped.REB),
+    orb:  num(scraped.OREB),
+    drb:  num(scraped.DREB),
+    ast:  num(scraped.AST),
+    stl:  num(scraped.STL),
+    blk:  num(scraped.BLK),
+    tov:  num(scraped.TO),
+    pf:   num(scraped.PF),
+    fg2m: fg2.made, fg2a: fg2.attempted,
+    fg3m: fg3.made, fg3a: fg3.attempted,
+    fgm:  fg2.made + fg3.made,
+    fga:  fg2.attempted + fg3.attempted,
+    ftm:  ft.made, fta: ft.attempted,
+    eff:  num(scraped.EF),
+  };
 }
 
 // Both bounds, since the same league runs every year and the league alone
@@ -190,7 +221,7 @@ export function resolve(
   const unresolvedPlayers: UnresolvedPlayer[] = [];
   for (const p of played) {
     if (!scoped.some(r => Number(r.number) === p["#"]))
-      unresolvedPlayers.push({ number: Number(p["#"]), name: String(p.Players ?? "").trim() });
+      unresolvedPlayers.push({ number: Number(p["#"]), name: String(p.Players ?? "").trim(), line: lineOf(p) });
   }
 
   const nameMismatches: NameMismatch[] = [];
@@ -209,32 +240,7 @@ export function resolve(
     .sort((a, b) => Number(a.number) - Number(b.number))
     .map(rosterPlayer => {
       const scraped = akTeam.players.find(p => p["#"] === Number(rosterPlayer.number));
-      const min     = scraped ? parseMinutes(scraped.MIN as string) : 0;
-      if (!scraped || min === 0) return { playerId: rosterPlayer.id, ...ZERO_ROW };
-
-      const fg2 = shot(scraped["2PTS"]);
-      const fg3 = shot(scraped["3PTS"]);
-      const ft  = shot(scraped.FT);
-
-      return {
-        playerId: rosterPlayer.id,
-        min,
-        pts:  num(scraped.PTS),
-        reb:  num(scraped.REB),
-        orb:  num(scraped.OREB),
-        drb:  num(scraped.DREB),
-        ast:  num(scraped.AST),
-        stl:  num(scraped.STL),
-        blk:  num(scraped.BLK),
-        tov:  num(scraped.TO),
-        pf:   num(scraped.PF),
-        fg2m: fg2.made, fg2a: fg2.attempted,
-        fg3m: fg3.made, fg3a: fg3.attempted,
-        fgm:  fg2.made + fg3.made,
-        fga:  fg2.attempted + fg3.attempted,
-        ftm:  ft.made, fta: ft.attempted,
-        eff:  num(scraped.EF),
-      };
+      return { playerId: rosterPlayer.id, ...(scraped ? lineOf(scraped) : ZERO_ROW) };
     });
 
   const highlights: Record<string, boolean> = {};
