@@ -6,7 +6,8 @@ import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
 import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
 import { diffDraft, toCommitInput } from "@/domain/import/resolve";
-import type { ImportDraft, NameMismatch, UnresolvedPlayer } from "@/domain/import/resolve";
+import type { ImportDraft } from "@/domain/import/resolve";
+import { entriesFrom, playedIn, reassign, type LineEntry } from "@/client/admin/import/line-assign";
 import type { GateResult } from "@/domain/import/verify";
 import { useImportData } from "@/client/admin/import/use-import-data";
 import { IdleForm } from "@/client/admin/import/IdleForm";
@@ -24,11 +25,10 @@ export default function ImportPage() {
   const [fetching,   setFetching]   = useState(false);
   const [phase,      setPhase]      = useState("idle");
   const [draft,      setDraft]      = useState<ImportDraft | null>(null);
-  const [highlights, setHighlights] = useState<Record<string, boolean>>({});
   const [gate,       setGate]       = useState<GateResult | null>(null);
   const [unresolved, setUnresolved] = useState<string[]>([]);
-  const [unresolvedPlayers, setUnresolvedPlayers] = useState<UnresolvedPlayer[]>([]);
-  const [nameMismatches, setNameMismatches] = useState<NameMismatch[]>([]);
+  const [entries, setEntries] = useState<LineEntry[]>([]);
+  const [playedIds, setPlayedIds] = useState<Set<string>>(new Set());
   const [error,      setError]      = useState("");
   const [gameState,  setGameState]  = useState<{ state: string; reason: string } | null>(null);
   // Snapshot of the resolver's draft, before any review-form edits, for the
@@ -57,11 +57,10 @@ export default function ImportPage() {
       if (!res.ok) { setError(body.error || "Scrape failed"); return; }
 
       setDraft(body.draft);
-      setHighlights(body.highlights ?? {});
       setGate(body.gate ?? null);
       setUnresolved(body.unresolved ?? []);
-      setUnresolvedPlayers(body.unresolvedPlayers ?? []);
-      setNameMismatches(body.nameMismatches ?? []);
+      setEntries(entriesFrom(body.unresolvedPlayers ?? [], body.nameMismatches ?? []));
+      setPlayedIds(playedIn(body.draft.boxScore));
       resolvedRef.current = body.draft;
       setGameState(body.gameState ?? null);
       setPhase("review");
@@ -78,10 +77,17 @@ export default function ImportPage() {
     boxScore: d.boxScore.map(r => r.playerId === playerId ? { ...r, [k]: parseFloat(v) || 0 } : r),
   } as ImportDraft) : d);
 
+  const assign = (entry: LineEntry, to: string | null) => {
+    if (!draft) return;
+    const moved = reassign(draft.boxScore, entry, to);
+    setDraft({ ...draft, boxScore: moved.box });
+    setPlayedIds(playedIn(moved.box));
+    setEntries(es => es.map(e => (e === entry ? moved.entry : e)));
+  };
+
   // The box score is built from the roster, so a new player has no row until
   // resolve() runs again, and the raw payload it needs lives on the server.
-  // Re-scraping discards form edits, which is fine: an unresolved jersey blocks
-  // the save, so there is nothing worth having edited yet.
+  // Re-scraping drops edits and line assignments; unassigned lines are listed first, so they are handled first.
   const handlePlayerCreated = async (player: Player) => {
     setPlayers(prev => [...prev, player].sort(byJersey));
     await fetchAndReview();
@@ -112,8 +118,8 @@ export default function ImportPage() {
 
   const save = async () => {
     if (!draft) return;
-    if (unresolved.length || unresolvedPlayers.length) {
-      showToast("Cannot save while roster issues are unresolved.", "error");
+    if (unresolved.length || entries.some(e => e.assignee === null)) {
+      showToast("Cannot save while a line has no player.", "error");
       return;
     }
     setPhase("saving");
@@ -142,11 +148,11 @@ export default function ImportPage() {
     setPhase("idle");
     setDraft(null);
     setGameUrl(""); setYoutubeUrl("");
-    setHighlights({}); setGate(null); setUnresolved([]); setUnresolvedPlayers([]); setNameMismatches([]);
+    setGate(null); setUnresolved([]); setEntries([]);
     setGameState(null);
 
     // Refresh schedule so the just-imported entry now shows as Imported.
-    fetch("/api/admin/schedule").then(r => r.ok ? r.json() : null).then(d => {
+    apiFetch("/api/admin/schedule").then(r => r.ok ? r.json() : null).then(d => {
       if (d) setSchedule(d.schedule ?? []);
     });
 
@@ -157,7 +163,7 @@ export default function ImportPage() {
 
   const handleBack = () => {
     setPhase("idle"); setDraft(null);
-    setGate(null); setUnresolved([]); setUnresolvedPlayers([]); setNameMismatches([]);
+    setGate(null); setUnresolved([]); setEntries([]);
     setGameState(null);
   };
 
@@ -222,13 +228,13 @@ export default function ImportPage() {
               gameState={gameState}
               gate={gate}
               unresolved={unresolved}
-              unresolvedPlayers={unresolvedPlayers}
-              nameMismatches={nameMismatches}
+              entries={entries}
+              playedIds={playedIds}
+              onAssign={assign}
               onPlayerCreated={handlePlayerCreated}
               youtubeUrl={youtubeUrl}
               setYoutubeUrl={setYoutubeUrl}
               players={players}
-              highlights={highlights}
               seasonLeagues={seasonLeagues}
               updDraft={updDraft}
               updBox={updBox}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Player, SeasonLeague, ScheduledGame } from "@/client/admin";
+import { apiFetch } from "@/client/admin/csrf";
 
 export function useImportData() {
   const [players,       setPlayers]       = useState<Player[]>([]);
@@ -11,9 +12,9 @@ export function useImportData() {
     setDataLoading(true);
     try {
       const [pRes, slRes, schRes] = await Promise.all([
-        fetch("/api/admin/players"),
-        fetch("/api/admin/season-leagues"),
-        fetch("/api/admin/schedule"),
+        apiFetch("/api/admin/players"),
+        apiFetch("/api/admin/season-leagues"),
+        apiFetch("/api/admin/schedule"),
       ]);
       if (pRes.ok)   { const d = await pRes.json();   setPlayers(d.players ?? []); }
       if (slRes.ok)  { const d = await slRes.json();  setSeasonLeagues(d.seasonLeagues ?? []); }

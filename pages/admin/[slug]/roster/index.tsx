@@ -201,7 +201,8 @@ export default function RosterPage() {
         onLeaguesChange={l => setSheet(s => (s ? { ...s, leagues: l, error: null } : s))}
         onSave={() => void save()}
         onClose={() => {
-          if (sheet) keep(sheet.id ?? NEW_KEY, null);
+          if (!sheet) return;
+          keep(sheet.id ?? NEW_KEY, null);
           closeSheet();
         }}
       />
