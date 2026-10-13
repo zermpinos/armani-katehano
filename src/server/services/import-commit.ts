@@ -74,6 +74,11 @@ export async function commitImport(data: CommitInput, opts: CommitOptions = {}):
   } = data;
 
   const rows = boxScore ?? [];
+
+  // PlayerGameStat is unique per player and game, so a repeat would otherwise surface as a 500 from inside the transaction.
+  if (new Set(rows.map(r => r.playerId)).size !== rows.length)
+    throw new CommitError("A player appears more than once in the box score.", 400);
+
   const boxSum = rows.reduce((acc, r) => acc + (r.pts ?? 0), 0);
   if (rows.length && boxSum !== teamScore)
     throw new CommitError(

@@ -1,4 +1,4 @@
-import { Btn, Spinner } from "@/client/admin";
+import { Btn, F, ListRow, Spinner } from "@/client/admin";
 import type { ScheduledGame } from "@/client/admin";
 import { fmtDate } from "@/domain/shared/format";
 
@@ -13,8 +13,6 @@ type Props = {
   onFetch: (overrideUrl?: string) => void;
 };
 
-const urlInputCls = "w-full py-[10px] px-3 text-[13px] font-sans rounded-lg border border-ak-border2 bg-ak-base text-ak-text outline-none";
-
 export function IdleForm({ schedule, gameUrl, setGameUrl, youtubeUrl, setYoutubeUrl, fetching, error, onFetch }: Props) {
   const now = new Date();
   const candidates = schedule
@@ -25,49 +23,25 @@ export function IdleForm({ schedule, gameUrl, setGameUrl, youtubeUrl, setYoutube
     <div className="flex flex-col gap-[14px]">
       {candidates.length > 0 && (
         <div>
-          <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[6px] uppercase">Quick import</div>
-          <div className="flex flex-col gap-[4px]">
+          <div className="mb-2 text-[11px] font-black uppercase tracking-[0.12em] text-ak-text-dim">Not imported yet</div>
+          <ul className="flex flex-col gap-2">
             {candidates.map(g => (
-              <button
-                key={g.id}
-                type="button"
-                disabled={fetching}
-                onClick={() => onFetch(g.sourceUrl!)}
-                className="w-full text-left py-[8px] px-[12px] rounded-lg border border-ak-border bg-ak-surface2 hover:border-ak-border2 text-[12px] text-ak-text disabled:opacity-50 transition-colors"
-              >
-                <span className="font-black">{g.location === "home" ? "vs" : "@"} {g.opponent}</span>
-                <span className="text-ak-text-dim ml-2">{fmtDate(g.scheduledFor)}{g.competition ? ` · ${g.competition}` : ""}</span>
-              </button>
+              <li key={g.id}>
+                <ListRow onClick={() => { if (!fetching) onFetch(g.sourceUrl!); }}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-[0.12em] text-ak-text-dim">{g.location === "home" ? "vs" : "@"}</span>
+                    <span className="truncate text-[15px] font-black text-ak-text">{g.opponent}</span>
+                  </div>
+                  <div className="mt-1 text-[12px] text-ak-text-dim">{fmtDate(g.scheduledFor)}{g.competition ? ` · ${g.competition}` : ""}</div>
+                </ListRow>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
 
-      <div>
-        <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[6px] uppercase">Game URL</div>
-        <input
-          type="url"
-          value={gameUrl}
-          onChange={e => setGameUrl(e.target.value)}
-          placeholder="https://basketcity.sportstats.gr/men/gamedetails/id/..."
-          disabled={fetching}
-          className={urlInputCls}
-        />
-      </div>
-
-      <div>
-        <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[6px] uppercase">
-          YouTube video URL <span className="font-normal normal-case text-[11px]">(optional)</span>
-        </div>
-        <input
-          type="url"
-          value={youtubeUrl}
-          onChange={e => setYoutubeUrl(e.target.value)}
-          placeholder="https://www.youtube.com/watch?v=..."
-          disabled={fetching}
-          className={urlInputCls}
-        />
-      </div>
+      <F label="GAME URL" type="url" value={gameUrl} onChange={setGameUrl} placeholder="https://basketcity.sportstats.gr/men/gamedetails/id/..." />
+      <F label="YOUTUBE VIDEO URL (OPTIONAL)" type="url" value={youtubeUrl} onChange={setYoutubeUrl} placeholder="https://www.youtube.com/watch?v=..." />
 
       {error && (
         <div className="text-xs text-ak-red-text py-2 px-3 rounded-lg bg-[#8b1a1a18] border border-[#8b1a1a40]">{error}</div>
