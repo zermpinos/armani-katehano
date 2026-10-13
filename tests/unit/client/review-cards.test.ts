@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ReviewCards } from "@/client/admin/import/ReviewCards";
+import { playedIn } from "@/client/admin/import/line-assign";
 import { ZERO_ROW } from "@/domain/import/resolve";
 
 const players = [
@@ -14,7 +15,8 @@ const rows = [
   { playerId: "a", ...ZERO_ROW },
   { playerId: "b", ...ZERO_ROW, min: 20, pts: 11, reb: 5, orb: 3, drb: 2, ast: 1, pf: 4 },
 ];
-const render = () => renderToStaticMarkup(createElement(ReviewCards, { players, rows, onUpdate: () => {} }));
+const render = (box = rows, playedIds = playedIn(rows)) =>
+  renderToStaticMarkup(createElement(ReviewCards, { players, rows: box, playedIds, onUpdate: () => {} }));
 
 describe("ReviewCards", () => {
   it("lists who played by jersey, with the rest folded", () => {
@@ -24,6 +26,11 @@ describe("ReviewCards", () => {
     expect(html.indexOf("Bravo B.")).toBeLessThan(html.indexOf("Charlie C."));
     expect(html.indexOf("Charlie C.")).toBeLessThan(fold);
     expect(html.indexOf("Alpha A.")).toBeGreaterThan(fold);
+  });
+
+  it("keeps a card in the fold while its MIN is typed above 0", () => {
+    const html = render(rows.map(r => (r.playerId === "a" ? { ...r, min: 1 } : r)));
+    expect(html.indexOf("Alpha A.")).toBeGreaterThan(html.indexOf("t play (1)"));
   });
 
   it("sums up a line without opening the card", () => {

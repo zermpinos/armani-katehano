@@ -61,6 +61,13 @@ describe("eligiblePlayers", () => {
   it("offers players with no minutes yet, plus whoever holds the line now", () => {
     const players = ["owner", "borrower", "bench", "starter"].map((id, i) => ({ id, name: id, number: i, position: "G" }));
     const rows = [...box(), { playerId: "starter", ...ZERO_ROW, min: 30, pts: 6 }];
-    expect(eligiblePlayers(players, rows, mismatch).map(p => p.id)).toEqual(["owner", "borrower", "bench"]);
+    expect(eligiblePlayers(players, rows, mismatch, [mismatch]).map(p => p.id)).toEqual(["owner", "borrower", "bench"]);
+  });
+
+  it("never offers someone holding another jersey's line, even after their MIN is edited to 0", () => {
+    const players = ["owner", "borrower", "bench"].map((id, i) => ({ id, name: id, number: i, position: "G" }));
+    const moved   = reassign(box(), mismatch, "borrower");
+    const edited  = moved.box.map(r => (r.playerId === "borrower" ? { ...r, min: 0 } : r));
+    expect(eligiblePlayers(players, edited, unassigned, [moved.entry, unassigned]).map(p => p.id)).toEqual(["owner", "bench"]);
   });
 });

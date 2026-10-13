@@ -7,7 +7,7 @@ import { getAdminPageProps } from "@/server/auth";
 import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
 import { diffDraft, toCommitInput } from "@/domain/import/resolve";
 import type { ImportDraft } from "@/domain/import/resolve";
-import { entriesFrom, reassign, type LineEntry } from "@/client/admin/import/line-assign";
+import { entriesFrom, playedIn, reassign, type LineEntry } from "@/client/admin/import/line-assign";
 import type { GateResult } from "@/domain/import/verify";
 import { useImportData } from "@/client/admin/import/use-import-data";
 import { IdleForm } from "@/client/admin/import/IdleForm";
@@ -28,6 +28,7 @@ export default function ImportPage() {
   const [gate,       setGate]       = useState<GateResult | null>(null);
   const [unresolved, setUnresolved] = useState<string[]>([]);
   const [entries, setEntries] = useState<LineEntry[]>([]);
+  const [playedIds, setPlayedIds] = useState<Set<string>>(new Set());
   const [error,      setError]      = useState("");
   const [gameState,  setGameState]  = useState<{ state: string; reason: string } | null>(null);
   // Snapshot of the resolver's draft, before any review-form edits, for the
@@ -59,6 +60,7 @@ export default function ImportPage() {
       setGate(body.gate ?? null);
       setUnresolved(body.unresolved ?? []);
       setEntries(entriesFrom(body.unresolvedPlayers ?? [], body.nameMismatches ?? []));
+      setPlayedIds(playedIn(body.draft.boxScore));
       resolvedRef.current = body.draft;
       setGameState(body.gameState ?? null);
       setPhase("review");
@@ -79,6 +81,7 @@ export default function ImportPage() {
     if (!draft) return;
     const moved = reassign(draft.boxScore, entry, to);
     setDraft({ ...draft, boxScore: moved.box });
+    setPlayedIds(playedIn(moved.box));
     setEntries(es => es.map(e => (e === entry ? moved.entry : e)));
   };
 
@@ -226,6 +229,7 @@ export default function ImportPage() {
               gate={gate}
               unresolved={unresolved}
               entries={entries}
+              playedIds={playedIds}
               onAssign={assign}
               onPlayerCreated={handlePlayerCreated}
               youtubeUrl={youtubeUrl}

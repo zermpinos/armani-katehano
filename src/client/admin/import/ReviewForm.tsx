@@ -14,6 +14,7 @@ type Props = {
   gate: GateResult | null;
   unresolved: string[];
   entries: LineEntry[];
+  playedIds: Set<string>;
   onAssign: (entry: LineEntry, to: string | null) => void;
   onPlayerCreated: (player: Player) => void;
   youtubeUrl: string;
@@ -27,7 +28,7 @@ type Props = {
 };
 
 export function ReviewForm({
-  draft, phase, gameState, gate, unresolved, entries, onAssign, onPlayerCreated,
+  draft, phase, gameState, gate, unresolved, entries, playedIds, onAssign, onPlayerCreated,
   youtubeUrl, setYoutubeUrl, players, seasonLeagues,
   updDraft, updBox, onSave, onBack,
 }: Props) {
@@ -132,7 +133,7 @@ export function ReviewForm({
 
       <div>
         <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim mb-[10px] uppercase">Box score</div>
-        <ReviewCards players={players} rows={draft.boxScore} onUpdate={updBox} />
+        <ReviewCards players={players} rows={draft.boxScore} playedIds={playedIds} onUpdate={updBox} />
       </div>
 
       <div className="flex gap-[10px] pt-1">

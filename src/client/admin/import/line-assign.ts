@@ -34,8 +34,13 @@ export function reassign(box: ResolvedRow[], entry: LineEntry, to: string | null
   return { box: next, entry: { ...entry, assignee: to, line: to ? null : line } };
 }
 
-// A player who already has minutes is not offered, so one line can never overwrite another.
-export function eligiblePlayers(players: Player[], box: ResolvedRow[], entry: LineEntry): Player[] {
-  const played = new Set(box.filter(r => r.min > 0).map(r => r.playerId));
-  return players.filter(p => p.id === entry.assignee || !played.has(p.id));
+export function playedIn(box: ResolvedRow[]): Set<string> {
+  return new Set(box.filter(r => r.min > 0).map(r => r.playerId));
+}
+
+// Holders are excluded by entry, not just by minutes: MIN can be edited to 0, and one line must never overwrite another.
+export function eligiblePlayers(players: Player[], box: ResolvedRow[], entry: LineEntry, entries: LineEntry[]): Player[] {
+  const taken = playedIn(box);
+  for (const e of entries) if (e !== entry && e.assignee) taken.add(e.assignee);
+  return players.filter(p => p.id === entry.assignee || !taken.has(p.id));
 }

@@ -14,14 +14,16 @@ const FIELDS = [
 type Props = {
   players:  Player[];
   rows:     ResolvedRow[];
+  playedIds: Set<string>;
   onUpdate: (playerId: string, key: string, value: string) => void;
 };
 
-export function ReviewCards({ players, rows, onUpdate }: Props) {
+export function ReviewCards({ players, rows, playedIds, onUpdate }: Props) {
   const byId   = new Map(players.map(p => [p.id, p]));
   const sorted = [...rows].sort((a, b) => Number(byId.get(a.playerId)?.number) - Number(byId.get(b.playerId)?.number));
-  const played = sorted.filter(r => r.min > 0);
-  const bench  = sorted.filter(r => !(r.min > 0));
+  // Not live MIN: a card crossing 0 mid-typing would switch lists, remount and drop the keystroke.
+  const played = sorted.filter(r => playedIds.has(r.playerId));
+  const bench  = sorted.filter(r => !playedIds.has(r.playerId));
   const card = (r: ResolvedRow) => <PlayerCard key={r.playerId} player={byId.get(r.playerId)} row={r} onUpdate={onUpdate} />;
 
   return (

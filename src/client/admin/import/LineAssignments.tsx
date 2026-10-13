@@ -30,7 +30,7 @@ export function LineAssignments({ entries, players, box, disabled, onAssign, onC
           : `#${entry.number} ${entry.scrapedName} played but is not on the roster.`;
         const choices = [
           ...(entry.ownerId ? [] : [{ value: "", label: "Nobody yet" }]),
-          ...eligiblePlayers(players, box, entry).map(p => ({ value: p.id, label: `#${p.number} ${p.name}` })),
+          ...eligiblePlayers(players, box, entry, entries).map(p => ({ value: p.id, label: `#${p.number} ${p.name}` })),
         ];
         return (
           <div key={`${entry.number}-${entry.ownerId ?? "new"}`} className="flex flex-col gap-2">
