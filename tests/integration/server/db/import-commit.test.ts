@@ -127,6 +127,16 @@ describe("commitImport guards", () => {
     expect(mockPrisma.game.findUnique).not.toHaveBeenCalled();
     expect(mockPrisma.game.create).toHaveBeenCalledOnce();
   });
+
+  it("rejects a player listed twice with 400 before the transaction", async () => {
+    const data = { ...commitData({ teamScore: 20 }), boxScore: [boxRow(), boxRow()] };
+
+    const err = await commitImport(data).catch(e => e);
+
+    expect(err).toBeInstanceOf(CommitError);
+    expect(err.status).toBe(400);
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
 });
 
 describe("commitImport round", () => {
