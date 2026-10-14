@@ -21,6 +21,9 @@ export default defineConfig({
   forbidOnly:      !!process.env.CI,
   retries:         process.env.CI ? 2 : 0,
   workers:         process.env.CI ? 1 : undefined,
+  // Under the e2e job's 15 min cap, so a stuck run still prints its failures
+  // and writes the report instead of being cancelled silently.
+  globalTimeout:   process.env.CI ? 10 * 60_000 : undefined,
   reporter:        process.env.CI
                      ? [["list"], ["html", { open: "never" }]]
                      : "list",
