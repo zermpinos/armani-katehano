@@ -43,7 +43,8 @@ export default function BroadcastPage({ maskedAdminEmail }: { maskedAdminEmail: 
   const [confirmedCount, setConfirmedCount] = useState<number | null>(null);
   const [logs,           setLogs]           = useState<BroadcastLogRow[]>([]);
 
-  const [sanitizedHtml, setSanitizedHtml] = useState("");
+  const [sanitized, setSanitized] = useState<{ src: string; html: string } | null>(null);
+  const sanitizedHtml = sanitized?.src === renderedHtml ? sanitized.html : "";
 
   const currentKey     = subject + "|" + body;
   const previewCurrent = previewKey === currentKey && renderedHtml !== null;
@@ -55,35 +56,31 @@ export default function BroadcastPage({ maskedAdminEmail }: { maskedAdminEmail: 
     previewCurrent &&
     (recipientMode === "all" || (recipientMode === "specific" && resolveCurrent && resolveResult!.matched > 0));
 
-  const fetchHistory = useCallback(async () => {
-    try {
-      const res  = await fetch("/api/admin/broadcast?limit=20");
-      if (!res.ok) return;
-      const data = await res.json();
-      setLogs(data.logs ?? []);
-    } catch {}
-  }, []);
+  const fetchHistory = useCallback(() =>
+    fetch("/api/admin/broadcast?limit=20")
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data) setLogs(data.logs ?? []); })
+      .catch(() => {}),
+  []);
 
-  const fetchCount = useCallback(async () => {
-    try {
-      const res  = await fetch("/api/admin/subscribers?status=confirmed&limit=1");
-      if (!res.ok) return;
-      const data = await res.json();
-      setConfirmedCount(data.total ?? 0);
-    } catch {}
-  }, []);
+  const fetchCount = useCallback(() =>
+    fetch("/api/admin/subscribers?status=confirmed&limit=1")
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data) setConfirmedCount(data.total ?? 0); })
+      .catch(() => {}),
+  []);
 
   useEffect(() => {
     void Promise.all([fetchHistory(), fetchCount()]);
   }, [fetchHistory, fetchCount]);
 
   useEffect(() => {
-    if (!renderedHtml) { setSanitizedHtml(""); return; }
+    if (!renderedHtml) return;
     import("dompurify").then(({ default: DOMPurify }) => {
-      setSanitizedHtml(DOMPurify.sanitize(renderedHtml, {
+      setSanitized({ src: renderedHtml, html: DOMPurify.sanitize(renderedHtml, {
         ALLOWED_TAGS: ["p","h1","h2","h3","h4","h5","h6","ul","ol","li","a","strong","em","code","pre","blockquote","br","hr"],
         ALLOWED_ATTR: ["href"],
-      }));
+      }) });
     });
   }, [renderedHtml]);
 

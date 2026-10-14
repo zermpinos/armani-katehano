@@ -23,7 +23,7 @@ export default function SeasonsPage() {
   const [dateMap,       setDateMap]       = useState<Map<string, { start: string; end: string }>>(new Map());
   const [busyDates,     setBusyDates]     = useState<Map<string, boolean>>(new Map());
   const [busySaving,    setBusySaving]    = useState<Record<string, boolean>>({});
-  const [loading,       setLoading]       = useState(false);
+  const [loading,       setLoading]       = useState(true);
 
   const [newSeason,    setNewSeason]    = useState({ name: "", year: "" });
   const [newLeague,    setNewLeague]    = useState({ name: "", organization: "basketcity", sourceSlug: "", listingUrl: "", organizer: "", level: "" });
@@ -39,45 +39,43 @@ export default function SeasonsPage() {
 
   const showToast = (msg: string, type = "success") => setToast({ msg, type });
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [sRes, lRes, slRes, pRes, reRes] = await Promise.all([
-        fetch("/api/admin/seasons-list"),
-        fetch("/api/admin/leagues-list"),
-        // Managing seasons is the one place a closed season still has to show.
-        fetch("/api/admin/season-leagues?includeArchived=true"),
-        fetch("/api/admin/players"),
-        fetch("/api/admin/roster-entries"),
-      ]);
-      if (sRes.ok)  {
-        const d = await sRes.json();
-        const list: Season[] = d.seasons ?? [];
-        setSeasons(list);
-        setLinkSeasonId(prev => prev || list[0]?.id || "");
-        setDateMap(new Map(list.map(s => [s.id, { start: s.startDate ?? "", end: s.endDate ?? "" }])));
+  const refresh = () => Promise.all([
+    fetch("/api/admin/seasons-list"),
+    fetch("/api/admin/leagues-list"),
+    // Managing seasons is the one place a closed season still has to show.
+    fetch("/api/admin/season-leagues?includeArchived=true"),
+    fetch("/api/admin/players"),
+    fetch("/api/admin/roster-entries"),
+  ]).then(async ([sRes, lRes, slRes, pRes, reRes]) => {
+    if (sRes.ok)  {
+      const d = await sRes.json();
+      const list: Season[] = d.seasons ?? [];
+      setSeasons(list);
+      setLinkSeasonId(prev => prev || list[0]?.id || "");
+      setDateMap(new Map(list.map(s => [s.id, { start: s.startDate ?? "", end: s.endDate ?? "" }])));
+    }
+    if (lRes.ok)  { const d = await lRes.json();  setLeagues(d.leagues ?? []);             setLinkLeagueId(prev => prev || d.leagues?.[0]?.id || ""); }
+    if (slRes.ok) { const d = await slRes.json(); setSeasonLeagues(d.seasonLeagues ?? []); }
+    if (pRes.ok)  { const d = await pRes.json();  setPlayers(d.players ?? []); }
+    if (reRes.ok) {
+      const d = await reRes.json();
+      const map = new Map<string, Set<string>>();
+      for (const e of d.entries ?? []) {
+        if (!map.has(e.seasonId)) map.set(e.seasonId, new Set());
+        map.get(e.seasonId)!.add(e.playerId);
       }
-      if (lRes.ok)  { const d = await lRes.json();  setLeagues(d.leagues ?? []);             setLinkLeagueId(prev => prev || d.leagues?.[0]?.id || ""); }
-      if (slRes.ok) { const d = await slRes.json(); setSeasonLeagues(d.seasonLeagues ?? []); }
-      if (pRes.ok)  { const d = await pRes.json();  setPlayers(d.players ?? []); }
-      if (reRes.ok) {
-        const d = await reRes.json();
-        const map = new Map<string, Set<string>>();
-        for (const e of d.entries ?? []) {
-          if (!map.has(e.seasonId)) map.set(e.seasonId, new Set());
-          map.get(e.seasonId)!.add(e.playerId);
-        }
-        setEnrolledMap(map);
-        const draftCopy = new Map<string, Set<string>>();
-        for (const [sid, set] of map) {
-          draftCopy.set(sid, new Set(set));
-        }
-        setDraftMap(draftCopy);
+      setEnrolledMap(map);
+      const draftCopy = new Map<string, Set<string>>();
+      for (const [sid, set] of map) {
+        draftCopy.set(sid, new Set(set));
       }
-    } finally { setLoading(false); }
-  };
+      setDraftMap(draftCopy);
+    }
+  }).finally(() => setLoading(false));
 
-  useEffect(() => { loadData(); }, []);
+  const loadData = () => { setLoading(true); return refresh(); };
+
+  useEffect(() => { refresh(); }, []);
 
   const createSeason = async () => {
     if (!newSeason.name || !newSeason.year) { showToast("Name and year required", "error"); return; }

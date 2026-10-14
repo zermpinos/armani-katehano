@@ -30,26 +30,24 @@ export default function MaintenancePage() {
   const [roundBusy,       setRoundBusy]       = useState(false);
   const [recalcing,       setRecalcing]       = useState(false);
   const [testingAlert,    setTestingAlert]    = useState(false);
-  const [loading,         setLoading]         = useState(false);
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const [m, p, pc] = await Promise.all([
-        apiFetch("/api/admin/maintenance"),
-        apiFetch("/api/admin/season-phase"),
-        apiFetch("/api/admin/popup-config"),
-      ]);
-      if (m.ok)  setMaintenanceOn((await m.json()).enabled);
-      if (p.ok)  setSeasonPhase((await p.json()).seasonPhase);
-      if (pc.ok) { const d = await pc.json(); setPopupEnabled(d.enabled); setPopupRound(d.round ?? "semifinal"); }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [loading,         setLoading]         = useState(true);
 
   useEffect(() => {
-    load();
+    const load = async () => {
+      try {
+        const [m, p, pc] = await Promise.all([
+          apiFetch("/api/admin/maintenance"),
+          apiFetch("/api/admin/season-phase"),
+          apiFetch("/api/admin/popup-config"),
+        ]);
+        if (m.ok)  setMaintenanceOn((await m.json()).enabled);
+        if (p.ok)  setSeasonPhase((await p.json()).seasonPhase);
+        if (pc.ok) { const d = await pc.json(); setPopupEnabled(d.enabled); setPopupRound(d.round ?? "semifinal"); }
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
   }, []);
 
   const handleToggleMaintenance = async () => {

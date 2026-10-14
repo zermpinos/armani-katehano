@@ -28,27 +28,26 @@ export default function PasskeysPage() {
   const { setToast } = useAdminSession();
 
   const [credentials, setCredentials] = useState<CredentialRow[]>([]);
-  const [listLoading, setListLoading] = useState(false);
+  const [listLoading, setListLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
   const [labelInput,  setLabelInput]  = useState("");
   const [confirmCred, setConfirmCred] = useState<CredentialRow | null>(null);
 
-  const loadCredentials = useCallback(async () => {
+  const refreshCredentials = useCallback(() =>
+    apiFetch("/api/admin/passkeys")
+      .then(res => res.ok ? res.json() as Promise<CredentialRow[]> : null)
+      .then(rows => { if (rows) setCredentials(rows); })
+      .finally(() => setListLoading(false)),
+  []);
+
+  const loadCredentials = useCallback(() => {
     setListLoading(true);
-    try {
-      const res = await apiFetch("/api/admin/passkeys");
-      if (res.ok) {
-        const rows: CredentialRow[] = await res.json();
-        setCredentials(rows);
-      }
-    } finally {
-      setListLoading(false);
-    }
-  }, []);
+    return refreshCredentials();
+  }, [refreshCredentials]);
 
   useEffect(() => {
-    loadCredentials();
-  }, [loadCredentials]);
+    refreshCredentials();
+  }, [refreshCredentials]);
 
   const handleRegister = async () => {
     setRegistering(true);
