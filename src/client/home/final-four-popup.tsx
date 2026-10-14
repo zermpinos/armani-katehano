@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import Image from "next/image";
 
 type NextPlayoffGame = {
@@ -24,6 +24,7 @@ function formatGameDateTime(iso: string): string {
 }
 
 const DEFAULT_KEY = "ak_f4_dismissed";
+const noSubscribe = () => () => {};
 
 const HEADLINES: Record<string, { kicker: string; main: string }> = {
   semifinal: { kicker: "WE'RE IN THE", main: "FINAL FOUR" },
@@ -39,14 +40,12 @@ export function FinalFourPopup({
   dismissKey?: string;
   round?:      "semifinal" | "final";
 }) {
-  const [open,    setOpen]    = useState(false);
+  // Server snapshot says dismissed, so SSR renders nothing and the client opens it after hydration.
+  const dismissed = useSyncExternalStore(noSubscribe, () => !!localStorage.getItem(dismissKey), () => true);
+  const [closed,  setClosed]  = useState(false);
   const [closing, setClosing] = useState(false);
+  const open = !dismissed && !closed;
   const dialogRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!localStorage.getItem(dismissKey)) setOpen(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -86,7 +85,7 @@ export function FinalFourPopup({
   function dismiss() {
     setClosing(true);
     setTimeout(() => {
-      setOpen(false);
+      setClosed(true);
       localStorage.setItem(dismissKey, "1");
     }, 240);
   }

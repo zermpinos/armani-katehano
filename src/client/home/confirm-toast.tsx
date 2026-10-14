@@ -9,13 +9,19 @@ export function ConfirmToast() {
   useEffect(() => {
     const { confirmed } = router.query;
     if (!confirmed) return;
-    setType(confirmed === "1" ? "success" : "expired");
-    setVisible(true);
-    const t = setTimeout(() => setVisible(false), 5000);
-    router.replace("/", undefined, { shallow: true });
-    return () => clearTimeout(t);
+    router.replace("/", undefined, { shallow: true }).finally(() => {
+      setType(confirmed === "1" ? "success" : "expired");
+      setVisible(true);
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.query.confirmed]);
+
+  // Separate effect: the replace above changes query.confirmed and would clear a timer kept there.
+  useEffect(() => {
+    if (!visible) return;
+    const t = setTimeout(() => setVisible(false), 5000);
+    return () => clearTimeout(t);
+  }, [visible]);
 
   if (!visible) return null;
 
