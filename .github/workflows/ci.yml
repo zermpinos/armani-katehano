@@ -47,7 +47,6 @@ jobs:
           SESSION_SECRET: ci-placeholder-secret
 
       - name: Verify build artifacts (L3 + L5)
-        if: github.actor != 'dependabot[bot]'
         run: npm run test:build && node scripts/check-isr-pages.mjs
         env:
           SESSION_SECRET: ci-placeholder-secret
@@ -57,5 +56,4 @@ jobs:
       # request path. ESLint zones should already catch this at source; this
       # covers the case where they were bypassed. See docs/architecture.md §4.
       - name: Verify proxy runtime and bundle
-        if: github.actor != 'dependabot[bot]'
         run: node scripts/check-proxy-bundle.mjs
