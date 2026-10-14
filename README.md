@@ -289,7 +289,6 @@ armani-katehano/
 ├── scripts/
 │   ├── check-proxy-bundle.mjs     Post-build assertion: proxy runtime + dependencies
 │   ├── check-isr-pages.mjs         Post-build assertion: expected pages pre-rendered, CSP hashes match
-│   ├── check-postcss-override.mjs  Scan postcss config for overridden entries and report lowest
 │   ├── regenerate-csp-hashes.mjs   Recomputes and writes the committed CSP script/style hash allow-list
 │   ├── strip-next-polyfills.mjs    Prebuild: stubs out Next.js polyfill-module for Turbopack
 │   └── ci/                         CI helper scripts (weekly-security-report.sh, ...)
@@ -444,7 +443,6 @@ These variables are set by the build/runtime environment automatically. Do not s
 | `suggest-opponent-aliases.ts`     | Reads each open league's team index and prints INSERT statements for opponents `OpponentAlias` does not cover yet, transliterating Greek by ELOT 743. Run once per season. `--check-existing` reports rows the rule would write differently, so an override stays visible instead of becoming drift. Both modes print what they would do; `--apply` writes it |
 | `check-isr-pages.mjs`             | Post-build CI guard: confirms expected pages were statically pre-rendered, no admin page leaked into static output, and committed CSP hashes appear in the built bundle |
 | `regenerate-csp-hashes.mjs`       | Walks pre-rendered HTML, SHA-256-hashes inline `<script>`/`<style>` bodies, writes `src/server/security/edge/csp-hashes.ts` |
-| `check-postcss-override.mjs`      | Scans postcss config for nested entries and reports the lowest override |
 | `ci/weekly-security-report.sh`    | Generates the weekly `npm audit` report and opens/labels a GitHub Issue |
 
 Local-only email-preview scripts (`preview-roster-email.ts`, `preview-confirmation-email.ts`, `preview-game-imported-email.ts`) live outside the public tree and are not committed here.

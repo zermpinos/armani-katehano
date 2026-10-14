@@ -54,24 +54,6 @@ VULN_DETAIL=$(node -e "
   } catch(e) { console.log('Could not parse audit output: ' + e.message); }
 ")
 
-# Check postcss override staleness against the resolved version next would
-# ship without our override. See scripts/check-postcss-override.mjs.
-NEXT_POSTCSS=$(node scripts/check-postcss-override.mjs 2>/dev/null || echo "unknown")
-
-# The override is still doing work whenever next resolves below the floor the
-# override forces, so read that floor out of package.json rather than hardcoding
-# it - a literal threshold goes stale silently the next time the override moves.
-POSTCSS_OVERRIDE=$(node -p "require('./package.json').overrides?.postcss ?? ''")
-POSTCSS_STATUS=$(node -e "
-  const raw   = '$NEXT_POSTCSS';
-  const floor = '$POSTCSS_OVERRIDE'.replace(/^[^0-9]*/, '');
-  if (raw === 'unknown' || !raw || !floor) { console.log('unknown'); process.exit(0); }
-  const parts = s => s.split('.').map(n => Number(n) || 0);
-  const [aM, am, ap] = parts(raw), [bM, bm, bp] = parts(floor);
-  const needed = (aM - bM || am - bm || ap - bp) < 0;
-  console.log(needed ? 'still needed' : 'can be removed');
-")
-
 if [ "$VULN_COUNT" = "0" ]; then
   TITLE="[Security Audit] $DATE - clean"
 else
@@ -86,16 +68,6 @@ $([ "$VULN_COUNT" = "0" ] && echo "**clean** - \`npm audit\` found no vulnerabil
 ## Vulnerabilities
 
 $VULN_DETAIL
-
-## Override staleness
-
-These overrides exist in \`package.json\` to patch transitive vulnerabilities while upstream catches up. Remove them once they show "can be removed" - they become harmless no-ops otherwise, but trimming them keeps the config clean.
-
-| Override | Upstream status | Action |
-|---|---|---|
-| \`postcss $POSTCSS_OVERRIDE\` | next at our locked version resolves \`$NEXT_POSTCSS\` | $POSTCSS_STATUS |
-
-$([ "$POSTCSS_STATUS" = "can be removed" ] && echo "> **postcss override can now be removed from \`package.json\`.**")
 
 ---
 *Weekly audit - Node $(node --version) · npm $(npm --version)*
