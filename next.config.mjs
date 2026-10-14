@@ -42,6 +42,10 @@ const nextConfig = {
   // `scripts/strip-next-polyfills.mjs`.
   turbopack: {},
 
+  // The shared runtime (default since 16.4) inlines a per-route bootstrap
+  // script whose hash changes every build, so the hash-based CSP blocks it.
+  experimental: { turbopackSharedRuntime: false },
+
   // Strip Next.js's hardcoded `require("next/dist/build/polyfills/polyfill-module")`
   // from the client bundle. The module ships ~14 KiB of conditional polyfills
   // for browsers below the production browserslist target (Chrome >=96,
