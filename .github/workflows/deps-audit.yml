@@ -3,10 +3,12 @@ name: Dependency Audit
 on:
   push:
     branches: [main]
-    paths: [package-lock.json]
+    paths: [package-lock.json, .github/audit-exceptions.json, scripts/ci/check-audit.mjs,
+            .github/workflows/deps-audit.yml]
   pull_request:
     branches: [main]
-    paths: [package-lock.json]
+    paths: [package-lock.json, .github/audit-exceptions.json, scripts/ci/check-audit.mjs,
+            .github/workflows/deps-audit.yml]
   # Monday 09:00 Athens (EEST = UTC+3) = 06:00 UTC
   schedule:
     - cron: "0 6 * * 1"
@@ -30,7 +32,10 @@ jobs:
       - name: Verify package signatures
         run: npm audit signatures
         continue-on-error: true
-      - run: npm audit
+      # Production above takes no exceptions; here a dev-only advisory may be
+      # accepted in .github/audit-exceptions.json with a reason and review date.
+      - name: Audit all dependencies against accepted exceptions
+        run: node scripts/ci/check-audit.mjs
 
   weekly-report:
     name: Weekly security report

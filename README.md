@@ -443,7 +443,8 @@ These variables are set by the build/runtime environment automatically. Do not s
 | `suggest-opponent-aliases.ts`     | Reads each open league's team index and prints INSERT statements for opponents `OpponentAlias` does not cover yet, transliterating Greek by ELOT 743. Run once per season. `--check-existing` reports rows the rule would write differently, so an override stays visible instead of becoming drift. Both modes print what they would do; `--apply` writes it |
 | `check-isr-pages.mjs`             | Post-build CI guard: confirms expected pages were statically pre-rendered, no admin page leaked into static output, and committed CSP hashes appear in the built bundle |
 | `regenerate-csp-hashes.mjs`       | Walks pre-rendered HTML, SHA-256-hashes inline `<script>`/`<style>` bodies, writes `src/server/security/edge/csp-hashes.ts` |
-| `ci/weekly-security-report.sh`    | Generates the weekly `npm audit` report and opens/labels a GitHub Issue |
+| `ci/weekly-security-report.sh`    | Generates the weekly `npm audit` report; opens a labelled GitHub Issue only when something needs a decision |
+| `ci/check-audit.mjs`              | Judges the full `npm audit` against `.github/audit-exceptions.json`: fails on an unaccepted or expired advisory, warns on a stale exception |
 
 Local-only email-preview scripts (`preview-roster-email.ts`, `preview-confirmation-email.ts`, `preview-game-imported-email.ts`) live outside the public tree and are not committed here.
 
@@ -458,7 +459,7 @@ All workflows run on GitHub-hosted `ubuntu-latest` runners.
 | `secret-scan.yml`          | push / PR                        | Gitleaks scoped to the push/PR delta; fails the build on a hit  |
 | `secret-scan-audit.yml`    | Monday cron, manual dispatch     | Report-only Gitleaks audit of full `origin/main` history (SARIF artifact, non-blocking) |
 | `semgrep.yml`              | push / PR / Monday               | SAST via Semgrep (`p/typescript`, `p/nodejs`, `p/secrets`)      |
-| `deps-audit.yml`           | push / PR (lock file) / Monday   | `npm audit` prod + dev; scheduled run opens a weekly GitHub Issue |
+| `deps-audit.yml`           | push / PR (lock file, exceptions) / Monday | Production `npm audit` with no exceptions; full audit judged against `.github/audit-exceptions.json` (reason + review date, max 90 days); Monday run opens an issue only when action is needed |
 | `docs-link-check.yml`      | PR (docs), Monday, manual        | Lychee dead-link check over README / SECURITY.md / docs        |
 | `release-readiness.yml`    | push / PR                        | Asserts LICENSE and `.env.example` are present                 |
 

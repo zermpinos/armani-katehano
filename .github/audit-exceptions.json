@@ -1,0 +1,8 @@
+{
+  "GHSA-vfj7-8cjw-p6xm": {
+    "package": "braces",
+    "path": "eslint-config-next > @next/eslint-plugin-next > fast-glob > micromatch > braces",
+    "reason": "Dev-only, runs at lint time. @next/eslint-plugin-next pins fast-glob 3.3.1, and every braces release (<=3.0.3) is affected, so no upgrade fixes it. The glob patterns come from this repo's own config, so the worst case is a stuck lint run. Remove when Next drops fast-glob.",
+    "review_by": "2027-01-13"
+  }
+}

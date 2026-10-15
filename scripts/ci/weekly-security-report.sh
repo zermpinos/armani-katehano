@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Generates the weekly dependency audit report and opens a GitHub Issue.
+# Generates the weekly dependency audit report and opens a GitHub Issue when
+# something needs a decision.
 # Expects: GH_TOKEN, GITHUB_REPOSITORY set by the Actions runner.
 set -euo pipefail
 
@@ -54,16 +55,29 @@ VULN_DETAIL=$(node -e "
   } catch(e) { console.log('Could not parse audit output: ' + e.message); }
 ")
 
-if [ "$VULN_COUNT" = "0" ]; then
-  TITLE="[Security Audit] $DATE - clean"
-else
-  TITLE="[Security Audit] $DATE - $VULN_COUNT vulnerabilities"
+# Same judgement as CI: an issue opens only for an advisory nobody has accepted,
+# an exception past its review date, or one that is no longer needed.
+CHECK=$(node scripts/ci/check-audit.mjs 2>&1) && CHECK_FAILED=0 || CHECK_FAILED=1
+if [ "$CHECK_FAILED" = 0 ] && ! grep -q '::warning::' <<< "$CHECK"; then
+  echo "$CHECK"
+  echo "Nothing needs action this week; no issue opened."
+  exit 0
 fi
+
+TITLE="[Security Audit] $DATE - action needed"
 
 cat > /tmp/issue-body.md << ISSUEEOF
 ## Summary
 
 $([ "$VULN_COUNT" = "0" ] && echo "**clean** - \`npm audit\` found no vulnerabilities." || echo "**$VULN_COUNT vulnerabilities found.**")
+
+## Exceptions check
+
+Accepted advisories live in \`.github/audit-exceptions.json\`.
+
+\`\`\`
+$(sed -E 's/^::(error|warning):://' <<< "$CHECK")
+\`\`\`
 
 ## Vulnerabilities
 
