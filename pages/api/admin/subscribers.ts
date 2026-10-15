@@ -1,6 +1,7 @@
 import { requireAuth } from "@/server/auth";
 import prisma          from "@/server/db/client";
 import { prodError }   from "@/domain/shared/format";
+import { auditLog }    from "@/server/security/node/audit-log";
 
 async function handler(req: any, res: any) {
   // ── GET ──────────────────────────────────────────────────────────────────
@@ -48,13 +49,18 @@ async function handler(req: any, res: any) {
   // ── DELETE ───────────────────────────────────────────────────────────────
   if (req.method === "DELETE") {
     const { ids } = req.body ?? {};
-    if (!Array.isArray(ids) || ids.length === 0)
-      return res.status(400).json({ error: "ids must be a non-empty array" });
+    if (
+      !Array.isArray(ids) || ids.length === 0 || ids.length > 200 ||
+      !ids.every(id => typeof id === "string" && id.length > 0)
+    )
+      return res.status(400).json({ error: "ids must be 1 to 200 subscriber ids" });
 
     try {
       const result = await prisma.subscriber.deleteMany({
         where: { id: { in: ids } },
       });
+      // Count only: the addresses are personal data and must not outlive their rows in the audit log.
+      await auditLog("subscribers_deleted", { count: result.count });
       return res.status(200).json({ deleted: result.count });
     } catch (err) {
       return res.status(500).json({ error: prodError(err) });
