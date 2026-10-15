@@ -76,7 +76,7 @@ PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end
 ## 3. Tech Stack
 
 **Runtime & framework**
-- Node.js ≥ 24.15 (`< 25`; pinned by `.nvmrc` and `engines`)
+- Node.js 24 (`.nvmrc` tracks the latest 24.x; `engines` requires `>=24.15.0 <25`)
 - Next.js 16 (Pages Router), ISR for public pages with on-demand revalidation
 - React 19
 - TypeScript 6
@@ -322,14 +322,14 @@ armani-katehano/
 ## 7. Usage
 
 ### Prerequisites
-- Node.js ≥ 24.15 (`.nvmrc` pins `24.15.0`; `engines` requires `>=24.15.0 <25`)
+- Node.js 24 (`.nvmrc` tracks the latest 24.x; `engines` requires `>=24.15.0 <25`)
 - A PostgreSQL database (locally or via Neon)
 - Brevo SMTP credentials (optional in development; required for email flows)
 
 ### First-time setup
 
 ```bash
-nvm use                            # honor .nvmrc
+nvm install                        # latest 24.x, per .nvmrc
 npm install
 cp .env.example .env.local         # then fill in secrets (see § 8)
 npx prisma migrate deploy          # apply migrations
@@ -480,7 +480,7 @@ The app is deployed to **Vercel**. Production data is in **Neon Postgres**.
 ### Vercel configuration
 
 - **Build command** - `npm run build` (runs the prebuild polyfill stub, `prisma generate`, `next build`, and the post-build middleware-bundle / ISR-page guards).
-- **Node version** - pinned via `.nvmrc` (`24.15.0`; `engines` requires `>=24.15.0 <25`).
+- **Node version** - `engines` (`>=24.15.0 <25`) keeps Vercel on 24.x; Vercel applies minor and patch releases itself, and CI follows them through `.nvmrc`.
 - **Crons** - declared in [`vercel.json`](vercel.json):
   - `0 2 * * *` -> `/api/admin/cleanup`
   - `0 3 * * *` -> `/api/cron/purge-subscribers`
