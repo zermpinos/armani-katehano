@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 const BTN_VARIANT: Record<string, string> = {
   primary:   "bg-ak-red border-transparent text-ak-text",
@@ -29,11 +29,11 @@ export function Btn({ onClick, disabled = false, children, variant = "primary", 
   );
 }
 
-export function F({ label, value, onChange, type = "text", placeholder = "" }: { label: string; value: string | number; onChange: (v: string) => void; type?: string; placeholder?: string }) {
+export function F({ label, value, onChange, type = "text", placeholder = "", maxLength }: { label: string; value: string | number; onChange: (v: string) => void; type?: string; placeholder?: string; maxLength?: number }) {
   return (
     <label className="block">
       <span className={LABEL}>{label}</span>
-      <input type={type} value={value ?? ""} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      <input type={type} value={value ?? ""} onChange={e => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength}
         className={CONTROL} />
     </label>
   );
@@ -60,5 +60,50 @@ export function Check({ label, checked, onChange, hint }: { label: string; check
         {hint && <span className="mt-1 block text-[11px] text-ak-text-dim">{hint}</span>}
       </span>
     </label>
+  );
+}
+
+export function TextArea({ label, value, onChange, rows = 4, maxLength, placeholder = "", mono = false }: { label: string; value: string; onChange: (v: string) => void; rows?: number; maxLength?: number; placeholder?: string; mono?: boolean }) {
+  return (
+    <label className="block">
+      <span className={LABEL}>{label}</span>
+      <textarea value={value} onChange={e => onChange(e.target.value)} rows={rows} maxLength={maxLength} placeholder={placeholder}
+        className={`${mono ? CONTROL.replace("font-sans", "font-mono") : CONTROL} resize-y`} />
+    </label>
+  );
+}
+
+export function Segmented<T extends string>({ label, options, value, onChange }: {
+  label:    string;
+  options:  ReadonlyArray<{ value: T; label: string }>;
+  value:    T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div role="group" aria-label={label} className="flex w-fit overflow-hidden rounded-[7px] border border-ak-border2">
+      {options.map(o => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={o.value === value}
+          onClick={() => onChange(o.value)}
+          className={[
+            "min-h-[44px] cursor-pointer border-0 px-4 font-sans text-[11px] font-black uppercase tracking-[0.1em]",
+            o.value === value ? "bg-ak-surface text-ak-text" : "bg-ak-base text-ak-text-dim",
+          ].join(" ")}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function ArmedButton({ label, onConfirm }: { label: string; onConfirm: () => void }) {
+  const [armed, setArmed] = useState(false);
+  return (
+    <Btn variant="danger" onClick={() => (armed ? onConfirm() : setArmed(true))}>
+      {armed ? `TAP AGAIN TO ${label}` : label}
+    </Btn>
   );
 }
