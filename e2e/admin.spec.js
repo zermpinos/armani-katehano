@@ -525,8 +525,6 @@ test.describe("Admin panel › Import recovery", () => {
   });
 });
 
-// ── API-level auth guard (always runs - no credentials needed) ─────────────
-
 test.describe("Admin panel › Subscribers sheet", () => {
   const adminContext = (browser) => browser.newContext({
     baseURL:      BASE_URL,
@@ -581,6 +579,64 @@ test.describe("Admin panel › Subscribers sheet", () => {
     }
   });
 });
+
+test.describe("Admin panel › Broadcast composer", () => {
+  const adminContext = (browser) => browser.newContext({
+    baseURL:      BASE_URL,
+    storageState: makeAdminStorageState(ADMIN_USERNAME),
+  });
+
+  async function mockBroadcast(page, posts) {
+    await page.route(url => url.pathname === "/api/admin/broadcast", async route => {
+      if (route.request().method() === "GET") return route.fulfill({ json: { logs: [] } });
+      const body = route.request().postDataJSON();
+      posts.push(body.mode);
+      if (body.mode === "preview") return route.fulfill({ json: { ok: true, renderedHtml: "<p>Hello <strong>fans</strong></p>" } });
+      return route.fulfill({ status: 500, json: { error: "This test must not send." } });
+    });
+    await page.route(url => url.pathname === "/api/admin/subscribers", route => route.fulfill({
+      json: { subscribers: [], total: 3, page: 1, limit: 1, hasMore: false },
+    }));
+  }
+
+  test("review and send unlocks only for text that has a current preview", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      const posts = [];
+      await mockBroadcast(page, posts);
+      await page.goto(`/admin/${ADMIN_SLUG}/broadcast`);
+
+      const subject = page.getByLabel("SUBJECT");
+      const body    = page.getByLabel("BODY (MARKDOWN)");
+      await subject.fill("Match night");
+      await body.fill("Hello **fans**");
+      for (const field of [subject, body]) {
+        expect(await field.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+      }
+      const review = page.getByRole("button", { name: "REVIEW & SEND" });
+      await expect(review).toBeDisabled();
+
+      await page.getByRole("button", { name: "Preview", exact: true }).click();
+      await expect(page.getByText("No preview of this text yet.")).toBeVisible();
+      await page.getByRole("button", { name: /SEND PREVIEW TO/ }).click();
+      await expect(page.locator("strong", { hasText: "fans" })).toBeVisible();
+      await expect(review).toBeEnabled();
+      expect(posts).toEqual(["preview"]);
+
+      await page.getByRole("button", { name: "Write", exact: true }).click();
+      await page.getByLabel("BODY (MARKDOWN)").fill("Changed text");
+      await expect(review).toBeDisabled();
+      await page.getByRole("button", { name: "Preview", exact: true }).click();
+      await expect(page.getByText("No preview of this text yet.")).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  });
+});
+
+// ── API-level auth guard (always runs - no credentials needed) ─────────────
 
 test.describe("Admin panel › API protection", () => {
   test("GET /api/admin/games returns 401 without a session cookie", async ({ request }) => {

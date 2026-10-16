@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, type ReactNode } from "react";
 import {
-  adminLayout, useAdminSession, Spinner, Btn, apiFetch,
+  adminLayout, useAdminSession, Spinner, Btn, F, TextArea, Segmented, apiFetch,
 } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
@@ -23,6 +23,18 @@ type ResolveResult = {
 
 type PageMode = "compose" | "confirming" | "sending";
 
+type View = "write" | "preview";
+
+const VIEWS: ReadonlyArray<{ value: View; label: string }> = [
+  { value: "write",   label: "Write" },
+  { value: "preview", label: "Preview" },
+];
+
+const RECIPIENT_MODES: ReadonlyArray<{ value: "all" | "specific"; label: string }> = [
+  { value: "all",      label: "All confirmed" },
+  { value: "specific", label: "Specific" },
+];
+
 export default function BroadcastPage({ maskedAdminEmail }: { maskedAdminEmail: string }) {
   const { setToast } = useAdminSession();
 
@@ -40,6 +52,7 @@ export default function BroadcastPage({ maskedAdminEmail }: { maskedAdminEmail: 
   const [resolving,       setResolving]       = useState(false);
 
   const [mode,           setMode]           = useState<PageMode>("compose");
+  const [view, setView] = useState<View>("write");
   const [confirmedCount, setConfirmedCount] = useState<number | null>(null);
   const [logs,           setLogs]           = useState<BroadcastLogRow[]>([]);
 
@@ -57,14 +70,14 @@ export default function BroadcastPage({ maskedAdminEmail }: { maskedAdminEmail: 
     (recipientMode === "all" || (recipientMode === "specific" && resolveCurrent && resolveResult!.matched > 0));
 
   const fetchHistory = useCallback(() =>
-    fetch("/api/admin/broadcast?limit=20")
+    apiFetch("/api/admin/broadcast?limit=20")
       .then(res => res.ok ? res.json() : null)
       .then(data => { if (data) setLogs(data.logs ?? []); })
       .catch(() => {}),
   []);
 
   const fetchCount = useCallback(() =>
-    fetch("/api/admin/subscribers?status=confirmed&limit=1")
+    apiFetch("/api/admin/subscribers?status=confirmed&limit=1")
       .then(res => res.ok ? res.json() : null)
       .then(data => { if (data) setConfirmedCount(data.total ?? 0); })
       .catch(() => {}),
@@ -100,6 +113,7 @@ export default function BroadcastPage({ maskedAdminEmail }: { maskedAdminEmail: 
       if (!res.ok) throw new Error(data.error ?? "Preview failed");
       setRenderedHtml(data.renderedHtml);
       setPreviewKey(currentKey);
+      setView("preview");
       setToast({ msg: `Preview sent to ${maskedAdminEmail}`, type: "success" });
     } catch (err: any) {
       setToast({ msg: err.message ?? "Preview failed", type: "error" });
@@ -150,6 +164,7 @@ export default function BroadcastPage({ maskedAdminEmail }: { maskedAdminEmail: 
       setSubject(""); setBody(""); setSpecificEmails("");
       setRenderedHtml(null); setPreviewKey(null);
       setResolveResult(null); setResolvedForText(null);
+      setView("write");
       setMode("compose");
       void fetchHistory();
     } catch (err: any) {
@@ -177,110 +192,119 @@ export default function BroadcastPage({ maskedAdminEmail }: { maskedAdminEmail: 
         <>
           {mode === "compose" && (
             <Panel label="New email">
-              <FieldLabel>Subject</FieldLabel>
-              <input
-                type="text"
-                value={subject}
-                onChange={e => handleSubjectChange(e.target.value)}
-                maxLength={200}
-                placeholder="Email subject..."
-                className="w-full py-[9px] px-[12px] text-sm rounded-[8px] border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none"
-              />
-              {subject.length >= 180 && (
-                <div className={["text-[11px] mt-1", subject.length >= 200 ? "text-ak-red-text" : "text-ak-text-dim"].join(" ")}>
-                  {subject.length}/200
-                </div>
-              )}
-
-              <div className="mt-5">
-                <FieldLabel>Body (Markdown)</FieldLabel>
-                <textarea
-                  value={body}
-                  onChange={e => handleBodyChange(e.target.value)}
-                  maxLength={50_000}
-                  rows={10}
-                  placeholder="Write your message in Markdown..."
-                  className="w-full py-[9px] px-[12px] text-sm rounded-[8px] border border-ak-border2 bg-ak-base text-ak-text font-mono outline-none resize-y"
-                />
-                {body.length >= 48_000 && (
-                  <div className={["text-[11px] mt-1", body.length >= 50_000 ? "text-ak-red-text" : "text-ak-text-dim"].join(" ")}>
-                    {body.length.toLocaleString()}/50,000
-                  </div>
-                )}
+              <div className="mb-4">
+                <Segmented label="Composer view" options={VIEWS} value={view} onChange={setView} />
               </div>
 
-              <div className="mt-5">
-                <FieldLabel>Recipients</FieldLabel>
-                <div className="flex rounded-[7px] border border-ak-border2 overflow-hidden mb-3 w-fit">
-                  {(["all", "specific"] as const).map(m => {
-                    const active = recipientMode === m;
-                    return (
-                      <button
-                        key={m}
-                        onClick={() => { setRecipientMode(m); setResolveResult(null); setResolvedForText(null); }}
-                        className={[
-                          "px-4 py-[7px] text-[11px] font-black tracking-[0.1em] uppercase font-sans border-0 cursor-pointer",
-                          active ? "bg-ak-surface text-ak-text" : "bg-ak-base text-ak-text-dim",
-                        ].join(" ")}
-                      >
-                        {m === "all" ? "All confirmed" : "Specific"}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {recipientMode === "all" && confirmedCount !== null && (
-                  <p className="text-[12px] text-ak-text-dim">
-                    Will send to <strong className="text-ak-text">{confirmedCount}</strong> confirmed subscriber{confirmedCount !== 1 ? "s" : ""}.
-                    Actual count may differ slightly at send time.
-                  </p>
-                )}
-
-                {recipientMode === "specific" && (
+              {view === "write" ? (
+                <div className="flex flex-col gap-5">
                   <div>
-                    <textarea
-                      value={specificEmails}
-                      onChange={e => handleSpecificEmailsChange(e.target.value)}
-                      rows={4}
-                      placeholder="One email per line, or comma-separated..."
-                      className="w-full py-[9px] px-[12px] text-sm rounded-[8px] border border-ak-border2 bg-ak-base text-ak-text font-mono outline-none resize-y mb-2"
+                    <F label="SUBJECT" value={subject} onChange={handleSubjectChange} maxLength={200} placeholder="Email subject" />
+                    {subject.length >= 180 && (
+                      <div className={["mt-1 text-[11px]", subject.length >= 200 ? "text-ak-red-text" : "text-ak-text-dim"].join(" ")}>
+                        {subject.length}/200
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <TextArea
+                      label="BODY (MARKDOWN)"
+                      value={body}
+                      onChange={handleBodyChange}
+                      rows={10}
+                      maxLength={50_000}
+                      mono
+                      placeholder="Write your message in Markdown"
                     />
-                    <Btn
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCheckRecipients}
-                      disabled={resolving || !specificEmails.trim()}
-                    >
-                      {resolving ? "CHECKING..." : "CHECK RECIPIENTS"}
-                    </Btn>
-                    {resolveResult && resolveCurrent && (
-                      <div className="mt-2 text-[12px]">
-                        <span className="text-ak-text">
-                          <strong>{resolveResult.matched}</strong> matched confirmed subscriber{resolveResult.matched !== 1 ? "s" : ""}
-                        </span>
-                        {resolveResult.unmatchedCount > 0 && (
-                          <span className="text-ak-text-dim ml-2">
-                            ({resolveResult.unmatchedCount} unmatched
-                            {resolveResult.unmatched.length > 0 && `: ${resolveResult.unmatched.slice(0, 5).join(", ")}${resolveResult.unmatchedCount > 5 ? ` + ${resolveResult.unmatchedCount - 5} more` : ""}`})
-                          </span>
+                    {body.length >= 48_000 && (
+                      <div className={["mt-1 text-[11px]", body.length >= 50_000 ? "text-ak-red-text" : "text-ak-text-dim"].join(" ")}>
+                        {body.length.toLocaleString()}/50,000
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <FieldLabel>Recipients</FieldLabel>
+                    <div className="mb-3">
+                      <Segmented
+                        label="Recipients"
+                        options={RECIPIENT_MODES}
+                        value={recipientMode}
+                        onChange={m => { setRecipientMode(m); setResolveResult(null); setResolvedForText(null); }}
+                      />
+                    </div>
+
+                    {recipientMode === "all" && confirmedCount !== null && (
+                      <p className="text-[12px] text-ak-text-dim">
+                        Will send to <strong className="text-ak-text">{confirmedCount}</strong> confirmed subscriber{confirmedCount !== 1 ? "s" : ""}.
+                        Actual count may differ slightly at send time.
+                      </p>
+                    )}
+
+                    {recipientMode === "specific" && (
+                      <div>
+                        <TextArea
+                          label="EMAILS"
+                          value={specificEmails}
+                          onChange={handleSpecificEmailsChange}
+                          rows={4}
+                          mono
+                          placeholder="One email per line, or comma-separated"
+                        />
+                        <div className="mt-2">
+                          <Btn
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCheckRecipients}
+                            disabled={resolving || !specificEmails.trim()}
+                          >
+                            {resolving ? "CHECKING..." : "CHECK RECIPIENTS"}
+                          </Btn>
+                        </div>
+                        {resolveResult && resolveCurrent && (
+                          <div className="mt-2 text-[12px]">
+                            <span className="text-ak-text">
+                              <strong>{resolveResult.matched}</strong> matched confirmed subscriber{resolveResult.matched !== 1 ? "s" : ""}
+                            </span>
+                            {resolveResult.unmatchedCount > 0 && (
+                              <span className="text-ak-text-dim ml-2">
+                                ({resolveResult.unmatchedCount} unmatched
+                                {resolveResult.unmatched.length > 0 && `: ${resolveResult.unmatched.slice(0, 5).join(", ")}${resolveResult.unmatchedCount > 5 ? ` + ${resolveResult.unmatchedCount - 5} more` : ""}`})
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="mb-3 text-[14px] font-bold text-ak-text">{subject.trim() || "No subject yet"}</div>
+                  {previewCurrent && sanitizedHtml ? (
+                    <PreviewBody html={sanitizedHtml} />
+                  ) : (
+                    <p className="rounded-[10px] border border-dashed border-ak-border px-4 py-6 text-center text-[13px] text-ak-text-dim">
+                      No preview of this text yet. Send one to see the email as subscribers will get it.
+                    </p>
+                  )}
+                  <div className="mt-4">
+                    <Btn variant="ghost" onClick={handleSendPreview} disabled={sendingPreview || !subject.trim() || !body.trim()}>
+                      {sendingPreview ? "SENDING PREVIEW..." : `SEND PREVIEW TO ${maskedAdminEmail.toUpperCase()}`}
+                    </Btn>
+                  </div>
+                </div>
+              )}
 
-              <div className="flex items-center gap-3 flex-wrap mt-6 pt-4 border-t border-ak-border">
-                <Btn variant="ghost" onClick={handleSendPreview} disabled={sendingPreview || !subject.trim() || !body.trim()}>
-                  {sendingPreview ? "SENDING PREVIEW..." : `SEND PREVIEW TO ${maskedAdminEmail.toUpperCase()}`}
-                </Btn>
+              <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-ak-border pt-4">
                 <Btn variant="primary" onClick={() => setMode("confirming")} disabled={!canReview}>
                   REVIEW &amp; SEND
                 </Btn>
+                {!previewCurrent && subject.trim() && body.trim() && (
+                  <p className="text-[11px] text-ak-text-dim">Send a preview from the Preview tab to enable sending.</p>
+                )}
               </div>
-              {!previewCurrent && subject.trim() && body.trim() && (
-                <p className="text-[11px] text-ak-text-dim mt-2">Send a preview first to enable sending.</p>
-              )}
             </Panel>
           )}
 
@@ -301,10 +325,7 @@ export default function BroadcastPage({ maskedAdminEmail }: { maskedAdminEmail: 
               {sanitizedHtml ? (
                 <div>
                   <div className="text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-[6px]">Preview</div>
-                  <div
-                    className="rounded-[10px] border border-ak-border bg-white p-5 text-[14px] text-black prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-                  />
+                  <PreviewBody html={sanitizedHtml} />
                 </div>
               ) : (
                 <div className="rounded-[10px] border border-[#c9a84c55] bg-[#c9a84c12] p-4 text-[13px] text-ak-gold">
@@ -345,9 +366,18 @@ function Panel({ label, children }: { label: string; children: ReactNode }) {
 
 function FieldLabel({ children }: { children: ReactNode }) {
   return (
-    <label className="block text-[10px] font-black tracking-[0.15em] text-ak-text-dim uppercase mb-[6px]">
+    <div className="mb-[6px] text-[10px] font-black uppercase tracking-[0.15em] text-ak-text-dim">
       {children}
-    </label>
+    </div>
+  );
+}
+
+function PreviewBody({ html }: { html: string }) {
+  return (
+    <div
+      className="rounded-[10px] border border-ak-border bg-white p-5 text-[14px] text-black prose prose-sm max-w-none"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   );
 }
 
