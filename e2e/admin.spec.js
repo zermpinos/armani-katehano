@@ -527,6 +527,61 @@ test.describe("Admin panel › Import recovery", () => {
 
 // ── API-level auth guard (always runs - no credentials needed) ─────────────
 
+test.describe("Admin panel › Subscribers sheet", () => {
+  const adminContext = (browser) => browser.newContext({
+    baseURL:      BASE_URL,
+    storageState: makeAdminStorageState(ADMIN_USERNAME),
+  });
+  const subscribers = [
+    { id: "cmsubscriber0000000000001", email: "fan.one@example.com", createdAt: "2026-09-01T10:00:00.000Z", confirmedAt: "2026-09-01T10:05:00.000Z" },
+    { id: "cmsubscriber0000000000002", email: "fan.two@example.com", createdAt: "2026-09-02T10:00:00.000Z", confirmedAt: null },
+  ];
+
+  async function mockSubscribers(page, deletes) {
+    let list = [...subscribers];
+    await page.route(url => url.pathname === "/api/admin/subscribers", async route => {
+      if (route.request().method() === "GET") {
+        return route.fulfill({ json: { subscribers: list, total: list.length, page: 1, limit: 50, hasMore: false } });
+      }
+      const { ids } = route.request().postDataJSON();
+      deletes.push(ids);
+      list = list.filter(s => !ids.includes(s.id));
+      return route.fulfill({ json: { deleted: ids.length } });
+    });
+  }
+
+  test("a subscriber is removed from its sheet only after a second tap", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      const deletes = [];
+      await mockSubscribers(page, deletes);
+      await page.goto(`/admin/${ADMIN_SLUG}/subscribers`);
+      const search = page.getByLabel("SEARCH");
+      await expect(search).toBeVisible();
+      expect(await search.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+
+      await page.getByRole("button", { name: /fan\.one@example\.com/ }).click();
+      const sheet = page.getByRole("dialog", { name: "Subscriber" });
+      await expect(sheet).toBeVisible();
+      await expect(sheet.getByText("fan.one@example.com")).toBeVisible();
+
+      await sheet.getByRole("button", { name: "REMOVE", exact: true }).click();
+      await expect(sheet.getByRole("button", { name: "TAP AGAIN TO REMOVE" })).toBeVisible();
+      expect(deletes).toEqual([]);
+
+      await sheet.getByRole("button", { name: "TAP AGAIN TO REMOVE" }).click();
+      await expect(sheet).toBeHidden();
+      await expect(page.getByRole("button", { name: /fan\.one@example\.com/ })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /fan\.two@example\.com/ })).toBeVisible();
+      expect(deletes).toEqual([["cmsubscriber0000000000001"]]);
+    } finally {
+      await context.close();
+    }
+  });
+});
+
 test.describe("Admin panel › API protection", () => {
   test("GET /api/admin/games returns 401 without a session cookie", async ({ request }) => {
     const res = await request.get("/api/admin/games");
