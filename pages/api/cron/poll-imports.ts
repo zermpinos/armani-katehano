@@ -25,6 +25,7 @@ import { startCronRun, finishCronRun } from "@/server/services/cron-run";
 import { scrapeAndResolve, loadOpponentAliases } from "@/server/services/import-pipeline";
 import { commitImport, CommitError } from "@/server/services/import-commit";
 import { toCommitInput } from "@/domain/import/resolve";
+import { suggestDisplayName } from "@/domain/import/opponents";
 import { parseGreekDate } from "@/domain/calendar/greek-date";
 import { GameWriteSchema } from "@/schemas/game";
 import { sendImportNotification } from "@/server/integrations/email/client";
@@ -121,6 +122,7 @@ export default async function handler(req: any, res: any) {
 
     const committed: { sourceUrl: string; gameId: string; youtubeUrl: string | null }[] = [];
     const skipped:   Skip[] = [];
+    const unknownOpponents: { scrapedName: string; suggestion: string; sourceUrl: string }[] = [];
     for (const e of errors) skipped.push({ sourceUrl: "listing", reason: e, transient: false });
 
     for (const candidate of candidates) {
@@ -140,7 +142,11 @@ export default async function handler(req: any, res: any) {
           skip(result.nameMismatches.map(m => `jersey #${m.number} worn by "${m.scrapedName}"`).join(", "));
           continue;
         }
-        if (result.unknownOpponent)             { skip(`unknown opponent "${result.unknownOpponent}"`); continue; }
+        if (result.unknownOpponent) {
+          unknownOpponents.push({ scrapedName: result.unknownOpponent, suggestion: suggestDisplayName(result.unknownOpponent), sourceUrl });
+          skip(`unknown opponent "${result.unknownOpponent}"`);
+          continue;
+        }
 
         // Same validation the admin's save goes through. Round comes from the
         // listing label, which is the only place a playoff game says so.
@@ -175,7 +181,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const summary = {
-      listed: games.length, candidates: candidates.length, committed, skipped, videoFeedError,
+      listed: games.length, candidates: candidates.length, committed, skipped, videoFeedError, unknownOpponents,
       fixtures: {
         created:  fixtureSync.created.map(c => `${c.opponent} ${c.scheduledFor.toISOString()}`),
         changed:  fixtureSync.changed,

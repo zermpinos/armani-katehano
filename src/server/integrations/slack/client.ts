@@ -78,7 +78,7 @@ export async function sendAliasPrompt(entries: AliasPrompt[]): Promise<boolean> 
     [
       `${entries.length} fixture${entries.length > 1 ? "s" : ""} not published: opponent name not set.`,
       ...lines,
-      "Add the name in the admin portal to publish it on the next run.",
+      "Name it on the admin Schedule page; the fixture is published as soon as the name is saved.",
     ].join("\n"),
   );
 }
