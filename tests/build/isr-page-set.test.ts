@@ -23,6 +23,7 @@ function listHtmlFiles(dir: string): string[] {
 // gate the dynamic assertions on the actual presence of HTML files.
 const hasGameHtml   = listHtmlFiles(join(BUILD_DIR, "games")).length   > 0;
 const hasPlayerHtml = listHtmlFiles(join(BUILD_DIR, "players")).length > 0;
+const hasOpponentHtml = listHtmlFiles(join(BUILD_DIR, "opponents")).length > 0;
 
 describe.skipIf(!hasBuild)("ISR pre-render set", () => {
   it("index.html is pre-rendered", () => {
@@ -59,6 +60,10 @@ describe.skipIf(!hasBuild)("ISR pre-render set", () => {
       ? readdirSync(playersDir).filter((f: string) => f.endsWith(".html"))
       : [];
     expect(playerHtml.length).toBeGreaterThan(0);
+  });
+
+  it.skipIf(!hasOpponentHtml)("at least one per-opponent HTML file is pre-rendered", () => {
+    expect(listHtmlFiles(join(BUILD_DIR, "opponents")).length).toBeGreaterThan(0);
   });
 
   // Admin pages compile under .next/server/pages/admin/ as SSR bundles even

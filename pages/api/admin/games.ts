@@ -202,6 +202,7 @@ async function createGame(req: any, res: any) {
       revalidate: res.revalidate,
       gameId: game.id,
       affectedPlayerSlugs: await slugsForPlayerIds(boxScore?.map(r => r.playerId) ?? []),
+      opponents: [opponent],
     });
     return res.status(201).json({ ok: true, gameId: game.id });
   } catch (err) {
@@ -249,13 +250,15 @@ async function updateGame(req: any, res: any) {
   }
 
   let previousPlayerIds: string[] = [];
+  let previousOpponent: string | null = null;
 
   try {
     await prisma.$transaction(async (tx) => {
       const existing = await tx.game.findUniqueOrThrow({
         where: { id: gameId },
-        select: { seasonLeagueId: true },
+        select: { seasonLeagueId: true, opponent: true },
       });
+      previousOpponent = existing.opponent;
       const leagueChanged =
         newLeagueId !== undefined && newLeagueId !== existing.seasonLeagueId;
       previousPlayerIds = (
@@ -295,6 +298,7 @@ async function updateGame(req: any, res: any) {
       revalidate: res.revalidate,
       gameId,
       affectedPlayerSlugs: await slugsForPlayerIds([...previousPlayerIds, ...newPlayerIds]),
+      opponents: [previousOpponent, opponent].filter((o): o is string => Boolean(o)),
     });
     return res.status(200).json({ ok: true });
   } catch (err) {
@@ -310,13 +314,15 @@ async function deleteGame(req: any, res: any) {
   const { gameId } = data;
 
   let deletedPlayerIds: string[] = [];
+  let deletedOpponent: string | null = null;
 
   try {
     await prisma.$transaction(async (tx) => {
       const existing = await tx.game.findUniqueOrThrow({
         where: { id: gameId },
-        select: { seasonLeagueId: true },
+        select: { seasonLeagueId: true, opponent: true },
       });
+      deletedOpponent = existing.opponent;
       deletedPlayerIds = (
         await tx.playerGameStat.findMany({ where: { gameId }, select: { playerId: true } })
       ).map(r => r.playerId);
@@ -329,6 +335,7 @@ async function deleteGame(req: any, res: any) {
       revalidate: res.revalidate,
       gameId,
       affectedPlayerSlugs: await slugsForPlayerIds(deletedPlayerIds),
+      opponents: deletedOpponent ? [deletedOpponent] : [],
     });
     return res.status(200).json({ ok: true });
   } catch (err) {

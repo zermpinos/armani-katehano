@@ -20,6 +20,18 @@ function recorder() {
 
 describe("cache-invalidation", () => {
   describe("invalidateForGameMutation", () => {
+    it("refreshes each opponent's page once", async () => {
+      const { fn, calls } = recorder();
+      await invalidateForGameMutation({ revalidate: fn, gameId: "g1", opponents: ["New York Bricks", "New York Bricks", "B.C. Abla"] });
+      expect(calls.filter((p) => p.startsWith("/opponents/")).sort()).toEqual(["/opponents/b-c-abla", "/opponents/new-york-bricks"]);
+    });
+
+    it("adds no opponent path for a name with no Latin letters or digits", async () => {
+      const { fn, calls } = recorder();
+      await invalidateForGameMutation({ revalidate: fn, gameId: "g1", opponents: ["ΚΟΥΒΑΔΕΣ"] });
+      expect(calls.filter((p) => p.startsWith("/opponents/"))).toEqual([]);
+    });
+
     it("invalidates all listings, the per-game page, and a per-player page for every affected slug", async () => {
       const { fn, calls } = recorder();
       await invalidateForGameMutation({

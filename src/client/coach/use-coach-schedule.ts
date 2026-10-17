@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import type { HeadToHead } from "@/domain/stats/head-to-head";
 
 export function useCoachSchedule(authed: boolean) {
   const [schedule,         setSchedule]        = useState<any[]>([]);
+  const [headToHead,       setHeadToHead]      = useState<HeadToHead[]>([]);
   const [allPlayers,       setAllPlayers]       = useState<any[]>([]);
   const [loadingData,      setLoadingData]      = useState(true);
   const [announcedGameIds, setAnnouncedGameIds] = useState<Set<string>>(new Set());
@@ -38,6 +40,7 @@ export function useCoachSchedule(authed: boolean) {
           const d = await res.json();
           const games = d.schedule ?? [];
           setSchedule(games);
+          setHeadToHead(d.headToHead ?? []);
           loadAnnouncementBadges(games);
         }
       } finally {
@@ -55,5 +58,5 @@ export function useCoachSchedule(authed: boolean) {
   const unmarkAnnounced = (gameId: string) =>
     setAnnouncedGameIds(prev => { const s = new Set(prev); s.delete(gameId); return s; });
 
-  return { schedule, allPlayers, loadingData, announcedGameIds, markAnnounced, unmarkAnnounced };
+  return { schedule, headToHead, allPlayers, loadingData, announcedGameIds, markAnnounced, unmarkAnnounced };
 }

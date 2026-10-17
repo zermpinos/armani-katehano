@@ -9,7 +9,7 @@
 import { test, expect } from "@playwright/test";
 
 async function findFirstGameCard(page) {
-  const cards = page.getByText("BOX SCORE ->");
+  const cards = page.getByText("BOX SCORE");
   const count = await cards.count();
   if (count === 0) return null;
   return cards.first();

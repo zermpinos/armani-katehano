@@ -78,7 +78,7 @@ export function setupMocks(mockPrisma: any, recalcAggregates: any) {
   mockPrisma.game.create.mockResolvedValue(MOCK_GAME);
   mockPrisma.game.update.mockResolvedValue(MOCK_GAME);
   mockPrisma.game.delete.mockResolvedValue(MOCK_GAME);
-  mockPrisma.game.findUniqueOrThrow.mockResolvedValue({ seasonLeagueId: VALID_SEASON_LEAGUE });
+  mockPrisma.game.findUniqueOrThrow.mockResolvedValue({ seasonLeagueId: VALID_SEASON_LEAGUE, opponent: MOCK_GAME.opponent });
   mockPrisma.playerGameStat.createMany.mockResolvedValue({ count: 0 });
   mockPrisma.playerGameStat.deleteMany.mockResolvedValue({ count: 0 });
   if (mockPrisma.playerGameStat.findMany) mockPrisma.playerGameStat.findMany.mockResolvedValue([]);

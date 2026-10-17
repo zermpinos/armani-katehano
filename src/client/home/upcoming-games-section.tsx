@@ -3,19 +3,23 @@ import { GoogleCalIcon } from "./google-cal-icon";
 import { RosterPanel } from "./roster-panel";
 import { ShowMoreButton } from "./show-more-button";
 import { getVenueUrl } from "@/domain/shared/venues";
+import { HeadToHeadBlock } from "@/client/games/HeadToHeadBlock";
+import { headToHead as emptyFor, type HeadToHead } from "@/domain/stats/head-to-head";
 
 interface Props {
   upcomingGames: any[];
+  headToHead: HeadToHead[];
   openRosterId: string | null;
   onToggleRoster: (id: string) => void;
   showAllUpcoming: boolean;
   onShowMore: () => void;
 }
 
-export function UpcomingGamesSection({ upcomingGames, openRosterId, onToggleRoster, showAllUpcoming, onShowMore }: Props) {
+export function UpcomingGamesSection({ upcomingGames, headToHead, openRosterId, onToggleRoster, showAllUpcoming, onShowMore }: Props) {
   if (!upcomingGames?.length) return null;
 
   const featured = upcomingGames[0];
+  const featuredH2h = headToHead.find(h => h.opponent === featured.opponent) ?? emptyFor([], featured.opponent);
   const rest = upcomingGames.slice(1);
   const { label: featLabel, tier: featTier } = getCountdownInfo(featured.scheduledFor);
   const featTime = formatGameTime(featured.scheduledFor);
@@ -119,6 +123,7 @@ export function UpcomingGamesSection({ upcomingGames, openRosterId, onToggleRost
             </div>
           </div>
         </div>
+        <HeadToHeadBlock h2h={featuredH2h} title={`Against ${featured.opponent}`} emptyText="First meeting." showAllLink />
 
         <div className="mt-3 pt-[10px] border-t border-ak-border">
           {featured.announcement ? (

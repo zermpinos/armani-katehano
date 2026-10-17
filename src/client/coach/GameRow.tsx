@@ -2,11 +2,14 @@ import React from "react";
 import { fmtDate } from "@/domain/shared/format";
 import { Btn, Spinner } from "./primitives";
 import { CoachRosterPanel } from "./roster-panel";
+import { HeadToHeadBlock } from "@/client/games/HeadToHeadBlock";
+import type { HeadToHead } from "@/domain/stats/head-to-head";
 
 const fmtTime = (iso: string) => iso.slice(11, 16);
 
 interface GameRowProps {
   game:                 any;
+  h2h?:                 HeadToHead;
   panelGameId:          string | null;
   announcedGameIds:     Set<string>;
   onOpen:               (g: any) => void;
@@ -26,7 +29,7 @@ interface GameRowProps {
 }
 
 export function GameRow({
-  game, panelGameId, announcedGameIds,
+  game, h2h, panelGameId, announcedGameIds,
   onOpen, onClose,
   allPlayers, rosterSlots, rosterMsg, onRosterMsgChange,
   panelLoading, saving, selectedCount,
@@ -54,6 +57,7 @@ export function GameRow({
             {fmtDate(game.scheduledFor)} · {fmtTime(game.scheduledFor)}
             {game.competition && <> · {game.competition}</>}
           </div>
+          {h2h && <HeadToHeadBlock h2h={h2h} title={`Against ${game.opponent}`} emptyText="First meeting." showAllLink />}
         </div>
         <Btn size="sm" variant={isOpen ? "ghost" : "primary"} onClick={() => isOpen ? onClose() : onOpen(game)}>
           {isOpen ? "CLOSE" : isAnnounced ? "EDIT ROSTER" : "SET ROSTER"}

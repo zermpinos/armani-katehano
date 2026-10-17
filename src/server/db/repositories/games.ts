@@ -217,3 +217,8 @@ export async function getGameIds(): Promise<string[]> {
   const games = await prisma.game.findMany({ select: { id: true } });
   return games.map(g => g.id);
 }
+
+export async function getOpponentNames(): Promise<string[]> {
+  const rows = await prisma.game.findMany({ select: { opponent: true }, distinct: ["opponent"], orderBy: { opponent: "asc" } });
+  return rows.map(r => r.opponent);
+}

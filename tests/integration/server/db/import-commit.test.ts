@@ -96,8 +96,10 @@ beforeEach(() => {
 
 describe("commitImport guards", () => {
   it("commits a well-formed draft", async () => {
+    mockPrisma.game.create.mockResolvedValueOnce({ id: CREATED_GAME_ID, opponent: "Rivals BC" });
     const { gameId } = await commitImport(commitData());
     expect(gameId).toBe(CREATED_GAME_ID);
+    expect(invalidateForGameMutation).toHaveBeenCalledWith(expect.objectContaining({ opponents: ["Rivals BC"] }));
     expect(mockPrisma.playerGameStat.createMany).toHaveBeenCalledOnce();
   });
 

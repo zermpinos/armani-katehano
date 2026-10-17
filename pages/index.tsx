@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { StatTile, SectionHeading } from "@/components/ui";
-import { getAllPublicData, getUpcomingGamesWithAnnouncements, getNextPlayoffGame } from "@/server/db/repositories";
+import { getAllPublicData, getUpcomingGamesWithAnnouncements, getNextPlayoffGame, getAllGames } from "@/server/db/repositories";
+import { headToHeadAll } from "@/domain/stats/head-to-head";
 import { computeRecord } from "@/domain/games/score";
 import { fmt } from "@/domain/players/format";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
@@ -58,7 +59,7 @@ const FinalFourPopup = dynamic(
   { ssr: false }
 );
 
-export default function HomePage({ players, games, stats, upcomingGames, currentSeason, seasonPhase, nextPlayoffGame, popupEnabled, popupVersion, popupRound, archivedSeasonNames }: any) {
+export default function HomePage({ players, games, stats, upcomingGames, currentSeason, seasonPhase, nextPlayoffGame, popupEnabled, popupVersion, popupRound, archivedSeasonNames, headToHead }: any) {
   const [trendRange, setTrendRange] = useState(10);
   const [showTrendModal, setShowTrendModal] = useState(false);
   const [showAllUpcoming, setShowAllUpcoming] = useState(false);
@@ -156,6 +157,7 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 
       <UpcomingGamesSection
         upcomingGames={liveUpcomingGames}
+        headToHead={headToHead}
         openRosterId={openRosterId}
         onToggleRoster={toggleRoster}
         showAllUpcoming={showAllUpcoming}
@@ -207,18 +209,19 @@ export default function HomePage({ players, games, stats, upcomingGames, current
 export async function getStaticProps() {
   try {
     const { players, games, stats, currentSeason, config, archivedSeasonNames } = await getAllPublicData();
-    const [upcomingGames, nextPlayoffGame] = await Promise.all([
+    const [upcomingGames, nextPlayoffGame, allGames] = await Promise.all([
       getUpcomingGamesWithAnnouncements(),
       getNextPlayoffGame(),
+      getAllGames(),
     ]);
     // Home page never reads boxScore; strip it to keep page-data under the ISR size threshold.
     const slimGames = games.map(({ boxScore, ...g }: any) => g);
     return {
-      props: { players, games: slimGames, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, nextPlayoffGame, popupEnabled: config.popupEnabled, popupVersion: config.popupVersion, popupRound: config.popupRound, archivedSeasonNames },
+      props: { players, games: slimGames, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, nextPlayoffGame, popupEnabled: config.popupEnabled, popupVersion: config.popupVersion, popupRound: config.popupRound, archivedSeasonNames, headToHead: headToHeadAll(allGames, 3) },
       revalidate: 3600,
     };
   } catch {
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
-    return { props: { players: [], games: [], stats: {}, upcomingGames: [], currentSeason: "", seasonPhase: null, nextPlayoffGame: null, popupEnabled: false, popupVersion: 0, popupRound: null, archivedSeasonNames: [] }, revalidate: 60 };
+    return { props: { players: [], games: [], stats: {}, upcomingGames: [], currentSeason: "", seasonPhase: null, nextPlayoffGame: null, popupEnabled: false, popupVersion: 0, popupRound: null, archivedSeasonNames: [], headToHead: [] }, revalidate: 60 };
   }
 }

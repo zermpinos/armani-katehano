@@ -28,6 +28,8 @@ const gamesDir   = join(BUILD_DIR, "games");
 const playersDir = join(BUILD_DIR, "players");
 const gameFiles   = existsSync(gamesDir)   ? readdirSync(gamesDir).filter(f => f.endsWith(".html"))   : [];
 const playerFiles = existsSync(playersDir) ? readdirSync(playersDir).filter(f => f.endsWith(".html")) : [];
+const opponentsDir  = join(BUILD_DIR, "opponents");
+const opponentFiles = existsSync(opponentsDir) ? readdirSync(opponentsDir).filter(f => f.endsWith(".html")) : [];
 
 // CI builds without DB cannot exercise getStaticPaths and produce no dynamic
 // HTML; downgrade the per-game / per-player checks to warnings in that case.
@@ -35,6 +37,7 @@ const dbBackedBuild = gameFiles.length > 0 || playerFiles.length > 0;
 if (dbBackedBuild) {
   if (gameFiles.length === 0)   fail("No per-game HTML files found under .next/server/pages/games/");
   if (playerFiles.length === 0) fail("No per-player HTML files found under .next/server/pages/players/");
+  if (opponentFiles.length === 0) fail("No per-opponent HTML files found under .next/server/pages/opponents/");
 } else {
   process.stdout.write("check-isr-pages: skipping dynamic-route checks (build had no DB; nothing to pre-render)\n");
 }

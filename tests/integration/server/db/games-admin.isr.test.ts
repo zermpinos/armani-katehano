@@ -43,33 +43,33 @@ beforeEach(() => setupMocks(mockPrisma, recalcAggregates));
 // call revalidate when present, and must still succeed when it is not.
 
 describe("ISR revalidation", () => {
-  it("POST calls revalidate for every listing plus the per-game page on success", async () => {
+  it("POST calls revalidate for every listing, the per-game page and the opponent's page on success", async () => {
     const req = authedReq({ method: "POST", body: VALID_GAME_BODY });
     const res = mockResWithRevalidate();
     await handler(req, res);
     expect(res.statusCode).toBe(201);
     const created = res._body.gameId as string;
-    const expected = [...LISTING_PATHS, detailGamePath(created)];
+    const expected = [...LISTING_PATHS, detailGamePath(created), "/opponents/test-rivals"];
     expect(res.revalidate).toHaveBeenCalledTimes(expected.length);
     for (const path of expected) expect(res.revalidate).toHaveBeenCalledWith(path);
   });
 
-  it("PUT calls revalidate for every listing plus the per-game page on success", async () => {
+  it("PUT calls revalidate for every listing, the per-game page and the opponent's page on success", async () => {
     const req = authedReq({ method: "PUT", body: { ...VALID_GAME_BODY, gameId: VALID_CUID } });
     const res = mockResWithRevalidate();
     await handler(req, res);
     expect(res.statusCode).toBe(200);
-    const expected = [...LISTING_PATHS, detailGamePath(VALID_CUID)];
+    const expected = [...LISTING_PATHS, detailGamePath(VALID_CUID), "/opponents/rivals-fc", "/opponents/test-rivals"];
     expect(res.revalidate).toHaveBeenCalledTimes(expected.length);
     for (const path of expected) expect(res.revalidate).toHaveBeenCalledWith(path);
   });
 
-  it("DELETE calls revalidate for every listing plus the per-game page on success", async () => {
+  it("DELETE calls revalidate for every listing, the per-game page and the opponent's page on success", async () => {
     const req = authedReq({ method: "DELETE", body: { gameId: VALID_CUID } });
     const res = mockResWithRevalidate();
     await handler(req, res);
     expect(res.statusCode).toBe(200);
-    const expected = [...LISTING_PATHS, detailGamePath(VALID_CUID)];
+    const expected = [...LISTING_PATHS, detailGamePath(VALID_CUID), "/opponents/rivals-fc"];
     expect(res.revalidate).toHaveBeenCalledTimes(expected.length);
     for (const path of expected) expect(res.revalidate).toHaveBeenCalledWith(path);
   });
