@@ -2,10 +2,12 @@ import Link from "next/link";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import { BoxScoreTable } from "@/client/games/box-score";
-import { getGameById } from "@/server/db/repositories";
+import { getGameById, getAllGames } from "@/server/db/repositories";
+import { HeadToHeadBlock } from "@/client/games/HeadToHeadBlock";
+import { headToHead, type HeadToHead } from "@/domain/stats/head-to-head";
 import { SITE_NAME } from "@/domain/shared/constants";
 
-export default function GamePage({ game }: { game: any }) {
+export default function GamePage({ game, earlier }: { game: any; earlier: HeadToHead }) {
   return (
     <Layout
       title={`${game.home ? "vs" : "@"} ${game.opponent} · ${game.result} ${game.score}`}
@@ -23,6 +25,7 @@ export default function GamePage({ game }: { game: any }) {
         right={game.date}
       />
       <BoxScoreTable game={game} />
+      <HeadToHeadBlock h2h={earlier} title="Earlier meetings" emptyText="First meeting between the teams." showAllLink />
     </Layout>
   );
 }
@@ -49,7 +52,9 @@ export async function getStaticProps({ params }: any) {
   try {
     const game = await getGameById(id);
     if (!game) return { notFound: true };
-    return { props: { game }, revalidate: 86400 };
+    // Only earlier games, so this section never changes once the game is played.
+    const earlier = headToHead(await getAllGames(), game.opponent, { before: game.date, limit: 3 });
+    return { props: { game, earlier }, revalidate: 86400 };
   } catch {
     return { notFound: true };
   }

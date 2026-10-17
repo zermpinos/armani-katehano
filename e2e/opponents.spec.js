@@ -27,4 +27,13 @@ test.describe("Head-to-head", () => {
     const res = await request.get("/opponents/no-such-team-zz");
     expect(res.status()).toBe(404);
   });
+
+  test("a box score shows the earlier meetings with that opponent", async ({ page }) => {
+    await page.goto("/games");
+    const cards = page.getByText("BOX SCORE ->");
+    test.skip((await cards.count()) === 0, "No games in DB - skipping");
+    await cards.first().click();
+    await page.waitForURL(/\/games\/[a-z0-9]+/i, { timeout: 8000 });
+    await expect(page.getByRole("region", { name: "Earlier meetings" })).toBeVisible();
+  });
 });

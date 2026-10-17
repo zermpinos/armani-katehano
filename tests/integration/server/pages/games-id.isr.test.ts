@@ -3,6 +3,7 @@ import { vi, describe, it, expect, beforeAll, beforeEach } from "vitest";
 
 const mockGetGameIds  = vi.fn();
 const mockGetGameById = vi.fn();
+const mockGetAllGames = vi.fn();
 
 vi.mock("@/server/db/client", () => ({
   default: { $connect: vi.fn() },
@@ -11,6 +12,7 @@ vi.mock("@/server/db/client", () => ({
 vi.mock("@/server/db/repositories", () => ({
   getGameIds:  mockGetGameIds,
   getGameById: mockGetGameById,
+  getAllGames: mockGetAllGames,
 }));
 
 let getStaticProps: any;
@@ -57,10 +59,15 @@ describe("getStaticProps /games/[id]", () => {
     expect(result).toEqual({ notFound: true });
   });
 
-  it("returns props and revalidate: 86400 when game exists", async () => {
-    const game = { id: VALID_CUID, opponent: "Test" };
+  it("returns the game, its earlier meetings and revalidate: 86400", async () => {
+    const game = { id: VALID_CUID, opponent: "Test", date: "2026-09-12" };
     mockGetGameById.mockResolvedValue(game);
+    mockGetAllGames.mockResolvedValue([
+      { id: VALID_CUID, date: "2026-09-12", opponent: "Test", home: true, result: "W", score: "60-50", season: "2026-27", leagueName: "Winter Cup" },
+      { id: "clearlierxxxxxxxxxxxxxxxx", date: "2026-01-10", opponent: "Test", home: false, result: "L", score: "50-60", season: "2025-26", leagueName: "Winter Cup" },
+    ]);
     const result = await getStaticProps({ params: { id: VALID_CUID } });
     expect(result).toMatchObject({ props: { game }, revalidate: 86400 });
+    expect(result.props.earlier.meetings.map((m: any) => m.id)).toEqual(["clearlierxxxxxxxxxxxxxxxx"]);
   });
 });
