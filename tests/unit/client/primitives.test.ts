@@ -16,6 +16,7 @@ describe("admin primitives", () => {
     expect(html).toMatch(/aria-pressed="false"[^>]*>Alpha</);
     expect(html).toMatch(/aria-pressed="true"[^>]*>Beta</);
     expect(html).toContain("min-h-[44px]");
+    expect(html).toContain("focus-visible:outline-2");
   });
 
   it("TextArea is 16px, keeps its length limit and can switch to a monospace font", () => {

@@ -578,6 +578,48 @@ test.describe("Admin panel › Subscribers sheet", () => {
       await context.close();
     }
   });
+
+  test("a removal re-reads the page so the next subscriber moves up", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      let list = ["one", "two", "three"].map((n, i) => ({
+        id: `cmsubscriber000000000000${i + 1}`, email: `fan.${n}@example.com`,
+        createdAt: "2026-09-01T10:00:00.000Z", confirmedAt: "2026-09-01T10:05:00.000Z",
+      }));
+      const log = [];
+      await page.route(url => url.pathname === "/api/admin/subscribers", async route => {
+        const req = route.request();
+        if (req.method() === "GET") {
+          log.push(`GET ${new URL(req.url()).searchParams.get("page")}`);
+          const more = list.length > 2;
+          return route.fulfill({ json: {
+            subscribers: more ? list.slice(0, 2) : list, total: list.length, page: 1, limit: 2, hasMore: more,
+          } });
+        }
+        log.push("DELETE");
+        const { ids } = req.postDataJSON();
+        list = list.filter(s => !ids.includes(s.id));
+        return route.fulfill({ json: { deleted: ids.length } });
+      });
+      await page.goto(`/admin/${ADMIN_SLUG}/subscribers`);
+      await expect(page.getByRole("button", { name: /fan\.one@example\.com/ })).toBeVisible();
+      await expect(page.getByRole("button", { name: /fan\.two@example\.com/ })).toBeVisible();
+      await expect(page.getByRole("button", { name: /fan\.three@example\.com/ })).toHaveCount(0);
+
+      await page.getByRole("button", { name: /fan\.one@example\.com/ }).click();
+      const sheet = page.getByRole("dialog", { name: "Subscriber" });
+      await sheet.getByRole("button", { name: "REMOVE", exact: true }).click();
+      await sheet.getByRole("button", { name: "TAP AGAIN TO REMOVE" }).click();
+
+      await expect(page.getByRole("button", { name: /fan\.three@example\.com/ })).toBeVisible();
+      await expect(page.getByRole("button", { name: /fan\.one@example\.com/ })).toHaveCount(0);
+      expect(log).toEqual(["GET 1", "DELETE", "GET 1"]);
+    } finally {
+      await context.close();
+    }
+  });
 });
 
 test.describe("Admin panel › Broadcast composer", () => {

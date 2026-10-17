@@ -85,8 +85,7 @@ export default function SubscribersPage() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [search, status, loadFirst]);
 
-  const loadPage = async (p: number) => {
-    const gen  = generation.current;
+  const loadPage = async (p: number, gen = generation.current) => {
     const data = await fetchPage(p, search, status);
     if (gen === generation.current) apply(data, true);
   };
@@ -114,6 +113,7 @@ export default function SubscribersPage() {
   const remove = async () => {
     if (!sheet) return;
     const { row } = sheet;
+    const gen = generation.current;
     closeSheet();
     markPending(row.id, true);
     let failure: { status: number; message: string } | null = null;
@@ -138,7 +138,7 @@ export default function SubscribersPage() {
       setToast({ msg: "Subscriber removed.", type: "success" });
       // The removal moved the next page's first row onto this page; re-reading it keeps Load more from skipping that row.
       if (hasMore) {
-        void loadPage(page).catch(() =>
+        void loadPage(page, gen).catch(() =>
           setToast({ msg: "Could not refresh the list. Reload to see every subscriber.", type: "error" }));
       }
     } else if (failure.status !== 401) {
@@ -191,7 +191,7 @@ export default function SubscribersPage() {
                   <div className="flex items-center gap-3">
                     <span
                       aria-hidden="true"
-                      className={["h-2.5 w-2.5 shrink-0 rounded-full", isConfirmed(r) ? "bg-ak-green" : "bg-ak-gold"].join(" ")}
+                      className={["h-2.5 w-2.5 shrink-0 rounded-full", isConfirmed(r) ? "bg-ak-green" : "border-2 border-ak-gold bg-transparent"].join(" ")}
                     />
                     <span className="sr-only">{isConfirmed(r) ? "Confirmed" : "Pending"}</span>
                     <span className="truncate font-mono text-[14px] text-ak-text">{r.email}</span>

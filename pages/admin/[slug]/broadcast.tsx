@@ -52,7 +52,7 @@ export default function BroadcastPage({ maskedAdminEmail }: { maskedAdminEmail: 
   const [resolving,       setResolving]       = useState(false);
 
   const [mode,           setMode]           = useState<PageMode>("compose");
-  const [view, setView] = useState<View>("write");
+  const [view,           setView]           = useState<View>("write");
   const [confirmedCount, setConfirmedCount] = useState<number | null>(null);
   const [logs,           setLogs]           = useState<BroadcastLogRow[]>([]);
 
@@ -284,6 +284,10 @@ export default function BroadcastPage({ maskedAdminEmail }: { maskedAdminEmail: 
                   <div className="mb-3 text-[14px] font-bold text-ak-text">{subject.trim() || "No subject yet"}</div>
                   {previewCurrent && sanitizedHtml ? (
                     <PreviewBody html={sanitizedHtml} />
+                  ) : previewCurrent ? (
+                    <p className="rounded-[10px] border border-dashed border-ak-border px-4 py-6 text-center text-[13px] text-ak-text-dim">
+                      Loading preview...
+                    </p>
                   ) : (
                     <p className="rounded-[10px] border border-dashed border-ak-border px-4 py-6 text-center text-[13px] text-ak-text-dim">
                       No preview of this text yet. Send one to see the email as subscribers will get it.

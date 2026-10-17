@@ -89,6 +89,7 @@ export function Segmented<T extends string>({ label, options, value, onChange }:
           onClick={() => onChange(o.value)}
           className={[
             "min-h-[44px] cursor-pointer border-0 px-4 font-sans text-[11px] font-black uppercase tracking-[0.1em]",
+            "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ak-red-bright",
             o.value === value ? "bg-ak-surface text-ak-text" : "bg-ak-base text-ak-text-dim",
           ].join(" ")}
         >
