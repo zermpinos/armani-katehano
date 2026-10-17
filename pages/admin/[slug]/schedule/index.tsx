@@ -9,6 +9,7 @@ import type { ScheduledGame, SaveResult } from "@/client/admin";
 import { getAdminPageProps } from "@/server/auth";
 import { fmtDate } from "@/domain/shared/format";
 import { ScheduleSheet } from "@/client/admin/schedule/ScheduleSheet";
+import { OpponentNamesCard } from "@/client/admin/schedule/OpponentNamesCard";
 import {
   emptyScheduleDraft, toScheduleDraft, validateScheduleDraft,
   toSchedulePayload, toScheduledGame, isPlayed, todayIso, type ScheduleDraft,
@@ -134,6 +135,7 @@ export default function SchedulePage() {
         <h1 className="text-[22px] font-black text-ak-text md:text-[28px]">Schedule</h1>
         <Btn onClick={openNew} disabled={data === undefined}>+ SCHEDULE GAME</Btn>
       </header>
+      <OpponentNamesCard onSaved={() => void refresh()} notify={(msg, type) => setToast({ msg, type })} />
 
       {data === undefined && !error ? (
         <ListSkeleton />

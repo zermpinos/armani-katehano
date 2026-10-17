@@ -28,3 +28,10 @@ export function displayOpponent(
   if (!scraped) return null;
   return aliases.get(aliasKey(scraped)) ?? null;
 }
+
+// Title case over the source's caps. Right for "ATALANTOI HAWKS", wrong for
+// "TAZ BOYS" and useless for Greek, which is why it is only ever a suggestion
+// a person confirms, never something written on its own.
+export function suggestDisplayName(scraped: string): string {
+  return scraped.toLowerCase().replace(/\p{L}[\p{L}'’]*/gu, w => w[0].toUpperCase() + w.slice(1));
+}

@@ -10,7 +10,7 @@ const { mockPrisma } = vi.hoisted(() => ({
 
 vi.mock("@/server/db/client", () => ({ default: mockPrisma, prisma: mockPrisma }));
 
-import { syncFixtures, suggestDisplayName } from "@/server/services/sync-fixtures";
+import { syncFixtures } from "@/server/services/sync-fixtures";
 import { buildAliases } from "@/domain/import/opponents";
 import { formatGameTime } from "@/client/home/calendar-utils";
 
@@ -137,14 +137,3 @@ describe("syncFixtures", () => {
 
 afterEach(() => { vi.useRealTimers(); });
 
-describe("suggestDisplayName", () => {
-  it("title cases the source's caps", () => {
-    expect(suggestDisplayName("ATALANTOI HAWKS")).toBe("Atalantoi Hawks");
-    expect(suggestDisplayName("PATISSIA THUNDERS")).toBe("Patissia Thunders");
-  });
-
-  // Why it stays a suggestion: no rule gets to the real spelling here.
-  it("is wrong often enough to need confirming", () => {
-    expect(suggestDisplayName("TAZ BOYS")).not.toBe("Taz Boyz");
-  });
-});

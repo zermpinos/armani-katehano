@@ -40,4 +40,9 @@ describe("admin primitives", () => {
     expect(html).toContain(">REMOVE<");
     expect(html).not.toContain("TAP AGAIN");
   });
+
+  it("F passes a datalist id to the input", () => {
+    const html = renderToStaticMarkup(createElement(F, { label: "NAME", value: "", onChange: () => {}, list: "opponent-names" }));
+    expect(html).toContain('list="opponent-names"');
+  });
 });

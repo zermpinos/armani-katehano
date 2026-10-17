@@ -1,7 +1,7 @@
 import "@/server/_internal/node-only";
 import prisma from "@/server/db/client";
 import type { ListedGame } from "@/server/integrations/scraper/team-schedule";
-import { displayOpponent, type OpponentAliases } from "@/domain/import/opponents";
+import { displayOpponent, suggestDisplayName, type OpponentAliases } from "@/domain/import/opponents";
 import { parseGreekDateTime } from "@/domain/calendar/greek-date";
 
 export interface FixtureChange {
@@ -22,13 +22,6 @@ export interface FixtureSync {
   changed:  FixtureChange[];
   unmapped: UnmappedFixture[];
   skipped:  string[];
-}
-
-// Title case over the source's caps. Right for "ATALANTOI HAWKS", wrong for
-// "TAZ BOYS" and useless for Greek, which is why it is only ever a suggestion
-// a person confirms, never something written on its own.
-export function suggestDisplayName(scraped: string): string {
-  return scraped.toLowerCase().replace(/\p{L}[\p{L}'’]*/gu, w => w[0].toUpperCase() + w.slice(1));
 }
 
 // Fixtures the organisers have published, written to UpcomingGame so the site

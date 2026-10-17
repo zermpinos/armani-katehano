@@ -29,11 +29,11 @@ export function Btn({ onClick, disabled = false, children, variant = "primary", 
   );
 }
 
-export function F({ label, value, onChange, type = "text", placeholder = "", maxLength }: { label: string; value: string | number; onChange: (v: string) => void; type?: string; placeholder?: string; maxLength?: number }) {
+export function F({ label, value, onChange, type = "text", placeholder = "", maxLength, list }: { label: string; value: string | number; onChange: (v: string) => void; type?: string; placeholder?: string; maxLength?: number; list?: string }) {
   return (
     <label className="block">
       <span className={LABEL}>{label}</span>
-      <input type={type} value={value ?? ""} onChange={e => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength}
+      <input type={type} value={value ?? ""} onChange={e => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} list={list}
         className={CONTROL} />
     </label>
   );

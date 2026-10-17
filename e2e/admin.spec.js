@@ -285,6 +285,7 @@ test.describe("Admin panel › Schedule sheet", () => {
   };
 
   async function mockSchedule(page, onWrite) {
+    await page.route(url => url.pathname === "/api/admin/opponent-names", route => route.fulfill({ json: { waiting: [], names: [] } }));
     let rows = [fixture];
     await page.route("**/api/admin/schedule", async route => {
       if (route.request().method() === "GET") return route.fulfill({ json: { schedule: rows } });
@@ -672,6 +673,59 @@ test.describe("Admin panel › Broadcast composer", () => {
       await expect(review).toBeDisabled();
       await page.getByRole("button", { name: "Preview", exact: true }).click();
       await expect(page.getByText("No preview of this text yet.")).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  });
+});
+
+test.describe("Admin panel › Opponent names", () => {
+  const adminContext = (browser) => browser.newContext({
+    baseURL:      BASE_URL,
+    storageState: makeAdminStorageState(ADMIN_USERNAME),
+  });
+  const day = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+
+  test("naming a waiting opponent publishes its fixture and clears the card", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      const log = [];
+      let schedule = [];
+      let waiting  = [{ scrapedName: "NY BRICKS", suggestion: "Ny Bricks", waitingOn: "fixture", dateText: "Κυριακή, 18 Οκτωβρίου 2026" }];
+      await page.route(url => url.pathname === "/api/admin/schedule", route => {
+        log.push("GET schedule");
+        return route.fulfill({ json: { schedule } });
+      });
+      await page.route(url => url.pathname === "/api/admin/opponent-names", route => {
+        if (route.request().method() === "GET") {
+          return route.fulfill({ json: { waiting, names: ["Miami Bricks", "New York Bricks", "Prison Bricks"] } });
+        }
+        const body = route.request().postDataJSON();
+        log.push(`POST ${body.scrapedName} -> ${body.displayName}`);
+        waiting  = [];
+        schedule = [{
+          id: "cmfixture0000000000000002", opponent: body.displayName, scheduledFor: `${day}T22:30:00.000Z`,
+          location: "away", competition: "Super League", notes: null, sourceUrl: "https://basketcity.sportstats.gr/men/gamedetails/id/MOCK-GAME",
+        }];
+        return route.fulfill({ status: 201, json: { ok: true, published: [{ opponent: body.displayName, scheduledFor: `${day}T22:30:00.000Z` }], syncError: null } });
+      });
+
+      await page.goto(`/admin/${ADMIN_SLUG}/schedule`);
+      const card  = page.getByRole("region", { name: /Opponent names waiting/ });
+      await expect(card).toBeVisible();
+      const input = card.getByLabel("NAME FOR NY BRICKS");
+      await expect(input).toHaveValue("Ny Bricks");
+      expect(await input.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+
+      await card.getByRole("button", { name: "New York Bricks", exact: true }).click();
+      await expect(input).toHaveValue("New York Bricks");
+      await card.getByRole("button", { name: "SAVE" }).click();
+
+      await expect(card).toBeHidden();
+      await expect(page.getByRole("button", { name: /New York Bricks/ })).toBeVisible();
+      expect(log).toContain("POST NY BRICKS -> New York Bricks");
     } finally {
       await context.close();
     }

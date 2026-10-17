@@ -228,6 +228,9 @@ describe("poll-imports commit gate", () => {
     await handler(mockReq(), mockRes());
     expect(mockCommitImport).not.toHaveBeenCalled();
     expect(summary().skipped[0].reason).toBe('unknown opponent "BRAND NEW TEAM"');
+    expect(summary().unknownOpponents).toEqual([
+      { scrapedName: "BRAND NEW TEAM", suggestion: "Brand New Team", sourceUrl: SOURCE_URL },
+    ]);
   });
 
   it("skips when a jersey that played is not on the roster", async () => {
