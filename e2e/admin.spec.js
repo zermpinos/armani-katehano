@@ -525,6 +525,159 @@ test.describe("Admin panel › Import recovery", () => {
   });
 });
 
+test.describe("Admin panel › Subscribers sheet", () => {
+  const adminContext = (browser) => browser.newContext({
+    baseURL:      BASE_URL,
+    storageState: makeAdminStorageState(ADMIN_USERNAME),
+  });
+  const subscribers = [
+    { id: "cmsubscriber0000000000001", email: "fan.one@example.com", createdAt: "2026-09-01T10:00:00.000Z", confirmedAt: "2026-09-01T10:05:00.000Z" },
+    { id: "cmsubscriber0000000000002", email: "fan.two@example.com", createdAt: "2026-09-02T10:00:00.000Z", confirmedAt: null },
+  ];
+
+  async function mockSubscribers(page, deletes) {
+    let list = [...subscribers];
+    await page.route(url => url.pathname === "/api/admin/subscribers", async route => {
+      if (route.request().method() === "GET") {
+        return route.fulfill({ json: { subscribers: list, total: list.length, page: 1, limit: 50, hasMore: false } });
+      }
+      const { ids } = route.request().postDataJSON();
+      deletes.push(ids);
+      list = list.filter(s => !ids.includes(s.id));
+      return route.fulfill({ json: { deleted: ids.length } });
+    });
+  }
+
+  test("a subscriber is removed from its sheet only after a second tap", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      const deletes = [];
+      await mockSubscribers(page, deletes);
+      await page.goto(`/admin/${ADMIN_SLUG}/subscribers`);
+      const search = page.getByLabel("SEARCH");
+      await expect(search).toBeVisible();
+      expect(await search.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+
+      await page.getByRole("button", { name: /fan\.one@example\.com/ }).click();
+      const sheet = page.getByRole("dialog", { name: "Subscriber" });
+      await expect(sheet).toBeVisible();
+      await expect(sheet.getByText("fan.one@example.com")).toBeVisible();
+
+      await sheet.getByRole("button", { name: "REMOVE", exact: true }).click();
+      await expect(sheet.getByRole("button", { name: "TAP AGAIN TO REMOVE" })).toBeVisible();
+      expect(deletes).toEqual([]);
+
+      await sheet.getByRole("button", { name: "TAP AGAIN TO REMOVE" }).click();
+      await expect(sheet).toBeHidden();
+      await expect(page.getByRole("button", { name: /fan\.one@example\.com/ })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /fan\.two@example\.com/ })).toBeVisible();
+      expect(deletes).toEqual([["cmsubscriber0000000000001"]]);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("a removal re-reads the page so the next subscriber moves up", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      let list = ["one", "two", "three"].map((n, i) => ({
+        id: `cmsubscriber000000000000${i + 1}`, email: `fan.${n}@example.com`,
+        createdAt: "2026-09-01T10:00:00.000Z", confirmedAt: "2026-09-01T10:05:00.000Z",
+      }));
+      const log = [];
+      await page.route(url => url.pathname === "/api/admin/subscribers", async route => {
+        const req = route.request();
+        if (req.method() === "GET") {
+          log.push(`GET ${new URL(req.url()).searchParams.get("page")}`);
+          const more = list.length > 2;
+          return route.fulfill({ json: {
+            subscribers: more ? list.slice(0, 2) : list, total: list.length, page: 1, limit: 2, hasMore: more,
+          } });
+        }
+        log.push("DELETE");
+        const { ids } = req.postDataJSON();
+        list = list.filter(s => !ids.includes(s.id));
+        return route.fulfill({ json: { deleted: ids.length } });
+      });
+      await page.goto(`/admin/${ADMIN_SLUG}/subscribers`);
+      await expect(page.getByRole("button", { name: /fan\.one@example\.com/ })).toBeVisible();
+      await expect(page.getByRole("button", { name: /fan\.two@example\.com/ })).toBeVisible();
+      await expect(page.getByRole("button", { name: /fan\.three@example\.com/ })).toHaveCount(0);
+
+      await page.getByRole("button", { name: /fan\.one@example\.com/ }).click();
+      const sheet = page.getByRole("dialog", { name: "Subscriber" });
+      await sheet.getByRole("button", { name: "REMOVE", exact: true }).click();
+      await sheet.getByRole("button", { name: "TAP AGAIN TO REMOVE" }).click();
+
+      await expect(page.getByRole("button", { name: /fan\.three@example\.com/ })).toBeVisible();
+      await expect(page.getByRole("button", { name: /fan\.one@example\.com/ })).toHaveCount(0);
+      expect(log).toEqual(["GET 1", "DELETE", "GET 1"]);
+    } finally {
+      await context.close();
+    }
+  });
+});
+
+test.describe("Admin panel › Broadcast composer", () => {
+  const adminContext = (browser) => browser.newContext({
+    baseURL:      BASE_URL,
+    storageState: makeAdminStorageState(ADMIN_USERNAME),
+  });
+
+  async function mockBroadcast(page, posts) {
+    await page.route(url => url.pathname === "/api/admin/broadcast", async route => {
+      if (route.request().method() === "GET") return route.fulfill({ json: { logs: [] } });
+      const body = route.request().postDataJSON();
+      posts.push(body.mode);
+      if (body.mode === "preview") return route.fulfill({ json: { ok: true, renderedHtml: "<p>Hello <strong>fans</strong></p>" } });
+      return route.fulfill({ status: 500, json: { error: "This test must not send." } });
+    });
+    await page.route(url => url.pathname === "/api/admin/subscribers", route => route.fulfill({
+      json: { subscribers: [], total: 3, page: 1, limit: 1, hasMore: false },
+    }));
+  }
+
+  test("review and send unlocks only for text that has a current preview", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      const posts = [];
+      await mockBroadcast(page, posts);
+      await page.goto(`/admin/${ADMIN_SLUG}/broadcast`);
+
+      const subject = page.getByLabel("SUBJECT");
+      const body    = page.getByLabel("BODY (MARKDOWN)");
+      await subject.fill("Match night");
+      await body.fill("Hello **fans**");
+      for (const field of [subject, body]) {
+        expect(await field.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+      }
+      const review = page.getByRole("button", { name: "REVIEW & SEND" });
+      await expect(review).toBeDisabled();
+
+      await page.getByRole("button", { name: "Preview", exact: true }).click();
+      await expect(page.getByText("No preview of this text yet.")).toBeVisible();
+      await page.getByRole("button", { name: /SEND PREVIEW TO/ }).click();
+      await expect(page.locator("strong", { hasText: "fans" })).toBeVisible();
+      await expect(review).toBeEnabled();
+      expect(posts).toEqual(["preview"]);
+
+      await page.getByRole("button", { name: "Write", exact: true }).click();
+      await page.getByLabel("BODY (MARKDOWN)").fill("Changed text");
+      await expect(review).toBeDisabled();
+      await page.getByRole("button", { name: "Preview", exact: true }).click();
+      await expect(page.getByText("No preview of this text yet.")).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  });
+});
+
 // ── API-level auth guard (always runs - no credentials needed) ─────────────
 
 test.describe("Admin panel › API protection", () => {

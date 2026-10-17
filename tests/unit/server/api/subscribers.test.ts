@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const { mockPrisma } = vi.hoisted(() => ({
+const { mockPrisma, mockAudit } = vi.hoisted(() => ({
   mockPrisma: {
     subscriber: {
       count:      vi.fn(),
@@ -9,10 +9,12 @@ const { mockPrisma } = vi.hoisted(() => ({
       deleteMany: vi.fn(),
     },
   },
+  mockAudit: vi.fn(),
 }));
 
 vi.mock("@/server/db/client", () => ({ default: mockPrisma }));
 vi.mock("@/server/auth",      () => ({ requireAuth: (h: any) => h }));
+vi.mock("@/server/security/node/audit-log", () => ({ auditLog: mockAudit }));
 
 import handler from "../../../../pages/api/admin/subscribers";
 
@@ -173,5 +175,38 @@ describe("DELETE /api/admin/subscribers - bulk delete", () => {
     const res = mockRes();
     await handler(mockReq({ method: "DELETE", body: { ids: ["cl1"] } }), res);
     expect(res.statusCode).toBe(500);
+  });
+
+  it("returns 400 when an id is not a non-empty string", async () => {
+    for (const ids of [["cl1", 42], [""], [null]]) {
+      const res = mockRes();
+      await handler(mockReq({ method: "DELETE", body: { ids } }), res);
+      expect(res.statusCode).toBe(400);
+    }
+    expect(mockPrisma.subscriber.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 for more than 200 ids", async () => {
+    const ids = Array.from({ length: 201 }, (_, i) => `cl${i}`);
+    const res = mockRes();
+    await handler(mockReq({ method: "DELETE", body: { ids } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(mockPrisma.subscriber.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("audits the deleted count without the addresses", async () => {
+    mockPrisma.subscriber.deleteMany.mockResolvedValue({ count: 2 });
+    const res = mockRes();
+    await handler(mockReq({ method: "DELETE", body: { ids: ["cl1", "cl2"] } }), res);
+    expect(res.statusCode).toBe(200);
+    expect(mockAudit).toHaveBeenCalledWith("subscribers_deleted", { count: 2 });
+  });
+
+  it("writes no audit entry when the delete fails", async () => {
+    mockPrisma.subscriber.deleteMany.mockRejectedValue(new Error("boom"));
+    const res = mockRes();
+    await handler(mockReq({ method: "DELETE", body: { ids: ["cl1"] } }), res);
+    expect(res.statusCode).toBe(500);
+    expect(mockAudit).not.toHaveBeenCalled();
   });
 });
