@@ -75,11 +75,14 @@ describe("POST /api/admin/opponent-names", () => {
   });
 
   it("saves the normalised key, audits it, publishes the fixture and refreshes the schedule pages", async () => {
+    const afterSave = new Map([...known, ["NY BRICKS", "New York Bricks"]]);
+    m.aliases.mockResolvedValueOnce(known).mockResolvedValueOnce(afterSave);
     const r = res();
     await handler(req("POST", { scrapedName: "ny  bricks", displayName: " New York Bricks " }), r);
     expect(m.prisma.opponentAlias.create).toHaveBeenCalledWith({ data: { scrapedName: "NY BRICKS", displayName: "New York Bricks" } });
     expect(m.audit).toHaveBeenCalledWith("opponent_name_added", { ip: "1.2.3.4", scrapedName: "NY BRICKS", displayName: "New York Bricks" });
-    expect(m.sync).toHaveBeenCalledWith([{ url: "u" }], known);
+    expect(m.sync).toHaveBeenCalledWith([{ url: "u" }], afterSave);
+    expect(m.sync.mock.calls[0][1].get("NY BRICKS")).toBe("New York Bricks");
     expect(m.invalidate).toHaveBeenCalledTimes(1);
     expect(r.statusCode).toBe(201);
     expect(r.body).toEqual({ ok: true, published: [{ opponent: "New York Bricks", scheduledFor: "2026-10-18T22:30:00.000Z" }], syncError: null });

@@ -285,6 +285,7 @@ test.describe("Admin panel › Schedule sheet", () => {
   };
 
   async function mockSchedule(page, onWrite) {
+    await page.route(url => url.pathname === "/api/admin/opponent-names", route => route.fulfill({ json: { waiting: [], names: [] } }));
     let rows = [fixture];
     await page.route("**/api/admin/schedule", async route => {
       if (route.request().method() === "GET") return route.fulfill({ json: { schedule: rows } });

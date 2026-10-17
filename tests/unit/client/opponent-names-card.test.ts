@@ -18,7 +18,7 @@ describe("savedMessage", () => {
       .toBe("Saved. The result imports on the nightly run, or from Import now.");
   });
 
-  it("says so when nothing was waiting any more", () => {
-    expect(savedMessage({ published: [], syncError: null }, "fixture").msg).toBe("Saved. No fixture was waiting on it any more.");
+  it("says so when nothing new was published", () => {
+    expect(savedMessage({ published: [], syncError: null }, "fixture").msg).toBe("Saved. Nothing new to publish.");
   });
 });

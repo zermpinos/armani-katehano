@@ -15,7 +15,7 @@ export function savedMessage(
   if (n) return { msg: `Saved. ${n} fixture${n === 1 ? "" : "s"} published.`, type: "success" };
   if (saved.syncError) return { msg: `Saved. The fixture could not be published now (${saved.syncError}). The nightly run will publish it.`, type: "error" };
   if (waitingOn === "result") return { msg: "Saved. The result imports on the nightly run, or from Import now.", type: "success" };
-  return { msg: "Saved. No fixture was waiting on it any more.", type: "success" };
+  return { msg: "Saved. Nothing new to publish.", type: "success" };
 }
 
 export function OpponentNamesCard({ onSaved, notify }: {
@@ -68,6 +68,11 @@ function WaitingRow({ waiting, names, onSaved, notify }: {
       const body = await res.json().catch(() => ({}));
       // A 401 leaves the row as it was behind the sign-in overlay.
       if (res.status === 401) return;
+      if (res.status === 409) {
+        mutateAdminData<Data>(URL_, d => ({ ...d, waiting: d.waiting.filter(x => x.scrapedName !== waiting.scrapedName) }));
+        notify(typeof body.error === "string" ? body.error : "That name is already held.", "error");
+        return;
+      }
       if (!res.ok) {
         setError(typeof body.error === "string" ? body.error : "Could not save the name.");
         return;
@@ -92,9 +97,9 @@ function WaitingRow({ waiting, names, onSaved, notify }: {
       <div className="mb-2 text-[12px] text-ak-text-dim">
         {waiting.waitingOn === "fixture" ? `Fixture: ${waiting.dateText ?? ""}` : "A played game waits on this name."}
       </div>
-      <F label={`NAME FOR ${waiting.scrapedName}`} value={name} onChange={setName} list="opponent-names" />
+      <F label={`NAME FOR ${waiting.scrapedName}`} value={name} onChange={setName} list="opponent-names" maxLength={100} />
       {similar.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div role="group" aria-label="Similar names" className="mt-2 flex flex-wrap gap-2">
           {similar.map(n => (
             <button
               key={n}

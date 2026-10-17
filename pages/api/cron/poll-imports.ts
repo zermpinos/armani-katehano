@@ -164,9 +164,7 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    // A name nobody can act on from an inbox: this one ships the buttons that
-    // write it, so it goes to Slack directly rather than through the alert
-    // path that falls back to email.
+    // Slack only, unlike the alerts that fall back to email: a missing name is a nudge to open the admin, not an outage.
     if (fixtureSync.unmapped.length) {
       await sendAliasPrompt(fixtureSync.unmapped)
         .catch(err => console.error("[poll-imports] alias prompt:", err));
