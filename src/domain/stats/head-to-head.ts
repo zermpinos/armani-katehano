@@ -14,7 +14,6 @@ export interface Meeting {
   date:        string;
   season:      string;
   competition: string;
-  home:        boolean;
   result:      string;
   score:       string;
 }
@@ -49,7 +48,7 @@ export function headToHead(
     losses:   count("L"),
     ties:     count("T"),
     meetings: mine.slice(0, opts.limit ?? mine.length).map(g => ({
-      id: g.id, date: g.date, season: g.season, competition: g.leagueName, home: g.home, result: g.result, score: g.score,
+      id: g.id, date: g.date, season: g.season, competition: g.leagueName, result: g.result, score: g.score,
     })),
   };
 }

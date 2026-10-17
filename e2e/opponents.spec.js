@@ -7,7 +7,7 @@ import { test, expect } from "@playwright/test";
 
 async function firstOpponentPath(request) {
   const res = await request.get("/sitemap.xml");
-  if (!res.ok()) return null;
+  expect(res.ok()).toBe(true);
   const match = (await res.text()).match(/<loc>[^<]*(\/opponents\/[a-z0-9-]+)<\/loc>/);
   return match ? match[1] : null;
 }
@@ -30,7 +30,7 @@ test.describe("Head-to-head", () => {
 
   test("a box score shows the earlier meetings with that opponent", async ({ page }) => {
     await page.goto("/games");
-    const cards = page.getByText("BOX SCORE ->");
+    const cards = page.getByText("BOX SCORE");
     test.skip((await cards.count()) === 0, "No games in DB - skipping");
     await cards.first().click();
     await page.waitForURL(/\/games\/[a-z0-9]+/i, { timeout: 8000 });

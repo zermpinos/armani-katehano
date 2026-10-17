@@ -52,10 +52,11 @@ export async function getStaticProps({ params }: any) {
   try {
     const game = await getGameById(id);
     if (!game) return { notFound: true };
-    // Only earlier games, so this section never changes once the game is played.
+    // Only earlier games, so a new game never changes this section.
     const earlier = headToHead(await getAllGames(), game.opponent, { before: game.date, limit: 3 });
     return { props: { game, earlier }, revalidate: 86400 };
   } catch {
-    return { notFound: true };
+    // A 404 without revalidate never expires; a database blip must heal on its own.
+    return { notFound: true, revalidate: 60 };
   }
 }

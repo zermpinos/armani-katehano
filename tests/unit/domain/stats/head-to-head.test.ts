@@ -25,7 +25,7 @@ describe("headToHead", () => {
     const h = headToHead(games, "New York Bricks", { limit: 3 });
     expect([h.wins, h.losses, h.ties]).toEqual([3, 1, 0]);
     expect(h.meetings.map(m => m.id)).toEqual(["a", "d", "c"]);
-    expect(h.meetings[0]).toEqual({ id: "a", date: "2026-09-12", season: "2026-27", competition: "Winter Cup", home: true, result: "W", score: "68-61" });
+    expect(h.meetings[0]).toEqual({ id: "a", date: "2026-09-12", season: "2026-27", competition: "Winter Cup", result: "W", score: "68-61" });
     expect(h.slug).toBe("new-york-bricks");
   });
 

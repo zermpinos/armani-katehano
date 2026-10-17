@@ -59,6 +59,12 @@ describe("getStaticProps /games/[id]", () => {
     expect(result).toEqual({ notFound: true });
   });
 
+  it("returns an expiring notFound on a DB error", async () => {
+    mockGetGameById.mockRejectedValue(new Error("db down"));
+    const result = await getStaticProps({ params: { id: VALID_CUID } });
+    expect(result).toEqual({ notFound: true, revalidate: 60 });
+  });
+
   it("returns the game, its earlier meetings and revalidate: 86400", async () => {
     const game = { id: VALID_CUID, opponent: "Test", date: "2026-09-12" };
     mockGetGameById.mockResolvedValue(game);

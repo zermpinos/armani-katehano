@@ -15,7 +15,7 @@ describe("HeadToHeadBlock", () => {
     expect(html).toContain('aria-label="Earlier meetings"');
     expect(html).toContain("Record: 1-0");
     expect(html).toContain('href="/games/cmgame0000000000000000001"');
-    expect(html).toContain(`${fmtDate("2026-09-12")} · Winter Cup · `);
+    expect(html).toContain(`${fmtDate("2026-09-12")} · Winter Cup 2026-27 · `);
     expect(html).toContain('href="/opponents/new-york-bricks"');
   });
 

@@ -53,6 +53,11 @@ describe("getStaticProps /opponents/[slug]", () => {
     expect(await getStaticProps({ params: { slug: "delulu" } })).toEqual({ notFound: true });
   });
 
+  it("returns an expiring notFound on a DB error", async () => {
+    mockGetAllGames.mockRejectedValue(new Error("db down"));
+    expect(await getStaticProps({ params: { slug: "new-york-bricks" } })).toEqual({ notFound: true, revalidate: 60 });
+  });
+
   it("returns every meeting and revalidate: 86400", async () => {
     mockGetAllGames.mockResolvedValue([game]);
     const result = await getStaticProps({ params: { slug: "new-york-bricks" } });

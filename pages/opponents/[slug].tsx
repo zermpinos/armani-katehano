@@ -19,7 +19,7 @@ export default function OpponentPage({ h2h }: { h2h: HeadToHead }) {
       >
         ← Games
       </Link>
-      <SectionHeading label="Head-to-head" title={`vs ${h2h.opponent}`} right={`Record ${recordText(h2h)}`} />
+      <SectionHeading label="Head-to-head" title={`vs ${h2h.opponent}`} />
       <HeadToHeadBlock h2h={h2h} title="Every meeting" emptyText="" showAllLink={false} />
     </Layout>
   );
@@ -48,6 +48,7 @@ export async function getStaticProps({ params }: any) {
     if (!name) return { notFound: true };
     return { props: { h2h: headToHead(games, name) }, revalidate: 86400 };
   } catch {
-    return { notFound: true };
+    // A 404 without revalidate never expires; a database blip must heal on its own.
+    return { notFound: true, revalidate: 60 };
   }
 }

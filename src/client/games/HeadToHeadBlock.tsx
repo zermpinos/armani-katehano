@@ -23,7 +23,7 @@ export function HeadToHeadBlock({ h2h, title, emptyText, showAllLink }: {
             {h2h.meetings.map(m => (
               <li key={m.id} className="text-[12px] text-ak-text-sub">
                 <Link href={`/games/${m.id}`} className="hover:text-ak-text">
-                  {`${fmtDate(m.date)} · ${m.competition} · `}
+                  {`${fmtDate(m.date)} · ${m.competition} ${m.season} · `}
                   <span className={`font-bold ${RESULT_CLASS.find(([r]) => r === m.result)?.[1] ?? "text-ak-text"}`}>{m.result}</span>
                   {` ${m.score}`}
                 </Link>
