@@ -76,6 +76,7 @@ export default function CoachPage() {
               <GameRow
                 key={g.id}
                 game={g}
+                h2h={schedule.headToHead.find(h => h.opponent === g.opponent)}
                 panelGameId={panel.panelGameId}
                 announcedGameIds={schedule.announcedGameIds}
                 onOpen={panel.openPanel}
