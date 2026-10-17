@@ -182,6 +182,7 @@ export async function commitImport(data: CommitInput, opts: CommitOptions = {}):
     revalidate: opts.revalidate,
     gameId: game.id,
     affectedPlayerSlugs,
+    opponents: [game.opponent],
   });
 
   // Admin ops alert, once per committed game. The subscriber recap stays a

@@ -1,4 +1,5 @@
 import "@/server/_internal/node-only";
+import { opponentSlug } from "@/domain/stats/head-to-head";
 
 export type RevalidateFn = (path: string) => Promise<unknown>;
 
@@ -31,11 +32,15 @@ export interface GameMutationInvalidation {
   revalidate?: RevalidateFn;
   gameId: string;
   affectedPlayerSlugs?: readonly string[];
+  opponents?: readonly string[];
 }
 
 export async function invalidateForGameMutation(opts: GameMutationInvalidation) {
   const playerPaths = (opts.affectedPlayerSlugs ?? []).map((s) => `/players/${s}`);
-  await fanout(opts.revalidate, [...LISTINGS_STATS_AND_HOME, `/games/${opts.gameId}`, ...playerPaths]);
+  // An opponent with no Latin letters or digits slugs to "", which has no page.
+  const opponentSlugs = new Set((opts.opponents ?? []).map(opponentSlug).filter(Boolean));
+  const opponentPaths = [...opponentSlugs].map((s) => `/opponents/${s}`);
+  await fanout(opts.revalidate, [...LISTINGS_STATS_AND_HOME, `/games/${opts.gameId}`, ...playerPaths, ...opponentPaths]);
 }
 
 export async function invalidateForScheduleMutation(opts: { revalidate?: RevalidateFn }) {
