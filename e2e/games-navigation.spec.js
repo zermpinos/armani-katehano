@@ -68,6 +68,8 @@ test.describe("Games page - navigation", () => {
     test.skip(card === null, "No games in DB - skipping");
     await card.click();
     await page.waitForURL(/\/games\/[a-z0-9]+/i, { timeout: 8000 });
+    // count() does not wait, and the URL changes before the box score renders.
+    await expect(page.getByText("PTS").first()).toBeVisible({ timeout: 8000 });
 
     const playerLink = page.locator("a[href^='/players/']").first();
     test.skip(await playerLink.count() === 0, "No players in box score - skipping");
