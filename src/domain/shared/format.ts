@@ -1,8 +1,11 @@
+// Spelled out rather than taken from the locale data, which differs between Node and browsers (newer en-GB says "Sept").
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 export function fmtDate(isoStr: string | null | undefined) {
   if (!isoStr) return "";
   const d = new Date(isoStr);
   if (isNaN(d.getTime())) return isoStr; // graceful fallback for legacy format
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+  return `${String(d.getUTCDate()).padStart(2, "0")} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
 export function fmtMinutes(dec: number): string {
