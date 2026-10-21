@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, type ReactNode } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { adminLayout, useAdminSession, useAdminData, Confirm, Btn, apiFetch } from "@/client/admin";
+import { adminLayout, useAdminSession, useAdminData, Confirm, Btn, F, Sel, ShowAllToggle, apiFetch } from "@/client/admin";
 import type { Game, SeasonLeague } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
@@ -18,6 +18,11 @@ const ROUND_LABEL: Record<string, string> = {
   final:        "Final",
 };
 
+const CURRENT = "/api/admin/data";
+const ALL     = "/api/admin/data?all=1";
+
+type ListData = { currentSeason?: string | null; games?: Game[]; seasonLeagues?: SeasonLeague[]; olderCount?: number };
+
 const NO_GAMES:   Game[]         = [];
 const NO_LEAGUES: SeasonLeague[] = [];
 
@@ -25,14 +30,15 @@ export default function GamesListPage() {
   const router = useRouter();
   const { slug, setToast } = useAdminSession();
 
-  const { data, error, refresh: loadData } = useAdminData<{ games?: Game[]; seasonLeagues?: SeasonLeague[] }>("/api/admin/data");
+  const [showAll,      setShowAll]      = useState(false);
+  const { data, error, refresh: loadData } = useAdminData<ListData>(showAll ? ALL : CURRENT);
   const games         = data?.games ?? NO_GAMES;
   const seasonLeagues = data?.seasonLeagues ?? NO_LEAGUES;
   const loading       = data === undefined && !error;
   const failed        = data === undefined && error;
-  const [confirm,       setConfirm]       = useState<Game | null>(null);
-  const [search,        setSearch]        = useState("");
-  const [leagueFilter,  setLeagueFilter]  = useState("");
+  const [confirm,      setConfirm]      = useState<Game | null>(null);
+  const [search,       setSearch]       = useState("");
+  const [leagueFilter, setLeagueFilter] = useState("");
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -61,9 +67,13 @@ export default function GamesListPage() {
   };
 
   const leagueNameById = useMemo(
-    () => new Map(seasonLeagues.map(sl => [sl.id, sl.leagueName])),
-    [seasonLeagues],
+    () => new Map(seasonLeagues.map(sl => [sl.id, showAll ? `${sl.leagueName} · ${sl.seasonName}` : sl.leagueName])),
+    [seasonLeagues, showAll],
   );
+  const leagueOptions = [
+    { value: "", label: "All leagues" },
+    ...seasonLeagues.map(sl => ({ value: sl.id, label: leagueNameById.get(sl.id) ?? sl.leagueName })),
+  ];
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -73,41 +83,28 @@ export default function GamesListPage() {
       .sort((a, b) => new Date(b.date ?? b.playedOn ?? "").getTime() - new Date(a.date ?? a.playedOn ?? "").getTime());
   }, [games, search, leagueFilter]);
 
+  const scope = showAll ? "in every season" : `in ${data?.currentSeason ?? "this season"}`;
+
   return (
     <>
       <header className="flex items-end justify-between gap-3 flex-wrap mb-5">
         <div>
           <h1 className="text-[22px] md:text-[28px] font-black text-ak-text">Games</h1>
           <div className="text-[11px] font-black tracking-[0.12em] uppercase text-ak-text-dim mt-1">
-            {loading ? "Loading..." : failed ? "Not loaded" : `${games.length} recorded${games.length >= 200 ? " · latest 200" : ""}`}
+            {loading ? "Loading..." : failed ? "Not loaded" : `${games.length} ${scope}${games.length >= 200 ? " · latest 200" : ""}`}
           </div>
         </div>
         <Link
           href={`/admin/${slug}/games/new`}
-          className="inline-flex items-center gap-1 py-[9px] px-[16px] text-[12px] font-black tracking-[0.12em] uppercase rounded-lg bg-ak-red text-ak-text"
+          className="inline-flex min-h-[44px] items-center gap-1 py-[9px] px-[16px] text-[12px] font-black tracking-[0.12em] uppercase rounded-lg bg-ak-red text-ak-text"
         >
           + Add game
         </Link>
       </header>
 
-      <div className="flex flex-col sm:flex-row gap-2 mb-4">
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search opponent..."
-          className="flex-1 sm:max-w-[280px] py-[8px] px-[12px] text-[13px] rounded-[7px] border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none"
-        />
-        <select
-          value={leagueFilter}
-          onChange={e => setLeagueFilter(e.target.value)}
-          className="py-[8px] px-[12px] text-[13px] rounded-[7px] border border-ak-border2 bg-ak-base text-ak-text font-sans outline-none"
-        >
-          <option value="">All leagues</option>
-          {seasonLeagues.map(sl => (
-            <option key={sl.id} value={sl.id}>{sl.leagueName}</option>
-          ))}
-        </select>
+      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+        <F label="SEARCH" type="search" value={search} onChange={setSearch} placeholder="Search opponent..." />
+        <Sel label="LEAGUE" value={leagueFilter} onChange={setLeagueFilter} options={leagueOptions} />
       </div>
 
       {loading ? (
@@ -131,6 +128,17 @@ export default function GamesListPage() {
         </ul>
       )}
 
+      {(showAll || data !== undefined) && (
+        <div className="mt-3">
+          <ShowAllToggle
+            showAll={showAll}
+            onToggle={() => { setShowAll(s => !s); setLeagueFilter(""); }}
+            hiddenCount={data?.olderCount ?? 0}
+            hiddenLabel="older"
+          />
+        </div>
+      )}
+
       {confirm && (
         <Confirm
           msg={`Delete game vs ${confirm.opponent} (${confirm.date ?? confirm.playedOn?.slice(0, 10) ?? ""})?`}
@@ -149,8 +157,7 @@ function GameRow({ game, slug, leagueName, onDelete }: {
 }) {
   const isHome = game.home ?? game.location === "home";
   const dateStr = game.date ?? game.playedOn?.slice(0, 10) ?? "";
-  const round = (game as { round?: string }).round;
-  const roundLabel = round && round !== "regular" ? Reflect.get(ROUND_LABEL, round) as string | undefined : undefined;
+  const roundLabel = game.round && game.round !== "regular" ? Reflect.get(ROUND_LABEL, game.round) as string | undefined : undefined;
   return (
     <div className="flex items-center gap-2 rounded-xl border border-ak-border bg-ak-surface p-3 md:p-4">
       <Link
@@ -177,12 +184,7 @@ function GameRow({ game, slug, leagueName, onDelete }: {
           </div>
         </div>
       </Link>
-      <button
-        onClick={onDelete}
-        className="py-[6px] px-3 text-[11px] font-black tracking-[0.12em] uppercase rounded-md border border-transparent bg-[#7f1d1d] text-ak-text cursor-pointer shrink-0"
-      >
-        Delete
-      </button>
+      <Btn size="sm" variant="danger" onClick={onDelete}>DELETE</Btn>
     </div>
   );
 }
@@ -202,13 +204,13 @@ function EmptyState({ slug, filtered }: { slug: string; filtered: boolean }) {
         <div className="flex items-center justify-center gap-3 flex-wrap">
           <Link
             href={`/admin/${slug}/import`}
-            className="inline-flex items-center gap-1 py-[9px] px-[16px] text-[12px] font-black tracking-[0.12em] uppercase rounded-lg bg-ak-red text-ak-text"
+            className="inline-flex min-h-[44px] items-center gap-1 py-[9px] px-[16px] text-[12px] font-black tracking-[0.12em] uppercase rounded-lg bg-ak-red text-ak-text"
           >
             Import a game
           </Link>
           <Link
             href={`/admin/${slug}/games/new`}
-            className="inline-flex items-center gap-1 py-[9px] px-[16px] text-[12px] font-black tracking-[0.12em] uppercase rounded-lg border border-ak-border2 text-ak-text-sub"
+            className="inline-flex min-h-[44px] items-center gap-1 py-[9px] px-[16px] text-[12px] font-black tracking-[0.12em] uppercase rounded-lg border border-ak-border2 text-ak-text-sub"
           >
             Add by hand
           </Link>
