@@ -798,7 +798,7 @@ test.describe("Admin panel › Games, seasons and settings", () => {
       await mockData(page);
       let put = null;
       await page.route(url => url.pathname === "/api/admin/games", route => {
-        if (route.request().method() !== "PUT") return route.continue();
+        if (route.request().method() !== "PUT") return route.fulfill({ status: 405, json: {} });
         put = route.request().postDataJSON();
         return route.fulfill({ json: { ok: true } });
       });

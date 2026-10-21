@@ -129,4 +129,11 @@ describe("GET /api/admin/data", () => {
     expect(mockPrisma.seasonLeague.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { seasonId: SEASON.id } }));
     expect(res._body.players).toHaveLength(1);
   });
+
+  it("reads every player, inactive ones included, in both edit modes", async () => {
+    await get({ gameId: VALID_CUID });
+    await get({ gameId: "new" });
+    expect(mockPrisma.player.findMany).toHaveBeenCalledTimes(2);
+    for (const [arg] of mockPrisma.player.findMany.mock.calls) expect(arg).not.toHaveProperty("where");
+  });
 });
