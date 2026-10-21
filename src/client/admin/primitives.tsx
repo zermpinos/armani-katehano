@@ -73,11 +73,12 @@ export function TextArea({ label, value, onChange, rows = 4, maxLength, placehol
   );
 }
 
-export function Segmented<T extends string>({ label, options, value, onChange }: {
-  label:    string;
-  options:  ReadonlyArray<{ value: T; label: string }>;
-  value:    T;
-  onChange: (v: T) => void;
+export function Segmented<T extends string>({ label, options, value, onChange, disabled = false }: {
+  label:     string;
+  options:   ReadonlyArray<{ value: T; label: string }>;
+  value:     T;
+  onChange:  (v: T) => void;
+  disabled?: boolean;
 }) {
   return (
     <div role="group" aria-label={label} className="flex w-fit overflow-hidden rounded-[7px] border border-ak-border2">
@@ -86,10 +87,12 @@ export function Segmented<T extends string>({ label, options, value, onChange }:
           key={o.value}
           type="button"
           aria-pressed={o.value === value}
+          disabled={disabled}
           onClick={() => onChange(o.value)}
           className={[
             "min-h-[44px] cursor-pointer border-0 px-4 font-sans text-[11px] font-black uppercase tracking-[0.1em]",
             "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ak-red-bright",
+            "disabled:cursor-not-allowed disabled:opacity-60",
             o.value === value ? "bg-ak-surface text-ak-text" : "bg-ak-base text-ak-text-dim",
           ].join(" ")}
         >

@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from "react";
-import { adminLayout, useAdminSession, Spinner, apiFetch } from "@/client/admin";
+import { adminLayout, useAdminSession, Spinner, Segmented, Sel, Btn, apiFetch } from "@/client/admin";
 import type { GetServerSidePropsContext } from "next";
 import { getAdminPageProps } from "@/server/auth";
 
@@ -16,6 +16,9 @@ const PHASE_TOAST_LABELS: Record<string, string> = {
   semifinal:    "Semifinals",
   final:        "Finals",
 };
+
+const ON_OFF = [{ value: "off", label: "Off" }, { value: "on", label: "On" }] as const;
+const POPUP_ROUNDS = [{ value: "semifinal", label: "Semifinals (F4)" }, { value: "final", label: "Finals" }] as const;
 
 export default function MaintenancePage() {
   const { setToast } = useAdminSession();
@@ -75,7 +78,7 @@ export default function MaintenancePage() {
   };
 
   const handleSetPhase = async (phase: string) => {
-    if (phase === seasonPhase) return;
+    if (phaseBusy || phase === seasonPhase) return;
     setPhaseBusy(true);
     try {
       const res = await apiFetch("/api/admin/season-phase", {
@@ -195,148 +198,68 @@ export default function MaintenancePage() {
             label="Maintenance mode"
             hint="Redirects all non-admin visitors to /maintenance."
           >
-            <button
-              onClick={handleToggleMaintenance}
-              disabled={maintenanceBusy || maintenanceOn === null}
-              className={[
-                "w-full md:w-auto py-[10px] px-[18px] text-[12px] font-black tracking-[0.08em] rounded-[9px] border font-sans inline-flex items-center gap-[10px]",
-                maintenanceOn
-                  ? "border-[#8b1a1a55] bg-[#8b1a1a22] text-ak-red-text"
-                  : "border-ak-border bg-ak-surface text-ak-text",
-                (maintenanceBusy || maintenanceOn === null) ? "cursor-not-allowed opacity-70" : "cursor-pointer",
-              ].join(" ")}
-            >
-              <span
-                className={[
-                  "h-2 w-2 rounded-full",
-                  maintenanceOn === null
-                    ? "bg-ak-text-dim"
-                    : maintenanceOn
-                    ? "bg-ak-red-bright animate-ak-pulse"
-                    : "bg-ak-green",
-                ].join(" ")}
+            {maintenanceOn === null ? <NotLoaded /> : (
+              <Segmented
+                label="Maintenance mode"
+                options={ON_OFF}
+                value={maintenanceOn ? "on" : "off"}
+                disabled={maintenanceBusy}
+                onChange={v => { if ((v === "on") !== maintenanceOn) void handleToggleMaintenance(); }}
               />
-              {maintenanceBusy
-                ? "Switching..."
-                : maintenanceOn === null
-                ? "Maintenance: ..."
-                : maintenanceOn
-                ? "Maintenance: ON - Click to disable"
-                : "Maintenance: OFF - Click to enable"}
-            </button>
+            )}
           </Section>
 
           <Section
             label="Season phase"
             hint="Updates the hero label and page headings across the public site."
           >
-            <div className="flex gap-1.5 flex-wrap">
-              {PHASES.map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => handleSetPhase(value)}
-                  disabled={phaseBusy || seasonPhase === null}
-                  className={[
-                    "py-[8px] px-[14px] text-[11px] font-black tracking-[0.06em] rounded-[9px] border font-sans transition-colors duration-150",
-                    seasonPhase === value
-                      ? "border-[#8b1a1a55] bg-[#8b1a1a22] text-ak-red-text"
-                      : "border-ak-border bg-ak-surface text-ak-text",
-                    (phaseBusy || seasonPhase === null) ? "cursor-not-allowed opacity-70" : "cursor-pointer",
-                  ].join(" ")}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            {seasonPhase === null ? <NotLoaded /> : (
+              <div className="max-w-[320px]">
+                <Sel label="PHASE" value={seasonPhase} onChange={v => void handleSetPhase(v)} options={PHASES} />
+              </div>
+            )}
           </Section>
 
           <Section
             label="Playoff popup"
             hint="Shows a one-time announcement popup to visitors. Each time you re-enable it the dismissal counter resets, so returning visitors see it again."
           >
-            <button
-              onClick={handleTogglePopup}
-              disabled={popupBusy || popupEnabled === null}
-              className={[
-                "w-full md:w-auto py-[10px] px-[18px] text-[12px] font-black tracking-[0.08em] rounded-[9px] border font-sans inline-flex items-center gap-[10px]",
-                popupEnabled
-                  ? "border-[#8b1a1a55] bg-[#8b1a1a22] text-ak-red-text"
-                  : "border-ak-border bg-ak-surface text-ak-text",
-                (popupBusy || popupEnabled === null) ? "cursor-not-allowed opacity-70" : "cursor-pointer",
-              ].join(" ")}
-            >
-              <span
-                className={[
-                  "h-2 w-2 rounded-full",
-                  popupEnabled === null
-                    ? "bg-ak-text-dim"
-                    : popupEnabled
-                    ? "bg-ak-red-bright animate-ak-pulse"
-                    : "bg-ak-green",
-                ].join(" ")}
-              />
-              {popupBusy
-                ? "Switching..."
-                : popupEnabled === null
-                ? "Popup: ..."
-                : popupEnabled
-                ? "Popup: ON - Click to disable"
-                : "Popup: OFF - Click to enable"}
-            </button>
-
-            <div className="mt-3 flex gap-1.5">
-              {([
-                { value: "semifinal" as const, label: "Semifinals (F4)" },
-                { value: "final"     as const, label: "Finals"          },
-              ]).map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => handleSetPopupRound(value)}
-                  disabled={roundBusy || popupRound === null}
-                  className={[
-                    "py-[8px] px-[14px] text-[11px] font-black tracking-[0.06em] rounded-[9px] border font-sans transition-colors duration-150",
-                    popupRound === value
-                      ? "border-[#8b1a1a55] bg-[#8b1a1a22] text-ak-red-text"
-                      : "border-ak-border bg-ak-surface text-ak-text",
-                    (roundBusy || popupRound === null) ? "cursor-not-allowed opacity-70" : "cursor-pointer",
-                  ].join(" ")}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            {popupEnabled === null || popupRound === null ? <NotLoaded /> : (
+              <div className="flex flex-col gap-3">
+                <Segmented
+                  label="Playoff popup"
+                  options={ON_OFF}
+                  value={popupEnabled ? "on" : "off"}
+                  disabled={popupBusy}
+                  onChange={v => { if ((v === "on") !== popupEnabled) void handleTogglePopup(); }}
+                />
+                <Segmented
+                  label="Popup round"
+                  options={POPUP_ROUNDS}
+                  value={popupRound}
+                  disabled={roundBusy}
+                  onChange={v => void handleSetPopupRound(v)}
+                />
+              </div>
+            )}
           </Section>
 
           <Section
             label="Recalculate stats"
             hint="Recomputes all player season aggregates from raw game data. Safe to run after manual edits."
           >
-            <button
-              onClick={handleRecalc}
-              disabled={recalcing}
-              className={[
-                "w-full md:w-auto py-[10px] px-[18px] text-[12px] font-black tracking-[0.08em] rounded-[9px] border border-ak-border bg-ak-surface font-sans",
-                recalcing ? "text-ak-text-dim cursor-not-allowed" : "text-ak-text cursor-pointer",
-              ].join(" ")}
-            >
-              {recalcing ? "Recalculating..." : "⟳ Recalc stats"}
-            </button>
+            <Btn variant="ghost" onClick={handleRecalc} disabled={recalcing}>
+              {recalcing ? "RECALCULATING..." : "RECALC STATS"}
+            </Btn>
           </Section>
 
           <Section
             label="Test the import alert"
             hint="Sends a notification through the path the nightly import uses and reports whether it went to Slack or email. Nothing is imported and no game data changes."
           >
-            <button
-              onClick={handleTestAlert}
-              disabled={testingAlert}
-              className={[
-                "w-full md:w-auto py-[10px] px-[18px] text-[12px] font-black tracking-[0.08em] rounded-[9px] border border-ak-border bg-ak-surface font-sans",
-                testingAlert ? "text-ak-text-dim cursor-not-allowed" : "text-ak-text cursor-pointer",
-              ].join(" ")}
-            >
-              {testingAlert ? "Sending..." : "✓ Send test alert"}
-            </button>
+            <Btn variant="ghost" onClick={handleTestAlert} disabled={testingAlert}>
+              {testingAlert ? "SENDING..." : "SEND TEST ALERT"}
+            </Btn>
           </Section>
         </div>
       )}
@@ -345,6 +268,10 @@ export default function MaintenancePage() {
 }
 
 MaintenancePage.getLayout = adminLayout("Maintenance");
+
+function NotLoaded() {
+  return <div className="text-[12px] text-ak-text-dim">Could not load. Reload the page to try again.</div>;
+}
 
 function Section({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
