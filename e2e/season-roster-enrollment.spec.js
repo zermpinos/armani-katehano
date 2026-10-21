@@ -3,7 +3,7 @@
  *
  * Tests for the Season Roster Enrollment feature:
  *   GET + PUT /api/admin/roster-entries
- *   Season Rosters panel on /admin/[slug]/seasons
+ *   Season rows and the season sheet's roster checklist on /admin/[slug]/seasons
  *
  * Auth strategy: inject a real HMAC-signed session cookie (SESSION_SECRET) so
  * the page's SSR treats the request as signed in. All data APIs are mocked so
@@ -51,116 +51,82 @@ const ENTRIES = [
 
 async function mockSeasonsApis(page, { putResponse } = {}) {
   await page.context().addCookies(makeAdminAuth().cookies);
+  // A successful PUT replaces the season's entries, so the list refetch sees the saved state.
+  let entries = [...ENTRIES];
   await page.route("**/api/admin/seasons-list",  route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ seasons: SEASONS }) }));
   await page.route("**/api/admin/leagues-list",  route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ leagues: [] }) }));
   // Regex rather than a glob: this page asks for ?includeArchived=true, and a
   // glob has to match the whole URL including the query. A missed match falls
-  // through to the real route and the panel renders empty.
+  // through to the real route and the page renders empty.
   await page.route(/\/api\/admin\/season-leagues(\?|$)/, route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ seasonLeagues: SEASON_LEAGUES }) }));
   await page.route("**/api/admin/players",       route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ players: PLAYERS }) }));
   await page.route("**/api/admin/roster-entries", route => {
     if (route.request().method() === "GET") {
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ entries: ENTRIES }) });
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ entries }) });
     }
     if (route.request().method() === "PUT") {
-      return route.fulfill(putResponse ?? { status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, enrolled: 3 }) });
+      if (putResponse) return route.fulfill(putResponse);
+      const { seasonId, playerIds } = route.request().postDataJSON();
+      entries = [...entries.filter(e => e.seasonId !== seasonId), ...playerIds.map(playerId => ({ seasonId, playerId }))];
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, enrolled: playerIds.length }) });
     }
-    return route.continue();
+    return route.fulfill({ status: 405, contentType: "application/json", body: "{}" });
   });
 }
 
 async function goToSeasons(page, slug) {
   await page.goto(`/admin/${slug}/seasons`);
-  // Wait for the panel label. CSS renders it uppercase but the text content is mixed case
-  await expect(page.getByText("Season Rosters")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("button", { name: /2025-26/ })).toBeVisible({ timeout: 10_000 });
 }
 
-// ── Panel rendering ──────────────────────────────────────────────────────────
+// Archived seasons stay out of the list until Show all is on.
+async function openSeason(page, name) {
+  if (name === "2024-25") await page.getByRole("button", { name: "Show all (1 archived)" }).click();
+  await page.getByRole("button", { name }).click();
+  const sheet = page.getByRole("dialog", { name });
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
 
-test.describe("Season Rosters panel › rendering", () => {
-  test("panel is visible between Active links and Seasons panels", async ({ page }) => {
+const saveButton = (sheet) => sheet.getByRole("button", { name: "SAVE", exact: true });
+
+// ── Season rows ──────────────────────────────────────────────────────────────
+
+test.describe("Seasons page › rows", () => {
+  test("shows a row per current season, with archived ones behind Show all", async ({ page }) => {
     test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
-    // Wait for all three panel labels to be in the DOM before checking order.
-    const panelLabel = (label) => page.locator("section").filter({
-      has: page.locator(":scope > div").filter({ hasText: label }),
-    });
-    await expect(panelLabel(/^Active links$/)).toBeVisible();
-    await expect(panelLabel(/^Season Rosters$/)).toBeVisible();
-    await expect(panelLabel(/^Seasons$/)).toBeVisible();
-
-    // compareDocumentPosition: bit 4 = DOCUMENT_POSITION_FOLLOWING (comes after)
-    const inOrder = await page.evaluate(() => {
-      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-      const refs = { "Active links": null, "Season Rosters": null, "Seasons": null };
-      let node;
-      while (node = walker.nextNode()) {
-        const text = node.textContent?.trim();
-        // eslint-disable-next-line security/detect-object-injection -- text is gated by the `in` check against the fixed refs keys
-        if (!(text in refs) || refs[text]) continue;
-        const el = node.parentElement;
-        // Only match first element-child of a section (the Panel label div)
-        if (el?.parentElement?.tagName === "SECTION" && el.parentElement.firstElementChild === el) {
-          // eslint-disable-next-line security/detect-object-injection -- text is gated by the `in` check against the fixed refs keys
-          refs[text] = el;
-        }
-      }
-      const { "Active links": al, "Season Rosters": sr, "Seasons": s } = refs;
-      if (!al || !sr || !s) return false;
-      return !!(al.compareDocumentPosition(sr) & 4) && !!(sr.compareDocumentPosition(s) & 4);
-    });
-    expect(inOrder).toBe(true);
+    await expect(page.getByRole("button", { name: /2026-27/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /2024-25/ })).toHaveCount(0);
+    await page.getByRole("button", { name: "Show all (1 archived)" }).click();
+    await expect(page.getByRole("button", { name: /2024-25/ })).toContainText("Archived");
   });
 
-  test("shows one collapsible row per season", async ({ page }) => {
+  test("a row shows its game, league and enrolled player counts", async ({ page }) => {
     test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
-    for (const s of SEASONS) {
-      await expect(page.getByRole("button", { name: s.name })).toBeVisible();
-    }
-  });
-
-  test("enrolled count badge reflects GET /api/admin/roster-entries state", async ({ page }) => {
-    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
-    await mockSeasonsApis(page);
-    await goToSeasons(page, ADMIN_SLUG);
-
-    // 2025-26: 2 of 3 enrolled
-    const row2526 = page.getByRole("button", { name: /2025-26/ });
-    await expect(row2526).toContainText("2/3");
-
-    // 2024-25: 3 of 3 enrolled
-    const row2425 = page.getByRole("button", { name: /2024-25/ });
-    await expect(row2425).toContainText("3/3");
-  });
-
-  test("league count in row header", async ({ page }) => {
-    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
-    await mockSeasonsApis(page);
-    await goToSeasons(page, ADMIN_SLUG);
-
-    await expect(page.getByRole("button", { name: /2025-26/ })).toContainText("1 league");
-    await expect(page.getByRole("button", { name: /2026-27/ })).toContainText("0 leagues");
+    await expect(page.getByRole("button", { name: /2025-26/ })).toContainText("10 games · 1 league · 2 players");
+    await expect(page.getByRole("button", { name: /2026-27/ })).toContainText("0 games · 0 leagues · 0 players");
   });
 });
 
-// ── Expand / checklist ───────────────────────────────────────────────────────
+// ── Season sheet roster ──────────────────────────────────────────────────────
 
-test.describe("Season Rosters panel › checklist", () => {
-  test("expanding shows all active players sorted by jersey number", async ({ page }) => {
+test.describe("Season sheet › roster checklist", () => {
+  test("opening a row shows the roster count and every player sorted by jersey number", async ({ page }) => {
     test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
-    await page.getByRole("button", { name: /2025-26/ }).click();
-
-    for (const p of PLAYERS) {
-      await expect(page.getByLabel(`#${p.number}`)).toBeVisible();
-    }
+    const sheet = await openSeason(page, "2025-26");
+    await expect(sheet.getByRole("heading", { name: "Roster (2 of 3)" })).toBeVisible();
+    await expect(sheet.getByRole("checkbox")).toHaveCount(PLAYERS.length);
+    const labels = await sheet.locator("label").filter({ has: page.locator("input[type='checkbox']") }).allInnerTexts();
+    expect(labels.map(l => l.split("\n")[0])).toEqual(["#7 John Doe", "#10 Jane Smith", "#23 Bob Wilson"]);
   });
 
   test("enrolled players are checked, unenrolled are unchecked", async ({ page }) => {
@@ -168,123 +134,116 @@ test.describe("Season Rosters panel › checklist", () => {
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
-    await page.getByRole("button", { name: /2025-26/ }).click();
-
-    await expect(page.getByLabel(/#7/)).toBeChecked();
-    await expect(page.getByLabel(/#10/)).toBeChecked();
-    await expect(page.getByLabel(/#23/)).not.toBeChecked();
+    const sheet = await openSeason(page, "2025-26");
+    await expect(sheet.getByLabel(/#7 /)).toBeChecked();
+    await expect(sheet.getByLabel(/#10 /)).toBeChecked();
+    await expect(sheet.getByLabel(/#23 /)).not.toBeChecked();
   });
 
-  test("no-leagues season shows empty state instead of checklist", async ({ page }) => {
+  test("a season with no linked league shows the empty state instead of a checklist", async ({ page }) => {
     test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
-    await page.getByRole("button", { name: /2026-27/ }).click();
-    await expect(page.getByText("Link a league to this season first.")).toBeVisible();
-    await expect(page.getByLabel(/#7/)).not.toBeVisible({ timeout: 1_000 }).catch(() => {});
+    const sheet = await openSeason(page, "2026-27");
+    await expect(sheet.getByText("Link a league to this season first.")).toBeVisible();
+    await expect(sheet.getByRole("checkbox")).toHaveCount(0);
   });
 
-  test("archived season disables all checkboxes and hides save button", async ({ page }) => {
+  test("an archived season lists its enrolled players read-only, with save disabled", async ({ page }) => {
     test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
-    await page.getByRole("button", { name: /2024-25/ }).click();
-
-    const checkboxes = page.locator("input[type='checkbox']");
-    const count = await checkboxes.count();
-    expect(count).toBeGreaterThan(0);
-    for (let i = 0; i < count; i++) {
-      await expect(checkboxes.nth(i)).toBeDisabled();
+    const sheet = await openSeason(page, "2024-25");
+    await expect(sheet.getByRole("heading", { name: "Roster (3 of 3)" })).toBeVisible();
+    await expect(sheet.getByRole("checkbox")).toHaveCount(0);
+    for (const p of PLAYERS) {
+      await expect(sheet.getByRole("listitem").filter({ hasText: `#${p.number} ${p.name}` })).toBeVisible();
     }
-    await expect(page.getByRole("button", { name: /SAVE ROSTER/i })).not.toBeVisible();
+    await expect(saveButton(sheet)).toBeDisabled();
   });
 });
 
 // ── Dirty tracking and save ──────────────────────────────────────────────────
 
-test.describe("Season Rosters panel › save", () => {
-  test("save button is disabled when no changes are pending", async ({ page }) => {
+test.describe("Season sheet › save", () => {
+  test("save is disabled when no changes are pending", async ({ page }) => {
     test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
-    await page.getByRole("button", { name: /2025-26/ }).click();
-    await expect(page.getByRole("button", { name: /SAVE ROSTER/i })).toBeDisabled();
+    const sheet = await openSeason(page, "2025-26");
+    await expect(saveButton(sheet)).toBeDisabled();
   });
 
-  test("toggling a player enables the save button", async ({ page }) => {
+  test("toggling a player enables save, and toggling back disables it again", async ({ page }) => {
     test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
-    await page.getByRole("button", { name: /2025-26/ }).click();
-    await page.getByLabel(/#23/).click();
-    await expect(page.getByRole("button", { name: /SAVE ROSTER/i })).toBeEnabled();
+    const sheet = await openSeason(page, "2025-26");
+    await sheet.getByLabel(/#23 /).check();
+    await expect(sheet.getByRole("heading", { name: "Roster (3 of 3)" })).toBeVisible();
+    await expect(saveButton(sheet)).toBeEnabled();
+    await sheet.getByLabel(/#23 /).uncheck();
+    await expect(saveButton(sheet)).toBeDisabled();
   });
 
-  test("toggling back to original state disables save button again", async ({ page }) => {
+  test("save sends PUT with the seasonId and playerIds, and no PATCH when the dates are untouched", async ({ page }) => {
     test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
+    let patched = false;
+    await page.route(/\/api\/admin\/seasons\/[^/]+$/, route => { patched = true; return route.fulfill({ json: {} }); });
     await goToSeasons(page, ADMIN_SLUG);
 
-    await page.getByRole("button", { name: /2025-26/ }).click();
-    await page.getByLabel(/#23/).click();
-    await expect(page.getByRole("button", { name: /SAVE ROSTER/i })).toBeEnabled();
-    await page.getByLabel(/#23/).click();
-    await expect(page.getByRole("button", { name: /SAVE ROSTER/i })).toBeDisabled();
-  });
-
-  test("save sends PUT with correct seasonId and playerIds", async ({ page }) => {
-    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
-
-    await mockSeasonsApis(page);
-    await goToSeasons(page, ADMIN_SLUG);
-    await page.getByRole("button", { name: /2025-26/ }).click();
-    await page.getByLabel(/#23/).click();
+    const sheet = await openSeason(page, "2025-26");
+    await sheet.getByLabel(/#23 /).check();
 
     // Capture the PUT before clicking. waitForRequest fires on dispatch, before routing
     const putPromise = page.waitForRequest(req =>
       req.method() === "PUT" && req.url().includes("roster-entries")
     );
-    await page.getByRole("button", { name: /SAVE ROSTER/i }).click();
-    const putReq = await putPromise;
-    const body = JSON.parse(putReq.postData() ?? "{}");
+    await saveButton(sheet).click();
+    const body = JSON.parse((await putPromise).postData() ?? "{}");
 
-    await expect(page.getByText("Roster saved.")).toBeVisible({ timeout: 5_000 });
     expect(body.seasonId).toBe("s1");
     expect(body.playerIds).toHaveLength(3);
     expect(body.playerIds).toContain("p3");
+    expect(patched).toBe(false);
   });
 
-  test("enrolled count badge updates after successful save", async ({ page }) => {
+  test("a successful save closes the sheet and the row shows the new player count", async ({ page }) => {
     test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page);
     await goToSeasons(page, ADMIN_SLUG);
 
-    await page.getByRole("button", { name: /2025-26/ }).click();
-    await expect(page.getByRole("button", { name: /2025-26/ })).toContainText("2/3");
-    await page.getByLabel(/#23/).click();
-    await page.getByRole("button", { name: /SAVE ROSTER/i }).click();
-    await expect(page.getByText("Roster saved.")).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByRole("button", { name: /2025-26/ })).toContainText("3/3");
+    const row = page.getByRole("button", { name: /2025-26/ });
+    await expect(row).toContainText("2 players");
+    const sheet = await openSeason(page, "2025-26");
+    await sheet.getByLabel(/#23 /).check();
+    await saveButton(sheet).click();
+
+    await expect(sheet).not.toBeVisible({ timeout: 5_000 });
+    await expect(row).toContainText("3 players");
   });
 
-  test("error response shows error toast and leaves draft intact", async ({ page }) => {
+  test("an error response shows inside the sheet and leaves the draft intact", async ({ page }) => {
     test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
     await mockSeasonsApis(page, {
       putResponse: { status: 400, contentType: "application/json", body: JSON.stringify({ error: "Invalid player ID" }) },
     });
     await goToSeasons(page, ADMIN_SLUG);
 
-    await page.getByRole("button", { name: /2025-26/ }).click();
-    await page.getByLabel(/#23/).click();
-    await page.getByRole("button", { name: /SAVE ROSTER/i }).click();
+    const sheet = await openSeason(page, "2025-26");
+    await sheet.getByLabel(/#23 /).check();
+    await saveButton(sheet).click();
 
-    await expect(page.getByText("Invalid player ID")).toBeVisible({ timeout: 5_000 });
-    // Badge still shows original enrolled count (draft not committed)
-    await expect(page.getByRole("button", { name: /2025-26/ })).toContainText("2/3");
+    await expect(sheet.getByRole("alert")).toContainText("Invalid player ID", { timeout: 5_000 });
+    await expect(sheet.getByLabel(/#23 /)).toBeChecked();
+    await expect(saveButton(sheet)).toBeEnabled();
+    await sheet.getByRole("button", { name: "CLOSE", exact: true }).click();
+    await expect(page.getByRole("button", { name: /2025-26/ })).toContainText("2 players");
   });
 });
 
