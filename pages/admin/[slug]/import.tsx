@@ -118,7 +118,7 @@ export default function ImportPage() {
 
   const save = async () => {
     if (!draft) return;
-    if (unresolved.length || entries.some(e => e.assignee === null)) {
+    if (entries.some(e => e.assignee === null)) {
       showToast("Cannot save while a line has no player.", "error");
       return;
     }

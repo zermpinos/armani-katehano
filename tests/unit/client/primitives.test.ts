@@ -19,6 +19,17 @@ describe("admin primitives", () => {
     expect(html).toContain("focus-visible:outline-2");
   });
 
+  it("Segmented can be disabled while a change saves", () => {
+    const html = renderToStaticMarkup(createElement(Segmented<"a" | "b">, {
+      label:    "Mode",
+      options:  [{ value: "a", label: "A" }, { value: "b", label: "B" }],
+      value:    "a",
+      onChange: () => {},
+      disabled: true,
+    }));
+    expect(html.match(/<button[^>]* disabled=""/g)).toHaveLength(2);
+  });
+
   it("TextArea is 16px, keeps its length limit and can switch to a monospace font", () => {
     const html = renderToStaticMarkup(createElement(TextArea, {
       label: "BODY", value: "", onChange: () => {}, maxLength: 200, mono: true,

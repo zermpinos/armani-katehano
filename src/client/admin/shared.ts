@@ -46,6 +46,8 @@ export interface Game {
   home?: boolean;
   location?: "home" | "away";
   seasonLeagueId: string;
+  round?: string;
+  notes?: string;
   sourceUrl?: string | null;
   youtubeUrl?: string | null;
   boxScore?: BoxScoreRow[];

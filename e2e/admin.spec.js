@@ -732,6 +732,118 @@ test.describe("Admin panel › Opponent names", () => {
   });
 });
 
+test.describe("Admin panel › Games, seasons and settings", () => {
+  const adminContext = (browser) => browser.newContext({
+    baseURL:      BASE_URL,
+    storageState: makeAdminStorageState(ADMIN_USERNAME),
+  });
+
+  const CURRENT_SL = { id: "cmslcurrent00000000000001", leagueName: "Super League", leagueSlug: "men", seasonName: "2026-27" };
+  const OLDER_SL   = { id: "cmslolder0000000000000001", leagueName: "Super League", leagueSlug: "men", seasonName: "2025-26" };
+  const CURRENT_GAME = {
+    id: "cmgamecurrent000000000001", seasonLeagueId: CURRENT_SL.id, date: "2026-10-18", opponent: "Mock Current Rivals",
+    home: false, result: "W", teamScore: 70, opponentScore: 60, round: "regular",
+  };
+  const OLDER_GAME = {
+    id: "cmgameolder00000000000001", seasonLeagueId: OLDER_SL.id, date: "2026-04-12", opponent: "Mock Old Rivals",
+    home: true, result: "L", teamScore: 55, opponentScore: 58, round: "semifinal",
+  };
+  const CURRENT_LIST = { currentSeason: "2026-27", games: [CURRENT_GAME], seasonLeagues: [CURRENT_SL], olderCount: 1 };
+  const ALL_LIST     = { currentSeason: null, games: [CURRENT_GAME, OLDER_GAME], seasonLeagues: [CURRENT_SL, OLDER_SL], olderCount: 0 };
+  const PLAYER_ID    = "cmplayer00000000000000001";
+  const EDIT = {
+    game: {
+      ...OLDER_GAME, sourceUrl: null, youtubeUrl: null, notes: "Mock note",
+      boxScore: [{
+        playerId: PLAYER_ID, minutes: 20, pts: 9, reb: 4, orb: 1, drb: 3, ast: 2, stl: 0, blk: 0, tov: 1, pf: 2,
+        fgm: 4, fga: 8, fg2m: 3, fg2a: 5, fg3m: 1, fg3a: 3, ftm: 0, fta: 0,
+      }],
+    },
+    players:       [{ id: PLAYER_ID, name: "Mock Player", number: 7, position: "SG", isActive: true }],
+    seasonLeagues: [OLDER_SL],
+  };
+
+  const mockData = (page) => page.route(url => url.pathname === "/api/admin/data", route => {
+    const params = new URL(route.request().url()).searchParams;
+    if (params.get("gameId")) return route.fulfill({ json: EDIT });
+    return route.fulfill({ json: params.get("all") === "1" ? ALL_LIST : CURRENT_LIST });
+  });
+
+  test("the games list shows the current season, and every season behind Show all", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await mockData(page);
+      await page.goto(`/admin/${ADMIN_SLUG}/games`);
+      await expect(page.getByText("1 in 2026-27")).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText("Mock Current Rivals")).toBeVisible();
+      await expect(page.getByText("Mock Old Rivals")).toHaveCount(0);
+
+      await page.getByRole("button", { name: "Show all (1 older)" }).click();
+      await expect(page.getByText("Mock Old Rivals")).toBeVisible();
+      await expect(page.getByText("Semifinal", { exact: true })).toBeVisible();
+      await expect(page.getByRole("link", { name: /Mock Old Rivals/ })).toContainText("Super League · 2025-26");
+      await expect(page.getByRole("button", { name: "Show current only" })).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("saving an older playoff game keeps its round and sends the edited notes", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      await mockData(page);
+      let put = null;
+      await page.route(url => url.pathname === "/api/admin/games", route => {
+        if (route.request().method() !== "PUT") return route.fulfill({ status: 405, json: {} });
+        put = route.request().postDataJSON();
+        return route.fulfill({ json: { ok: true } });
+      });
+
+      await page.goto(`/admin/${ADMIN_SLUG}/games/${OLDER_GAME.id}`);
+      await expect(page.getByLabel("ROUND")).toHaveValue("semifinal", { timeout: 10_000 });
+      await expect(page.getByLabel("DATE")).toHaveValue("2026-04-12");
+      await expect(page.getByLabel("NOTES")).toHaveValue("Mock note");
+      await expect(page.getByText("Player M.")).toBeVisible();
+
+      await page.getByLabel("NOTES").fill("Edited note");
+      await page.getByRole("button", { name: "SAVE CHANGES" }).click();
+      await expect.poll(() => put?.round).toBe("semifinal");
+      expect(put).toMatchObject({ notes: "Edited note", seasonLeagueId: OLDER_SL.id, location: "home" });
+      expect(put.boxScore[0]).toMatchObject({ playerId: PLAYER_ID, minutes: 20, fgm: 4, fga: 8 });
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("the Phase 5 pages keep every text input at 16px or more", async ({ browser }) => {
+    test.skip(!ADMIN_SLUG || !SESSION_SECRET, "ADMIN_SLUG or SESSION_SECRET not configured");
+    const context = await adminContext(browser);
+    const page    = await context.newPage();
+    try {
+      const pages = [
+        ["games/new",   () => page.getByLabel("OPPONENT")],
+        ["seasons",     () => page.getByRole("button", { name: "+ ADD SEASON" })],
+        ["maintenance", () => page.getByLabel("PHASE")],
+        ["passkeys",    () => page.getByLabel("DEVICE LABEL")],
+      ];
+      for (const [path, ready] of pages) {
+        await page.goto(`/admin/${ADMIN_SLUG}/${path}`);
+        await expect(ready()).toBeVisible({ timeout: 10_000 });
+        const sizes = await page.locator("main input:not([type=checkbox]), main select, main textarea")
+          .evaluateAll(els => els.map(el => parseFloat(getComputedStyle(el).fontSize)));
+        expect(sizes.length, path).toBeGreaterThan(0);
+        expect(Math.min(...sizes), path).toBeGreaterThanOrEqual(16);
+      }
+    } finally {
+      await context.close();
+    }
+  });
+});
+
 // ── API-level auth guard (always runs - no credentials needed) ─────────────
 
 test.describe("Admin panel › API protection", () => {

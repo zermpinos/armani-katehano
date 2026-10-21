@@ -61,7 +61,7 @@ export interface NameMismatch {
 export interface ResolveResult {
   draft: ImportDraft;
   highlights: Record<string, boolean>;
-  // Blockers the form cannot act on beyond reading them.
+  // League problems: an unattended caller stops on them, the form shows them until a league is picked.
   unresolved: string[];
   unresolvedPlayers: UnresolvedPlayer[];
   // A jersey matched a roster player whose surname is not the one on the sheet,
