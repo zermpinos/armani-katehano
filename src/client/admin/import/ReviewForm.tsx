@@ -80,11 +80,12 @@ export function ReviewForm({
         onCreated={onPlayerCreated}
       />
 
-      {(unresolved.length > 0 || leagueMissing || drift.length > 0) && (
+      {(leagueMissing || drift.length > 0) && (
         <div className="py-[10px] px-[14px] rounded-lg bg-[#8b1a1a30] border border-[#8b1a1a] text-xs text-ak-red-text">
           <div className="font-black mb-1">Blocked - fix before saving:</div>
-          {unresolved.map((u, i) => <div key={i}>• {u}</div>)}
-          {leagueMissing && <div>• No league matched the source URL. Pick one under Game info.</div>}
+          {leagueMissing && (unresolved.length > 0
+            ? unresolved.map((u, i) => <div key={i}>• {u}</div>)
+            : <div>• No league matched the source URL. Pick one under Game info.</div>)}
           {drift.map((f, i) => <div key={i}>• {f.detail} Stats for it would save as zero.</div>)}
         </div>
       )}
@@ -140,7 +141,7 @@ export function ReviewForm({
         <Btn
           onClick={onSave}
           variant="green"
-          disabled={phase === "saving" || gameState?.state === "scheduled" || unresolved.length > 0 || unassigned || leagueMissing || drift.length > 0}
+          disabled={phase === "saving" || gameState?.state === "scheduled" || unassigned || leagueMissing || drift.length > 0}
         >
           {phase === "saving" ? "SAVING..." : "SAVE GAME"}
         </Btn>
