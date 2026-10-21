@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { useAdminData, storeAdminData, clearAdminData } from "@/client/admin/use-admin-data";
-import { optimisticSave, asSentence } from "@/client/admin/optimistic-save";
+import { optimisticSave, sendForResult, asSentence } from "@/client/admin/optimistic-save";
 
 type Rows = { rows: string[] };
 const URL_ = "/api/admin/things";
@@ -58,6 +58,24 @@ describe("optimisticSave", () => {
     const result = await optimisticSave<Rows>({ url: URL_, apply: add, rollback: remove, send: () => fetch("/x") });
     expect(result).toEqual({ ok: false, status: 0, message: "Network error. Check the connection and try again." });
     expect(shown()).toBe("<span>a</span>");
+  });
+});
+
+describe("sendForResult", () => {
+  it("returns the body of a successful request", async () => {
+    expect(await sendForResult(() => Promise.resolve(json(200, { ok: 1 })))).toEqual({ ok: true, body: { ok: 1 } });
+  });
+
+  it("returns the server's message, or the fallback when there is none", async () => {
+    expect(await sendForResult(() => Promise.resolve(json(400, { error: "Bad dates" }))))
+      .toEqual({ ok: false, status: 400, message: "Bad dates" });
+    expect(await sendForResult(() => Promise.resolve(new Response("oops", { status: 502 })), "Delete failed"))
+      .toEqual({ ok: false, status: 502, message: "Delete failed" });
+  });
+
+  it("reports a network error as status 0", async () => {
+    expect(await sendForResult(() => Promise.reject(new TypeError("fetch failed"))))
+      .toEqual({ ok: false, status: 0, message: "Network error. Check the connection and try again." });
   });
 });
 
