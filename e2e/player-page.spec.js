@@ -44,9 +44,11 @@ test.describe("Player standalone page (/players/[slug])", () => {
   });
 
   test("game log table row links to /games/[id]", async ({ page }) => {
-    await page.goto("/players");
+    // /players leads with the lowest jersey number, played or not, and the player page opens on the
+    // current season. The leaderboard lists only players who have played in it.
+    await page.goto("/leaderboard");
     const firstCard = page.locator("a[href^='/players/']").first();
-    test.skip(await firstCard.count() === 0, "No players in DB - skipping");
+    test.skip(await firstCard.count() === 0, "No players on the leaderboard - skipping");
     const href = await firstCard.getAttribute("href");
     if (!href) return;
     await page.goto(href);
@@ -56,7 +58,8 @@ test.describe("Player standalone page (/players/[slug])", () => {
     test.skip(await tableBtn.count() === 0, "Player has no game log - skipping");
     await tableBtn.click();
 
-    const gameLink = page.locator("a[href^='/games/']").first();
+    // Season Highs links to games too and comes first.
+    const gameLink = page.locator("table a[href^='/games/']").first();
     test.skip(await gameLink.count() === 0, "No game links in table - skipping");
     const gameHref = await gameLink.getAttribute("href");
     await gameLink.click();
