@@ -104,10 +104,7 @@ describe("fmtDate", () => {
     expect(fmtDate("not-a-date")).toBe("not-a-date");
   });
 
-  it("formats ISO date into human-readable form", () => {
-    const result = fmtDate("2025-09-14");
-    // Should contain "2025" and "Sep" in some locale-dependent format
-    expect(result).toContain("2025");
-    expect(result).toContain("Sep");
+  it("formats an ISO date as DD Mon YYYY, with Sep whatever the runtime's locale data says", () => {
+    expect(fmtDate("2025-09-14")).toBe("14 Sep 2025");
   });
 });
