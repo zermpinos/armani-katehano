@@ -2,6 +2,7 @@ import Link from "next/link";
 import { useId, type ReactNode } from "react";
 import { fmtDate } from "@/domain/shared/format";
 import { meetingCount, recordText, type HeadToHead } from "@/domain/stats/head-to-head";
+import { StatTile } from "@/components/ui";
 
 const EMPTY_TEXT = "First meeting between the teams.";
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ak-red-text";
@@ -139,5 +140,43 @@ export function HeadToHeadLine({ h2h }: { h2h: HeadToHead }) {
         </>
       )}
     </div>
+  );
+}
+
+export function HeadToHeadFull({ h2h }: { h2h: HeadToHead }) {
+  const titleId = useId();
+  const total = meetingCount(h2h);
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2">
+        <div className={total < 2 ? "col-span-2" : undefined}>
+          <StatTile label="RECORD" value={<RecordValue h2h={h2h} />} sub={countText(total, "meeting", "meetings")} />
+        </div>
+        {total >= 2 && (
+          <StatTile label={`LAST ${h2h.form.length}`} value={<FormStrip form={h2h.form} behind="surface" size="md" />} sub="newest first" />
+        )}
+      </div>
+      <section aria-labelledby={titleId} className="mt-4 rounded-xl border border-ak-border bg-ak-surface px-3.5">
+        <div className="flex min-h-[44px] items-center justify-between">
+          <h3 id={titleId} className="text-[12px] font-black uppercase tracking-[0.12em] text-ak-text">Every meeting</h3><span className="text-[11px] font-bold tabular-nums text-ak-text-dim">{total}</span>
+        </div>
+        <ul role="list">
+          {h2h.meetings.map(m => (
+            <li key={m.id} className="border-t border-ak-border">
+              <Link href={`/games/${m.id}`} className={`grid min-h-[56px] grid-cols-[1fr_auto_12px] items-center gap-x-2.5 ${FOCUS}`}>
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px] font-bold text-ak-text">{m.competition} {m.season}</span>{" "}
+                  <span className="mt-0.5 block text-[12px] tabular-nums text-ak-text-sub">{fmtDate(m.date)}</span>
+                </span>{" "}
+                <span className="flex items-center gap-2 text-[15px] font-black tabular-nums text-ak-text">
+                  <ResultBadge result={m.result} size="md" />{" "}{m.score}
+                </span>
+                <span aria-hidden="true" className="text-[15px] text-ak-text-dim">›</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
-import { HeadToHeadBlock } from "@/client/games/HeadToHeadBlock";
+import { HeadToHeadFull } from "@/client/games/HeadToHeadBlock";
 import { getAllGames, getOpponentNames } from "@/server/db/repositories";
 import { headToHead, opponentSlug, recordText, type HeadToHead } from "@/domain/stats/head-to-head";
 import { SITE_NAME } from "@/domain/shared/constants";
@@ -20,7 +20,7 @@ export default function OpponentPage({ h2h }: { h2h: HeadToHead }) {
         ← Games
       </Link>
       <SectionHeading label="Head-to-head" title={`vs ${h2h.opponent}`} />
-      <HeadToHeadBlock h2h={h2h} title="Every meeting" />
+      <HeadToHeadFull h2h={h2h} />
     </Layout>
   );
 }

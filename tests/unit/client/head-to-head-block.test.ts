@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { HeadToHeadBlock, HeadToHeadLine } from "@/client/games/HeadToHeadBlock";
+import { HeadToHeadBlock, HeadToHeadFull, HeadToHeadLine } from "@/client/games/HeadToHeadBlock";
 import { headToHead, type MeetingSource } from "@/domain/stats/head-to-head";
 import { fmtDate } from "@/domain/shared/format";
 
@@ -115,5 +115,41 @@ describe("HeadToHeadLine", () => {
     const html = line([], "Delulu");
     expect(html).toContain("First meeting between the teams.");
     expect(html).not.toContain("/opponents/");
+  });
+});
+
+describe("HeadToHeadFull", () => {
+  const full = (games: MeetingSource[], opponent = "New York Bricks") =>
+    renderToStaticMarkup(createElement(HeadToHeadFull, { h2h: headToHead(games, opponent) }));
+
+  it("shows the record and form tiles, then every meeting with its season", () => {
+    const html = full([...four, game(5, "2025-10-01", "L")]);
+    expect(html).toContain(">RECORD<");
+    expect(html).toContain(">3-2<");
+    expect(html).toContain("3 wins, 2 losses");
+    expect(html).toContain("5 meetings");
+    expect(html).toContain(">LAST 5<");
+    expect(html.match(/href="\/games\//g)).toHaveLength(5);
+    expect(html).toContain("Winter Cup 2026-27");
+    expect(html).toContain("Winter Cup 2025-26");
+  });
+
+  it("is a region named Every meeting, with the count beside its heading", () => {
+    const html = full(four);
+    const id = html.match(/<section aria-labelledby="([^"]+)"/)?.[1];
+    expect(id).toBeTruthy();
+    expect(html).toContain(`<h3 id="${id}"`);
+    expect(html).toMatch(/>Every meeting<\/h3><span[^>]*>4<\/span>/);
+  });
+
+  it("does not link to itself", () => {
+    expect(full(four)).not.toContain("/opponents/");
+  });
+
+  it("shows a full-width record tile and no form for a single meeting", () => {
+    const html = full([four[0]!]);
+    expect(html).toContain("1 meeting");
+    expect(html).toContain("col-span-2");
+    expect(html).not.toContain(">LAST ");
   });
 });

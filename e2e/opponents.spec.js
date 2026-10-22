@@ -18,8 +18,10 @@ test.describe("Head-to-head", () => {
     test.skip(path === null, "No opponents in DB - skipping");
     await page.goto(path);
     await expect(page.getByRole("heading", { name: /^vs / })).toBeVisible();
+    // The record is in the page title, " · W-L · " or " · W-L-T · ", which no score can match.
+    await expect(page).toHaveTitle(/ · \d+-\d+ · | · \d+-\d+-\d+ · /);
+    await expect(page.getByText("RECORD", { exact: true })).toBeVisible();
     const every = page.getByRole("region", { name: "Every meeting" });
-    await expect(every.getByText(/^Record: \d+-\d+/)).toBeVisible();
     await expect(every.getByRole("link").first()).toHaveAttribute("href", /^\/games\/c[0-9a-z]{24}$/);
   });
 
