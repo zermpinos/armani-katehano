@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { headToHead, headToHeadAll, meetingCount, opponentSlug, recordText, type MeetingSource } from "@/domain/stats/head-to-head";
+import { headToHead, headToHeadAll, opponentSlug, recordText, type MeetingSource } from "@/domain/stats/head-to-head";
 
 const g = (id: string, date: string, opponent: string, result: string, score = "60-50"): MeetingSource =>
   ({ id, date, opponent, home: true, result, score, season: date < "2026-07-01" ? "2025-26" : "2026-27", leagueName: "Winter Cup" });
@@ -46,8 +46,15 @@ describe("headToHead", () => {
     expect(headToHead(games, "New York Bricks", { before: "2026-03-15" }).form).toEqual(["W", "L"]);
   });
 
+  it("counts every meeting in total, before the limit and whatever its result", () => {
+    const h = headToHead([...games, g("x", "2025-10-01", "New York Bricks", "w")], "New York Bricks", { limit: 1 });
+    expect(h.meetings).toHaveLength(1);
+    expect(h.total).toBe(5);
+    expect([h.wins, h.losses, h.ties]).toEqual([3, 1, 0]);
+  });
+
   it("is empty for a team never played", () => {
-    expect(headToHead(games, "Delulu")).toMatchObject({ wins: 0, losses: 0, ties: 0, form: [], meetings: [] });
+    expect(headToHead(games, "Delulu")).toMatchObject({ wins: 0, losses: 0, ties: 0, total: 0, form: [], meetings: [] });
   });
 });
 
@@ -63,14 +70,5 @@ describe("recordText", () => {
   it("shows ties only when there are some", () => {
     expect(recordText(headToHead(games, "New York Bricks"))).toBe("3-1");
     expect(recordText({ ...headToHead(games, "New York Bricks"), ties: 1 })).toBe("3-1-1");
-  });
-});
-
-describe("meetingCount", () => {
-  it("counts every meeting, not only the listed ones", () => {
-    const h = headToHead(games, "New York Bricks", { limit: 1 });
-    expect(h.meetings).toHaveLength(1);
-    expect(meetingCount(h)).toBe(4);
-    expect(meetingCount({ ...h, ties: 2 })).toBe(6);
   });
 });

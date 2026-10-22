@@ -7,7 +7,7 @@ import { headToHead, opponentSlug, recordText, type HeadToHead } from "@/domain/
 import { SITE_NAME } from "@/domain/shared/constants";
 
 export default function OpponentPage({ h2h }: { h2h: HeadToHead }) {
-  const n = h2h.meetings.length;
+  const n = h2h.total;
   return (
     <Layout
       title={`vs ${h2h.opponent} · ${recordText(h2h)}`}
