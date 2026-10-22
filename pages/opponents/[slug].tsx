@@ -20,7 +20,7 @@ export default function OpponentPage({ h2h }: { h2h: HeadToHead }) {
         ← Games
       </Link>
       <SectionHeading label="Head-to-head" title={`vs ${h2h.opponent}`} />
-      <HeadToHeadBlock h2h={h2h} title="Every meeting" emptyText="" showAllLink={false} />
+      <HeadToHeadBlock h2h={h2h} title="Every meeting" />
     </Layout>
   );
 }

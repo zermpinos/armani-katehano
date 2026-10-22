@@ -25,7 +25,7 @@ export default function GamePage({ game, earlier }: { game: any; earlier: HeadTo
         right={game.date}
       />
       <BoxScoreTable game={game} />
-      <HeadToHeadBlock h2h={earlier} title="Earlier meetings" emptyText="First meeting between the teams." showAllLink />
+      <HeadToHeadBlock h2h={earlier} title="Earlier meetings" linkFirstMeeting />
     </Layout>
   );
 }

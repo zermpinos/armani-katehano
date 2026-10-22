@@ -123,7 +123,7 @@ export function UpcomingGamesSection({ upcomingGames, headToHead, openRosterId, 
             </div>
           </div>
         </div>
-        <HeadToHeadBlock h2h={featuredH2h} title={`Against ${featured.opponent}`} emptyText="First meeting." showAllLink />
+        <HeadToHeadBlock h2h={featuredH2h} title="Head-to-head" />
 
         <div className="mt-3 pt-[10px] border-t border-ak-border">
           {featured.announcement ? (
