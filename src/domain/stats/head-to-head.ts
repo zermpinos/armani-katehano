@@ -24,6 +24,8 @@ export interface HeadToHead {
   wins:     number;
   losses:   number;
   ties:     number;
+  // Every meeting before the limit; the record counts only W, L and T, and the column allows any text.
+  total:    number;
   // The latest results, newest first, taken before the limit so a 3-row card still shows 5.
   form:     string[];
   meetings: Meeting[];
@@ -35,7 +37,7 @@ export function opponentSlug(name: string): string {
 
 const FORM_LENGTH = 5;
 
-// Dates are YYYY-MM-DD, so "before" compares as text; the record counts every meeting, the limit trims only the list.
+// Dates are YYYY-MM-DD, so "before" compares as text; the limit trims only the list.
 export function headToHead(
   games: readonly MeetingSource[],
   opponent: string,
@@ -51,6 +53,7 @@ export function headToHead(
     wins:     count("W"),
     losses:   count("L"),
     ties:     count("T"),
+    total:    mine.length,
     form:     mine.slice(0, FORM_LENGTH).map(g => g.result),
     meetings: mine.slice(0, opts.limit ?? mine.length).map(g => ({
       id: g.id, date: g.date, season: g.season, competition: g.leagueName, result: g.result, score: g.score,
@@ -64,8 +67,4 @@ export function headToHeadAll(games: readonly MeetingSource[], limit: number): H
 
 export function recordText(h: HeadToHead): string {
   return `${h.wins}-${h.losses}${h.ties ? `-${h.ties}` : ""}`;
-}
-
-export function meetingCount(h: HeadToHead): number {
-  return h.wins + h.losses + h.ties;
 }

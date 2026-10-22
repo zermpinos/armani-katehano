@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useId, type ReactNode } from "react";
 import { fmtDate } from "@/domain/shared/format";
-import { meetingCount, recordText, type HeadToHead } from "@/domain/stats/head-to-head";
+import { recordText, type HeadToHead } from "@/domain/stats/head-to-head";
 import { StatTile } from "@/components/ui";
 
 const EMPTY_TEXT = "First meeting between the teams.";
@@ -46,12 +46,12 @@ function ResultBadge({ result, size = "sm" }: { result: string; size?: "sm" | "m
 }
 
 // Safari drops list semantics once the list style is removed, hence role="list".
-function FormStrip({ form, behind, size = "sm" }: { form: string[]; behind: "surface" | "surface2"; size?: "sm" | "md" }) {
-  const offset = behind === "surface" ? "ring-offset-ak-surface" : "ring-offset-ak-surface2";
+// An outline, unlike a ring offset, leaves the gap around the newest result see-through on any background.
+function FormStrip({ form, label, size = "sm" }: { form: string[]; label?: string; size?: "sm" | "md" }) {
   return (
-    <ol role="list" aria-label={`Last ${form.length} results, newest first`} className="flex items-center justify-center gap-1">
+    <ol role="list" aria-label={label} className="flex items-center justify-center gap-1">
       {form.map((result, i) => (
-        <li key={i} className={i === 0 ? `flex rounded-full ring-1 ring-ak-text-sub ring-offset-2 ${offset}` : "flex"}>
+        <li key={i} className={i === 0 ? "flex rounded-full outline-1 outline-offset-2 outline-ak-text-sub" : "flex"}>
           <ResultBadge result={result} size={size} />
         </li>
       ))}
@@ -61,7 +61,7 @@ function FormStrip({ form, behind, size = "sm" }: { form: string[]; behind: "sur
 
 function CardTile({ label, sub, wide, children }: { label: string; sub: string; wide: boolean; children: ReactNode }) {
   return (
-    <div className={`rounded-[10px] border border-ak-border2 px-2 py-2.5 text-center${wide ? " col-span-2" : ""}`}>
+    <div className={`rounded-[10px] border border-ak-border2 px-2 py-2.5 text-center${wide ? " @min-[280px]:col-span-2" : ""}`}>
       <div className="text-[10px] font-black uppercase tracking-[0.15em] text-ak-text-dim">{label}</div>
       <div className="mt-1 flex min-h-[30px] items-center justify-center text-[24px] font-black leading-none text-ak-text">{children}</div>
       <div className="mt-1 text-[11px] text-ak-text-sub">{sub}</div>
@@ -75,10 +75,10 @@ export function HeadToHeadBlock({ h2h, title, linkFirstMeeting = false }: {
   linkFirstMeeting?: boolean;
 }) {
   const titleId = useId();
-  const total = meetingCount(h2h);
+  const total = h2h.total;
   const showLink = h2h.slug !== "" && (total > 0 || linkFirstMeeting);
   return (
-    <section aria-labelledby={titleId} className="mt-4 rounded-[10px] border border-ak-border bg-ak-surface2 px-3 pb-2">
+    <section aria-labelledby={titleId} className="@container mt-4 rounded-[10px] border border-ak-border bg-ak-surface2 px-3 pb-2">
       <div className="flex min-h-[44px] items-center justify-between gap-3">
         <h3 id={titleId} className="text-[12px] font-black uppercase tracking-[0.12em] text-ak-text">{title}</h3>
         {showLink && (
@@ -91,13 +91,14 @@ export function HeadToHeadBlock({ h2h, title, linkFirstMeeting = false }: {
         <p className="pb-2 text-[13px] text-ak-text-sub">{EMPTY_TEXT}</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-2">
+          {/* Two tiles need 280px for five results; the home card is narrower on small phones. */}
+          <div className="grid grid-cols-1 gap-2 @min-[280px]:grid-cols-2">
             <CardTile label="Record" sub={countText(total, "meeting", "meetings")} wide={total < 2}>
               <RecordValue h2h={h2h} />
             </CardTile>
             {total >= 2 && (
               <CardTile label={`Last ${h2h.form.length}`} sub="newest first" wide={false}>
-                <FormStrip form={h2h.form} behind="surface2" />
+                <FormStrip form={h2h.form} />
               </CardTile>
             )}
           </div>
@@ -122,7 +123,7 @@ export function HeadToHeadBlock({ h2h, title, linkFirstMeeting = false }: {
 }
 
 export function HeadToHeadLine({ h2h }: { h2h: HeadToHead }) {
-  const total = meetingCount(h2h);
+  const total = h2h.total;
   return (
     <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px]">
       <span className="sr-only">Head-to-head:</span>
@@ -131,10 +132,10 @@ export function HeadToHeadLine({ h2h }: { h2h: HeadToHead }) {
       ) : (
         <>
           <span className="font-black text-ak-text"><RecordValue h2h={h2h} /></span>
-          {total >= 2 && <FormStrip form={h2h.form} behind="surface2" />}
+          {total >= 2 && <FormStrip form={h2h.form} label={`Last ${h2h.form.length} results, newest first`} />}
           {h2h.slug !== "" && (
             <Link href={`/opponents/${h2h.slug}`} className={`inline-flex min-h-[24px] items-center ${LINK_TEXT} ${FOCUS}`}>
-              All meetings ›
+              All meetings<span className="sr-only"> against {h2h.opponent}</span> ›
             </Link>
           )}
         </>
@@ -145,7 +146,7 @@ export function HeadToHeadLine({ h2h }: { h2h: HeadToHead }) {
 
 export function HeadToHeadFull({ h2h }: { h2h: HeadToHead }) {
   const titleId = useId();
-  const total = meetingCount(h2h);
+  const total = h2h.total;
   return (
     <>
       <div className="grid grid-cols-2 gap-2">
@@ -153,12 +154,12 @@ export function HeadToHeadFull({ h2h }: { h2h: HeadToHead }) {
           <StatTile label="RECORD" value={<RecordValue h2h={h2h} />} sub={countText(total, "meeting", "meetings")} />
         </div>
         {total >= 2 && (
-          <StatTile label={`LAST ${h2h.form.length}`} value={<FormStrip form={h2h.form} behind="surface" size="md" />} sub="newest first" />
+          <StatTile label={`LAST ${h2h.form.length}`} value={<FormStrip form={h2h.form} size="md" />} sub="newest first" />
         )}
       </div>
       <section aria-labelledby={titleId} className="mt-4 rounded-xl border border-ak-border bg-ak-surface px-3.5">
         <div className="flex min-h-[44px] items-center justify-between">
-          <h3 id={titleId} className="text-[12px] font-black uppercase tracking-[0.12em] text-ak-text">Every meeting</h3><span className="text-[11px] font-bold tabular-nums text-ak-text-dim">{total}</span>
+          <h3 id={titleId} className="text-[12px] font-black uppercase tracking-[0.12em] text-ak-text">Every meeting</h3><span aria-hidden="true" className="text-[11px] font-bold tabular-nums text-ak-text-dim">{total}</span>
         </div>
         <ul role="list">
           {h2h.meetings.map(m => (

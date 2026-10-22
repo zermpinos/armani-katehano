@@ -34,7 +34,7 @@ describe("HeadToHeadBlock", () => {
     expect(html).toContain(">3-1<");
     expect(html).toContain("3 wins, 1 loss");
     expect(html).toContain("4 meetings");
-    expect(html).toContain('role="list" aria-label="Last 4 results, newest first"');
+    expect(html).toContain(">Last 4<");
   });
 
   it("lists the meetings it was given, each linked, with the competition and no season", () => {
@@ -63,7 +63,7 @@ describe("HeadToHeadBlock", () => {
     expect(html).toContain("1 meeting");
     expect(html).not.toContain("1 meetings");
     expect(html).toContain("col-span-2");
-    expect(html).not.toContain("results, newest first");
+    expect(html).not.toContain("<ol");
   });
 
   it("says first meeting, with no tiles and no links, when they have not met", () => {
@@ -92,6 +92,25 @@ describe("HeadToHeadBlock", () => {
     expect(html).toContain("3 wins, 1 loss, 1 tie");
     expect(html).toContain("5 meetings");
   });
+
+  it("counts a meeting whose result is not W, L or T", () => {
+    const html = card([game(1, "2026-09-12", "F")]);
+    expect(html).not.toContain("First meeting");
+    expect(html).toContain("1 meeting");
+    expect(html).toContain('href="/games/cmgame0000000000000000001"');
+  });
+
+  it("leaves the form strip to its tile's label, so it is announced once", () => {
+    const html = card(four);
+    expect(html).toContain('<ol role="list"');
+    expect(html).not.toContain('aria-label="Last');
+  });
+
+  it("stacks its tiles when the panel is too narrow for five results side by side", () => {
+    const html = card(four);
+    expect(html).toMatch(/<section [^>]*class="@container /);
+    expect(html).toContain('class="grid grid-cols-1 gap-2 @min-[280px]:grid-cols-2"');
+  });
 });
 
 describe("HeadToHeadLine", () => {
@@ -116,6 +135,16 @@ describe("HeadToHeadLine", () => {
     expect(html).toContain("First meeting between the teams.");
     expect(html).not.toContain("/opponents/");
   });
+
+  it("names the opponent in its link for screen readers", () => {
+    expect(line(four)).toContain('All meetings<span class="sr-only"> against New York Bricks</span> ›');
+  });
+
+  it("rings the newest result with an outline, so the gap shows the row behind it", () => {
+    const html = line(four);
+    expect(html).toContain("outline-offset-2");
+    expect(html).not.toContain("ring-offset");
+  });
 });
 
 describe("HeadToHeadFull", () => {
@@ -129,6 +158,7 @@ describe("HeadToHeadFull", () => {
     expect(html).toContain("3 wins, 2 losses");
     expect(html).toContain("5 meetings");
     expect(html).toContain(">LAST 5<");
+    expect(html).not.toContain('aria-label="Last');
     expect(html.match(/href="\/games\//g)).toHaveLength(5);
     expect(html).toContain("Winter Cup 2026-27");
     expect(html).toContain("Winter Cup 2025-26");
@@ -139,7 +169,7 @@ describe("HeadToHeadFull", () => {
     const id = html.match(/<section aria-labelledby="([^"]+)"/)?.[1];
     expect(id).toBeTruthy();
     expect(html).toContain(`<h3 id="${id}"`);
-    expect(html).toMatch(/>Every meeting<\/h3><span[^>]*>4<\/span>/);
+    expect(html).toMatch(/>Every meeting<\/h3><span aria-hidden="true"[^>]*>4<\/span>/);
   });
 
   it("does not link to itself", () => {
