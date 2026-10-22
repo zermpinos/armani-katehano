@@ -2,7 +2,7 @@ import React from "react";
 import { fmtDate } from "@/domain/shared/format";
 import { Btn, Spinner } from "./primitives";
 import { CoachRosterPanel } from "./roster-panel";
-import { HeadToHeadBlock } from "@/client/games/HeadToHeadBlock";
+import { HeadToHeadLine } from "@/client/games/HeadToHeadBlock";
 import type { HeadToHead } from "@/domain/stats/head-to-head";
 
 const fmtTime = (iso: string) => iso.slice(11, 16);
@@ -57,7 +57,7 @@ export function GameRow({
             {fmtDate(game.scheduledFor)} · {fmtTime(game.scheduledFor)}
             {game.competition && <> · {game.competition}</>}
           </div>
-          {h2h && <HeadToHeadBlock h2h={h2h} title={`Against ${game.opponent}`} emptyText="First meeting." showAllLink />}
+          {h2h && <HeadToHeadLine h2h={h2h} />}
         </div>
         <Btn size="sm" variant={isOpen ? "ghost" : "primary"} onClick={() => isOpen ? onClose() : onOpen(game)}>
           {isOpen ? "CLOSE" : isAnnounced ? "EDIT ROSTER" : "SET ROSTER"}
