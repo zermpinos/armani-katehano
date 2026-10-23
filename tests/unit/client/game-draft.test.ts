@@ -42,6 +42,20 @@ describe("game draft", () => {
     expect(row).not.toHaveProperty("min");
   });
 
+  it("sends only lines with a value or already stored, so a roster past 20 players still saves", () => {
+    const roster: Player[] = [
+      ...players,
+      ...Array.from({ length: 21 }, (_, i) => ({ id: `p${i}`, name: `Player ${i}`, number: 10 + i, position: "SF" })),
+    ];
+    const draft = gameToDraft(game, roster);
+    draft.boxScore = draft.boxScore.map(r =>
+      r.playerId === "b" ? { ...r, min: 0, pts: 0, reb: 0, orb: 0, drb: 0, ast: 0, stl: 0, tov: 0, pf: 0,
+                             fgm: 0, fga: 0, fg2m: 0, fg2a: 0, fg3m: 0, fg3a: 0, ftm: 0, fta: 0 }
+      : r.playerId === "p5" ? { ...r, pts: 2 } : r);
+    expect(toGameBody(draft, "g1").boxScore.map(r => r.playerId)).toEqual(["b", "p5"]);
+    expect(toGameBody(emptyDraft("sl1", roster), null).boxScore).toEqual([]);
+  });
+
   it("maps home and empty links the way the API expects", () => {
     const body = toGameBody({ ...emptyDraft("sl1", players), opponent: "X", date: "2026-10-01" }, null);
     expect(body).toMatchObject({
