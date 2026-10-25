@@ -15,6 +15,7 @@ async function fetchAndScrape(url: string) {
   const res = await fetch(url, {
     headers: { "User-Agent": "BoxScoreScraper/1.0", "Accept": "text/html" },
     redirect: "manual",
+    signal: AbortSignal.timeout(5_000),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   return scrapeGame(await res.text(), url);
