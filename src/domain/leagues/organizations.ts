@@ -6,10 +6,6 @@ export const ORGANIZATIONS = {
     name:  "BasketCity",
     hosts: ["basketcity.sportstats.gr", "reports.sportstats.gr"],
   },
-  jumpball: {
-    name:  "Jumpball",
-    hosts: ["www.jumpball.com.gr"],
-  },
 } as const;
 
 export type OrganizationKey = keyof typeof ORGANIZATIONS;

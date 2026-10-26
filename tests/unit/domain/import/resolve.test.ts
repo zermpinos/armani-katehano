@@ -159,35 +159,19 @@ describe("resolve league resolution", () => {
     expect(unresolved[0]).toContain("bc8");
   });
 
-  // Two organizations can run inside one season. A /men/ URL is BasketCity's,
-  // so a Jumpball league must not become a candidate for it. Without the
-  // organization filter this resolves to "" with "Several active leagues match".
+  // A /men/ URL is BasketCity's, so a league stored under another organization
+  // must not become a candidate for it. Without the organization filter this
+  // resolves to "" with "Several active leagues match".
   it("ignores another organization's league when resolving a /men/ URL", () => {
     const { draft, unresolved } = resolve(
       scrapedData([onRoster], "https://basketcity.sportstats.gr/men/gamedetails/id/99"),
       roster,
       [
-        { id: "slBC", leagueSlug: "basketcity-bc8",  organization: "basketcity", sourceSlug: "bc8",    seasonStart: null, seasonEnd: null },
-        { id: "slJB", leagueSlug: "jumpball-golden", organization: "jumpball",   sourceSlug: "golden", seasonStart: null, seasonEnd: null },
+        { id: "slBC", leagueSlug: "basketcity-bc8", organization: "basketcity", sourceSlug: "bc8",    seasonStart: null, seasonEnd: null },
+        { id: "slOT", leagueSlug: "other-golden",   organization: "other",      sourceSlug: "golden", seasonStart: null, seasonEnd: null },
       ],
     );
     expect(draft.seasonLeagueId).toBe("slBC");
-    expect(unresolved).toHaveLength(0);
-  });
-
-  // Both organizations run a "Rookie League", so the source slug alone is
-  // ambiguous and only the URL's host settles it.
-  it("picks the right league when both organizations share a source slug", () => {
-    const { draft, unresolved } = resolve(
-      scrapedData([onRoster], "https://www.jumpball.com.gr/event/armani-katehano-vs-rivals/"),
-      roster,
-      [
-        { id: "slBC", leagueSlug: "basketcity-rookie", organization: "basketcity", sourceSlug: "rookie", seasonStart: null, seasonEnd: null },
-        { id: "slJB", leagueSlug: "jumpball-rookie",   organization: "jumpball",   sourceSlug: "rookie", seasonStart: null, seasonEnd: null },
-      ],
-      { leagueSlug: "rookie" },
-    );
-    expect(draft.seasonLeagueId).toBe("slJB");
     expect(unresolved).toHaveLength(0);
   });
 
