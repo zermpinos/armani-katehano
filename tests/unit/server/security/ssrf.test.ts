@@ -19,10 +19,9 @@ vi.mock("undici", () => ({
 import { assertSsrfSafe, isAllowedHostname, makeLockedDispatcher } from "@/server/security/node/ssrf";
 
 // Default allowlist (SCRAPE_HOSTNAME_ALLOWLIST unset): basketcity.sportstats.gr,
-// basketaki.com, reports.sportstats.gr, www.jumpball.com.gr, www.youtube.com.
-// The jumpball and youtube entries are the exact www hosts, so the apex is
-// rejected: both sites serve www and a suffix entry would also cover every
-// subdomain.
+// basketaki.com, reports.sportstats.gr, www.youtube.com. The youtube entry is
+// the exact www host, so the apex is rejected: the site serves www and a suffix
+// entry would also cover every subdomain.
 
 describe("assertSsrfSafe", () => {
   let lookup: ReturnType<typeof vi.spyOn>;
@@ -104,7 +103,6 @@ describe("isAllowedHostname", () => {
     "basketaki.com",
     "basketcity.sportstats.gr",
     "reports.sportstats.gr",
-    "www.jumpball.com.gr",
     "www.basketaki.com",
     "a.b.basketaki.com",
     "BASKETAKI.COM",
@@ -118,7 +116,6 @@ describe("isAllowedHostname", () => {
     "notbasketaki.com",
     "basketaki.co",
     "sportstats.gr",
-    "jumpball.com.gr",
     "google.com",
     "",
   ])("rejects %s", (hostname) => {

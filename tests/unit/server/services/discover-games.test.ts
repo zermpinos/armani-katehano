@@ -87,11 +87,11 @@ describe("discoverGames", () => {
   // from a quiet week, so it is reported rather than fetched.
   it("skips a league whose organization has no listing parser", async () => {
     mockPrisma.league.findMany.mockResolvedValue([
-      { name: "Golden League", organization: "jumpball", listingUrl: "https://www.jumpball.com.gr/calendar/golden/" },
+      { name: "Golden League", organization: "other", listingUrl: "https://example.com/calendar/golden/" },
     ]);
     const { games, errors } = await discoverGames();
     expect(games).toEqual([]);
-    expect(errors).toEqual(["Golden League: no listing parser for jumpball"]);
+    expect(errors).toEqual(["Golden League: no listing parser for other"]);
     expect(mockFetchGuarded).not.toHaveBeenCalled();
   });
 });
