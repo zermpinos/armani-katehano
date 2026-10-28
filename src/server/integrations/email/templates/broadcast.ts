@@ -1,12 +1,18 @@
 import "@/server/_internal/node-only";
-import { marked, Renderer } from "marked";
+import { marked, Renderer, type Tokens } from "marked";
 import { esc } from "./shared";
 
 export type MarkedOutput = string & { readonly _brand: "MarkedOutput" };
 
+const SAFE_URL = /^(https:|mailto:)/i;
+
 export function renderMarkdown(body: string): MarkedOutput {
   const renderer = new Renderer();
   renderer.html = ({ raw }: { raw: string }) => esc(raw);
+  const link = renderer.link.bind(renderer);
+  const image = renderer.image.bind(renderer);
+  renderer.link = (t: Tokens.Link) => SAFE_URL.test(t.href) ? link(t) : renderer.parser.parseInline(t.tokens);
+  renderer.image = (t: Tokens.Image) => SAFE_URL.test(t.href) ? image(t) : esc(t.text);
   return marked.parse(body, { renderer }) as unknown as MarkedOutput;
 }
 

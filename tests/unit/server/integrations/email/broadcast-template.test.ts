@@ -22,6 +22,20 @@ describe("renderMarkdown", () => {
     expect(result).toContain('href="https://example.com"');
     expect(result).toContain("click here");
   });
+  it("keeps mailto: links and https: images", () => {
+    expect(renderMarkdown("[mail us](mailto:team@example.com)")).toContain('href="mailto:team@example.com"');
+    expect(renderMarkdown("![logo](https://example.com/a.png)")).toContain('src="https://example.com/a.png"');
+  });
+  it("drops a javascript: link but keeps its text", () => {
+    const result = renderMarkdown("[click](javascript:alert(1))");
+    expect(result).not.toContain("javascript:");
+    expect(result).toContain("click");
+  });
+  it("drops a javascript: image but keeps its alt text", () => {
+    const result = renderMarkdown("![logo](javascript:alert(1))");
+    expect(result).not.toContain("<img");
+    expect(result).toContain("logo");
+  });
 });
 
 describe("buildBroadcastHtml", () => {
