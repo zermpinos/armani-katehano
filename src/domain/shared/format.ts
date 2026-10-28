@@ -9,9 +9,8 @@ export function fmtDate(isoStr: string | null | undefined) {
 }
 
 export function fmtMinutes(dec: number): string {
-  const m = Math.floor(dec);
-  const s = Math.round((dec - m) * 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
+  const t = Math.round(dec * 60);
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
 }
 
 // Guards against a SyntheticEvent being passed as overrideUrl when a handler is
