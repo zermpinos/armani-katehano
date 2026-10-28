@@ -17,9 +17,9 @@ export function Spinner() {
   );
 }
 
-export function Btn({ onClick, disabled = false, children, variant = "primary", size = "md" }: any) {
+export function Btn({ onClick, disabled = false, children, variant = "primary", size = "md", type = "button" }: any) {
   return (
-    <button onClick={onClick} disabled={disabled} className={[
+    <button type={type} onClick={onClick} disabled={disabled} className={[
       "font-black tracking-[0.12em] rounded-lg border font-sans transition-opacity duration-150",
       (Reflect.get(BTN_VARIANT, variant) ?? BTN_VARIANT.primary) as string,
       (Reflect.get(BTN_SIZE, size) ?? BTN_SIZE.md) as string,

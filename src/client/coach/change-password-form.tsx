@@ -40,7 +40,7 @@ export function ChangePasswordForm({
         ))}
         {error && <div className="text-xs text-ak-red-text">{error}</div>}
         <div className="flex gap-2 mt-1">
-          <Btn variant="green" disabled={changingPw}>
+          <Btn type="submit" variant="green" disabled={changingPw}>
             {changingPw ? "SAVING..." : "UPDATE PASSWORD"}
           </Btn>
           <Btn variant="ghost" onClick={onCancel}>CANCEL</Btn>
