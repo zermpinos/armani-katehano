@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { fmt, slugify } from "@/domain/players/format";
-import { fmtDate, resolveImportUrl } from "@/domain/shared/format";
+import { fmtDate, fmtMinutes, resolveImportUrl } from "@/domain/shared/format";
 
 // ─── fmt ──────────────────────────────────────────────────────────────────────
 
@@ -106,5 +106,17 @@ describe("fmtDate", () => {
 
   it("formats an ISO date as DD Mon YYYY, with Sep whatever the runtime's locale data says", () => {
     expect(fmtDate("2025-09-14")).toBe("14 Sep 2025");
+  });
+});
+
+describe("fmtMinutes", () => {
+  it("formats decimal minutes as M:SS", () => {
+    expect(fmtMinutes(12.5)).toBe("12:30");
+    expect(fmtMinutes(0)).toBe("0:00");
+  });
+
+  it("carries into the next minute instead of showing 60 seconds", () => {
+    expect(fmtMinutes(23.995)).toBe("24:00");
+    expect(fmtMinutes(9.999)).toBe("10:00");
   });
 });
