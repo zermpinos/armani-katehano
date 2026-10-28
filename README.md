@@ -394,7 +394,6 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 |-------------------------------------------|-------------------------------------------------------------------|
 | `PASSKEY_FALLBACK_TOKEN`                  | Enables the password + TOTP fallback login path; if unset, passkey is the only admin auth method |
 | `E2E_ADMIN_USERNAME`                      | Admin username used by Playwright global setup                  |
-| `E2E_ADMIN_PASSWORD`                      | Plain admin password used by Playwright global setup            |
 | `PLAYWRIGHT_BASE_URL`                     | Base URL targeted by E2E tests (defaults to `http://localhost:3000`) |
 
 ### Platform-supplied
