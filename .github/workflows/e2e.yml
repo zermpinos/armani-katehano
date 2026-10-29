@@ -34,7 +34,8 @@ jobs:
           check-latest: true
           cache: npm
 
-      - run: npm ci
+      # Skip install scripts: anything they plant in node_modules runs in the step that holds the secrets.
+      - run: npm ci --ignore-scripts
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
@@ -46,11 +47,3 @@ jobs:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           ADMIN_SLUG: ${{ secrets.ADMIN_SLUG }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-
-      - name: Upload Playwright report
-        if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: playwright-report-${{ github.run_id }}-${{ github.run_attempt }}
-          path: playwright-report/
-          retention-days: 7

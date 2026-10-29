@@ -8,6 +8,8 @@ updates:
       time: "09:00"
       timezone: UTC
     open-pull-requests-limit: 1
+    cooldown:
+      default-days: 7
     labels:
       - dependencies
     groups:
@@ -34,6 +36,8 @@ updates:
       time: "09:00"
       timezone: UTC
     open-pull-requests-limit: 1
+    cooldown:
+      default-days: 7
     labels:
       - dependencies
 
@@ -45,6 +49,8 @@ updates:
       time: "09:00"
       timezone: UTC
     open-pull-requests-limit: 1
+    cooldown:
+      default-days: 7
     labels:
       - dependencies
     groups:
