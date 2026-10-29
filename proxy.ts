@@ -36,7 +36,7 @@ async function isMaintenanceOn(request: NextRequest): Promise<boolean> {
 
 function passThroughWithCsp(request: NextRequest) {
   const response = NextResponse.next();
-  response.headers.set("Content-Security-Policy", buildCsp());
+  response.headers.set("Content-Security-Policy", buildCsp(request.nextUrl.pathname));
   return response;
 }
 

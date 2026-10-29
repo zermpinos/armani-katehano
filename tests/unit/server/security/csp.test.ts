@@ -57,6 +57,21 @@ describe("buildCsp", () => {
     expect(imgSrc).toContain("https://res.cloudinary.com");
   });
 
+  // After three failed logins both forms load the Turnstile widget from Cloudflare.
+  it("allows the Turnstile widget on the admin and coach login pages", () => {
+    for (const path of ["/admin/some-slug/", "/coach/some-token"]) {
+      const csp = buildCsp(path).split(";");
+      expect(csp.find(d => d.trim().startsWith("script-src"))).toContain("https://challenges.cloudflare.com");
+      expect(csp.find(d => d.trim().startsWith("frame-src"))).toContain("https://challenges.cloudflare.com");
+    }
+  });
+
+  it("keeps Cloudflare out of public pages, which load nothing from it", () => {
+    for (const path of ["/", "/games", "/players/some-player"]) {
+      expect(buildCsp(path)).not.toContain("challenges.cloudflare.com");
+    }
+  });
+
   it("includes vercel.live and Pusher in preview", () => {
     const prev = process.env.VERCEL_ENV;
     process.env.VERCEL_ENV = "preview";
