@@ -121,7 +121,7 @@ PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end
 | **Vercel**              | Hosting, proxy, cron, deployment                         |
 | **Neon (PostgreSQL)**   | Primary database                                         |
 | **Brevo (SMTP/Nodemailer)** | Transactional email (subscribe confirm, roster, admin broadcasts) |
-| **Cloudflare Turnstile**| CAPTCHA on the public subscribe form and admin/coach login |
+| **Cloudflare Turnstile**| CAPTCHA on the public subscribe form and admin/coach login; allow-listed in CSP `script-src` and `frame-src` on the login pages only |
 | **Cloudinary**          | Player photo hosting; allow-listed in CSP `img-src`, no server-side SDK |
 | **GitHub Actions**      | CI (lint, typecheck, test, build), scheduled security/dependency audits |
 | **Box-score sources**   | Per-game box-score URLs scraped via Cheerio |
