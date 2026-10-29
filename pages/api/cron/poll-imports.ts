@@ -14,6 +14,9 @@
  * A skip nobody hears about is indistinguishable from a quiet week, so anything
  * that will not resolve itself on a later run is emailed to the admin.
  *
+ * It runs at 03:00 UTC because a live game can look final on its page (four
+ * quarters filled, summing to the running score), and at that hour none is.
+ *
  * Auth: Vercel sends Authorization: Bearer <CRON_SECRET> automatically.
  */
 
