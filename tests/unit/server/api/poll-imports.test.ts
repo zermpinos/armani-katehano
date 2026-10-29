@@ -43,6 +43,7 @@ vi.mock("@/server/integrations/email/client", () => ({ sendImportNotification: m
 vi.mock("@/server/services/scrape-game", () => ({ fetchGuarded: mockFetchGuarded }));
 
 import handler from "../../../../pages/api/cron/poll-imports";
+import vercel from "../../../../vercel.json";
 
 const NOW     = new Date("2026-03-28T21:00:00Z");
 const GAME_ID = "172B9468-3076-4D51-ADF8-560555B99406";
@@ -129,6 +130,17 @@ describe("poll-imports auth", () => {
     const res = mockRes();
     await handler(mockReq(), res);
     expect(res.statusCode).toBe(401);
+  });
+});
+
+// A live game can look final on its page: four quarters filled, summing to the
+// running score. 01:00 to 05:59 UTC is 03:00 to 08:59 in Athens, when none is.
+describe("poll-imports schedule", () => {
+  it("runs at an hour when no game can still be in play", () => {
+    const cron = vercel.crons.find(c => c.path === "/api/cron/poll-imports");
+    const hourUtc = Number(cron.schedule.split(" ")[1]);
+    expect(hourUtc).toBeGreaterThanOrEqual(1);
+    expect(hourUtc).toBeLessThanOrEqual(5);
   });
 });
 
