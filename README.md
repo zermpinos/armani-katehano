@@ -311,7 +311,7 @@ armani-katehano/
 ├── vitest.config.js
 ├── playwright.config.js
 ├── prisma.config.ts
-├── vercel.json                     Vercel cron schedule
+├── vercel.json                     Vercel crons; skips Dependabot preview builds
 ├── tsconfig.json
 ├── package.json
 └── SECURITY.md                     Vulnerability disclosure policy
@@ -485,6 +485,7 @@ The app is deployed to **Vercel**. Production data is in **Neon Postgres**.
   - `0 3 * * *` -> `/api/cron/purge-subscribers`
   - `30 4 * * *` -> `/api/cron/purge-upcoming-games`
   - `0 6 * * *` -> `/api/cron/purge-audit-log`
+- **Dependabot branches** - not built. The `ignoreCommand` in [`vercel.json`](vercel.json) skips any `dependabot/` branch, so unreviewed dependency code never runs with the Preview environment variables, and the e2e job, which waits for a Preview, does not run either. CI still builds and tests those PRs.
 - **Environment variables** - set in the Vercel dashboard (Production, Preview, Development scopes), including the pooled `DATABASE_URL` and direct `DIRECT_URL`.
 
 ### Database migrations
