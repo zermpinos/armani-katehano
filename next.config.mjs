@@ -9,7 +9,8 @@ const nextConfig = {
 
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "res.cloudinary.com" },
+      // Each distinct source URL costs optimiser quota, so only our account, and no query strings.
+      { protocol: "https", hostname: "res.cloudinary.com", pathname: "/dojn0rjjr/**", search: "" },
     ],
   },
 

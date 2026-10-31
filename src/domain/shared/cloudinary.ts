@@ -1,3 +1,14 @@
+// next.config.mjs pins the same account, so the image optimiser fetches nothing else.
+export const CLOUDINARY_CLOUD = "dojn0rjjr";
+
+export function isOwnCloudinaryUrl(u: string): boolean {
+  if (!URL.canParse(u)) return false;
+  const url = new URL(u);
+  return url.origin === "https://res.cloudinary.com"
+    && url.pathname.startsWith(`/${CLOUDINARY_CLOUD}/`)
+    && url.search === "";
+}
+
 export function cloudinaryThumb(url: string, size = 64): string {
   const marker = "/image/upload/";
   const i = url.indexOf(marker);
