@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { vi, describe, it, expect, beforeAll, beforeEach } from "vitest";
+import { vi, describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
 
 const mockGetGameIds  = vi.fn();
 const mockGetGameById = vi.fn();
@@ -27,6 +27,7 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.clearAllMocks();
 });
+afterEach(() => vi.unstubAllEnvs());
 
 const VALID_CUID = "clxxxxxxxxxxxxxxxxxxxxxxx";
 
@@ -59,7 +60,13 @@ describe("getStaticProps /games/[id]", () => {
     expect(result).toEqual({ notFound: true });
   });
 
-  it("returns an expiring notFound on a DB error", async () => {
+  it("throws on a DB error at runtime, so Next keeps the last good page", async () => {
+    mockGetGameById.mockRejectedValue(new Error("db down"));
+    await expect(getStaticProps({ params: { id: VALID_CUID } })).rejects.toThrow("db down");
+  });
+
+  it("returns an expiring notFound on a DB error during the build", async () => {
+    vi.stubEnv("NEXT_PHASE", "phase-production-build");
     mockGetGameById.mockRejectedValue(new Error("db down"));
     const result = await getStaticProps({ params: { id: VALID_CUID } });
     expect(result).toEqual({ notFound: true, revalidate: 60 });

@@ -3,6 +3,7 @@ import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import { HeadToHeadFull } from "@/client/games/HeadToHeadBlock";
 import { getAllGames, getOpponentNames } from "@/server/db/repositories";
+import { rethrowOutsideBuild } from "@/server/http/static-props";
 import { headToHead, opponentSlug, recordText, type HeadToHead } from "@/domain/stats/head-to-head";
 import { SITE_NAME } from "@/domain/shared/constants";
 
@@ -47,7 +48,8 @@ export async function getStaticProps({ params }: any) {
     const name = games.find(g => opponentSlug(g.opponent) === slug)?.opponent;
     if (!name) return { notFound: true };
     return { props: { h2h: headToHead(games, name) }, revalidate: 86400 };
-  } catch {
+  } catch (err) {
+    rethrowOutsideBuild(err);
     // A 404 without revalidate never expires; a database blip must heal on its own.
     return { notFound: true, revalidate: 60 };
   }

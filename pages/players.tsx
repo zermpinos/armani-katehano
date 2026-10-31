@@ -4,6 +4,7 @@ import Link from "next/link";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import { getAllPublicData, getAllSeasonsStats, getRosterBySeason } from "@/server/db/repositories";
+import { rethrowOutsideBuild } from "@/server/http/static-props";
 import { buildAllTimeStatsMap } from "@/domain/stats";
 import { fmt } from "@/domain/players/format";
 import { playersForSeason } from "@/domain/players/roster";
@@ -137,7 +138,8 @@ export async function getStaticProps() {
     }
 
     return { props: { players, statsMap: stats, statsBySeason: allSeasonsStats, seasons, currentSeason, allTimeStatsMap, playerSeasonHistory, rosterBySeason, archivedSeasonNames }, revalidate: 3600 };
-  } catch {
+  } catch (err) {
+    rethrowOutsideBuild(err);
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
     return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, playerSeasonHistory: {}, rosterBySeason: {}, archivedSeasonNames: [] }, revalidate: 60 };
   }

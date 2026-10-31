@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading, StatTile } from "@/components/ui";
 import { getAllPublicData, getGames } from "@/server/db/repositories";
+import { rethrowOutsideBuild } from "@/server/http/static-props";
 import { computeRecord } from "@/domain/games/score";
 import { computeTeamAverages } from "@/domain/stats";
 import { fmt } from "@/domain/players/format";
@@ -267,7 +268,8 @@ export async function getStaticProps() {
       await Promise.all(seasons.map(async s => [s, await getGames(s)]))
     );
     return { props: { players, gamesBySeason, seasons, currentSeason, archivedSeasonNames }, revalidate: 3600 };
-  } catch {
+  } catch (err) {
+    rethrowOutsideBuild(err);
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
     return { props: { players: [], gamesBySeason: {}, seasons: [], currentSeason: "", archivedSeasonNames: [] }, revalidate: 60 };
   }
