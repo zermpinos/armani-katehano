@@ -16,11 +16,12 @@ function roundLabel(round: string): string {
   return round.toUpperCase();
 }
 
-function formatGameDateTime(iso: string): string {
+// Stored kick-offs are Athens digits in UTC, so formatting in UTC shows them as written.
+export function formatGameDateTime(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString("en-GB", {
-    weekday: "short", day: "numeric", month: "short", year: "numeric",
-  }) + " · " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
+  }) + " · " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 }
 
 const DEFAULT_KEY = "ak_f4_dismissed";

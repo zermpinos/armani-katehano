@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { getCountdownInfo, WEBCAL_FEED_URL, GOOGLE_FEED_URL } from "@/client/home/calendar-utils";
+import {
+  getCountdownInfo, WEBCAL_FEED_URL, GOOGLE_FEED_URL, buildGoogleCalendarUrl, downloadIcsFile,
+} from "@/client/home/calendar-utils";
 
 describe("getCountdownInfo", () => {
   afterEach(() => { vi.useRealTimers(); });
@@ -39,5 +41,27 @@ describe("season feed links", () => {
     expect(GOOGLE_FEED_URL).toBe(
       `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(WEBCAL_FEED_URL)}`,
     );
+  });
+});
+
+describe("single-game calendar links", () => {
+  const LATE = "2026-11-14T23:30:00.000Z";
+
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it("ends a 23:30 game at 00:30 the next day in the Google link", () => {
+    const dates = new URL(buildGoogleCalendarUrl("Sharks", LATE)).searchParams.get("dates");
+    expect(dates).toBe("20261114T233000/20261115T003000");
+  });
+
+  it("downloads an .ics file with a valid end time and an escaped venue", async () => {
+    let blob;
+    vi.stubGlobal("document", { createElement: () => ({ click() {} }), body: { appendChild() {}, removeChild() {} } });
+    vi.spyOn(URL, "createObjectURL").mockImplementation((b) => { blob = b; return "blob:test"; });
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    downloadIcsFile("Sharks", LATE, "Hall 2, Ilion");
+    const ics = await blob.text();
+    expect(ics).toContain("DTEND;TZID=Europe/Athens:20261115T003000");
+    expect(ics).toContain("LOCATION:Hall 2\\, Ilion");
   });
 });
