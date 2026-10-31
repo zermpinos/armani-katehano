@@ -30,6 +30,7 @@ import { commitImport, CommitError } from "@/server/services/import-commit";
 import { toCommitInput } from "@/domain/import/resolve";
 import { suggestDisplayName } from "@/domain/import/opponents";
 import { parseGreekDate } from "@/domain/calendar/greek-date";
+import { sourceGameId } from "@/domain/import/identity";
 import { GameWriteSchema } from "@/schemas/game";
 import { sendImportNotification } from "@/server/integrations/email/client";
 import { sendAliasPrompt } from "@/server/integrations/slack/client";
@@ -102,13 +103,14 @@ export default async function handler(req: any, res: any) {
     // in a newline. Matching on the string would import either one twice.
     const importedIds = new Set(
       (await prisma.game.findMany({ select: { sourceUrl: true } }))
-        .map(g => (g.sourceUrl ?? "").trim().split("/id/")[1])
+        .map(g => sourceGameId(g.sourceUrl))
         .filter(Boolean),
     );
 
-    const candidates = games
+    const unimported = games
       .filter(g => !importedIds.has(g.gameId))
-      .map(g => ({ ...g, playedOn: parseGreekDate(g.dateText) }))
+      .map(g => ({ ...g, playedOn: parseGreekDate(g.dateText) }));
+    const candidates = unimported
       .filter(g => g.playedOn && now - g.playedOn.getTime() < LOOKBACK_MS)
       .sort((a, b) => b.playedOn!.getTime() - a.playedOn!.getTime())
       .slice(0, MAX_CANDIDATES);
@@ -127,6 +129,9 @@ export default async function handler(req: any, res: any) {
     const skipped:   Skip[] = [];
     const unknownOpponents: { scrapedName: string; suggestion: string; sourceUrl: string }[] = [];
     for (const e of errors) skipped.push({ sourceUrl: "listing", reason: e, transient: false });
+    // Dropped with the old games, an unreadable date would let a source format change go unnoticed.
+    for (const g of unimported)
+      if (!g.playedOn) skipped.push({ sourceUrl: g.url, reason: `unreadable date "${g.dateText}"`, transient: false });
 
     for (const candidate of candidates) {
       const sourceUrl  = candidate.url;

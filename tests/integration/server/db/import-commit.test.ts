@@ -8,9 +8,9 @@ vi.hoisted(() => {
 const { mockPrisma } = vi.hoisted(() => {
   const mp = {
     player:         { findMany: vi.fn() },
-    game:           { findUnique: vi.fn(), create: vi.fn() },
+    game:           { findMany: vi.fn(), create: vi.fn() },
     playerGameStat: { createMany: vi.fn() },
-    upcomingGame:   { deleteMany: vi.fn(), findFirst: vi.fn() },
+    upcomingGame:   { deleteMany: vi.fn(), findMany: vi.fn() },
     auditLog:       { create: vi.fn() },
     importDraft:    { updateMany: vi.fn(), create: vi.fn(), findFirst: vi.fn() },
     $transaction:   vi.fn(),
@@ -79,11 +79,11 @@ beforeEach(() => {
     }
   });
 
-  mockPrisma.game.findUnique.mockResolvedValue(null);
+  mockPrisma.game.findMany.mockResolvedValue([]);
   mockPrisma.game.create.mockResolvedValue({ id: CREATED_GAME_ID });
   mockPrisma.playerGameStat.createMany.mockResolvedValue({ count: 1 });
   mockPrisma.upcomingGame.deleteMany.mockResolvedValue({ count: 0 });
-  mockPrisma.upcomingGame.findFirst.mockResolvedValue(null);
+  mockPrisma.upcomingGame.findMany.mockResolvedValue([]);
   mockPrisma.player.findMany.mockResolvedValue([{ slug: "test-player" }]);
   mockPrisma.auditLog.create.mockResolvedValue({});
   mockPrisma.importDraft.updateMany.mockResolvedValue({ count: 1 });
@@ -105,11 +105,27 @@ describe("commitImport guards", () => {
 
   it("rejects a duplicate sourceUrl with 409 and echoes the existing gameId", async () => {
     const existingId = "cldupegamexxxxxxxxxxxxxx";
-    mockPrisma.game.findUnique.mockResolvedValue({ id: existingId });
+    mockPrisma.game.findMany.mockResolvedValue([{ id: existingId, sourceUrl: SOURCE_URL }]);
 
     const err = await commitImport(commitData()).catch(e => e);
 
     expect(err).toBeInstanceOf(CommitError);
+    expect(err.status).toBe(409);
+    expect(err.gameId).toBe(existingId);
+    expect(mockPrisma.game.create).not.toHaveBeenCalled();
+  });
+
+  // The source serves one game under several paths, so a pasted variant must not store it twice.
+  it("rejects the same source game under another path or spelling with 409", async () => {
+    const existingId = "cldupegamexxxxxxxxxxxxxx";
+    mockPrisma.game.findMany.mockResolvedValue([
+      { id: existingId, sourceUrl: "https://basketcity.sportstats.gr/super-winter-cup/gamedetails/id/172B9468-3076-4D51-ADF8-560555B99406" },
+    ]);
+
+    const err = await commitImport(commitData({
+      sourceUrl: "https://basketcity.sportstats.gr/winter-cup/gamedetails/id/172b9468-3076-4d51-adf8-560555b99406/",
+    })).catch(e => e);
+
     expect(err.status).toBe(409);
     expect(err.gameId).toBe(existingId);
     expect(mockPrisma.game.create).not.toHaveBeenCalled();
@@ -126,7 +142,7 @@ describe("commitImport guards", () => {
 
   it("skips the duplicate pre-check when there is no sourceUrl", async () => {
     await commitImport(commitData({ sourceUrl: null }));
-    expect(mockPrisma.game.findUnique).not.toHaveBeenCalled();
+    expect(mockPrisma.game.findMany).not.toHaveBeenCalled();
     expect(mockPrisma.game.create).toHaveBeenCalledOnce();
   });
 
@@ -145,19 +161,23 @@ describe("commitImport round", () => {
   const createdRound = () => mockPrisma.game.create.mock.calls[0][0].data.round;
 
   it("inherits a playoff round from the fixture the game was scheduled as", async () => {
-    mockPrisma.upcomingGame.findFirst.mockResolvedValue({ round: "semifinal" });
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([{ sourceUrl: SOURCE_URL, round: "semifinal" }]);
     await commitImport(commitData());
     expect(createdRound()).toBe("semifinal");
-    expect(mockPrisma.upcomingGame.findFirst).toHaveBeenCalledWith({
-      where:  { sourceUrl: SOURCE_URL },
-      select: { round: true },
-    });
+  });
+
+  it("inherits the round from a fixture stored under another path", async () => {
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([
+      { sourceUrl: "https://basketcity.sportstats.gr/super-winter-cup/gamedetails/id/172B9468-3076-4D51-ADF8-560555B99406", round: "final" },
+    ]);
+    await commitImport(commitData({ sourceUrl: "https://basketcity.sportstats.gr/winter-cup/gamedetails/id/172B9468-3076-4D51-ADF8-560555B99406" }));
+    expect(createdRound()).toBe("final");
   });
 
   // Without this the poll tags every playoff game as regular season, since no
   // import caller has ever supplied a round.
   it("stays regular when the fixture is regular", async () => {
-    mockPrisma.upcomingGame.findFirst.mockResolvedValue({ round: "regular" });
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([{ sourceUrl: SOURCE_URL, round: "regular" }]);
     await commitImport(commitData());
     expect(createdRound()).toBe("regular");
   });
@@ -169,12 +189,12 @@ describe("commitImport round", () => {
 
   it("does not look for a fixture when the game has no source URL", async () => {
     await commitImport(commitData({ sourceUrl: null }));
-    expect(mockPrisma.upcomingGame.findFirst).not.toHaveBeenCalled();
+    expect(mockPrisma.upcomingGame.findMany).not.toHaveBeenCalled();
     expect(createdRound()).toBe("regular");
   });
 
   it("keeps a caller-supplied playoff round over a regular fixture", async () => {
-    mockPrisma.upcomingGame.findFirst.mockResolvedValue({ round: "regular" });
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([{ sourceUrl: SOURCE_URL, round: "regular" }]);
     await commitImport({ ...commitData(), round: "final" });
     expect(createdRound()).toBe("final");
   });
@@ -233,7 +253,7 @@ describe("commitImport notification", () => {
   });
 
   it("does not send the alert on a duplicate", async () => {
-    mockPrisma.game.findUnique.mockResolvedValue({ id: "cldupegamexxxxxxxxxxxxxx" });
+    mockPrisma.game.findMany.mockResolvedValue([{ id: "cldupegamexxxxxxxxxxxxxx", sourceUrl: SOURCE_URL }]);
     await commitImport(commitData()).catch(() => {});
     expect(sendImportNotification).not.toHaveBeenCalled();
   });

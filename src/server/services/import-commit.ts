@@ -4,6 +4,7 @@ import prisma from "@/server/db/client";
 import type { GameWriteSchema } from "@/schemas/game";
 import { verify } from "@/domain/import/verify";
 import type { GateFailure } from "@/domain/import/verify";
+import { sameSourceGame } from "@/domain/import/identity";
 import { recalcAggregates } from "@/server/services/stats-recalc";
 import { invalidateForGameMutation } from "@/server/services/cache-invalidation";
 import { sendImportNotification } from "@/server/integrations/email/client";
@@ -103,7 +104,8 @@ export async function commitImport(data: CommitInput, opts: CommitOptions = {}):
   // unset round is indistinguishable from an explicit one. No import caller
   // sets round at all, which is what makes deferring to the fixture safe.
   const scheduled = sourceUrl
-    ? await prisma.upcomingGame.findFirst({ where: { sourceUrl }, select: { round: true } })
+    ? (await prisma.upcomingGame.findMany({ where: { sourceUrl: { not: null } }, select: { sourceUrl: true, round: true } }))
+        .find(f => sameSourceGame(f.sourceUrl, sourceUrl)) ?? null
     : null;
   const effectiveRound = round === "regular" && scheduled?.round ? scheduled.round : round;
 
@@ -112,7 +114,9 @@ export async function commitImport(data: CommitInput, opts: CommitOptions = {}):
 
   const game = await prisma.$transaction(async (tx) => {
     if (sourceUrl) {
-      const duplicate = await tx.game.findUnique({ where: { sourceUrl } });
+      // Matched on the source game, so the same game pasted from another path is still a duplicate.
+      const stored = await tx.game.findMany({ where: { sourceUrl: { not: null } }, select: { id: true, sourceUrl: true } });
+      const duplicate = stored.find(g => sameSourceGame(g.sourceUrl, sourceUrl));
       if (duplicate) throw new CommitError("This game has already been imported.", 409, duplicate.id);
     }
 

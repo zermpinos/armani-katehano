@@ -157,6 +157,12 @@ describe("poll-imports candidate selection", () => {
     expect(res.body).toEqual({ ok: true, committed: 0, skipped: 0 });
   });
 
+  it("treats a stored lower-case game id as imported", async () => {
+    mockPrisma.game.findMany.mockResolvedValue([{ sourceUrl: SOURCE_URL.toLowerCase() }]);
+    await handler(mockReq(), mockRes());
+    expect(mockScrapeAndResolve).not.toHaveBeenCalled();
+  });
+
   it("ignores a game played longer ago than the window", async () => {
     mockDiscover.mockResolvedValue({ games: [listed({ dateText: LONG_AGO })], errors: [] });
     await handler(mockReq(), mockRes());
@@ -273,6 +279,23 @@ describe("poll-imports alerting", () => {
     await handler(mockReq(), mockRes());
     expect(alert().kind).toBe("stalled");
     expect(alert().entries).toEqual([{ sourceUrl: SOURCE_URL, reason: "player not on roster" }]);
+  });
+
+  // Dropped with the old games, an unreadable date let a source format change go unnoticed.
+  it("emails about a played game whose date it cannot read", async () => {
+    const dateText = "Σάββατο, 28 Μάρζου 2026";
+    mockDiscover.mockResolvedValue({ games: [listed({ dateText })], errors: [] });
+    await handler(mockReq(), mockRes());
+    expect(mockScrapeAndResolve).not.toHaveBeenCalled();
+    expect(alert().kind).toBe("stalled");
+    expect(alert().entries).toEqual([{ sourceUrl: SOURCE_URL, reason: `unreadable date "${dateText}"` }]);
+  });
+
+  it("stays quiet about an unreadable date on a game already imported", async () => {
+    mockPrisma.game.findMany.mockResolvedValue([{ sourceUrl: SOURCE_URL }]);
+    mockDiscover.mockResolvedValue({ games: [listed({ dateText: "no date here" })], errors: [] });
+    await handler(mockReq(), mockRes());
+    expect(mockNotify).not.toHaveBeenCalled();
   });
 
   it("stays quiet while a game is still settling", async () => {

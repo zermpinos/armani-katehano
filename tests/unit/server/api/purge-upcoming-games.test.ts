@@ -132,6 +132,20 @@ describe("purge-upcoming-games behavior", () => {
     expect(mockPrisma.upcomingGame.deleteMany).toHaveBeenCalledWith({ where: { id: { in: ["u1"] } } });
   });
 
+  it("deletes a past row whose game is stored under another competition path", async () => {
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([
+      { id: "u1", sourceUrl: "https://basketcity.sportstats.gr/super-winter-cup/gamedetails/id/G1" },
+    ]);
+    mockPrisma.game.findMany.mockResolvedValue([
+      { sourceUrl: "https://basketcity.sportstats.gr/winter-cup/gamedetails/id/g1" },
+    ]);
+    mockPrisma.upcomingGame.deleteMany.mockResolvedValue({ count: 1 });
+
+    await handler(mockReq(), mockRes());
+
+    expect(mockPrisma.upcomingGame.deleteMany).toHaveBeenCalledWith({ where: { id: { in: ["u1"] } } });
+  });
+
   it("makes no game lookup when nothing is past", async () => {
     const res = mockRes();
     await handler(mockReq(), res);

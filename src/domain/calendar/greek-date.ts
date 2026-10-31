@@ -18,7 +18,8 @@ export function parseGreekDate(str: string | null | undefined): Date | null {
   if (!str) return null;
 
   // Match DD MonthName YYYY anywhere in the string - handles "Σάββατο, 28 Μαρτίου 2026" prefix
-  const match = str.trim().match(/(\d{1,2})\s+(\S+)\s+(\d{4})/);
+  // The month keys are composed characters; a decomposed accent would miss them.
+  const match = str.trim().normalize("NFC").match(/(\d{1,2})\s+(\S+)\s+(\d{4})/);
   if (!match) return null;
 
   const day   = parseInt(match[1], 10);
