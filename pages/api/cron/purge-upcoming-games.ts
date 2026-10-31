@@ -20,6 +20,7 @@ import prisma              from "@/server/db/client";
 import { securityHeaders } from "@/server/security/edge";
 import { auditLog }        from "@/server/security/node";
 import { startCronRun, finishCronRun } from "@/server/services/cron-run";
+import { sameSourceGame } from "@/domain/import/identity";
 
 export default async function handler(req: any, res: any) {
   Object.entries(securityHeaders()).forEach(([k, v]) => res.setHeader(k, v));
@@ -48,13 +49,9 @@ export default async function handler(req: any, res: any) {
 
     let count = 0;
     if (past.length) {
-      const imported = new Set(
-        (await prisma.game.findMany({
-          where:  { sourceUrl: { in: past.map(p => p.sourceUrl as string) } },
-          select: { sourceUrl: true },
-        })).map(g => g.sourceUrl),
-      );
-      const ids = past.filter(p => imported.has(p.sourceUrl)).map(p => p.id);
+      // Matched on the source game: a fixture and its game can carry different paths.
+      const games = await prisma.game.findMany({ where: { sourceUrl: { not: null } }, select: { sourceUrl: true } });
+      const ids = past.filter(p => games.some(g => sameSourceGame(g.sourceUrl, p.sourceUrl))).map(p => p.id);
       if (ids.length)
         ({ count } = await prisma.upcomingGame.deleteMany({ where: { id: { in: ids } } }));
     }

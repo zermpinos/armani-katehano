@@ -6,7 +6,7 @@
 import "@/server/_internal/node-only";
 import * as cheerio from "cheerio";
 import { detectLeagueSlug } from "@/domain/calendar/greek-date";
-import { isUsTeam } from "@/domain/import/identity";
+import { isUsTeam, sourceGameId } from "@/domain/import/identity";
 
 export interface ListedGame {
   gameId:     string;
@@ -59,7 +59,7 @@ export function parseTeamSchedule(html: string, pageUrl: string): ListedGame[] {
     const href = $el.find("a.schedule_main_content").attr("href");
     if (!href) return;
 
-    const gameId = href.split("/id/")[1]?.trim();
+    const gameId = sourceGameId(href);
     if (!gameId) return;
 
     const url = new URL(href, origin).toString();

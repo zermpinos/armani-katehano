@@ -4,7 +4,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 const { mockPrisma } = vi.hoisted(() => ({
   mockPrisma: {
     seasonLeague:  { findMany: vi.fn() },
-    upcomingGame:  { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+    upcomingGame:  { findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
   },
 }));
 
@@ -40,7 +40,7 @@ beforeEach(() => {
   // Before the 19 Sep fixture, so it counts as upcoming.
   vi.setSystemTime(new Date("2026-09-17T19:00:00Z"));
   mockPrisma.seasonLeague.findMany.mockResolvedValue([WINTERCUP]);
-  mockPrisma.upcomingGame.findFirst.mockResolvedValue(null);
+  mockPrisma.upcomingGame.findMany.mockResolvedValue([]);
 });
 
 describe("syncFixtures", () => {
@@ -67,10 +67,10 @@ describe("syncFixtures", () => {
   // The row carries the announcement the coach published, so a moved fixture
   // has to be edited rather than replaced.
   it("updates a rescheduled fixture in place and reports the move", async () => {
-    mockPrisma.upcomingGame.findFirst.mockResolvedValue({
-      id: "ug1", scheduledFor: new Date("2026-09-19T15:15:00.000Z"),
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([{
+      id: "ug1", sourceUrl: fixture().url, scheduledFor: new Date("2026-09-19T15:15:00.000Z"),
       location: "home", notes: "ARENA",
-    });
+    }]);
     const out = await syncFixtures([fixture()], ALIASES);
     expect(mockPrisma.upcomingGame.create).not.toHaveBeenCalled();
     expect(mockPrisma.upcomingGame.update).toHaveBeenCalledWith({
@@ -84,12 +84,27 @@ describe("syncFixtures", () => {
   });
 
   it("leaves an unchanged fixture alone", async () => {
-    mockPrisma.upcomingGame.findFirst.mockResolvedValue({
-      id: "ug1", scheduledFor: new Date("2026-09-19T16:15:00.000Z"),
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([{
+      id: "ug1", sourceUrl: fixture().url, scheduledFor: new Date("2026-09-19T16:15:00.000Z"),
       location: "home", notes: "ARENA",
-    });
+    }]);
     const out = await syncFixtures([fixture()], ALIASES);
     expect(mockPrisma.upcomingGame.update).not.toHaveBeenCalled();
+    expect(out.changed).toEqual([]);
+  });
+
+  // Two listings can carry one game under different paths, and a second row would show it twice.
+  it("updates a fixture stored under another competition path instead of adding a second", async () => {
+    mockPrisma.upcomingGame.findMany.mockResolvedValue([{
+      id: "ug1", sourceUrl: "https://basketcity.sportstats.gr/super-winter-cup/gamedetails/id/g1",
+      scheduledFor: new Date("2026-09-19T16:15:00.000Z"), location: "home", notes: "ARENA",
+    }]);
+    const out = await syncFixtures([fixture()], ALIASES);
+    expect(mockPrisma.upcomingGame.create).not.toHaveBeenCalled();
+    expect(mockPrisma.upcomingGame.update).toHaveBeenCalledWith({
+      where: { id: "ug1" },
+      data:  { sourceUrl: fixture().url },
+    });
     expect(out.changed).toEqual([]);
   });
 

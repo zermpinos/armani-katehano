@@ -49,6 +49,11 @@ describe("parseGreekDate", () => {
     }
   });
 
+  it("reads a month written with decomposed accents", () => {
+    const d = parseGreekDate("Σάββατο, 28 Μαρτίου 2026".normalize("NFD"));
+    expect(d?.toISOString()).toBe("2026-03-28T00:00:00.000Z");
+  });
+
   it("parses nominative case month names", () => {
     const d = parseGreekDate("15 Ιανουάριος 2025");
     expect(d).not.toBeNull();

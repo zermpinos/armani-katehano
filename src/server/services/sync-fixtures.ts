@@ -3,6 +3,7 @@ import prisma from "@/server/db/client";
 import type { ListedGame } from "@/server/integrations/scraper/team-schedule";
 import { displayOpponent, suggestDisplayName, type OpponentAliases } from "@/domain/import/opponents";
 import { parseGreekDateTime } from "@/domain/calendar/greek-date";
+import { sameSourceGame } from "@/domain/import/identity";
 
 export interface FixtureChange {
   opponent: string;
@@ -27,7 +28,7 @@ export interface FixtureSync {
 // Fixtures the organisers have published, written to UpcomingGame so the site
 // shows the next game without anyone retyping it.
 //
-// Rows are matched on sourceUrl and updated in place, never deleted and
+// Rows are matched on the source game id and updated in place, never deleted and
 // recreated: GameRosterAnnouncement hangs off the row, so a new id would orphan
 // whatever the coach has already published.
 export async function syncFixtures(
@@ -41,6 +42,7 @@ export async function syncFixtures(
     where:   { season: { archivedAt: null } },
     include: { league: true },
   });
+  const stored = await prisma.upcomingGame.findMany({ where: { sourceUrl: { not: null } } });
 
   for (const row of fixtures) {
     const scheduledFor = parseGreekDateTime(row.dateText, row.tipoff);
@@ -79,7 +81,7 @@ export async function syncFixtures(
     }
 
     const location = row.isHome ? "home" : "away";
-    const existing = await prisma.upcomingGame.findFirst({ where: { sourceUrl: row.url } });
+    const existing = stored.find(f => sameSourceGame(f.sourceUrl, row.url));
 
     if (!existing) {
       await prisma.upcomingGame.create({
@@ -111,6 +113,9 @@ export async function syncFixtures(
       out.changed.push({ opponent, field: "notes", from: existing.notes ?? "", to: row.venue });
       diff.notes = row.venue;
     }
+
+    // Follows the path the listing uses now; readers never see it, so it is not reported.
+    if (existing.sourceUrl !== row.url) diff.sourceUrl = row.url;
 
     if (Object.keys(diff).length > 0) {
       await prisma.upcomingGame.update({ where: { id: existing.id }, data: diff });
