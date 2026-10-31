@@ -2,7 +2,7 @@
  * pages/api/coach/auth.ts
  *
  * GET    /api/coach/auth  -> 200 if coach session valid, 401 otherwise
- * POST   /api/coach/auth  -> validate coach password, set coach session cookie
+ * POST   /api/coach/auth  -> validate coach URL token and password, set coach session cookie
  * DELETE /api/coach/auth  -> clear coach session cookie (logout)
  *
  * Uses a separate cookie (__Host-ak_coach) and COACH_PASSWORD env var.
@@ -17,6 +17,7 @@ import {
   getCoachSessionToken,
   verifyCoachSession,
   verifyCoachPassword,
+  isValidCoachToken,
   getCoachSessionVersion,
   buildCoachSessionCookie,
   signCoachSession,
@@ -80,9 +81,14 @@ export default async function handler(req: any, res: any) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    const { password } = req.body ?? {};
+    const { password, token } = req.body ?? {};
     if (!password || typeof password !== "string") {
       return res.status(400).json({ error: "Password is required" });
+    }
+
+    // Before any lockout read or write, and unlogged, so a caller without the URL token cannot lock out the coach or add rows.
+    if (typeof token !== "string" || !isValidCoachToken(token)) {
+      return res.status(404).json({ error: "Not found" });
     }
 
     // Brute-force lockout - per-IP

@@ -9,9 +9,11 @@
  */
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-vi.hoisted(() => {
+const { COACH_TOKEN } = vi.hoisted(() => {
   process.env.SESSION_SECRET       = "test-secret-coach-auth";
   process.env.COACH_SESSION_SECRET = "test-coach-secret-coach-auth-xx";
+  process.env.COACH_TOKEN          = "test-coach-token-coach-auth";
+  return { COACH_TOKEN: process.env.COACH_TOKEN };
 });
 
 vi.mock("@/server/auth", async (importOriginal) => {
@@ -126,7 +128,7 @@ describe("POST /api/coach/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com" },
-      body:    { password: "secret" },
+      body:    { token: COACH_TOKEN, password:"secret" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -145,12 +147,33 @@ describe("POST /api/coach/auth (login)", () => {
     expect(res._body.error).toMatch(/password/i);
   });
 
+  it.each([
+    ["missing",      {}],
+    ["wrong",        { token: "wrong-token" }],
+    ["not a string", { token: [COACH_TOKEN] }],
+  ])("returns 404 and records nothing when the coach token is %s", async (_label, extra) => {
+    verifyCoachPassword.mockResolvedValue(true);
+    const req = mockReq({
+      method:  "POST",
+      headers: { host: "example.com", origin: "https://example.com" },
+      body:    { password: "correct", ...extra },
+    });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(404);
+    expect(res._body).toEqual({ error: "Not found" });
+    expect(res._headers["Set-Cookie"]).toBeUndefined();
+    for (const fn of [isLockedOut, getFailureCount, atomicRecordAndCheck, verifyCoachPassword, auditLog]) {
+      expect(fn).not.toHaveBeenCalled();
+    }
+  });
+
   it("returns 429 when IP is locked out", async () => {
     isLockedOut.mockResolvedValue(true);
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { password: "any" },
+      body:    { token: COACH_TOKEN, password:"any" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -163,7 +186,7 @@ describe("POST /api/coach/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com", "x-forwarded-for": "9.9.9.9" },
-      body:    { password: "any" },
+      body:    { token: COACH_TOKEN, password:"any" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -176,7 +199,7 @@ describe("POST /api/coach/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { password: "wrong" },
+      body:    { token: COACH_TOKEN, password:"wrong" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -190,7 +213,7 @@ describe("POST /api/coach/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { password: "correct" },
+      body:    { token: COACH_TOKEN, password:"correct" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -208,7 +231,7 @@ describe("POST /api/coach/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { password: "any" },
+      body:    { token: COACH_TOKEN, password:"any" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -223,7 +246,7 @@ describe("POST /api/coach/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { password: "any", captchaToken: "bad-token" },
+      body:    { token: COACH_TOKEN, password:"any", captchaToken: "bad-token" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -240,7 +263,7 @@ describe("POST /api/coach/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { password: "wrong", captchaToken: "valid-token" },
+      body:    { token: COACH_TOKEN, password:"wrong", captchaToken: "valid-token" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -258,7 +281,7 @@ describe("POST /api/coach/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { password: "wrong" },
+      body:    { token: COACH_TOKEN, password:"wrong" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -277,7 +300,7 @@ describe("POST /api/coach/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { password: "wrong" },
+      body:    { token: COACH_TOKEN, password:"wrong" },
     });
     const res = mockRes();
     await handler(req, res);
@@ -293,7 +316,7 @@ describe("POST /api/coach/auth (login)", () => {
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
-      body:    { password: "wrong" },
+      body:    { token: COACH_TOKEN, password:"wrong" },
     });
     const res = mockRes();
     await handler(req, res);
