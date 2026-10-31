@@ -3,6 +3,7 @@ import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import { BoxScoreTable } from "@/client/games/box-score";
 import { getGameById, getAllGames } from "@/server/db/repositories";
+import { rethrowOutsideBuild } from "@/server/http/static-props";
 import { HeadToHeadBlock } from "@/client/games/HeadToHeadBlock";
 import { headToHead, type HeadToHead } from "@/domain/stats/head-to-head";
 import { SITE_NAME } from "@/domain/shared/constants";
@@ -55,7 +56,8 @@ export async function getStaticProps({ params }: any) {
     // Only earlier games, so a new game never changes this section.
     const earlier = headToHead(await getAllGames(), game.opponent, { before: game.date, limit: 3 });
     return { props: { game, earlier }, revalidate: 86400 };
-  } catch {
+  } catch (err) {
+    rethrowOutsideBuild(err);
     // A 404 without revalidate never expires; a database blip must heal on its own.
     return { notFound: true, revalidate: 60 };
   }

@@ -4,6 +4,7 @@ import { SectionHeading } from "@/components/ui";
 import SeasonSelector from "@/components/ui/SeasonSelector";
 import ArchivedBanner from "@/components/ui/ArchivedBanner";
 import { getAllGames, getSeasons, getConfig, getAllUpcomingGames, getArchivedSeasonNames } from "@/server/db/repositories";
+import { rethrowOutsideBuild } from "@/server/http/static-props";
 import { LeagueFilter } from "@/client/games/league-filter";
 import { ResultFilter } from "@/client/games/result-filter";
 import { CalendarView } from "@/client/games/calendar-view";
@@ -150,7 +151,8 @@ export async function getStaticProps() {
       props: { allGames, seasons, currentSeason: config.currentSeason, seasonPhase: config.seasonPhase, upcomingGames, archivedSeasonNames },
       revalidate: 3600,
     };
-  } catch {
+  } catch (err) {
+    rethrowOutsideBuild(err);
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
     return { props: { allGames: [], seasons: [], currentSeason: "", seasonPhase: null, upcomingGames: [], archivedSeasonNames: [] }, revalidate: 60 };
   }

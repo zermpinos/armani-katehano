@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { vi, describe, it, expect, beforeAll, beforeEach } from "vitest";
+import { vi, describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
 
 const mockGetAllGames      = vi.fn();
 const mockGetOpponentNames = vi.fn();
@@ -17,6 +17,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => vi.clearAllMocks());
+afterEach(() => vi.unstubAllEnvs());
 
 const game = { id: "cmgame0000000000000000001", date: "2026-09-12", opponent: "New York Bricks", home: true, result: "W", score: "68-61", season: "2026-27", leagueName: "Winter Cup" };
 
@@ -53,7 +54,13 @@ describe("getStaticProps /opponents/[slug]", () => {
     expect(await getStaticProps({ params: { slug: "delulu" } })).toEqual({ notFound: true });
   });
 
-  it("returns an expiring notFound on a DB error", async () => {
+  it("throws on a DB error at runtime, so Next keeps the last good page", async () => {
+    mockGetAllGames.mockRejectedValue(new Error("db down"));
+    await expect(getStaticProps({ params: { slug: "new-york-bricks" } })).rejects.toThrow("db down");
+  });
+
+  it("returns an expiring notFound on a DB error during the build", async () => {
+    vi.stubEnv("NEXT_PHASE", "phase-production-build");
     mockGetAllGames.mockRejectedValue(new Error("db down"));
     expect(await getStaticProps({ params: { slug: "new-york-bricks" } })).toEqual({ notFound: true, revalidate: 60 });
   });

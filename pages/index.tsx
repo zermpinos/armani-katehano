@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import Layout from "@/components/ui/Layout";
 import { StatTile, SectionHeading } from "@/components/ui";
 import { getAllPublicData, getUpcomingGamesWithAnnouncements, getNextPlayoffGame, getAllGames } from "@/server/db/repositories";
+import { rethrowOutsideBuild } from "@/server/http/static-props";
 import { headToHeadAll } from "@/domain/stats/head-to-head";
 import { computeRecord } from "@/domain/games/score";
 import { fmt } from "@/domain/players/format";
@@ -220,7 +221,8 @@ export async function getStaticProps() {
       props: { players, games: slimGames, stats, upcomingGames, currentSeason, seasonPhase: config.seasonPhase, nextPlayoffGame, popupEnabled: config.popupEnabled, popupVersion: config.popupVersion, popupRound: config.popupRound, archivedSeasonNames, headToHead: headToHeadAll(allGames, 3) },
       revalidate: 3600,
     };
-  } catch {
+  } catch (err) {
+    rethrowOutsideBuild(err);
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
     return { props: { players: [], games: [], stats: {}, upcomingGames: [], currentSeason: "", seasonPhase: null, nextPlayoffGame: null, popupEnabled: false, popupVersion: 0, popupRound: null, archivedSeasonNames: [], headToHead: [] }, revalidate: 60 };
   }

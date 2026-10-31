@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import Layout from "@/components/ui/Layout";
 import { SectionHeading } from "@/components/ui";
 import { getAllPublicData, getAllSeasonsStats, getAllPlayerGameLogs } from "@/server/db/repositories";
+import { rethrowOutsideBuild } from "@/server/http/static-props";
 import { buildAllTimeStatsMap, computeStatsFromLog } from "@/domain/stats";
 import SeasonSelector from "@/components/ui/SeasonSelector";
 import ArchivedBanner from "@/components/ui/ArchivedBanner";
@@ -139,7 +140,8 @@ export async function getStaticProps() {
       ]),
     );
     return { props: { players, statsMap: stats, statsBySeason: allSeasonsStats, seasons, currentSeason, allTimeStatsMap, allPlayerGameLogs: slimLogs, archivedSeasonNames, awardsBySeasonName }, revalidate: 3600 };
-  } catch {
+  } catch (err) {
+    rethrowOutsideBuild(err);
     // DB unavailable at build time (e.g. CI); ISR revalidates on first request.
     return { props: { players: [], statsMap: {}, seasons: [], currentSeason: "", allTimeStatsMap: {}, allPlayerGameLogs: [], archivedSeasonNames: [], awardsBySeasonName: {} }, revalidate: 60 };
   }
