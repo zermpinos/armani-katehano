@@ -378,7 +378,7 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 | `ADMIN_PASSWORD`                  | Admin auth             | bcrypt hash of the admin password                          |
 | `ADMIN_ALERT_EMAIL`               | Ops                    | Destination address for admin operational alert emails     |
 | `COACH_PASSWORD`                  | Coach auth             | bcrypt hash of the coach password                          |
-| `COACH_TOKEN`                     | Coach auth             | URL token for the coach portal entry                       |
+| `COACH_TOKEN`                     | Coach auth             | URL token for the coach portal page and its login request  |
 | `COACH_SESSION_SECRET`            | Coach auth             | HMAC key for the coach session cookie                      |
 | `BREVO_SMTP_USER`                 | Email                  | Brevo SMTP login (email address)                           |
 | `BREVO_SMTP_PASS`                 | Email                  | Brevo SMTP password / API key                              |

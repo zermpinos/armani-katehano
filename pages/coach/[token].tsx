@@ -9,7 +9,7 @@ import { useCoachSchedule } from "@/client/coach/use-coach-schedule";
 import { useRosterPanel } from "@/client/coach/use-roster-panel";
 import { useChangePassword } from "@/client/coach/use-change-password";
 
-export default function CoachPage() {
+export default function CoachPage({ token }: { token: string }) {
   const [toast, setToast] = useState<{ msg: string; type?: string } | null>(null);
 
   const showToast = (msg: string, type = "success") => {
@@ -17,7 +17,7 @@ export default function CoachPage() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  const auth     = useCoachAuth();
+  const auth     = useCoachAuth(token);
   const schedule = useCoachSchedule(auth.authed);
   const panel    = useRosterPanel({
     allPlayers:        schedule.allPlayers,
@@ -146,5 +146,5 @@ export async function getServerSideProps({ params }: any) {
   if (!isValidCoachToken(params.token ?? "")) {
     return { notFound: true };
   }
-  return { props: {} };
+  return { props: { token: params.token } };
 }

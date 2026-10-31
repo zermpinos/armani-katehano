@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { coachFetch } from "./csrf";
 
-export function useCoachAuth() {
+export function useCoachAuth(token: string) {
   const [authed,     setAuthed]     = useState(false);
   const [checking,   setChecking]   = useState(true);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -18,7 +18,7 @@ export function useCoachAuth() {
     const res = await coachFetch("/api/coach/auth", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ password, captchaToken }),
+      body:    JSON.stringify({ token, password, captchaToken }),
     });
     if (res.ok) {
       setAuthed(true);
@@ -32,7 +32,7 @@ export function useCoachAuth() {
       }
       return { failed: true, requiresCaptcha: body.requiresCaptcha ?? false };
     }
-  }, []);
+  }, [token]);
 
   const handleLogout = useCallback(() => {
     coachFetch("/api/coach/auth", { method: "DELETE" }).finally(() => setAuthed(false));
