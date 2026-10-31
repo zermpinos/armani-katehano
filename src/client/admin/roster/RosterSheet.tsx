@@ -4,7 +4,7 @@ import { BottomSheet } from "@/client/admin/bottom-sheet";
 import { F, Sel, Btn, Check } from "@/client/admin/primitives";
 import { POSITIONS } from "@/domain/players/positions";
 import { initials } from "@/domain/players/format";
-import { cloudinaryThumb } from "@/domain/shared/cloudinary";
+import { cloudinaryThumb, isOwnCloudinaryUrl, CLOUDINARY_CLOUD } from "@/domain/shared/cloudinary";
 import type { LeagueJersey, PlayerDraft } from "./player-draft";
 
 const POSITION_OPTIONS = POSITIONS.map(p => ({ value: p, label: p }));
@@ -60,9 +60,9 @@ export function RosterSheet({ open, resetKey, isNew, draft, leagues, error, onCh
           <div className="flex flex-col gap-4 pb-2">
             <div className="flex items-center gap-4">
               <AvatarPreview name={draft.name || "?"} photoUrl={draft.photoUrl} />
-              <div className="text-[12px] leading-relaxed text-ak-text-dim">Cloudinary URLs are auto-thumbnailed. Other URLs are loaded as-is.</div>
+              <div className="text-[12px] leading-relaxed text-ak-text-dim">Only images in the team&apos;s Cloudinary account are accepted. They are thumbnailed automatically.</div>
             </div>
-            <F label="PHOTO URL" value={draft.photoUrl} onChange={v => upd("photoUrl", v)} placeholder="https://res.cloudinary.com/..." />
+            <F label="PHOTO URL" value={draft.photoUrl} onChange={v => upd("photoUrl", v)} placeholder={`https://res.cloudinary.com/${CLOUDINARY_CLOUD}/...`} />
             <div className="grid grid-cols-2 gap-3">
               <F label="HEIGHT" value={draft.height} onChange={v => upd("height", v)} placeholder={`e.g. 6'4"`} />
               <F label="WEIGHT" value={draft.weight} onChange={v => upd("weight", v)} placeholder="e.g. 90 kg" />
@@ -99,7 +99,7 @@ export function RosterSheet({ open, resetKey, isNew, draft, leagues, error, onCh
 function AvatarPreview({ name, photoUrl }: { name: string; photoUrl: string }) {
   // Track which URL is broken; changing photoUrl naturally clears the broken state.
   const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
-  const showImg = !!photoUrl && brokenUrl !== photoUrl;
+  const showImg = isOwnCloudinaryUrl(photoUrl) && brokenUrl !== photoUrl;
   if (showImg) {
     return (
       <Image
