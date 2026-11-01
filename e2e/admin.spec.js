@@ -6,24 +6,18 @@
  * - Login form tests: test the unauthenticated UI; no credentials required.
  * - Authenticated dashboard tests: seed a real HMAC-signed session cookie
  *   (SESSION_SECRET) so the real GET /api/auth returns 200 with no login flow.
- * - Passkey test: injects a real HMAC-signed session + CSRF cookie pair (using
- *   SESSION_SECRET, the same key the server uses) directly into the browser
- *   context so passkey-registration APIs pass requireAuth without a real login.
  * - Do NOT use waitForLoadState("networkidle") - Next.js dev mode keeps a
  *   WebSocket open for HMR which prevents networkidle from ever firing.
- * - The passkey button text is "SIGN IN WITH PASSKEY".
  */
 import { test, expect } from "@playwright/test";
 import { createHmac } from "node:crypto";
-import { makeCsrfToken } from "./helpers/admin-auth.js";
 
 const BASE_URL              = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 const ADMIN_SLUG            = process.env.ADMIN_SLUG            ?? null;
 const SESSION_SECRET        = process.env.SESSION_SECRET        ?? "";
 
 // Resolve the test admin username: prefer explicit env var, then fall back to
-// the first entry in ADMIN_USERS (if set), then "admin". Must be a real admin
-// user so getAdminUser() in auth-verify doesn't return null (orphan rejection).
+// the first entry in ADMIN_USERS (if set), then "admin".
 // ADMIN_USERS may have \$ in bcrypt hashes (dotenv unquoted-value escaping);
 // replace \$ → $ so JSON.parse doesn't throw on the invalid escape sequence.
 const ADMIN_USERNAME = (() => {
@@ -75,89 +69,64 @@ function makeAdminStorageState(username = ADMIN_USERNAME, sessionValue = makeSes
   };
 }
 
-/**
- * Set the CSRF cookie directly via document.cookie so it is accessible to
- * getCsrfToken() (document.cookie, not HttpOnly). Must be called after a
- * page.goto so the document origin is set correctly.
- */
-async function setCsrfCookie(page, csrfToken) {
-  await page.evaluate((token) => {
-    document.cookie = `__Host-ak_csrf=${token}; Secure; SameSite=Strict; Path=/`;
-  }, csrfToken);
-}
-
 // ── Login form structure ───────────────────────────────────────────────────
 
 test.describe("Admin panel › Login form", () => {
-  test("shows the passkey login form when not authenticated", async ({ page }) => {
+  const signIn = async (page) => {
+    await page.goto(`/admin/${ADMIN_SLUG}/`);
+    await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
+    await page.getByPlaceholder("Enter username").fill("e2e-user");
+    await page.getByPlaceholder("Enter password").fill("e2e-wrong-password");
+    await page.getByRole("button", { name: "SIGN IN" }).click();
+  };
+
+  test("shows the username and password form when not authenticated", async ({ page }) => {
     test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
 
     await page.goto(`/admin/${ADMIN_SLUG}/`);
     // SSR renders the login form for a request without a session
     await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole("button", { name: "SIGN IN WITH PASSKEY" })).toBeVisible();
+    await expect(page.getByPlaceholder("Enter username")).toBeVisible();
+    await expect(page.getByPlaceholder("Enter password")).toBeVisible();
+    await expect(page.getByPlaceholder("6-digit code")).toHaveCount(0);
   });
 
-  test("shows an error when passkey authentication fails", async ({ page }) => {
-    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
-
-    // Mock auth-options to return 401 - simulates server-side auth failure
-    // without triggering a real WebAuthn ceremony.
-    await page.route("**/api/auth/passkey/auth-options", async route => {
-      return route.fulfill({
-        status:      401,
-        contentType: "application/json",
-        body:        JSON.stringify({ error: "Authentication failed" }),
-      });
-    });
-
-    await page.goto(`/admin/${ADMIN_SLUG}/`);
-    await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
-    await page.getByRole("button", { name: "SIGN IN WITH PASSKEY" }).click();
-
-    // Client sets loginError -> "Authentication failed. Try again."
-    await expect(page.getByText(/authentication failed/i)).toBeVisible({ timeout: 8_000 });
-  });
-
-  test("sends the admin slug when asking for passkey options", async ({ page }) => {
+  test("shows the server's error and sends only username, password and slug (mocked 401)", async ({ page }) => {
     test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
 
     let sentBody;
-    await page.route("**/api/auth/passkey/auth-options", async route => {
+    await page.route("**/api/auth", async route => {
+      if (route.request().method() !== "POST") return route.continue();
       sentBody = route.request().postDataJSON();
       return route.fulfill({
         status:      401,
         contentType: "application/json",
-        body:        JSON.stringify({ error: "Authentication failed" }),
+        body:        JSON.stringify({ error: "Invalid credentials" }),
       });
     });
 
-    await page.goto(`/admin/${ADMIN_SLUG}/`);
-    await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
-    await page.getByRole("button", { name: "SIGN IN WITH PASSKEY" }).click();
+    await signIn(page);
 
-    await expect(page.getByText(/authentication failed/i)).toBeVisible({ timeout: 8_000 });
-    expect(sentBody).toEqual({ slug: ADMIN_SLUG });
+    await expect(page.getByText("Invalid credentials")).toBeVisible({ timeout: 8_000 });
+    expect(sentBody).toEqual({ username: "e2e-user", password: "e2e-wrong-password", slug: ADMIN_SLUG, captchaToken: null });
   });
 
-  test("shows lockout message after too many passkey attempts (mocked 429)", async ({ page }) => {
+  test("shows the lockout message after too many attempts (mocked 429)", async ({ page }) => {
     test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
 
-    // Mock auth-options to return 429 - tests that the UI renders a rate-limit
-    // message. The actual lockout enforcement is covered in the integration tests.
-    await page.route("**/api/auth/passkey/auth-options", async route => {
+    // The lockout itself is covered in the integration tests.
+    await page.route("**/api/auth", async route => {
+      if (route.request().method() !== "POST") return route.continue();
       return route.fulfill({
         status:      429,
         contentType: "application/json",
-        body:        JSON.stringify({ error: "Too many requests", retryAfter: 60 }),
+        body:        JSON.stringify({ error: "Too many failed attempts. Try again later.", retryAfter: 900 }),
       });
     });
 
-    await page.goto(`/admin/${ADMIN_SLUG}/`);
-    await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
-    await page.getByRole("button", { name: "SIGN IN WITH PASSKEY" }).click();
+    await signIn(page);
 
-    await expect(page.getByText(/too many|try again/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/too many attempts/i)).toBeVisible({ timeout: 5_000 });
   });
 });
 
@@ -849,7 +818,6 @@ test.describe("Admin panel › Games, seasons and settings", () => {
         ["games/new",   () => page.getByLabel("OPPONENT")],
         ["seasons",     () => page.getByRole("button", { name: "+ ADD SEASON" })],
         ["maintenance", () => page.getByLabel("PHASE")],
-        ["passkeys",    () => page.getByLabel("DEVICE LABEL")],
       ];
       for (const [path, ready] of pages) {
         await page.goto(`/admin/${ADMIN_SLUG}/${path}`);
@@ -882,97 +850,5 @@ test.describe("Admin panel › API protection", () => {
   test("a wrong admin slug is a 404", async ({ request }) => {
     const res = await request.get("/admin/not-the-real-slug/games");
     expect(res.status()).toBe(404);
-  });
-});
-
-// ── Passkey authentication ─────────────────────────────────────────────────
-
-test.describe("passkey login", () => {
-  // Virtual WebAuthn authenticator via Chrome DevTools Protocol.
-  // Uses cookie injection (SESSION_SECRET) to reach the passkeys page without
-  // a real password login, then tests the full passkey register → sign-out →
-  // sign-in flow end-to-end.
-  test("admin can register and authenticate with a passkey", async ({ browser }) => {
-    test.skip(!!process.env.PLAYWRIGHT_BASE_URL,
-      "WebAuthn rpID must equal the page origin; an ephemeral preview host cannot match the rpID derived from NEXT_PUBLIC_APP_URL, so this runs locally only");
-    test.skip(!ADMIN_SLUG || !SESSION_SECRET,
-      "ADMIN_SLUG or SESSION_SECRET not configured");
-
-    // One session value for both cookies: the CSRF token is bound to it.
-    const sessionValue = makeSessionCookieValue(ADMIN_USERNAME);
-    const context = await browser.newContext({
-      baseURL:      BASE_URL,
-      // Seed a valid server-side session so we can reach the passkeys page without
-      // a real password login. The session is HMAC-signed with SESSION_SECRET so
-      // requireAuth accepts it. storageState bypasses CDP's __Host- cookie validation.
-      storageState: makeAdminStorageState(ADMIN_USERNAME, sessionValue),
-    });
-    const page    = await context.newPage();
-    const cdp     = await context.newCDPSession(page);
-
-    // Enable virtual authenticator environment
-    await cdp.send("WebAuthn.enable", { enableUI: false });
-
-    // Add a virtual authenticator (internal, user-verifying)
-    const { authenticatorId } = await cdp.send("WebAuthn.addVirtualAuthenticator", {
-      options: {
-        protocol:                    "ctap2",
-        transport:                   "internal",
-        hasResidentKey:              true,
-        hasUserVerification:         true,
-        isUserVerified:              true,
-        automaticPresenceSimulation: true,
-      },
-    });
-
-    // Step 2: Navigate to passkeys page and register a new passkey.
-    // Set the CSRF cookie after navigation (document.cookie is origin-scoped
-    // and __Host- cookies with domain attrs aren't exposed, so we set it here).
-    const csrfToken = makeCsrfToken(sessionValue);
-    await page.goto(`/admin/${ADMIN_SLUG}/passkeys`);
-    await expect(page.getByText("AK Admin").first()).toBeVisible({ timeout: 10_000 });
-    await setCsrfCookie(page, csrfToken);
-    // Intercept register-options/register-verify requests to log CSRF state
-    const regLog = [];
-    page.on("request", req => {
-      if (req.url().includes("/api/auth/passkey/register")) {
-        const hdr = req.headers()["x-csrf-token"] ?? "(none)";
-        regLog.push(`→ ${req.url().split("/").pop()} X-CSRF-Token: ${hdr.slice(0,8)}...`);
-      }
-    });
-    page.on("response", resp => {
-      if (resp.url().includes("/api/auth/passkey/register")) {
-        regLog.push(`← ${resp.url().split("/").pop()} ${resp.status()}`);
-      }
-    });
-    await page.fill('input[placeholder="Device label"]', "E2E Test Key");
-    await page.click('button:has-text("ADD PASSKEY")');
-    // Wait for registration to complete (either success or failure)
-    await page.waitForTimeout(8_000);
-    console.log("[register flow]", regLog);
-    const csrfAfterReg = await page.evaluate(() => document.cookie.match(/__Host-ak_csrf=([^;]+)/)?.[1] ?? "(none)");
-    console.log("[CSRF cookie after register]", csrfAfterReg?.slice(0, 8) + "...");
-    console.log("[csrfToken first 8]", csrfToken.slice(0, 8) + "...");
-    await page.waitForSelector('text=E2E Test Key', { timeout: 5_000 });
-
-    // Step 3: Sign out via the sidebar button
-    await page.click('button:has-text("Sign out")');
-
-    // Step 4: Sign in with the just-registered passkey
-    // Virtual authenticator handles the WebAuthn ceremony automatically.
-    const signInLog = [];
-    page.on("response", resp => {
-      if (resp.url().includes("/api/auth")) signInLog.push(`${resp.request().method()} ${resp.url().replace(BASE_URL, "")} → ${resp.status()}`);
-    });
-    await page.goto(`/admin/${ADMIN_SLUG}`);
-    await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
-    await page.click('button:has-text("SIGN IN WITH PASSKEY")');
-    await page.waitForTimeout(6_000);
-    console.log("[sign-in API calls]", signInLog);
-    await expect(page.locator("text=AK Admin").first()).toBeVisible({ timeout: 10_000 });
-
-    // Cleanup
-    await cdp.send("WebAuthn.removeVirtualAuthenticator", { authenticatorId });
-    await context.close();
   });
 });

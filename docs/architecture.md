@@ -85,8 +85,8 @@ import { auditLog, getClientIp } from "@/server/security/node";
 `src/server/auth/session.ts` is the one exception outside this tree that
 the proxy may import: it verifies the admin session cookie, and it costs
 `node:crypto` and nothing else. It must be imported by path. The
-`@/server/auth` barrel re-exports `./passkey`, so importing that instead
-would drag `@simplewebauthn/server` and prisma onto every request. 2.3
+`@/server/auth` barrel re-exports modules that use prisma, so importing that
+instead would drag prisma onto every request. 2.3
 rejects it, and 4 fails the build if it ever gets through.
 
 ### 2.2 Runtime marker - `import "@/server/_internal/node-only"`
@@ -143,7 +143,7 @@ bundler enforcement.
 `proxy.ts` (and any future `middleware/**`). The first forbids the
 Node-only directories listed above. The second forbids `src/server/auth`
 with a single exception, `./session.ts`, so the proxy can verify the
-session cookie without the barrel dragging passkeys and prisma in behind
+session cookie without the barrel dragging prisma in behind
 it. Both catch mistakes in the editor, before `next build` runs.
 
 Since the runtime enforces nothing here, these zones are the first line
@@ -189,7 +189,7 @@ things, failing the build on either.
 noticing.
 
 **The dependencies.** The proxy must not pull in Prisma, the Neon driver,
-`@simplewebauthn/server`, `bcryptjs`, or `nodemailer`. It runs on every
+`bcryptjs`, or `nodemailer`. It runs on every
 matched request, so it stays small and talks to the database only through
 an API route.
 

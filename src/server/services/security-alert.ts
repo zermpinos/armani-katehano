@@ -15,24 +15,26 @@ export async function dispatchSecurityAlert(
   event: string,
   data:  Record<string, unknown> = {},
 ): Promise<boolean> {
-  const since = new Date(Date.now() - DEBOUNCE_MS);
-  const alreadySent = await prisma.auditLog.count({
-    where: {
-      event:     SENT_MARKER,
-      createdAt: { gt: since },
-      data:      { path: ["for"], equals: event },
-    },
-  });
-  if (alreadySent > 0) return false;
+  // A sign-in is never debounced: one that follows yours inside the window must still arrive.
+  const debounced = event !== "login_success";
+  if (debounced) {
+    const since = new Date(Date.now() - DEBOUNCE_MS);
+    const alreadySent = await prisma.auditLog.count({
+      where: {
+        event:     SENT_MARKER,
+        createdAt: { gt: since },
+        data:      { path: ["for"], equals: event },
+      },
+    });
+    if (alreadySent > 0) return false;
+  }
 
   const detail = Object.entries(data)
     .map(([k, v]) => `${k}=${String(v).slice(0, MAX_VALUE_LEN)}`)
     .join(" ");
   const minutes = DEBOUNCE_MS / 60_000;
-  const via = await sendAdminAlert(
-    `Security alert: ${event}`,
-    `${event}\n${detail}\n\nRepeats of this event are suppressed for ${minutes} minutes.`,
-  );
+  const note    = debounced ? `\n\nRepeats of this event are suppressed for ${minutes} minutes.` : "";
+  const via = await sendAdminAlert(`Security alert: ${event}`, `${event}\n${detail}${note}`);
 
   // Written even when delivery failed, so a dead channel is retried on the next
   // window rather than on every request.

@@ -124,9 +124,7 @@ describe("events anyone can send at will", () => {
     "coach_unauthorized",
     "csrf_rejected",
     "coach_csrf_rejected",
-    "login_fallback_disabled",
     "login_invalid_slug",
-    "passkey_challenge_issued",
   ])("%s goes to stdout and writes no row", async (event) => {
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     await auditLog(event, { ip: "1.2.3.4" });
@@ -191,6 +189,14 @@ describe("audit alert sink", () => {
     await flushPromises();
 
     expect(warnSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("login_success", () => {
+  it("is alerted and delivered, since nothing else catches a sign-in with a stolen password", async () => {
+    const { SECURITY_ALERT_EVENTS, PAGE_WORTHY_EVENTS } = await import("@/server/security/node/audit-log");
+    expect(SECURITY_ALERT_EVENTS.has("login_success")).toBe(true);
+    expect(PAGE_WORTHY_EVENTS.has("login_success")).toBe(true);
   });
 });
 

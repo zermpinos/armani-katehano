@@ -137,14 +137,14 @@ const eslintConfig = [
                 "the proxy runs on every request - import only from src/server/security/edge, src/server/auth/session, or pure domain code.",
             },
             // The proxy verifies the admin session cookie, so it needs the
-            // signer. Only that module: the barrel re-exports ./passkey,
-            // which drags @simplewebauthn/server and prisma in with it.
+            // signer. Only that module: the barrel re-exports modules that
+            // drag prisma in with them.
             {
               target: ["./proxy.ts", "./middleware/**"],
               from: "./src/server/auth",
               except: ["./session.ts"],
               message:
-                "the proxy may import src/server/auth/session only, never the barrel - it re-exports passkey, which pulls @simplewebauthn/server and prisma onto every request.",
+                "the proxy may import src/server/auth/session only, never the barrel - it re-exports modules that pull prisma onto every request.",
             },
           ],
         },

@@ -10,8 +10,6 @@ vi.mock("@/server/auth", async (importOriginal) => {
   return {
     ...actual,
     verifyCredentials:    vi.fn(),
-    getAdminUser:         vi.fn(),
-    verifyTotp:           vi.fn(),
     verifyCaptcha:        vi.fn(),
     isLockedOut:          vi.fn().mockResolvedValue(false),
     atomicRecordAndCheck: vi.fn().mockResolvedValue({ locked: false, count: 1 }),
@@ -25,24 +23,20 @@ vi.mock("@/server/security/node", () => ({
   getClientIp: vi.fn().mockReturnValue("1.2.3.4"),
 }));
 
-import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount, verifyCredentials, getAdminUser, verifyTotp, verifyCaptcha, csrfTokenCheck } from "@/server/auth";
+import { isLockedOut, atomicRecordAndCheck, clearAttempts, getFailureCount, verifyCredentials, verifyCaptcha, csrfTokenCheck } from "@/server/auth";
 import handler from "../../../../pages/api/auth";
 import { mockRes, mockReq } from "./__support__/auth-mocks";
 import { auditLog } from "@/server/security/node";
 
-const ADMIN_SLUG     = "test-admin-slug";
-const FALLBACK_TOKEN = "test-fallback-token";
+const ADMIN_SLUG = "test-admin-slug";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  process.env.ADMIN_SLUG             = ADMIN_SLUG;
-  process.env.PASSKEY_FALLBACK_TOKEN = FALLBACK_TOKEN;
+  process.env.ADMIN_SLUG = ADMIN_SLUG;
   isLockedOut.mockResolvedValue(false);
   atomicRecordAndCheck.mockResolvedValue({ locked: false, count: 1 });
   getFailureCount.mockResolvedValue(0);
   verifyCredentials.mockResolvedValue(false);
-  getAdminUser.mockReturnValue(null);
-  verifyTotp.mockReturnValue(true);
   verifyCaptcha.mockResolvedValue(true);
 });
 
@@ -54,27 +48,16 @@ function loginReq(body: Record<string, unknown>) {
   });
 }
 
-describe("POST /api/auth (fallback gate)", () => {
-  it("returns 404 with valid credentials when PASSKEY_FALLBACK_TOKEN is unset", async () => {
-    delete process.env.PASSKEY_FALLBACK_TOKEN;
-    verifyCredentials.mockResolvedValue(true);
-    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$..." });
-    const req = loginReq({ username: "admin", password: "correct", slug: ADMIN_SLUG });
-    const res = mockRes();
-    await handler(req, res);
-    expect(res.statusCode).toBe(404);
-    expect(verifyCredentials).not.toHaveBeenCalled();
-    expect(res._headers["Set-Cookie"]).toBeUndefined();
-  });
-
-  it("returns 404 with valid credentials when PASSKEY_FALLBACK_TOKEN is empty", async () => {
-    process.env.PASSKEY_FALLBACK_TOKEN = "";
+describe("POST /api/auth (username and password)", () => {
+  it("signs in with a username, password and slug alone", async () => {
     verifyCredentials.mockResolvedValue(true);
     const req = loginReq({ username: "admin", password: "correct", slug: ADMIN_SLUG });
     const res = mockRes();
     await handler(req, res);
-    expect(res.statusCode).toBe(404);
-    expect(verifyCredentials).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+    expect(res._body).toEqual({ ok: true });
+    expect(res._headers["Set-Cookie"]).toHaveLength(2);
+    expect(clearAttempts).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -109,9 +92,7 @@ describe("POST /api/auth (slug validation)", () => {
 
   it("logs the real slug result on success rather than a hardcoded true", async () => {
     verifyCredentials.mockResolvedValue(true);
-    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$...", totpSecret: "BASE32SECRET" });
-    verifyTotp.mockReturnValue(true);
-    const req = loginReq({ username: "admin", password: "correct", totpToken: "123456", slug: ADMIN_SLUG });
+    const req = loginReq({ username: "admin", password: "correct", slug: ADMIN_SLUG });
     const res = mockRes();
     await handler(req, res);
     expect(res.statusCode).toBe(200);
@@ -211,77 +192,13 @@ describe("POST /api/auth (login)", () => {
     expect(clearAttempts).not.toHaveBeenCalled();
   });
 
-  it("returns 401 and no session when the fallback is enabled but the user has no totpSecret", async () => {
+  // The token handed back at login is only good for the session it came with.
+  it("mints a CSRF cookie bound to the session it just issued", async () => {
     verifyCredentials.mockResolvedValue(true);
-    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$..." }); // no totpSecret
     const req = mockReq({
       method:  "POST",
       headers: { host: "example.com", origin: "https://example.com" },
       body:    { username: "admin", password: "correct", slug: ADMIN_SLUG },
-    });
-    const res = mockRes();
-    await handler(req, res);
-    expect(res.statusCode).toBe(401);
-    expect(res._headers["Set-Cookie"]).toBeUndefined();
-    expect(clearAttempts).not.toHaveBeenCalled();
-    expect(atomicRecordAndCheck).toHaveBeenCalledTimes(2);
-    expect(auditLog).toHaveBeenCalledWith("login_totp_not_configured", expect.objectContaining({ username: "admin" }));
-  });
-
-  it("returns 401 when TOTP is configured but code is missing", async () => {
-    verifyCredentials.mockResolvedValue(true);
-    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$...", totpSecret: "BASE32SECRET" });
-    const req = mockReq({
-      method:  "POST",
-      headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "correct", slug: ADMIN_SLUG }, // no totpToken
-    });
-    const res = mockRes();
-    await handler(req, res);
-    expect(res.statusCode).toBe(401);
-    expect(res._body.error).toMatch(/authenticator/i);
-  });
-
-  it("returns 401 when TOTP code is wrong", async () => {
-    verifyCredentials.mockResolvedValue(true);
-    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$...", totpSecret: "BASE32SECRET" });
-    verifyTotp.mockReturnValue(false);
-    const req = mockReq({
-      method:  "POST",
-      headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "correct", totpToken: "000000", slug: ADMIN_SLUG },
-    });
-    const res = mockRes();
-    await handler(req, res);
-    expect(res.statusCode).toBe(401);
-    expect(res._body.error).toMatch(/authenticator/i);
-  });
-
-  it("returns 200 when credentials and TOTP are both correct", async () => {
-    verifyCredentials.mockResolvedValue(true);
-    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$...", totpSecret: "BASE32SECRET" });
-    verifyTotp.mockReturnValue(true);
-    const req = mockReq({
-      method:  "POST",
-      headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "correct", totpToken: "123456", slug: ADMIN_SLUG },
-    });
-    const res = mockRes();
-    await handler(req, res);
-    expect(res.statusCode).toBe(200);
-    expect(res._body).toEqual({ ok: true });
-    expect(clearAttempts).toHaveBeenCalledTimes(2);
-  });
-
-  // The token handed back at login is only good for the session it came with.
-  it("mints a CSRF cookie bound to the session it just issued", async () => {
-    verifyCredentials.mockResolvedValue(true);
-    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$...", totpSecret: "BASE32SECRET" });
-    verifyTotp.mockReturnValue(true);
-    const req = mockReq({
-      method:  "POST",
-      headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "correct", totpToken: "123456", slug: ADMIN_SLUG },
     });
     const res = mockRes();
     await handler(req, res);
@@ -379,21 +296,6 @@ describe("POST /api/auth (login)", () => {
     expect(res._body.retryAfter).toBe(3600);
     expect(res._body.error).toMatch(/across all clients/i);
     expect(auditLog).toHaveBeenCalledWith("login_account_locked", expect.objectContaining({ ip: expect.any(String) }));
-  });
-
-  it("returns 429 when IP lockout is triggered on TOTP failure", async () => {
-    verifyCredentials.mockResolvedValue(true);
-    getAdminUser.mockReturnValue({ username: "admin", passwordHash: "$2b$...", totpSecret: "BASE32" });
-    verifyTotp.mockReturnValue(false);
-    atomicRecordAndCheck.mockResolvedValue({ locked: true, count: 5 });
-    const req = mockReq({
-      method:  "POST",
-      headers: { host: "example.com", origin: "https://example.com" },
-      body:    { username: "admin", password: "correct", totpToken: "000000", slug: ADMIN_SLUG },
-    });
-    const res = mockRes();
-    await handler(req, res);
-    expect(res.statusCode).toBe(429);
   });
 
   it("429 body does not expose the attempt count", async () => {

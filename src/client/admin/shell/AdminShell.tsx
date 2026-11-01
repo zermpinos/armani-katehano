@@ -8,11 +8,11 @@ import { buildNav } from "./nav";
 import { useAdminAuth } from "../use-admin-auth";
 import { setUnauthorizedHandler } from "../csrf";
 import { clearAdminData, refreshAllAdminData } from "../use-admin-data";
-import { PasskeyLoginForm } from "../passkey-login-form";
+import { LoginForm } from "../login-form";
 import { AdminSessionContext, type Toast } from "../session";
 import { afterPageLoad, afterRelogin } from "../session-sync";
 
-export type AdminShellPageProps = { authed: boolean; showFallback: boolean; noPasskeys: boolean };
+export type AdminShellPageProps = { authed: boolean };
 
 export function adminLayout(title: string) {
   return function getLayout(page: ReactElement<AdminShellPageProps>) {
@@ -32,7 +32,7 @@ export function AdminShell({
   const router      = useRouter();
   const slug        = String(router.query.slug ?? "");
   const currentPath = router.asPath.split("?")[0].split("#")[0];
-  const { authed, setAuthed, loginError, handleLogin, handlePasskeyLogin, handleLogout } = useAdminAuth(slug, pageProps.authed);
+  const { authed, setAuthed, loginError, handleLogin, handleLogout } = useAdminAuth(slug, pageProps.authed);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toast,      setToast]      = useState<Toast | null>(null);
   const [expired,    setExpired]    = useState(false);
@@ -70,11 +70,6 @@ export function AdminShell({
     // Fresh gSSP props, so later shallow URL changes do not replay a stale signed-out answer.
     void router.replace(router.asPath, undefined, { scroll: false });
   };
-  const reloginWithPasskey = async () => {
-    const result = await handlePasskeyLogin();
-    if (!result.failed) finishRelogin();
-    return result;
-  };
   const reloginWithPassword: typeof handleLogin = async (...args) => {
     const result = await handleLogin(...args);
     if (!result.failed) finishRelogin();
@@ -87,13 +82,7 @@ export function AdminShell({
         <Head>
           <meta name="robots" content="noindex, nofollow" />
         </Head>
-        <PasskeyLoginForm
-          onPasskeyLogin={reloginWithPasskey}
-          onFallbackLogin={reloginWithPassword}
-          loginError={loginError}
-          showFallback={pageProps.showFallback}
-          noPasskeys={pageProps.noPasskeys}
-        />
+        <LoginForm onLogin={reloginWithPassword} error={loginError} />
       </div>
     );
   }
@@ -159,13 +148,7 @@ export function AdminShell({
               <div id="session-expired-title" className="text-[13px] font-bold text-ak-text text-center">
                 Your session expired. Sign in again to keep your changes.
               </div>
-              <PasskeyLoginForm
-                onPasskeyLogin={reloginWithPasskey}
-                onFallbackLogin={reloginWithPassword}
-                loginError={loginError}
-                showFallback={pageProps.showFallback}
-                noPasskeys={false}
-              />
+              <LoginForm onLogin={reloginWithPassword} error={loginError} />
               <a href={router.asPath} className="text-[11px] font-bold text-ak-red-text">
                 Reload and sign in
               </a>

@@ -5,7 +5,7 @@ import prisma from "@/server/db/client";
 export const SECURITY_ALERT_EVENTS = new Set([
   "login_account_locked",
   "login_locked",
-  "login_totp_failed",
+  "login_success",
   "csrf_blocked",
   "csrf_token_blocked",
   "coach_session_revoked",
@@ -17,13 +17,14 @@ export const SECURITY_ALERT_EVENTS = new Set([
 ]);
 
 // Worth auditing is not the same as worth interrupting someone. broadcast_sent
-// is a routine admin action, a single mistyped TOTP code is not an incident, and
-// a revoked coach session is usually the admin doing it on purpose. Delivering
-// those trains the reader to ignore the channel, so the delivered set is a
-// strict subset of the audited one.
+// is a routine admin action and a revoked coach session is usually the admin
+// doing it on purpose. Delivering those trains the reader to ignore the channel,
+// so the delivered set is a strict subset of the audited one. Every sign-in is
+// delivered, so one you did not make stands out.
 export const PAGE_WORTHY_EVENTS = new Set([
   "login_account_locked",
   "login_locked",
+  "login_success",
   "coach_login_account_locked",
   "csrf_blocked",
   "csrf_token_blocked",
@@ -39,9 +40,7 @@ export const CONSOLE_ONLY_EVENTS = new Set([
   "coach_unauthorized",
   "csrf_rejected",
   "coach_csrf_rejected",
-  "login_fallback_disabled",
   "login_invalid_slug",
-  "passkey_challenge_issued",
 ]);
 
 function sanitize(data: Record<string, unknown>): Record<string, unknown> {

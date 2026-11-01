@@ -67,7 +67,6 @@ export default async function globalSetup() {
   const base = "http://localhost:3000";
   for (const path of [
     `/admin/${slug}/`,
-    `/admin/${slug}/passkeys`,
     `/admin/${slug}/games`,
   ]) {
     try {

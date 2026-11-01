@@ -10,8 +10,6 @@ vi.mock("@/server/auth", async (importOriginal) => {
   return {
     ...actual,
     verifyCredentials: vi.fn(),
-    getAdminUser:      vi.fn(),
-    verifyTotp:        vi.fn(),
     verifyCaptcha:     vi.fn(),
     isLockedOut:       vi.fn().mockResolvedValue(false),
     clearAttempts:     vi.fn().mockResolvedValue(undefined),
@@ -24,7 +22,7 @@ vi.mock("@/server/security/node", () => ({
   getClientIp: vi.fn().mockReturnValue("1.2.3.4"),
 }));
 
-import { isLockedOut, getFailureCount, verifyCredentials, getAdminUser, verifyTotp, verifyCaptcha, buildSessionCookie } from "@/server/auth";
+import { isLockedOut, getFailureCount, verifyCredentials, verifyCaptcha, buildSessionCookie } from "@/server/auth";
 import { auditLog } from "@/server/security/node";
 import handler from "../../../../pages/api/auth";
 import { mockRes, mockReq } from "./__support__/auth-mocks";
@@ -34,8 +32,6 @@ beforeEach(() => {
   isLockedOut.mockResolvedValue(false);
   getFailureCount.mockResolvedValue(0);
   verifyCredentials.mockResolvedValue(false);
-  getAdminUser.mockReturnValue(null);
-  verifyTotp.mockReturnValue(true);
   verifyCaptcha.mockResolvedValue(true);
 });
 

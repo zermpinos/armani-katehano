@@ -13,7 +13,6 @@ function readPersistedCaptchaFlag(): boolean {
 export function LoginForm({ onLogin, error }: { onLogin: any; error: any }) {
   const [username,     setUsername]     = useState("");
   const [password,     setPassword]     = useState("");
-  const [totpToken,    setTotpToken]    = useState("");
   const [loading,      setLoading]      = useState(false);
   const [failCount,    setFailCount]    = useState(0);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -24,7 +23,7 @@ export function LoginForm({ onLogin, error }: { onLogin: any; error: any }) {
   const submit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
-    const result = await onLogin(username, password, totpToken, captchaToken);
+    const result = await onLogin(username, password, captchaToken);
     if (result?.failed) setFailCount(c => c + 1);
     if (result?.requiresCaptcha) {
       setServerRequiresCaptcha(true);
@@ -54,10 +53,6 @@ export function LoginForm({ onLogin, error }: { onLogin: any; error: any }) {
         <div>
           <label className={labelCls}>Password</label>
           <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" autoComplete="current-password" className={inputCls} />
-        </div>
-        <div>
-          <label className={labelCls}>Authenticator code</label>
-          <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} value={totpToken} onChange={e => setTotpToken(e.target.value.replace(/\D/g, ""))} placeholder="6-digit code" autoComplete="one-time-code" className={inputCls} />
         </div>
         {needsCaptcha && (
           <TurnstileWidget
