@@ -27,7 +27,7 @@ A statistics, scheduling, and roster-management web app for the **Armani Katehan
 The app is a single-team basketball-stats platform built around a Postgres data model of seasons, leagues, games, players, per-game stat lines, season aggregates, upcoming games, and roster announcements. It serves three audiences:
 
 - **Public visitors** - read-only access to team record, player cards, season leaderboards (with a season-end MVP/leader awards podium), game results, scoring trends, and the next-game roster (with add-to-calendar / Google Calendar links).
-- **Team admins** - full CRUD over seasons, leagues, players, schedule, games, and stats; trigger imports; archive completed seasons; broadcast email to subscribers; toggle a playoff popup and site-wide maintenance mode; recompute aggregates. Reached at a randomized `/admin/<slug>` path and gated by passkey (WebAuthn); password + TOTP is an opt-in fallback.
+- **Team admins** - full CRUD over seasons, leagues, players, schedule, games, and stats; trigger imports; archive completed seasons; broadcast email to subscribers; toggle a playoff popup and site-wide maintenance mode; recompute aggregates. Reached at a randomized `/admin/<slug>` path behind a sign-in.
 - **Head coach** - separate `/coach/<token>` portal for managing rosters and publishing per-game roster announcements via email. Distinct password and session secret from the admin portal.
 
 Box-score data is ingested manually: an admin pastes a box-score URL; the server scrapes it and resolves a draft against the roster and the season leagues, blocking the save on anything it cannot resolve; the admin reviews and saves, and `PlayerGameStat` rows plus transactionally recomputed aggregates land in one write. Public listing pages are statically generated (ISR) and revalidated on demand the moment an admin mutation affects them, so visitors get near-instant updates without paying for per-request rendering.
@@ -57,9 +57,9 @@ Imports may only flow downward and the rule is enforced by `import/no-restricted
 
 `proxy.ts` runs on the **Node runtime**, and so does the rest of the app: Next 16 renamed middleware to proxy and moved it to Node, and there is no Edge option to opt back into. The proxy still sits on every matched request, so it is kept small and is not allowed to reach the database directly. That is a deliberate constraint rather than a runtime one, and three layers hold it:
 
-1. **Structural** -- `src/server/security/` is split into `edge/` (CSP, headers, cheap enough for the proxy) and `node/` (SSRF guard, audit log, client-IP). There is no top-level barrel; importers must declare a zone. `src/server/auth/session` is the one module outside that tree the proxy may import, by path and never via the `@/server/auth` barrel, which re-exports passkeys.
+1. **Structural** -- `src/server/security/` is split into `edge/` (CSP, headers, cheap enough for the proxy) and `node/` (SSRF guard, audit log, client-IP). There is no top-level barrel; importers must declare a zone. `src/server/auth/session` is the one module outside that tree the proxy may import, by path and never via the `@/server/auth` barrel, which pulls in Prisma.
 2. **Runtime marker** -- every Node-only file begins with `import "@/server/_internal/node-only";`, a custom marker that throws at module load if it is ever bundled into the browser.
-3. **CI runtime and bundle check** - `scripts/check-proxy-bundle.mjs` runs after `next build`. It asserts the proxy is still on the `nodejs` runtime, resolves the real chunk graph behind the Turbopack loader stub, and fails if Prisma, the Neon driver, `@simplewebauthn/server`, `bcryptjs`, or `nodemailer` reach it.
+3. **CI runtime and bundle check** - `scripts/check-proxy-bundle.mjs` runs after `next build`. It asserts the proxy is still on the `nodejs` runtime, resolves the real chunk graph behind the Turbopack loader stub, and fails if Prisma, the Neon driver, `bcryptjs`, or `nodemailer` reach it.
 
 Node built-ins must be imported via the `node:` protocol (`import crypto from "node:crypto"`) - enforced by `no-restricted-imports`.
 
@@ -93,9 +93,7 @@ PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end
 - Zod 4 (request/response, scrape outputs, schedule rows)
 
 **Auth & security**
-- `@simplewebauthn/server` + `@simplewebauthn/browser` (passkeys / WebAuthn; challenges persisted in `WebAuthnChallenge`, not in-process memory)
 - `bcryptjs` (password hashing)
-- `otpauth` (TOTP; password+TOTP fallback path)
 - Cloudflare Turnstile (subscribe-form and login CAPTCHA)
 - Custom session cookies (signed with `SESSION_SECRET` / `COACH_SESSION_SECRET`)
 - Build-time, hash-based CSP (no per-request nonce - see [§5 Security baseline](#5-features)) + SSRF allow-list + DB-persisted audit log
@@ -147,7 +145,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 - **Motion & depth** - scroll-driven hero parallax, a reveal on the homepage chart rows, and a hover tilt on stat tiles; built with native CSS scroll-driven animations (no JS, no dependency), gated on `@supports (animation-timeline: view())` and turned off under `prefers-reduced-motion`.
 
 ### Admin portal (`/admin/<slug>`)
-- Passkey (WebAuthn) login with per-IP login-attempt rate limiting and CSRF tokens; password + TOTP retained as opt-in fallback (gated by `PASSKEY_FALLBACK_TOKEN`).
+- Admin sign-in with per-IP and per-account lockouts, a CAPTCHA after repeated failures, CSRF tokens and an alert on every sign-in.
 - Dashboard with totals, recent activity, and season-phase selector (Regular Season / Playoffs).
 - **Maintenance** page for the global maintenance-mode toggle, the playoff-popup control (enable/disable, semifinal/final round), an aggregate recompute, and a test alert that reports whether import notifications reach Slack or email.
 - CRUD for **seasons**, **leagues**, **season-leagues**, **players**, **schedule** (`UpcomingGame`), **games** (with round field for playoff tagging), and **per-game stat lines**.
@@ -191,7 +189,7 @@ All cron endpoints share the same auth shape: `Authorization: Bearer ${CRON_SECR
 - **Build-time, hash-based CSP** (set by the proxy) - `src/server/security/edge/csp-hashes.ts` holds a committed allow-list of SHA-256 hashes for every inline `<script>`/`<style>` in the pre-rendered HTML, regenerated via `npm run regenerate-csp-hashes` and verified against the built output in CI (`scripts/check-isr-pages.mjs`). There is no per-request nonce - ISR-cached pages can't vary per request, so the hash approach replaced it.
 - HTTPS-only, `Strict-Transport-Security`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` lockdown.
 - SSRF allow-list for outbound fetches.
-- Audit log written to structured stdout (`[AUDIT]`) and persisted to the `AuditLog` table (client IPs are SHA-256 hashed before storage), with `console.warn` alerts (`[AUDIT_ALERT]`) on high-signal events (locked accounts, blocked CSRF, broadcast abuse); purged after 90 days. Events any caller can trigger without a session (no cookie, a login without an Origin or with a wrong admin slug, a passkey challenge) stay in stdout only, so no one can grow the table at will.
+- Audit log written to structured stdout (`[AUDIT]`) and persisted to the `AuditLog` table (client IPs are SHA-256 hashed before storage), with `console.warn` alerts (`[AUDIT_ALERT]`) on high-signal events (locked accounts, blocked CSRF, broadcast abuse); purged after 90 days. Events any caller can trigger without a session (no cookie, a login without an Origin or with a wrong admin slug) stay in stdout only, so no one can grow the table at will.
 - `security.txt` (RFC 9116) at `/.well-known/security.txt` points to [`SECURITY.md`](SECURITY.md) for vulnerability disclosure.
 - ESLint security plugins + `no-unsanitized` + `node:` protocol enforcement + Semgrep + Gitleaks workflows.
 - **Monitoring** - `/api/health` is a dependency-free liveness probe (it does not touch the database, so uptime pings add no Neon load); `/api/status` is bearer-authenticated, reports the last successful run of every cron job, and returns 503 when one has gone stale. Both are probed every 15 minutes by a scheduled GitHub Actions workflow rather than by a Vercel cron, because a checker inside the system cannot report that the system is down. The client beacons anonymous Web Vitals to `/api/vitals`, which validates the metric name, drops anything unknown, and stores no IP or identifier.
@@ -218,12 +216,10 @@ armani-katehano/
 │   │   ├── import.tsx              Box-score import (paste a box-score URL)
 │   │   ├── broadcast.tsx           Subscriber email broadcast composer
 │   │   ├── subscribers.tsx         Subscriber list, export, cleanup
-│   │   ├── passkeys.tsx            Passkey credential management
 │   │   └── maintenance.tsx         Maintenance-mode toggle + playoff-popup control
 │   ├── coach/[token].tsx           Coach portal page (token-routed)
 │   └── api/                        API routes
 │       ├── auth.ts, subscribe.ts, confirm.ts
-│       ├── auth/passkey/           WebAuthn register/auth options + verify
 │       ├── calendar/ics.ts         Public .ics calendar export for a game
 │       ├── calendar/games.ics.ts   Public season calendar feed (subscribable)
 │       ├── humans-txt.ts, .well-known/security.txt.ts
@@ -261,7 +257,7 @@ armani-katehano/
 │   ├── server/                     Node-only business logic
 │   │   ├── _internal/node-only.ts  Runtime marker
 │   │   ├── auth/                   admin-slug, coach, csrf, login-attempts,
-│   │   │                            passkey, password, session, totp + middleware/
+│   │   │                            password, session + middleware/
 │   │   ├── db/                     Prisma client + repositories
 │   │   ├── http/                   method-router, parse-body, handle-error
 │   │   ├── integrations/
@@ -355,7 +351,7 @@ npm run dev                        # http://localhost:3000
 
 ### Logging in
 
-- **Admin portal** - visit `/admin/<ADMIN_SLUG>`. The slug is randomized to keep the login form off public crawlers. Primary auth is passkey (WebAuthn); if `PASSKEY_FALLBACK_TOKEN` is set, a password + TOTP fallback path is also available.
+- **Admin portal** - visit `/admin/<ADMIN_SLUG>`. The slug is randomized to keep the login form off public crawlers.
 - **Coach portal** - visit `/coach/<COACH_TOKEN>`, enter the coach password.
 
 ---
@@ -392,7 +388,6 @@ Production secrets live on Vercel; local development uses `.env.local`. **Never 
 
 | Variable                                  | Purpose                                                         |
 |-------------------------------------------|-------------------------------------------------------------------|
-| `PASSKEY_FALLBACK_TOKEN`                  | Enables the password + TOTP fallback login path; if unset, passkey is the only admin auth method |
 | `E2E_ADMIN_USERNAME`                      | Admin username used by Playwright global setup                  |
 | `PLAYWRIGHT_BASE_URL`                     | Base URL targeted by E2E tests (defaults to `http://localhost:3000`) |
 

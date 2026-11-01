@@ -30,7 +30,6 @@ export function buildNav(slug: string | string[] | boolean | undefined): {
         label: "Settings",
         links: [
           { href: `${base}/maintenance`, label: "Maintenance" },
-          { href: `${base}/passkeys`,    label: "Passkeys"    },
         ],
       },
     ],

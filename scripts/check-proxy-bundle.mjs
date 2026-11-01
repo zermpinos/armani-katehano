@@ -27,7 +27,6 @@ const FORBIDDEN = [
   "@prisma/client",
   "@prisma/adapter-neon",
   "@neondatabase/serverless",
-  "@simplewebauthn/server",
   "bcryptjs",
   "nodemailer",
 ];

@@ -46,6 +46,15 @@ describe("dispatchSecurityAlert", () => {
     expect(mockPrisma.auditLog.create).not.toHaveBeenCalled();
   });
 
+  it("never debounces login_success, so a sign-in right after another is still seen", async () => {
+    mockPrisma.auditLog.count.mockResolvedValue(1);
+
+    const sent = await dispatchSecurityAlert("login_success", { username: "admin" });
+
+    expect(sent).toBe(true);
+    expect(mockSendAdminAlert).toHaveBeenCalledOnce();
+  });
+
   it("debounces per event, so a different event is not suppressed by the first", async () => {
     mockPrisma.auditLog.count.mockResolvedValue(0);
     await dispatchSecurityAlert("csrf_blocked", {});

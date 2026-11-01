@@ -40,21 +40,6 @@ export async function verifyCredentials(username: string, plaintext: string): Pr
   return verifyPassword(plaintext);
 }
 
-export type AdminUser = { username: string; passwordHash: string; totpSecret?: string };
-
-export function getAdminUser(username: string): AdminUser | null {
-  const usersJson = process.env.ADMIN_USERS;
-  if (usersJson) {
-    try {
-      const users: AdminUser[] = JSON.parse(usersJson);
-      return users.find(u => u.username === username) ?? null;
-    } catch { return null; }
-  }
-  if (username !== "admin") return null;
-  const hash = process.env.ADMIN_PASSWORD;
-  return hash ? { username: "admin", passwordHash: hash } : null;
-}
-
 export async function verifyCaptcha(token: string, ip?: string): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
   if (!secret) {
