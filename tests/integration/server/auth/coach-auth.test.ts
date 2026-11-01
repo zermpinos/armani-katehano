@@ -335,6 +335,17 @@ describe("DELETE /api/coach/auth (logout)", () => {
     expect(res._body).toEqual({ ok: true });
     expect([res._headers["Set-Cookie"]].flat().join(" ")).toContain("Max-Age=0");
   });
+
+  it("writes no audit entry without a session", async () => {
+    await handler(mockReq({ method: "DELETE" }), mockRes());
+    expect(auditLog).not.toHaveBeenCalled();
+  });
+
+  it("audits the logout of a signed coach session", async () => {
+    const req = mockReq({ method: "DELETE", cookies: { "__Host-ak_coach": validCoachCookie(0) } });
+    await handler(req, mockRes());
+    expect(auditLog).toHaveBeenCalledWith("coach_logout", { ip: "1.2.3.4" });
+  });
 });
 
 describe("unsupported methods", () => {

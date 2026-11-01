@@ -106,19 +106,21 @@ describe("atomicRecordAndCheck", () => {
   it("returns { count, locked: false } when under max attempts", async () => {
     mockTx.loginAttempt.count.mockResolvedValue(2);
     const result = await atomicRecordAndCheck("1.2.3.4");
-    expect(result).toEqual({ count: 2, locked: false });
+    expect(result).toEqual({ count: 3, locked: false });
   });
 
-  it("returns { locked: true } when count equals maxAttempts", async () => {
-    mockTx.loginAttempt.count.mockResolvedValue(5);
+  it("records the attempt that reaches maxAttempts and returns { locked: true }", async () => {
+    mockTx.loginAttempt.count.mockResolvedValue(4);
     const result = await atomicRecordAndCheck("1.2.3.4");
-    expect(result.locked).toBe(true);
+    expect(result).toEqual({ count: 5, locked: true });
+    expect(mockTx.loginAttempt.create).toHaveBeenCalledOnce();
   });
 
-  it("returns { locked: true } when count exceeds maxAttempts", async () => {
-    mockTx.loginAttempt.count.mockResolvedValue(10);
+  it.each([5, 10])("records nothing once %i attempts are already in the window", async (prior) => {
+    mockTx.loginAttempt.count.mockResolvedValue(prior);
     const result = await atomicRecordAndCheck("1.2.3.4");
-    expect(result.locked).toBe(true);
+    expect(result).toEqual({ count: prior, locked: true });
+    expect(mockTx.loginAttempt.create).not.toHaveBeenCalled();
   });
 
   it("propagates DB errors (fail-closed: never silently returns locked: false)", async () => {

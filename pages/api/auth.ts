@@ -62,7 +62,8 @@ export default async function handler(req: any, res: any) {
     let logoutUser: string | undefined;
     try { logoutUser = payload ? JSON.parse(payload).user : undefined; } catch { /* ignore */ }
     res.setHeader("Set-Cookie", [clearSessionCookie(), clearCsrfCookie()]);
-    await auditLog("logout", { ip, username: logoutUser });
+    // A DELETE needs no session, so only a signed one earns a row.
+    if (payload) await auditLog("logout", { ip, username: logoutUser });
     return res.status(200).json({ ok: true });
   }
 

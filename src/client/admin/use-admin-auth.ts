@@ -29,7 +29,11 @@ export function useAdminAuth(slug: string, initialAuthed: boolean) {
   const handlePasskeyLogin = useCallback(async (): Promise<{ failed: boolean; error?: string }> => {
     setError(null);
     try {
-      const optRes = await fetch("/api/auth/passkey/auth-options", { method: "POST" });
+      const optRes = await fetch("/api/auth/passkey/auth-options", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ slug }),
+      });
       if (!optRes.ok) {
         if (optRes.status === 429) {
           const body = await optRes.json().catch(() => ({}));
@@ -66,7 +70,7 @@ export function useAdminAuth(slug: string, initialAuthed: boolean) {
       setError("Authentication failed. Try again.");
       return { failed: true };
     }
-  }, []);
+  }, [slug]);
 
   const handleLogout = useCallback(() => {
     apiFetch("/api/auth", { method: "DELETE" }).finally(() => setAuthed(false));

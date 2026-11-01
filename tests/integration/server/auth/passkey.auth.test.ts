@@ -1,10 +1,12 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-vi.hoisted(() => {
+const { ADMIN_SLUG } = vi.hoisted(() => {
+  process.env.ADMIN_SLUG     = "test-admin-slug";
   process.env.SESSION_SECRET = "test-session-secret-32bytes-xxxx";
   process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
   process.env.NODE_ENV       = "test";
+  return { ADMIN_SLUG: process.env.ADMIN_SLUG };
 });
 
 vi.mock("@/server/auth/passkey", async (importOriginal) => {
@@ -43,6 +45,7 @@ vi.mock("@/server/security/node", () => ({
 
 import { generateAuthOpts, issueChallenge } from "@/server/auth/passkey";
 import { atomicRecordAndCheck }             from "@/server/auth/login-attempts";
+import { auditLog }                         from "@/server/security/node";
 import handler from "../../../../pages/api/auth/passkey/auth-options";
 import { mockReq, mockRes }                 from "./__support__/auth-mocks";
 
@@ -61,16 +64,35 @@ describe("POST /api/auth/passkey/auth-options", () => {
     expect(res.statusCode).toBe(405);
   });
 
+  it.each([
+    ["no slug", {}],
+    ["a wrong slug", { slug: "not-the-slug" }],
+  ])("returns 404 with %s and writes nothing", async (_case, body) => {
+    const req = mockReq({ method: "POST", headers: { host: "example.com" }, body });
+    const res = mockRes();
+    await handler(req, res);
+    expect(res.statusCode).toBe(404);
+    expect(atomicRecordAndCheck).not.toHaveBeenCalled();
+    expect(issueChallenge).not.toHaveBeenCalled();
+    expect(auditLog).not.toHaveBeenCalled();
+  });
+
   it("returns 429 when rate limit exceeded", async () => {
     atomicRecordAndCheck.mockResolvedValue({ locked: true, count: 31 });
-    const req = mockReq({ method: "POST", headers: { host: "example.com" } });
+    const req = mockReq({ method: "POST", headers: { host: "example.com" }, body: { slug: ADMIN_SLUG } });
     const res = mockRes();
     await handler(req, res);
     expect(res.statusCode).toBe(429);
   });
 
+  it("passes the raw IP to auditLog, which hashes it once", async () => {
+    const req = mockReq({ method: "POST", headers: { host: "example.com" }, body: { slug: ADMIN_SLUG } });
+    await handler(req, mockRes());
+    expect(auditLog).toHaveBeenCalledWith("passkey_challenge_issued", { ip: "1.2.3.4" });
+  });
+
   it("returns options and challengeId on success", async () => {
-    const req = mockReq({ method: "POST", headers: { host: "example.com" } });
+    const req = mockReq({ method: "POST", headers: { host: "example.com" }, body: { slug: ADMIN_SLUG } });
     const res = mockRes();
     await handler(req, res);
     expect(res.statusCode).toBe(200);
@@ -82,7 +104,7 @@ describe("POST /api/auth/passkey/auth-options", () => {
   });
 
   it("calls atomicRecordAndCheck with passkey-specific key, not the raw IP key", async () => {
-    const req = mockReq({ method: "POST", headers: { host: "example.com" } });
+    const req = mockReq({ method: "POST", headers: { host: "example.com" }, body: { slug: ADMIN_SLUG } });
     const res = mockRes();
     await handler(req, res);
     expect(atomicRecordAndCheck).toHaveBeenCalledWith(

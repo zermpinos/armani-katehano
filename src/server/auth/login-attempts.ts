@@ -55,10 +55,12 @@ export async function atomicRecordAndCheck(
     // $executeRaw, not $queryRaw: pg_advisory_xact_lock() returns void, which
     // @prisma/adapter-neon refuses to deserialize (P2010 UnsupportedNativeDataType).
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${lockKey}::bigint)`;
-    await tx.loginAttempt.create({ data: { ip: hashedKey } });
-    const count = await tx.loginAttempt.count({
+    const prior = await tx.loginAttempt.count({
       where: { ip: hashedKey, attemptedAt: { gte: since } },
     });
-    return { count, locked: count >= maxAttempts };
+    // A refused attempt adds no row, so a locked caller cannot keep growing the table.
+    if (prior >= maxAttempts) return { count: prior, locked: true };
+    await tx.loginAttempt.create({ data: { ip: hashedKey } });
+    return { count: prior + 1, locked: prior + 1 >= maxAttempts };
   });
 }

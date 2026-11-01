@@ -32,6 +32,18 @@ export const PAGE_WORTHY_EVENTS = new Set([
   "broadcast_invalid_token",
 ]);
 
+// These fire on requests that need no session, so a row each would let any
+// caller grow the table for 90 days. The [AUDIT] stdout line still records them.
+export const CONSOLE_ONLY_EVENTS = new Set([
+  "unauthorized_api_access",
+  "coach_unauthorized",
+  "csrf_rejected",
+  "coach_csrf_rejected",
+  "login_fallback_disabled",
+  "login_invalid_slug",
+  "passkey_challenge_issued",
+]);
+
 function sanitize(data: Record<string, unknown>): Record<string, unknown> {
   if (typeof data.ip !== "string") return data;
   return { ...data, ip: createHash("sha256").update(data.ip).digest("hex") };
@@ -55,13 +67,15 @@ export async function auditLog(event: string, data: Record<string, unknown> = {}
     }));
   }
 
-  const writes: Promise<unknown>[] = [
-    prisma.auditLog.create({
+  const writes: Promise<unknown>[] = [];
+
+  if (!CONSOLE_ONLY_EVENTS.has(event)) {
+    writes.push(prisma.auditLog.create({
       data: { event, data: sanitized as object },
     }).catch((err: Error) => {
       console.error(JSON.stringify({ type: "[AUDIT_DB_ERROR]", event, error: err.message }));
-    }),
-  ];
+    }));
+  }
 
   if (PAGE_WORTHY_EVENTS.has(event)) {
     // Loaded on demand. The dispatcher pulls in the mail transport, which would
