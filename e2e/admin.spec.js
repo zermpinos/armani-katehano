@@ -119,6 +119,27 @@ test.describe("Admin panel › Login form", () => {
     await expect(page.getByText(/authentication failed/i)).toBeVisible({ timeout: 8_000 });
   });
 
+  test("sends the admin slug when asking for passkey options", async ({ page }) => {
+    test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
+
+    let sentBody;
+    await page.route("**/api/auth/passkey/auth-options", async route => {
+      sentBody = route.request().postDataJSON();
+      return route.fulfill({
+        status:      401,
+        contentType: "application/json",
+        body:        JSON.stringify({ error: "Authentication failed" }),
+      });
+    });
+
+    await page.goto(`/admin/${ADMIN_SLUG}/`);
+    await expect(page.getByText("Admin Access")).toBeVisible({ timeout: 10_000 });
+    await page.getByRole("button", { name: "SIGN IN WITH PASSKEY" }).click();
+
+    await expect(page.getByText(/authentication failed/i)).toBeVisible({ timeout: 8_000 });
+    expect(sentBody).toEqual({ slug: ADMIN_SLUG });
+  });
+
   test("shows lockout message after too many passkey attempts (mocked 429)", async ({ page }) => {
     test.skip(!ADMIN_SLUG, "ADMIN_SLUG not configured");
 

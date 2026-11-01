@@ -70,7 +70,8 @@ export default async function handler(req: any, res: any) {
   // ── DELETE: logout ────────────────────────────────────────────────────────
   if (req.method === "DELETE") {
     res.setHeader("Set-Cookie", [clearCoachSessionCookie(), clearCsrfCookie()]);
-    await auditLog("coach_logout", { ip });
+    // A DELETE needs no session, so only a signed one earns a row.
+    if (verifyCoachSession(getCoachSessionToken(req))) await auditLog("coach_logout", { ip });
     return res.status(200).json({ ok: true });
   }
 

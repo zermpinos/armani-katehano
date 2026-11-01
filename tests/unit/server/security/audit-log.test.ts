@@ -17,6 +17,8 @@ vi.mock("@/server/db/client",   () => ({ default: mockPrisma }));
 vi.mock("@/server/_internal/node-only", () => ({}));
 
 import { auditLog } from "@/server/security/node/audit-log";
+import { requireAuth }      from "@/server/auth/middleware/require-admin";
+import { requireCoachAuth } from "@/server/auth/middleware/require-coach";
 
 function sha256(s: string) {
   return createHash("sha256").update(s).digest("hex");
@@ -113,6 +115,58 @@ describe("DB write", () => {
     answerDebounce(1);
     await pending;
     expect(mockPrisma.auditLog.count).toHaveBeenCalledOnce();
+  });
+});
+
+describe("events anyone can send at will", () => {
+  it.each([
+    "unauthorized_api_access",
+    "coach_unauthorized",
+    "csrf_rejected",
+    "coach_csrf_rejected",
+    "login_fallback_disabled",
+    "login_invalid_slug",
+    "passkey_challenge_issued",
+  ])("%s goes to stdout and writes no row", async (event) => {
+    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    await auditLog(event, { ip: "1.2.3.4" });
+
+    expect(JSON.parse(consoleSpy.mock.calls[0][0]).event).toBe(event);
+    expect(mockPrisma.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "invalid_session_payload",
+    "expired_session",
+    "forbidden_role",
+    "coach_invalid_session_payload",
+    "coach_wrong_role",
+    "coach_expired_session",
+  ])("%s still writes a row, since it needs a token signed with the server secret", async (event) => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    await auditLog(event, { ip: "1.2.3.4" });
+
+    expect(mockPrisma.auditLog.create).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["admin", requireAuth],
+    ["coach", requireCoachAuth],
+  ])("a request to the %s API with no cookie writes no row", async (_realm, wrap) => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const res = {
+      statusCode: 200,
+      setHeader() { return res; },
+      status(code: number) { res.statusCode = code; return res; },
+      json() { return res; },
+    };
+    const handler = vi.fn();
+
+    await wrap(handler)({ method: "GET", url: "/api/admin/data", headers: {}, cookies: {} }, res);
+
+    expect(res.statusCode).toBe(401);
+    expect(handler).not.toHaveBeenCalled();
+    expect(mockPrisma.auditLog.create).not.toHaveBeenCalled();
   });
 });
 

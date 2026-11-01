@@ -19,7 +19,13 @@ vi.mock("@/server/auth", async (importOriginal) => {
   };
 });
 
-import { isLockedOut, getFailureCount, verifyCredentials, getAdminUser, verifyTotp, verifyCaptcha } from "@/server/auth";
+vi.mock("@/server/security/node", () => ({
+  auditLog:    vi.fn(),
+  getClientIp: vi.fn().mockReturnValue("1.2.3.4"),
+}));
+
+import { isLockedOut, getFailureCount, verifyCredentials, getAdminUser, verifyTotp, verifyCaptcha, buildSessionCookie } from "@/server/auth";
+import { auditLog } from "@/server/security/node";
 import handler from "../../../../pages/api/auth";
 import { mockRes, mockReq } from "./__support__/auth-mocks";
 
@@ -41,6 +47,18 @@ describe("DELETE /api/auth (logout)", () => {
     expect(res.statusCode).toBe(200);
     expect(res._body).toEqual({ ok: true });
     expect([res._headers["Set-Cookie"]].flat().join(" ")).toContain("Max-Age=0");
+  });
+
+  it("writes no audit entry without a session", async () => {
+    await handler(mockReq({ method: "DELETE" }), mockRes());
+    expect(auditLog).not.toHaveBeenCalled();
+  });
+
+  it("audits the logout of a signed session", async () => {
+    const cookie = buildSessionCookie(JSON.stringify({ ts: Date.now(), role: "admin", user: "admin" }));
+    const req = mockReq({ method: "DELETE", cookies: { "__Host-ak_session": cookie.split(";")[0].split("=").slice(1).join("=") } });
+    await handler(req, mockRes());
+    expect(auditLog).toHaveBeenCalledWith("logout", { ip: "1.2.3.4", username: "admin" });
   });
 });
 
