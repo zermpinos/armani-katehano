@@ -69,7 +69,7 @@ Public listing pages (`/`, `/players`, `/games`, `/leaderboard`, `/team-stats`) 
 
 ### Data model
 
-PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end archiving), `League`, `SeasonLeague`, `Player`, `RosterEntry`, `Game`, `PlayerGameStat`, `PlayerSeasonAggregate`, `UpcomingGame`, `GameRosterAnnouncement`, `GameRosterPlayer`, `BroadcastLog`, `PasskeyCredential`, `WebAuthnChallenge`, `Subscriber`, `Setting`, `LoginAttempt`, `CronRun`, `AuditLog`, `ImportDraft`, `OpponentAlias`. Aggregates store both averages (`ptsAvg`, `rebAvg`, ...) and totals (`ptsTotal`, `rebTotal`, ...) computed from raw stat sums. `Setting` is a generic key/value store used for feature toggles that don't warrant their own table (maintenance mode, playoff-popup state).
+PostgreSQL via Prisma. Core entities: `Season` (with `archivedAt` for season-end archiving), `League`, `SeasonLeague`, `Player`, `RosterEntry`, `Game`, `PlayerGameStat`, `PlayerSeasonAggregate`, `UpcomingGame`, `GameRosterAnnouncement`, `GameRosterPlayer`, `BroadcastLog`, `Subscriber`, `Setting`, `LoginAttempt`, `CronRun`, `AuditLog`, `ImportDraft`, `OpponentAlias`. Aggregates store both averages (`ptsAvg`, `rebAvg`, ...) and totals (`ptsTotal`, `rebTotal`, ...) computed from raw stat sums. `Setting` is a generic key/value store used for feature toggles that don't warrant their own table (maintenance mode, playoff-popup state).
 
 ---
 
