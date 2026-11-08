@@ -7,8 +7,9 @@ export default defineConfig({
     path: "prisma/migrations",
     seed: "npx tsx prisma/seed.ts",
   },
+  // Only the CLI reads this, and Prisma 7 has no directUrl. The app connects
+  // through DATABASE_URL in src/server/db/client.ts.
   datasource: {
-    url: process.env["DATABASE_URL"],
-    directUrl: process.env["DIRECT_URL"],
+    url: process.env["DIRECT_URL"],
   },
 });
