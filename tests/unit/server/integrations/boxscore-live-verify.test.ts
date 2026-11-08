@@ -13,7 +13,7 @@ const AK_IDS = ["ARMANI", "KATEHANO"];
 
 async function fetchAndScrape(url: string) {
   const res = await fetch(url, {
-    headers: { "User-Agent": "BoxScoreScraper/1.0", "Accept": "text/html" },
+    headers: { "User-Agent": "ArmaniKatehanoStats/1.0 (+https://armani-katehano.com)", "Accept": "text/html" },
     redirect: "manual",
     signal: AbortSignal.timeout(5_000),
   });
