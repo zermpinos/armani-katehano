@@ -44,7 +44,7 @@ export async function fetchGuarded(url: string): Promise<string> {
     const response = await fetch(url, {
       redirect: "manual",
       headers: {
-        "User-Agent": "BoxScoreScraper/1.0",
+        "User-Agent": "ArmaniKatehanoStats/1.0 (+https://armani-katehano.com)",
         "Accept":     "text/html,application/xhtml+xml",
       },
       dispatcher,
