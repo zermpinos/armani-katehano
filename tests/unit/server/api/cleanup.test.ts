@@ -16,7 +16,6 @@ const { mockPrisma, mockPurgeUnconfirmed, store } = vi.hoisted(() => {
           return { count };
         }),
       },
-      webAuthnChallenge: { deleteMany: vi.fn(async () => ({ count: 0 })) },
       cronRun: {
         create: vi.fn(async () => ({ id: "run-1" })),
         update: vi.fn(async () => undefined),
