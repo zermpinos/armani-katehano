@@ -32,9 +32,9 @@ const teamCells = (html: string) => {
 };
 
 describe("BoxScoreTable team totals", () => {
-  it("adds a TEAM row that sums every column of the lines shown", () => {
+  it("adds a TEAM row that sums every column of the lines shown except minutes", () => {
     expect(teamCells(render(lines))).toEqual([
-      "", "TEAM", "59:45", "32", "12", "5", "1", "1", "3", "13", "24", "3", "8", "3", "4", "36",
+      "", "TEAM", "", "32", "12", "5", "1", "1", "3", "13", "24", "3", "8", "3", "4", "36",
     ]);
   });
 
@@ -45,10 +45,6 @@ describe("BoxScoreTable team totals", () => {
   it("shows no percentage for a shot type with no attempts", () => {
     const html = render([line(4, { min: 20, pts: 4, fgm: 2, fga: 5 })], 4);
     expect(html).toContain("FG 2/5 40.0% · 3P 0/0 · FT 0/0");
-  });
-
-  it("shows a dash for minutes when no line has any", () => {
-    expect(teamCells(render([line(4, { pts: 2, fgm: 1, fga: 1 })], 2))[2]).toBe("-");
   });
 
   it("notes when the player lines do not add up to the team's score", () => {
