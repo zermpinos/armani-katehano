@@ -8,7 +8,7 @@ const EMPTY_TEXT = "First meeting between the teams.";
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ak-red-text";
 const LINK_TEXT = "text-[11px] font-black uppercase tracking-[0.1em] text-ak-red-text";
 
-// Letters lighter than the games list's badges, which miss WCAG AA at this size.
+// Letters lighter than the games list's badges, which pass WCAG AA on ak-surface but miss it on this panel's ak-surface2.
 const BADGES: ReadonlyArray<{ result: string; cls: string; word: string }> = [
   { result: "W", cls: "border-[#4caf7d40] bg-[#4caf7d20] text-[#5ab886]", word: "Win" },
   { result: "L", cls: "border-[#8b1a1a60] bg-[#8b1a1a25] text-[#ef6f6f]", word: "Loss" },
