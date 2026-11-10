@@ -178,6 +178,7 @@ export async function getGameById(id: string) {
     home:       game.location === "home",
     result:     game.result as "W" | "L",
     score:      `${game.teamScore}-${game.opponentScore}`,
+    teamScore:  game.teamScore,
     season:     game.seasonLeague.season.name,
     leagueName: game.seasonLeague.league.name,
     sourceUrl:  game.sourceUrl  ?? null,
