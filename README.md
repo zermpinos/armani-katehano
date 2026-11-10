@@ -160,7 +160,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 ### Coach portal (`/coach/<token>`)
 - Separate password and session secret from admin.
 - Roster management and roster-announcement publishing for upcoming games.
-- Forced password change flow.
+- Change password from the portal: the current password is required, and the new hash is stored in the database.
 
 ### Imports & scraping
 - `scrape-game.ts` (fetch + parse) + `domain/import/classify.ts` (game state: scheduled/live/final) + `domain/import/verify.ts` (checks the scrape against itself before review) + `domain/import/resolve.ts` (pure draft resolution) + `import-commit.ts` (persist idempotently, 409 on a re-imported source URL). `import-pipeline.ts` chains URL to reviewable draft and is the single path both the admin's scrape route and the poll go through.
