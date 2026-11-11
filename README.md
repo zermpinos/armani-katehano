@@ -159,7 +159,7 @@ External HTTP fetches that originate from user-supplied URLs are routed through 
 
 ### Coach portal (`/coach/<token>`)
 - Separate password and session secret from admin.
-- Roster management and roster-announcement publishing for upcoming games.
+- Roster management and roster-announcement publishing for upcoming games. The first publish emails confirmed subscribers; an updated roster goes out only on an explicit resend, with rate limits (1 per 10 min, 3/day).
 - Change password from the portal: the current password is required, and the new hash is stored in the database.
 
 ### Imports & scraping
