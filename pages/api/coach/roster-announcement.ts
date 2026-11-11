@@ -8,17 +8,40 @@
  * Protected by coach session (requireCoachAuth).
  */
 
-import { requireCoachAuth } from "@/server/auth";
+import { requireCoachAuth, rlKey, rlKeyBigInt } from "@/server/auth";
 import { auditLog, getClientIp } from "@/server/security/node";
-import { rlKey } from "@/server/auth";
 import prisma from "@/server/db/client";
 import { prodError } from "@/domain/shared/format";
 import { sendRosterAnnouncement } from "@/server/integrations/email/client";
 import { CoachAnnouncementWriteSchema, AnnouncementDeleteSchema } from "@/schemas/roster-announcement";
 import { invalidateForRosterAnnouncement } from "@/server/services/cache-invalidation";
 
-const BLAST_LIMIT  = 10;   // max email blasts per IP per hour
+const BLAST_LIMIT  = 10;   // max roster saves per IP per hour
 const BLAST_WINDOW = 3600; // 1 hour in seconds
+
+// Roster emails are capped globally, not per caller, so every send contends one key.
+const EMAIL_KEY       = "roster_email";
+const EMAIL_GAP_MS    = 10 * 60_000;
+const EMAIL_WINDOW_MS = 86_400_000;
+const EMAIL_DAILY_MAX = 3;
+
+async function claimEmailSlot(): Promise<boolean> {
+  const key = rlKey(EMAIL_KEY);
+  return prisma.$transaction(async (tx) => {
+    // $executeRaw, not $queryRaw: pg_advisory_xact_lock() returns void, which
+    // @prisma/adapter-neon refuses to deserialize (P2010).
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${rlKeyBigInt(EMAIL_KEY)}::bigint)`;
+    const now  = Date.now();
+    const sent = await tx.loginAttempt.findMany({
+      where:  { ip: key, attemptedAt: { gte: new Date(now - EMAIL_WINDOW_MS) } },
+      select: { attemptedAt: true },
+    });
+    if (sent.length >= EMAIL_DAILY_MAX) return false;
+    if (sent.some(r => r.attemptedAt.getTime() > now - EMAIL_GAP_MS)) return false;
+    await tx.loginAttempt.create({ data: { ip: key } });
+    return true;
+  });
+}
 
 async function handler(req: any, res: any) {
   const ip = getClientIp(req);
@@ -47,7 +70,7 @@ async function handler(req: any, res: any) {
 
   // ── POST: create / replace ────────────────────────────────────────────────
   if (req.method === "POST") {
-    // Rate-limit email blasts: max 10 per IP per hour
+    // Rate-limit saves: max 10 per IP per hour
     const blastKey = rlKey(`blast_${ip}`);
     const blastSince = new Date(Date.now() - BLAST_WINDOW * 1000);
     const blastCount = await prisma.loginAttempt.count({
@@ -79,6 +102,13 @@ async function handler(req: any, res: any) {
       });
       if (!existing) return res.status(404).json({ error: "No announcement to resend" });
 
+      if (!(await claimEmailSlot())) {
+        await auditLog("roster_email_rate_limited", { ip, upcomingGameId });
+        return res.status(429).json({
+          error: "Roster emails are limited to one every 10 minutes and 3 a day. Try again later.",
+        });
+      }
+
       try {
         const subscribers = await prisma.subscriber.findMany({ where: { confirmedAt: { not: null } } });
         if (subscribers.length > 0) {
@@ -102,12 +132,12 @@ async function handler(req: any, res: any) {
     }
 
     try {
-      const announcement = await prisma.$transaction(async (tx) => {
+      const { announcement, created } = await prisma.$transaction(async (tx) => {
         const existing = await tx.gameRosterAnnouncement.findUnique({ where: { upcomingGameId } });
 
         if (existing) {
           await tx.gameRosterPlayer.deleteMany({ where: { announcementId: existing.id } });
-          return tx.gameRosterAnnouncement.update({
+          const updated = await tx.gameRosterAnnouncement.update({
             where: { upcomingGameId },
             data: {
               message:     message ?? null,
@@ -118,9 +148,10 @@ async function handler(req: any, res: any) {
             },
             include: { players: { include: { player: { select: { id: true, name: true, number: true, photoUrl: true } } } } },
           });
+          return { announcement: updated, created: false };
         }
 
-        return tx.gameRosterAnnouncement.create({
+        const fresh = await tx.gameRosterAnnouncement.create({
           data: {
             upcomingGameId,
             message: message ?? null,
@@ -130,15 +161,24 @@ async function handler(req: any, res: any) {
           },
           include: { players: { include: { player: { select: { id: true, name: true, number: true, photoUrl: true } } } } },
         });
+        return { announcement: fresh, created: true };
       });
 
       await auditLog("coach_roster_published", { ip, upcomingGameId, playerCount: players.length });
 
       await invalidateForRosterAnnouncement({ revalidate: res.revalidate });
 
-      // Send emails to all confirmed subscribers - awaited so Vercel doesn't kill the function early.
+      // Only the first publish emails; a corrected roster goes out through RESEND EMAIL.
+      let email: "sent" | "update" | "limit" = created ? "sent" : "update";
+      // Awaited so Vercel doesn't kill the function before the send finishes.
       try {
-        const subscribers = await prisma.subscriber.findMany({ where: { confirmedAt: { not: null } } });
+        if (created && !(await claimEmailSlot())) {
+          email = "limit";
+          await auditLog("roster_email_rate_limited", { ip, upcomingGameId });
+        }
+        const subscribers = email === "sent"
+          ? await prisma.subscriber.findMany({ where: { confirmedAt: { not: null } } })
+          : [];
         if (subscribers.length > 0) {
           await sendRosterAnnouncement({
             game: {
@@ -162,7 +202,7 @@ async function handler(req: any, res: any) {
         await auditLog("roster_email_trigger_error", { error: (err as any).message });
       }
 
-      return res.status(200).json({ ok: true, id: announcement.id });
+      return res.status(200).json({ ok: true, id: announcement.id, email });
     } catch (err) {
       await auditLog("coach_roster_error", { ip, error: (err as any).message });
       return res.status(500).json({ error: prodError(err) });

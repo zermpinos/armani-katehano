@@ -73,9 +73,14 @@ export function useRosterPanel({ allPlayers, showToast, onMarkAnnounced, onUnmar
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ upcomingGameId: panelGameId, message: rosterMsg || null, players }),
       });
-      if (!res.ok) { const d = await res.json(); showToast(d.error, "error"); return; }
+      const d = await res.json();
+      if (!res.ok) { showToast(d.error, "error"); return; }
       onMarkAnnounced(panelGameId!);
-      showToast("Roster published!");
+      showToast(
+        d.email === "update" ? "Roster updated. No email sent; use RESEND EMAIL to send it."
+        : d.email === "limit" ? "Roster published. Email limit reached; use RESEND EMAIL later."
+        : "Roster published and emailed to subscribers.",
+      );
       closePanel();
     } finally { setSaving(false); }
   };
